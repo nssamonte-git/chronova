@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -71,6 +73,8 @@ fun AssistantSheet(
     onFinishListening: () -> Unit,
     onMicrophoneDenied: () -> Unit,
     onLeftApp: () -> Unit,
+    onReplay: () -> Unit,
+    onToggleMuted: () -> Unit,
     onCancel: () -> Unit,
     onApply: () -> Unit,
     onDismiss: () -> Unit,
@@ -101,7 +105,21 @@ fun AssistantSheet(
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.assistant_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.assistant_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                // Spoken answers follow spoken commands; this switches them off (remembered).
+                IconButton(onClick = onToggleMuted) {
+                    Icon(
+                        painterResource(if (state.muted) R.drawable.ic_volume_off else R.drawable.ic_volume_up),
+                        contentDescription = stringResource(if (state.muted) R.string.assistant_unmute else R.string.assistant_mute),
+                    )
+                }
+            }
             OutlinedTextField(
                 value = state.input,
                 onValueChange = onInputChange,
@@ -122,7 +140,10 @@ fun AssistantSheet(
                     Text(stringResource(R.string.assistant_thinking), style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
-                is AssistantPhase.Question -> Text(phase.text, style = MaterialTheme.typography.bodyLarge)
+                is AssistantPhase.Question -> {
+                    Text(phase.text, style = MaterialTheme.typography.bodyLarge)
+                    if (state.canReplay && !state.muted) Replay(state.speaking, onReplay)
+                }
                 is AssistantPhase.Problem -> {
                     Text(
                         problemText(phase.problem, projectEnd),
@@ -138,6 +159,9 @@ fun AssistantSheet(
                     }
                 }
                 is AssistantPhase.Preview -> {
+                    // Arrives after the preview (never holds it up), for spoken commands.
+                    state.explanation?.let { Text(it, style = MaterialTheme.typography.bodyLarge, fontStyle = FontStyle.Italic) }
+                    if (state.canReplay && !state.muted) Replay(state.speaking, onReplay)
                     Text(stringResource(R.string.assistant_preview_title), style = MaterialTheme.typography.titleSmall)
                     Column(
                         Modifier
@@ -152,7 +176,7 @@ fun AssistantSheet(
             }
 
             Text(
-                stringResource(R.string.assistant_privacy),
+                stringResource(R.string.assistant_privacy) + if (state.muted) "" else " " + stringResource(R.string.assistant_privacy_spoken),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -180,6 +204,14 @@ fun AssistantSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Replay(speaking: Boolean, onReplay: () -> Unit) {
+    TextButton(onClick = onReplay, enabled = !speaking, contentPadding = ButtonDefaults.TextButtonWithIconContentPadding) {
+        Icon(painterResource(R.drawable.ic_volume_up), contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+        Text(stringResource(R.string.assistant_replay))
     }
 }
 

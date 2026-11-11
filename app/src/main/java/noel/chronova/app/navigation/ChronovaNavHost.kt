@@ -67,7 +67,7 @@ fun ChronovaNavHost(container: AppContainer, modifier: Modifier = Modifier) {
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(container.projectRepository)),
                 assistant = viewModel(
-                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder),
+                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.speechSettings),
                 ),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
             )

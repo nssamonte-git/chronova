@@ -166,6 +166,10 @@
     <string name="assistant_open_settings">Settings</string>
     <string name="assistant_mic_unavailable">The microphone isn’t available right now. Another app may be using it.</string>
     <string name="assistant_nothing_heard">I didn’t catch anything. Try again a little closer to the phone.</string>
+    <string name="assistant_replay">Replay</string>
+    <string name="assistant_mute">Turn spoken answers off</string>
+    <string name="assistant_unmute">Turn spoken answers on</string>
+    <string name="assistant_privacy_spoken">Spoken answers are written by OpenAI and voiced by ElevenLabs.</string>
     <string name="assistant_too_long">That was too long for one change. Try a shorter instruction.</string>
     <string name="assistant_signed_out">Sign in (Account) to use the assistant.</string>
     <string name="assistant_offline">You’re offline. The assistant needs an internet connection.</string>

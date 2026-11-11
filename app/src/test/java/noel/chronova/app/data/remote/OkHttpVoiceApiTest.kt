@@ -1,12 +1,15 @@
 package noel.chronova.app.data.remote
 
 import java.io.File
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.schedule.ScheduleState
+import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.VoiceContext
 import okhttp3.OkHttpClient
@@ -103,7 +106,7 @@ class OkHttpVoiceApiTest {
         reply(200, """{"text":" push review by an hour ","language":"en"}""")
         val audio = File.createTempFile("command", ".m4a").apply { writeBytes(byteArrayOf(0, 0, 0, 24, 102, 116, 121, 112)) }
 
-        assertEquals("push review by an hour", api.transcribe("token-1", audio, 2_400, "en"))
+        assertEquals(Transcript("push review by an hour", "en"), api.transcribe("token-1", audio, 2_400, "en"))
 
         val request = server.takeRequest()
         assertEquals("/v1/voice/transcribe", request.url.encodedPath)
@@ -133,5 +136,47 @@ class OkHttpVoiceApiTest {
         val body = server.takeRequest().body!!.utf8()
         assertTrue(body, !body.contains("name=\"language\""))
         audio.delete()
+    }
+
+    @Test
+    fun explainSendsExactlyEachChangesFieldsAndDecodesTheAudio() = runTest {
+        reply(200, """{"text":"Build moves to 11.","audio":"AQID","audioType":"audio/mpeg"}""")
+        val answer = api.explain(
+            "token-1",
+            ExplainRequest.Changes(
+                LocalDate.of(2026, 11, 12),
+                listOf(
+                    ExplainedChange("removed", task = "QA"),
+                    ExplainedChange("added", task = "Demo", toStart = LocalDateTime.of(2026, 11, 13, 9, 0), toEnd = LocalDateTime.of(2026, 11, 13, 10, 0)),
+                ),
+                "en",
+            ),
+        )
+
+        val request = server.takeRequest()
+        assertEquals("/v1/voice/explain", request.url.encodedPath)
+        assertEquals(
+            """{"today":"2026-11-12","changes":[{"change":"removed","task":"QA"},""" +
+                """{"change":"added","task":"Demo","toStart":"2026-11-13T09:00","toEnd":"2026-11-13T10:00"}],"language":"en"}""",
+            request.body!!.utf8(),
+        )
+        assertEquals("Build moves to 11.", answer.text)
+        assertEquals(listOf<Byte>(1, 2, 3), answer.audio!!.toList())
+        assertEquals("audio/mpeg", answer.audioType)
+    }
+
+    @Test
+    fun aQuestionIsSentAsItIsAndMissingOrBrokenAudioIsTextOnly() = runTest {
+        reply(200, """{"text":"Which review?","audio":null,"audioType":null}""")
+        reply(200, """{"text":"Which review?","audio":"%%%not base64","audioType":"audio/mpeg"}""")
+
+        val first = api.explain("t", ExplainRequest.Question("Which review?", null))
+        assertEquals("""{"question":"Which review?"}""", server.takeRequest().body!!.utf8())
+        assertEquals(null, first.audio)
+
+        val second = api.explain("t", ExplainRequest.Question("Which review?", null))
+        assertEquals("Which review?", second.text)
+        assertEquals(null, second.audio)
+        assertEquals(null, second.audioType)
     }
 }

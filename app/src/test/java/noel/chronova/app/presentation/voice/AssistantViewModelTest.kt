@@ -1,11 +1,13 @@
 package noel.chronova.app.presentation.voice
 
 import java.io.File
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -16,19 +18,27 @@ import kotlinx.coroutines.test.setMain
 import noel.chronova.app.auth.AuthOutcome
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.remote.ExplainRequest
+import noel.chronova.app.data.remote.SpokenAnswer
+import noel.chronova.app.data.remote.Transcript
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
 import noel.chronova.app.domain.SampleTasks
+import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.presentation.timeline.FakeProjectRepository
 import noel.chronova.app.voice.RecorderUnavailable
 import noel.chronova.app.voice.Recording
+import noel.chronova.app.voice.SpeechPlayer
+import noel.chronova.app.voice.SpeechSettings
 import noel.chronova.app.voice.VoiceRecorder
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -57,12 +67,24 @@ private class FakeVoiceApi : VoiceApi {
     var heard = "push review by an hour"
     var transcribeFailure: VoiceApiException.Kind? = null
     val uploads = mutableListOf<Triple<Boolean, Long, String?>>()
+    var heardLanguage: String? = "fil"
+    val explained = mutableListOf<ExplainRequest>()
+    var explainGate: CompletableDeferred<Unit>? = null
+    var explainFailure: VoiceApiException.Kind? = null
+    var spokenAudio: ByteArray? = byteArrayOf(1, 2, 3)
 
-    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): String {
+    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): Transcript {
         uploads += Triple(audio.exists(), durationMs, language)
         gate?.await()
         transcribeFailure?.let { throw VoiceApiException(it) }
-        return heard
+        return Transcript(heard, heardLanguage)
+    }
+
+    override suspend fun explain(accessToken: String, request: ExplainRequest): SpokenAnswer {
+        explained += request
+        explainGate?.await()
+        explainFailure?.let { throw VoiceApiException(it) }
+        return SpokenAnswer("Review moves an hour later. Tap Apply to confirm.", spokenAudio, spokenAudio?.let { "audio/mpeg" })
     }
 
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
@@ -101,6 +123,30 @@ private class FakeRecorder(private val dir: File) : VoiceRecorder {
     }
 }
 
+private class FakePlayer : SpeechPlayer {
+    override val playing = MutableStateFlow(false)
+    val played = mutableListOf<ByteArray>()
+    var released = false
+
+    override fun play(audio: ByteArray) {
+        played += audio
+        playing.value = true
+    }
+
+    override fun stop() {
+        playing.value = false
+    }
+
+    override fun release() {
+        released = true
+        stop()
+    }
+}
+
+private class FakeSpeechSettings : SpeechSettings {
+    override var muted = false
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class AssistantViewModelTest {
 
@@ -110,6 +156,8 @@ class AssistantViewModelTest {
     private val auth = FakeAuth(AuthState.SignedIn("u1", "ana@example.com"))
     private val online = MutableStateFlow(true)
     private val recorder = FakeRecorder(kotlin.io.path.createTempDirectory("voice").toFile())
+    private val player = FakePlayer()
+    private val speechSettings = FakeSpeechSettings()
     private lateinit var viewModel: AssistantViewModel
 
     private val review get() = repository.tasks.value.first { it.id == "review" }
@@ -126,7 +174,7 @@ class AssistantViewModelTest {
         Dispatchers.resetMain()
         Dispatchers.setMain(dispatcher)
         return AssistantViewModel(
-            SampleTasks.PROJECT_ID, repository, api, auth, online, recorder, zone,
+            SampleTasks.PROJECT_ID, repository, api, auth, online, recorder, player, speechSettings, zone,
             clock = { 1_000L }, newId = { "new" }, language = { "en" },
         )
     }
@@ -374,5 +422,140 @@ class AssistantViewModelTest {
         viewModel.startListening()
         assertFalse(recorder.recording)
         assertEquals(AssistantPhase.Problem(AssistantProblem.SignedOut), viewModel.state.value.phase)
+    }
+
+    private fun speak() {
+        viewModel.open()
+        viewModel.startListening()
+        viewModel.finishListening()
+    }
+
+    @Test
+    fun aSpokenCommandIsPreviewedFirstThenExplainedAloud() = runTest {
+        api.answer = shiftReview
+        api.explainGate = CompletableDeferred()
+        speak()
+
+        // The preview is up before the spoken answer arrives.
+        assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)
+        assertNull(viewModel.state.value.explanation)
+        assertTrue(player.played.isEmpty())
+
+        api.explainGate!!.complete(Unit)
+        val state = viewModel.state.value
+        assertEquals("Review moves an hour later. Tap Apply to confirm.", state.explanation)
+        assertTrue(state.canReplay)
+        assertTrue(state.speaking)
+        assertArrayEquals(byteArrayOf(1, 2, 3), player.played.single())
+
+        val request = api.explained.single() as ExplainRequest.Changes
+        assertEquals("fil", request.language) // the language it was heard in
+        assertEquals(
+            listOf(
+                ExplainedChange(
+                    "moved", task = "Review",
+                    fromStart = LocalDateTime.of(2026, 3, 2, 16, 0), fromEnd = LocalDateTime.of(2026, 3, 2, 17, 0),
+                    toStart = LocalDateTime.of(2026, 3, 2, 17, 0), toEnd = LocalDateTime.of(2026, 3, 2, 18, 0),
+                ),
+            ),
+            request.changes,
+        )
+
+        viewModel.replay()
+        assertEquals(2, player.played.size)
+    }
+
+    @Test
+    fun typedCommandsAreAnsweredOnScreenOnly() = runTest {
+        api.answer = shiftReview
+        ask("push review by an hour")
+        assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)
+        assertTrue(api.explained.isEmpty())
+        assertFalse(viewModel.state.value.canReplay)
+    }
+
+    @Test
+    fun aSpokenQuestionIsAskedAloud() = runTest {
+        api.answer = { Proposal(it.revision, "clarification", emptyList(), "Which review?", null) }
+        api.heardLanguage = null
+        speak()
+        assertEquals(AssistantPhase.Question("Which review?"), viewModel.state.value.phase)
+        assertEquals(ExplainRequest.Question("Which review?", "en"), api.explained.single())
+        assertNull(viewModel.state.value.explanation) // the question is already on screen
+        assertEquals(1, player.played.size)
+    }
+
+    @Test
+    fun applyCancelOrLeavingStopsTheVoice() = runTest {
+        api.answer = shiftReview
+        speak()
+        assertTrue(player.playing.value)
+        viewModel.onLeftApp()
+        assertFalse(player.playing.value)
+
+        viewModel.replay()
+        viewModel.apply()
+        assertFalse(player.playing.value)
+        assertNull(viewModel.state.value.explanation)
+
+        speak()
+        viewModel.close()
+        assertFalse(player.playing.value)
+        assertFalse(viewModel.state.value.canReplay)
+    }
+
+    @Test
+    fun anAnswerArrivingAfterCancelIsNeverPlayed() = runTest {
+        api.answer = shiftReview
+        api.explainGate = CompletableDeferred()
+        speak()
+        viewModel.close()
+        api.explainGate!!.complete(Unit)
+        assertTrue(player.played.isEmpty())
+        assertNull(viewModel.state.value.explanation)
+    }
+
+    @Test
+    fun withoutSpeechTheWordsStillShowAndFailuresChangeNothing() = runTest {
+        api.answer = shiftReview
+        api.spokenAudio = null
+        speak()
+        assertEquals("Review moves an hour later. Tap Apply to confirm.", viewModel.state.value.explanation)
+        assertFalse(viewModel.state.value.canReplay)
+        assertTrue(player.played.isEmpty())
+
+        api.explainFailure = VoiceApiException.Kind.UNAVAILABLE
+        speak()
+        assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)
+        assertNull(viewModel.state.value.explanation)
+    }
+
+    @Test
+    fun mutingStopsTheVoiceSkipsTheRequestAndIsRemembered() = runTest {
+        api.answer = shiftReview
+        speak()
+        viewModel.toggleMuted()
+        assertFalse(player.playing.value)
+        assertTrue(speechSettings.muted)
+        assertTrue(viewModel.state.value.muted)
+
+        api.explained.clear()
+        speak()
+        assertTrue(api.explained.isEmpty())
+        viewModel.replay()
+        assertEquals(1, player.played.size) // only the first, before muting
+
+        viewModel = newViewModel(UnconfinedTestDispatcher())
+        assertTrue(viewModel.state.value.muted)
+        viewModel.toggleMuted()
+        assertFalse(speechSettings.muted)
+    }
+
+    @Test
+    fun thePlayerIsReleasedWithTheAssistant() {
+        val store = androidx.lifecycle.ViewModelStore()
+        store.put("assistant", viewModel)
+        store.clear()
+        assertTrue(player.released)
     }
 }

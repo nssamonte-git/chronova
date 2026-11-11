@@ -22,7 +22,11 @@ import noel.chronova.app.data.sync.RoomLocalSyncStore
 import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.onlineFlow
+import noel.chronova.app.voice.AndroidSpeechPlayer
 import noel.chronova.app.voice.AndroidVoiceRecorder
+import noel.chronova.app.voice.PreferencesSpeechSettings
+import noel.chronova.app.voice.SpeechPlayer
+import noel.chronova.app.voice.SpeechSettings
 import noel.chronova.app.voice.VoiceRecorder
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
@@ -86,6 +90,11 @@ class AppContainer(private val context: Context) {
 
     /** A microphone recorder for one assistant (one recording at a time). */
     fun newVoiceRecorder(): VoiceRecorder = AndroidVoiceRecorder(context)
+
+    /** A player for one assistant's spoken answers. */
+    fun newSpeechPlayer(): SpeechPlayer = AndroidSpeechPlayer(context)
+
+    val speechSettings: SpeechSettings = PreferencesSpeechSettings(context.getSharedPreferences("chronova_voice", Context.MODE_PRIVATE))
 
     /** Whether the internet is reachable (each collector gets its own callback). */
     val online: Flow<Boolean> = onlineFlow(context)

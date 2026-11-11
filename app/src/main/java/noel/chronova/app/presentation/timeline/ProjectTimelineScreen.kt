@@ -115,6 +115,8 @@ fun ProjectTimelineScreen(
                     onFinishListening = assistant::finishListening,
                     onMicrophoneDenied = assistant::onMicrophoneDenied,
                     onLeftApp = assistant::onLeftApp,
+                    onReplay = assistant::replay,
+                    onToggleMuted = assistant::toggleMuted,
                     onCancel = assistant::cancel,
                     onApply = assistant::apply,
                     onDismiss = assistant::close,
