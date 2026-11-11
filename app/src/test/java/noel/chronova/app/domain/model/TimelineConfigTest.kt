@@ -47,9 +47,29 @@ class TimelineConfigTest {
     }
 
     @Test
-    fun snapOnlyAcceptsSupportedIntervals() {
+    fun snapOnlyAcceptsTheScalesIntervals() {
         assertEquals(30, TimelineConfig().withSnap(30).snapMinutes)
         assertTrue(runCatching { TimelineConfig().withSnap(20) }.isFailure)
+        assertTrue(runCatching { TimelineConfig().withSnap(24 * 60) }.isFailure)
+        assertEquals(24 * 60, TimelineConfig().withTimeScale(TimeScale.WEEKS).withSnap(24 * 60).snapMinutes)
+    }
+
+    @Test
+    fun switchingScaleKeepsSnapOnlyWhenOffered() {
+        val hourly = TimelineConfig().withSnap(60)
+        assertEquals(60, hourly.withTimeScale(TimeScale.DAYS).snapMinutes)
+        assertEquals(24 * 60, hourly.withTimeScale(TimeScale.WEEKS).snapMinutes)
+        assertEquals(15, hourly.withTimeScale(TimeScale.MONTHS).withTimeScale(TimeScale.HOURS).snapMinutes)
+    }
+
+    @Test
+    fun restoreRepairsOutOfRangeValues() {
+        val restored = TimelineConfig.restore("WEEKS", unitWidthDp = 5_000f, snapMinutes = 15, rowHeightDp = 10f)
+        assertEquals(TimeScale.WEEKS, restored.timeScale)
+        assertEquals(TimeScale.WEEKS.maxUnitWidthDp, restored.unitWidthDp)
+        assertEquals(24 * 60, restored.snapMinutes)
+        assertEquals(TimelineConfig.MIN_ROW_HEIGHT_DP, restored.rowHeightDp)
+        assertEquals(TimelineConfig(), TimelineConfig.restore("YEARS", 1f, 1, 1f))
     }
 
     @Test

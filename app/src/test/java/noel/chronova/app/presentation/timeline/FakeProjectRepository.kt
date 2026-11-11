@@ -8,6 +8,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
 
 /** In-memory [ProjectRepository] for ViewModel tests. */
@@ -73,6 +74,14 @@ class FakeProjectRepository(
 
     override suspend fun deleteTask(taskId: String) {
         tasks.value = tasks.value.filterNot { it.id == taskId }
+    }
+
+    val viewSettings = mutableMapOf<String, TimelineConfig>()
+
+    override suspend fun viewSettings(projectId: String): TimelineConfig? = viewSettings[projectId]
+
+    override suspend fun saveViewSettings(projectId: String, config: TimelineConfig) {
+        viewSettings[projectId] = config
     }
 
     override suspend fun seedSampleIfFirstLaunch() = Unit

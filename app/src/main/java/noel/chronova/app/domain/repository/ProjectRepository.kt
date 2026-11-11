@@ -6,6 +6,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TimelineConfig
 
 /**
  * Local source of truth for projects and their tasks. Every write is local first;
@@ -45,6 +46,11 @@ interface ProjectRepository {
 
     /** Deletes the task (as a tombstone until synced). */
     suspend fun deleteTask(taskId: String)
+
+    /** How this project's timeline was last viewed on this device, or null if never. */
+    suspend fun viewSettings(projectId: String): TimelineConfig?
+
+    suspend fun saveViewSettings(projectId: String, config: TimelineConfig)
 
     /** Inserts the sample project the first time the app runs; no-op afterwards. */
     suspend fun seedSampleIfFirstLaunch()

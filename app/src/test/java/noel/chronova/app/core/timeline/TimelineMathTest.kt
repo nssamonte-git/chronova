@@ -3,6 +3,7 @@ package noel.chronova.app.core.timeline
 import noel.chronova.app.core.timeline.Fixtures.at
 import noel.chronova.app.core.timeline.Fixtures.origin
 import noel.chronova.app.domain.model.TimeScale
+import noel.chronova.app.domain.model.TimelineWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -67,18 +68,52 @@ class TimelineMathTest {
         }
     }
 
+    private val utc = java.time.ZoneOffset.UTC
+
+    private fun window(from: java.time.LocalDate, days: Long, zone: java.time.ZoneId = utc) = TimelineWindow(
+        from.atStartOfDay(zone).toInstant().toEpochMilli(),
+        from.plusDays(days).atStartOfDay(zone).toInstant().toEpochMilli(),
+    )
+
     @Test
     fun ticks_hoursHaveHalfHourMinors() {
-        val ticks = TimelineMath.ticks(lengthMillis = 2 * HOUR, scale = TimeScale.HOURS)
+        val ticks = TimelineMath.ticks(TimelineWindow(0L, 2 * HOUR), utc, TimeScale.HOURS)
         assertEquals(listOf(0L, 30 * MINUTE, 60 * MINUTE, 90 * MINUTE, 120 * MINUTE), ticks.map { it.offsetMillis })
         assertEquals(listOf(true, false, true, false, true), ticks.map { it.isMajor })
+        assertEquals(listOf(0, -1, 1, -1, 2), ticks.map { it.majorIndex })
     }
 
     @Test
     fun ticks_daysHaveSixHourMinors() {
-        val ticks = TimelineMath.ticks(lengthMillis = 3 * 24 * HOUR, scale = TimeScale.DAYS)
+        val ticks = TimelineMath.ticks(window(java.time.LocalDate.of(2026, 3, 2), 3), utc, TimeScale.DAYS)
         assertEquals(13, ticks.size)
         assertEquals(4, ticks.count { it.isMajor })
         assertTrue(ticks.filter { it.isMajor }.all { it.offsetMillis % (24 * HOUR) == 0L })
+    }
+
+    @Test
+    fun ticks_daysFollowLocalMidnightsAcrossDst() {
+        // Europe/Berlin springs forward on Sun 29 Mar 2026: that day is 23 hours long.
+        val zone = java.time.ZoneId.of("Europe/Berlin")
+        val ticks = TimelineMath.ticks(window(java.time.LocalDate.of(2026, 3, 28), 3, zone), zone, TimeScale.DAYS)
+        val majors = ticks.filter { it.isMajor }.map { it.offsetMillis }
+        assertEquals(listOf(0L, 24 * HOUR, 47 * HOUR, 71 * HOUR), majors)
+    }
+
+    @Test
+    fun ticks_weeksAreMajorOnMondays() {
+        // 2 Mar 2026 is a Monday; 14 days -> majors on 2 and 9 and 16 Mar (the window end).
+        val ticks = TimelineMath.ticks(window(java.time.LocalDate.of(2026, 3, 2), 14), utc, TimeScale.WEEKS)
+        assertEquals(15, ticks.size)
+        assertEquals(listOf(0L, 7 * 24 * HOUR, 14 * 24 * HOUR), ticks.filter { it.isMajor }.map { it.offsetMillis })
+    }
+
+    @Test
+    fun ticks_monthsUseRealMonthLengths() {
+        // Feb 2026 has 28 days, March 31.
+        val ticks = TimelineMath.ticks(window(java.time.LocalDate.of(2026, 2, 1), 59), utc, TimeScale.MONTHS)
+        assertEquals(listOf(0L, 28 * 24 * HOUR, 59 * 24 * HOUR), ticks.filter { it.isMajor }.map { it.offsetMillis })
+        // Minors are Mondays: 2, 9, 16, 23 Feb; 2, 9, 16, 23, 30 Mar.
+        assertEquals(9, ticks.count { !it.isMajor })
     }
 }

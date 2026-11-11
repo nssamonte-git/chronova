@@ -17,6 +17,18 @@ object TimeFormat {
     fun day(millis: Long, zone: ZoneId): String =
         DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))
 
+    /** e.g. "Tue 3". */
+    fun shortDay(millis: Long, zone: ZoneId): String =
+        DateTimeFormatter.ofPattern("EEE d", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))
+
+    /** e.g. "9 Mar". */
+    fun dayMonth(millis: Long, zone: ZoneId): String =
+        DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))
+
+    /** e.g. "Mar 2026". */
+    fun month(millis: Long, zone: ZoneId): String =
+        DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))
+
     fun range(startMillis: Long, endMillis: Long, zone: ZoneId): String =
         "${clock(startMillis, zone)} – ${clock(endMillis, zone)}"
 

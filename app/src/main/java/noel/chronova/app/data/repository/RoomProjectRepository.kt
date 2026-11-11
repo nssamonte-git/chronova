@@ -7,6 +7,7 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import noel.chronova.app.data.local.ChronovaDatabase
+import noel.chronova.app.data.local.ViewSettingsEntity
 import noel.chronova.app.data.local.toDomain
 import noel.chronova.app.data.local.toEntity
 import noel.chronova.app.domain.SampleTasks
@@ -14,6 +15,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
 
 /**
@@ -84,6 +86,17 @@ class RoomProjectRepository(
 
     override suspend fun deleteTask(taskId: String) {
         db.taskDao().markDeleted(taskId, clock())
+    }
+
+    override suspend fun viewSettings(projectId: String): TimelineConfig? =
+        db.viewSettingsDao().get(projectId)?.let {
+            TimelineConfig.restore(it.scale, it.unitWidthDp, it.snapMinutes, it.rowHeightDp)
+        }
+
+    override suspend fun saveViewSettings(projectId: String, config: TimelineConfig) {
+        db.viewSettingsDao().upsert(
+            ViewSettingsEntity(projectId, config.timeScale.name, config.unitWidthDp, config.snapMinutes, config.rowHeightDp),
+        )
     }
 
     override suspend fun seedSampleIfFirstLaunch() {

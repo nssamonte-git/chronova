@@ -3,30 +3,57 @@ package noel.chronova.app.domain.model
 import kotlin.math.roundToInt
 
 /**
- * Unit labelled on the time axis. [minutes] is the length of one unit; zoom
- * (the on-screen width of one unit) has its own default and limits per scale.
+ * Unit labelled on the time axis. [minutes] is the nominal length of one unit
+ * (months use the average month), which with the zoom gives the on-screen scale;
+ * tick positions themselves follow the real calendar.
+ *
+ * @param minorMinutes nominal spacing of the unlabelled-by-default minor ticks.
+ * @param snapOptions snap intervals offered for this scale, in minutes; the first is the default.
  */
 enum class TimeScale(
     val minutes: Long,
+    val minorMinutes: Long,
     val defaultUnitWidthDp: Float,
     val minUnitWidthDp: Float,
     val maxUnitWidthDp: Float,
+    val snapOptions: List<Int>,
 ) {
-    HOURS(minutes = 60, defaultUnitWidthDp = 96f, minUnitWidthDp = 48f, maxUnitWidthDp = 288f),
-    DAYS(minutes = 24 * 60, defaultUnitWidthDp = 480f, minUnitWidthDp = 240f, maxUnitWidthDp = 1440f),
+    HOURS(
+        minutes = 60, minorMinutes = 30,
+        defaultUnitWidthDp = 96f, minUnitWidthDp = 48f, maxUnitWidthDp = 288f,
+        snapOptions = listOf(15, 30, 60),
+    ),
+    DAYS(
+        minutes = DAY, minorMinutes = 6 * 60,
+        defaultUnitWidthDp = 480f, minUnitWidthDp = 240f, maxUnitWidthDp = 1440f,
+        snapOptions = listOf(60, 6 * 60, DAY.toInt()),
+    ),
+    WEEKS(
+        minutes = 7 * DAY, minorMinutes = DAY,
+        defaultUnitWidthDp = 336f, minUnitWidthDp = 168f, maxUnitWidthDp = 1008f,
+        snapOptions = listOf(DAY.toInt()),
+    ),
+    MONTHS(
+        // 365.25 / 12 days.
+        minutes = 43_830, minorMinutes = 7 * DAY,
+        defaultUnitWidthDp = 300f, minUnitWidthDp = 150f, maxUnitWidthDp = 900f,
+        snapOptions = listOf(DAY.toInt(), 7 * DAY.toInt()),
+    ),
 }
+
+private const val DAY = 24 * 60L
 
 /**
  * User-adjustable view settings. None of these change task timestamps — they only
  * change how time is projected onto the screen and how edits are snapped.
  *
  * @param unitWidthDp zoom: on-screen width of one [timeScale] unit.
- * @param snapMinutes grid that drag/resize results are rounded to.
+ * @param snapMinutes grid that drag/resize results are rounded to; one of the scale's options.
  */
 data class TimelineConfig(
     val timeScale: TimeScale = TimeScale.HOURS,
     val unitWidthDp: Float = timeScale.defaultUnitWidthDp,
-    val snapMinutes: Int = 15,
+    val snapMinutes: Int = timeScale.snapOptions.first(),
     val rowHeightDp: Float = DEFAULT_ROW_HEIGHT_DP,
 ) {
     /** Zoom relative to the scale's default, e.g. 100 for the default width. */
@@ -37,9 +64,20 @@ data class TimelineConfig(
     val canGrowRows: Boolean get() = rowHeightDp < MAX_ROW_HEIGHT_DP
     val canShrinkRows: Boolean get() = rowHeightDp > MIN_ROW_HEIGHT_DP
 
-    /** Switching scale starts at that scale's default zoom. */
+    /**
+     * Switching scale starts at that scale's default zoom. The snap interval is kept
+     * when the new scale offers it, otherwise it falls back to the scale's default.
+     */
     fun withTimeScale(scale: TimeScale): TimelineConfig =
-        if (scale == timeScale) this else copy(timeScale = scale, unitWidthDp = scale.defaultUnitWidthDp)
+        if (scale == timeScale) {
+            this
+        } else {
+            copy(
+                timeScale = scale,
+                unitWidthDp = scale.defaultUnitWidthDp,
+                snapMinutes = snapMinutes.takeIf { it in scale.snapOptions } ?: scale.snapOptions.first(),
+            )
+        }
 
     fun zoomedIn(): TimelineConfig = withUnitWidth(unitWidthDp * ZOOM_STEP)
 
@@ -48,7 +86,7 @@ data class TimelineConfig(
     fun zoomReset(): TimelineConfig = copy(unitWidthDp = timeScale.defaultUnitWidthDp)
 
     fun withSnap(minutes: Int): TimelineConfig {
-        require(minutes in SNAP_OPTIONS) { "Unsupported snap interval: $minutes" }
+        require(minutes in timeScale.snapOptions) { "Unsupported snap interval for $timeScale: $minutes" }
         return copy(snapMinutes = minutes)
     }
 
@@ -65,7 +103,22 @@ data class TimelineConfig(
         const val MIN_ROW_HEIGHT_DP = 40f
         const val MAX_ROW_HEIGHT_DP = 80f
         const val ROW_HEIGHT_STEP_DP = 8f
-        val SNAP_OPTIONS = listOf(15, 30, 60)
+
+        /**
+         * Rebuilds a config from stored values, replacing anything out of range
+         * (unknown scale, unsupported snap, zoom or row height outside the limits).
+         */
+        fun restore(scaleName: String, unitWidthDp: Float, snapMinutes: Int, rowHeightDp: Float): TimelineConfig {
+            val scale = TimeScale.entries.firstOrNull { it.name == scaleName } ?: return TimelineConfig()
+            return TimelineConfig(
+                timeScale = scale,
+                unitWidthDp = unitWidthDp.takeIf { !it.isNaN() }?.coerceIn(scale.minUnitWidthDp, scale.maxUnitWidthDp)
+                    ?: scale.defaultUnitWidthDp,
+                snapMinutes = snapMinutes.takeIf { it in scale.snapOptions } ?: scale.snapOptions.first(),
+                rowHeightDp = rowHeightDp.takeIf { !it.isNaN() }?.coerceIn(MIN_ROW_HEIGHT_DP, MAX_ROW_HEIGHT_DP)
+                    ?: DEFAULT_ROW_HEIGHT_DP,
+            )
+        }
     }
 }
 

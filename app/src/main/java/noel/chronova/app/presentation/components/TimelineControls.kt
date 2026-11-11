@@ -58,7 +58,7 @@ fun TimelineControls(
             SegmentedChoice(
                 options = TimeScale.entries,
                 selected = config.timeScale,
-                label = { if (it == TimeScale.HOURS) "Hours" else "Days" },
+                label = ::scaleLabel,
                 onSelect = onTimeScale,
             )
         }
@@ -70,9 +70,9 @@ fun TimelineControls(
         }
         ControlGroup("Snap") {
             SegmentedChoice(
-                options = TimelineConfig.SNAP_OPTIONS,
+                options = config.timeScale.snapOptions,
                 selected = config.snapMinutes,
-                label = { "${it}m" },
+                label = ::snapLabel,
                 onSelect = onSnap,
             )
         }
@@ -135,6 +135,21 @@ private fun ValueText(text: String) {
         textAlign = TextAlign.Center,
         modifier = Modifier.widthIn(min = 44.dp),
     )
+}
+
+private fun scaleLabel(scale: TimeScale): String = when (scale) {
+    TimeScale.HOURS -> "Hours"
+    TimeScale.DAYS -> "Days"
+    TimeScale.WEEKS -> "Weeks"
+    TimeScale.MONTHS -> "Months"
+}
+
+/** 15m, 30m, 1h, 6h, 1d, 1w. */
+private fun snapLabel(minutes: Int): String = when {
+    minutes % (7 * 24 * 60) == 0 -> "${minutes / (7 * 24 * 60)}w"
+    minutes % (24 * 60) == 0 -> "${minutes / (24 * 60)}d"
+    minutes % 60 == 0 -> "${minutes / 60}h"
+    else -> "${minutes}m"
 }
 
 /** Material "remove" glyph; defined locally because it is only in the large extended icon set. */

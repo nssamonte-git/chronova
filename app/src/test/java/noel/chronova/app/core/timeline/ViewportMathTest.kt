@@ -37,7 +37,8 @@ class ViewportMathTest {
 
     @Test
     fun visibleTicks_findsTicksInsideTheRange() {
-        val ticks = TimelineMath.ticks(lengthMillis = 4 * HOUR, scale = noel.chronova.app.domain.model.TimeScale.HOURS)
+        val window = noel.chronova.app.domain.model.TimelineWindow(0L, 4 * HOUR)
+        val ticks = TimelineMath.ticks(window, java.time.ZoneOffset.UTC, noel.chronova.app.domain.model.TimeScale.HOURS)
         // Ticks every 30 min: 0, 30, 60, ... 240. Range 45..120 min holds 60, 90, 120.
         val range = TimelineMath.visibleTicks(ticks, 45 * MINUTE, 120 * MINUTE)
         assertEquals(listOf(60 * MINUTE, 90 * MINUTE, 120 * MINUTE), range.map { ticks[it].offsetMillis })

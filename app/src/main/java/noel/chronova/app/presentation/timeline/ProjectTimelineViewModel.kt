@@ -38,7 +38,8 @@ class ProjectTimelineViewModel(
     private val today: () -> LocalDate = { LocalDate.now(zone) },
 ) : ViewModel() {
 
-    private val config = MutableStateFlow(TimelineConfig())
+    /** Null until this project's saved view settings have been read. */
+    private val config = MutableStateFlow<TimelineConfig?>(null)
     private val selectedTaskId = MutableStateFlow<String?>(null)
 
     private val _taskEditor = MutableStateFlow<TaskEditorState?>(null)
@@ -59,6 +60,9 @@ class ProjectTimelineViewModel(
     ) { project, tasks, config, selected ->
         if (project == null) {
             TimelineScreenState.NotFound
+        } else if (config == null) {
+            // Waiting for saved settings, so the first frame is already at the right scale and zoom.
+            TimelineScreenState.Loading
         } else {
             TimelineScreenState.Ready(
                 TimelineUiState(
@@ -194,8 +198,17 @@ class ProjectTimelineViewModel(
 
     fun changeRowHeight(steps: Int) = updateConfig { it.withRowHeightStep(steps) }
 
+    /** Applies a view change and remembers it for this project on this device. */
     fun updateConfig(transform: (TimelineConfig) -> TimelineConfig) {
-        config.update(transform)
+        val current = config.value ?: return
+        val next = transform(current)
+        if (next == current) return
+        config.value = next
+        viewModelScope.launch { repository.saveViewSettings(projectId, next) }
+    }
+
+    init {
+        viewModelScope.launch { config.value = repository.viewSettings(projectId) ?: TimelineConfig() }
     }
 
     companion object {

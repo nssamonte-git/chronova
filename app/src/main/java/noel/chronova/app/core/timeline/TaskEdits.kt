@@ -25,12 +25,12 @@ object TaskEdits {
     fun move(
         original: SchedulerTask,
         deltaMillis: Long,
-        snapMillis: Long,
+        grid: SnapGrid,
         window: TimelineWindow,
     ): SchedulerTask {
         val duration = original.durationMillis
-        val start = TimeSnapper.snap(original.startMillis + deltaMillis, snapMillis, window.startMillis)
-            .coerceAtMost(TimeSnapper.floor(window.endMillis - duration, snapMillis, window.startMillis))
+        val start = grid.nearest(original.startMillis + deltaMillis)
+            .coerceAtMost(grid.floor(window.endMillis - duration))
             .coerceAtLeast(window.startMillis)
         return original.copy(startMillis = start, endMillis = start + duration)
     }
@@ -42,12 +42,12 @@ object TaskEdits {
     fun resizeStart(
         original: SchedulerTask,
         deltaMillis: Long,
-        snapMillis: Long,
+        grid: SnapGrid,
         window: TimelineWindow,
     ): SchedulerTask {
-        val start = TimeSnapper.snap(original.startMillis + deltaMillis, snapMillis, window.startMillis)
+        val start = grid.nearest(original.startMillis + deltaMillis)
             .coerceAtLeast(window.startMillis)
-            .coerceAtMost(TimeSnapper.floor(original.endMillis - MIN_DURATION_MILLIS, snapMillis, window.startMillis))
+            .coerceAtMost(grid.floor(original.endMillis - MIN_DURATION_MILLIS))
         return original.copy(startMillis = start)
     }
 
@@ -58,12 +58,12 @@ object TaskEdits {
     fun resizeEnd(
         original: SchedulerTask,
         deltaMillis: Long,
-        snapMillis: Long,
+        grid: SnapGrid,
         window: TimelineWindow,
     ): SchedulerTask {
-        val end = TimeSnapper.snap(original.endMillis + deltaMillis, snapMillis, window.startMillis)
+        val end = grid.nearest(original.endMillis + deltaMillis)
             .coerceAtMost(window.endMillis)
-            .coerceAtLeast(TimeSnapper.ceil(original.startMillis + MIN_DURATION_MILLIS, snapMillis, window.startMillis))
+            .coerceAtLeast(grid.ceil(original.startMillis + MIN_DURATION_MILLIS))
         return original.copy(endMillis = end)
     }
 
@@ -72,11 +72,11 @@ object TaskEdits {
         mode: GestureMode,
         original: SchedulerTask,
         deltaMillis: Long,
-        snapMillis: Long,
+        grid: SnapGrid,
         window: TimelineWindow,
     ): SchedulerTask = when (mode) {
-        GestureMode.MOVE -> move(original, deltaMillis, snapMillis, window)
-        GestureMode.RESIZE_START -> resizeStart(original, deltaMillis, snapMillis, window)
-        GestureMode.RESIZE_END -> resizeEnd(original, deltaMillis, snapMillis, window)
+        GestureMode.MOVE -> move(original, deltaMillis, grid, window)
+        GestureMode.RESIZE_START -> resizeStart(original, deltaMillis, grid, window)
+        GestureMode.RESIZE_END -> resizeEnd(original, deltaMillis, grid, window)
     }
 }

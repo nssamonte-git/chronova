@@ -27,6 +27,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import noel.chronova.app.core.timeline.GestureMode
 import noel.chronova.app.core.timeline.HandleHitTest
+import noel.chronova.app.core.timeline.SnapGrid
 import noel.chronova.app.core.timeline.TaskEdits
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.core.timeline.ViewportMath
@@ -82,7 +83,8 @@ fun TaskLane(
     // (preview, config, scrolling) don't restart the gesture; it reads the latest values here.
     val currentTask by rememberUpdatedState(task)
     val currentPxPerMinute by rememberUpdatedState(pxPerMinute)
-    val currentSnapMillis by rememberUpdatedState(snapMinutes * TimelineMath.MILLIS_PER_MINUTE)
+    val grid = remember(snapMinutes, window.startMillis, zone) { SnapGrid.of(snapMinutes, window.startMillis, zone) }
+    val currentGrid by rememberUpdatedState(grid)
     val currentWindow by rememberUpdatedState(window)
     val currentOnSelect by rememberUpdatedState(onSelect)
     val currentOnCommit by rememberUpdatedState(onCommit)
@@ -146,7 +148,7 @@ fun TaskLane(
                                 mode = mode,
                                 original = original,
                                 deltaMillis = TimelineMath.pxToMillis(totalDx, currentPxPerMinute),
-                                snapMillis = currentSnapMillis,
+                                grid = currentGrid,
                                 window = currentWindow,
                             )
                             val previous = preview ?: original

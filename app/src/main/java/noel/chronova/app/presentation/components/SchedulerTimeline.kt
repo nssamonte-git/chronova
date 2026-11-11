@@ -39,6 +39,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.max
 import noel.chronova.app.R
 import noel.chronova.app.core.timeline.TimelineMath
@@ -48,7 +50,6 @@ import noel.chronova.app.presentation.timeline.TimelineUiState
 
 private val NameColumnWidth = 128.dp
 private val HeaderHeight = 44.dp
-private const val DAY_MILLIS = 24 * 60 * TimelineMath.MILLIS_PER_MINUTE
 
 /**
  * The scheduler: fixed task-name column, time header, grid and task bars.
@@ -75,8 +76,8 @@ fun SchedulerTimeline(
     val density = LocalDensity.current
 
     val pxPerMinute = TimelineMath.pxPerMinute(with(density) { config.unitWidthDp.dp.toPx() }, config.timeScale)
-    val ticks = remember(window.lengthMillis, config.timeScale) {
-        TimelineMath.ticks(window.lengthMillis, config.timeScale)
+    val ticks = remember(window, state.zone, config.timeScale) {
+        TimelineMath.ticks(window, state.zone, config.timeScale)
     }
     val contentWidthPx = TimelineMath.durationToWidth(window.lengthMillis, pxPerMinute)
     val rowHeight = config.rowHeightDp.dp
@@ -201,8 +202,9 @@ private fun initialScrollX(state: TimelineUiState, pxPerMinute: Float): Float {
 
 /**
  * Corner cell naming the day at the left edge of the viewport, so the date stays
- * visible between midnight labels. derivedStateOf limits recomposition to the
- * moments the day actually changes, not every scrolled pixel.
+ * visible between midnight labels. The local midnights are computed once per
+ * window, and a binary search over them is all that runs per scroll change;
+ * derivedStateOf limits recomposition to the moments the day actually changes.
  */
 @Composable
 private fun VisibleDayLabel(
@@ -211,17 +213,16 @@ private fun VisibleDayLabel(
     viewport: TimelineViewportState,
     modifier: Modifier = Modifier,
 ) {
-    // Only the day index is derived per scroll change (no allocation); the label is
-    // formatted once per day.
-    val dayIndex by remember(state.window.startMillis, pxPerMinute) {
+    val window = state.window
+    val dayStarts = remember(window, state.zone) { localMidnightOffsets(window.startMillis, window.endMillis, state.zone) }
+    val dayIndex by remember(dayStarts, pxPerMinute) {
         derivedStateOf {
-            val leftEdge = TimelineMath.xToTime(viewport.scrollX, state.window.startMillis, pxPerMinute)
-            Math.floorDiv(leftEdge - state.window.startMillis, DAY_MILLIS)
+            val leftEdge = TimelineMath.pxToMillis(viewport.scrollX, pxPerMinute)
+            lastAtOrBefore(dayStarts, leftEdge)
         }
     }
-    // +12 h keeps the formatted date correct even if a DST shift moves midnight by an hour.
-    val day = remember(dayIndex, state.window.startMillis, state.zone) {
-        TimeFormat.day(state.window.startMillis + dayIndex * DAY_MILLIS + DAY_MILLIS / 2, state.zone)
+    val day = remember(dayIndex, dayStarts, state.zone) {
+        TimeFormat.day(window.startMillis + dayStarts[dayIndex], state.zone)
     }
     Box(modifier, contentAlignment = Alignment.CenterStart) {
         Text(
@@ -232,6 +233,37 @@ private fun VisibleDayLabel(
             maxLines = 1,
         )
     }
+}
+
+/** Offsets from [startMillis] of each local midnight in the window (the first is 0). */
+private fun localMidnightOffsets(startMillis: Long, endMillis: Long, zone: ZoneId): LongArray {
+    val first = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDate()
+    val offsets = ArrayList<Long>()
+    var day = first
+    while (true) {
+        val midnight = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        if (midnight >= endMillis) break
+        offsets += midnight - startMillis
+        day = day.plusDays(1)
+    }
+    return offsets.toLongArray()
+}
+
+/** Index of the last value <= [value] in the ascending [sorted] array (0 if none). */
+private fun lastAtOrBefore(sorted: LongArray, value: Long): Int {
+    var low = 0
+    var high = sorted.size - 1
+    var found = 0
+    while (low <= high) {
+        val mid = (low + high) ushr 1
+        if (sorted[mid] <= value) {
+            found = mid
+            low = mid + 1
+        } else {
+            high = mid - 1
+        }
+    }
+    return found
 }
 
 private fun Modifier.columnDivider(color: Color): Modifier = drawBehind {

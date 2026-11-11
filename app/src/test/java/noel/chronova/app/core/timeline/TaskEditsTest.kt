@@ -9,8 +9,8 @@ import org.junit.Test
 
 class TaskEditsTest {
 
-    private val snap15 = 15 * MINUTE
-    private val snap60 = 60 * MINUTE
+    private val snap15 = FixedGrid(15 * MINUTE, window.startMillis)
+    private val snap60 = FixedGrid(60 * MINUTE, window.startMillis)
 
     // Scenario 4 — moving later and earlier preserves duration
     @Test
@@ -99,7 +99,7 @@ class TaskEditsTest {
         // Latest start that fits is 21:30 on the last day; the grid line before it is 21:00.
         assertEquals(window.endMillis - 3 * HOUR, moved.startMillis)
         assertEquals(t.durationMillis, moved.durationMillis)
-        assertEquals(0L, (moved.startMillis - window.startMillis) % snap60)
+        assertEquals(0L, (moved.startMillis - window.startMillis) % HOUR)
     }
 
     @Test

@@ -1,7 +1,12 @@
 package noel.chronova.app.core.timeline
 
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.math.roundToLong
 import noel.chronova.app.domain.model.TimeScale
+import noel.chronova.app.domain.model.TimelineWindow
 
 /**
  * Pure conversions between time and horizontal pixels.
@@ -40,20 +45,58 @@ object TimelineMath {
         (px.toDouble() / pxPerMinute).roundToLong() * MILLIS_PER_MINUTE
 
     /**
-     * Grid ticks from the origin across [lengthMillis]: a major tick per scale unit
-     * (labelled) and minor ticks between them (30 min for hours, 6 h for days).
-     * Shared by the header and the grid so both are always aligned.
+     * Calendar grid ticks across [window], in [zone]. Major ticks start a scale unit
+     * and are labelled; minor ticks subdivide it. Shared by the header and the grid
+     * so both are always aligned.
+     *
+     * - Hours: major every local hour, minor at half past.
+     * - Days: major at local midnight, minor at 06:00, 12:00 and 18:00.
+     * - Weeks: major at Monday midnight, minor at every other midnight.
+     * - Months: major on the 1st, minor on Mondays.
+     *
+     * Positions follow the real calendar, so months have their true lengths and a
+     * DST day is 23 or 25 hours wide.
      */
-    fun ticks(lengthMillis: Long, scale: TimeScale): List<Tick> {
-        val majorMinutes = scale.minutes
-        val minorMinutes = when (scale) {
-            TimeScale.HOURS -> 30L
-            TimeScale.DAYS -> 6 * 60L
+    fun ticks(window: TimelineWindow, zone: ZoneId, scale: TimeScale): List<Tick> {
+        val ticks = ArrayList<Tick>()
+        var majorIndex = 0
+        fun add(timeMillis: Long, isMajor: Boolean) {
+            if (timeMillis < window.startMillis || timeMillis > window.endMillis) return
+            ticks += Tick(timeMillis - window.startMillis, isMajor, if (isMajor) majorIndex++ else -1)
         }
-        val lengthMinutes = lengthMillis / MILLIS_PER_MINUTE
-        return (0..lengthMinutes step minorMinutes).map { minute ->
-            Tick(offsetMillis = minute * MILLIS_PER_MINUTE, isMajor = minute % majorMinutes == 0L)
+        fun midnight(date: LocalDate): Long = date.atStartOfDay(zone).toInstant().toEpochMilli()
+
+        if (scale == TimeScale.HOURS) {
+            val step = 30 * MILLIS_PER_MINUTE
+            var t = window.startMillis
+            while (t <= window.endMillis) {
+                add(t, Instant.ofEpochMilli(t).atZone(zone).minute == 0)
+                t += step
+            }
+            return ticks
         }
+
+        val firstDay = Instant.ofEpochMilli(window.startMillis).atZone(zone).toLocalDate()
+        val lastDay = Instant.ofEpochMilli(window.endMillis).atZone(zone).toLocalDate()
+        var day = firstDay
+        while (!day.isAfter(lastDay)) {
+            when (scale) {
+                TimeScale.DAYS -> {
+                    add(midnight(day), isMajor = true)
+                    for (hour in intArrayOf(6, 12, 18)) {
+                        add(day.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli(), isMajor = false)
+                    }
+                }
+                TimeScale.WEEKS -> add(midnight(day), isMajor = day.dayOfWeek == DayOfWeek.MONDAY)
+                TimeScale.MONTHS -> when {
+                    day.dayOfMonth == 1 -> add(midnight(day), isMajor = true)
+                    day.dayOfWeek == DayOfWeek.MONDAY -> add(midnight(day), isMajor = false)
+                }
+                TimeScale.HOURS -> Unit // handled above
+            }
+            day = day.plusDays(1)
+        }
+        return ticks
     }
 
     /**
@@ -79,5 +122,8 @@ object TimelineMath {
     }
 }
 
-/** A grid line at [offsetMillis] from the timeline origin. */
-data class Tick(val offsetMillis: Long, val isMajor: Boolean)
+/**
+ * A grid line at [offsetMillis] from the timeline origin. [majorIndex] counts the
+ * major ticks (0, 1, 2…) so labels can be thinned evenly; it is -1 for minor ticks.
+ */
+data class Tick(val offsetMillis: Long, val isMajor: Boolean, val majorIndex: Int = -1)

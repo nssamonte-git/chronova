@@ -219,4 +219,18 @@ class ProjectTimelineViewModelTest {
         assertEquals(before, state().tasks)
         assertNull(viewModel.deletedTask.value)
     }
+
+    @Test
+    fun viewSettingsAreSavedAndRestoredPerProject() = runTest {
+        val state = timeline()
+        viewModel.setTimeScale(TimeScale.WEEKS)
+        viewModel.zoomIn()
+        val saved = repository.viewSettings[SampleTasks.PROJECT_ID]!!
+        assertEquals(TimeScale.WEEKS, saved.timeScale)
+        assertEquals(state().config, saved)
+
+        // A new screen for the same project starts from the saved settings.
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone, today = { today })
+        assertEquals(saved, timeline()().config)
+    }
 }
