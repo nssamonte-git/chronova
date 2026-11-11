@@ -385,3 +385,9 @@ After the fixes: revoked-token sync → "Sync failed: please sign in again"; sig
 - Times are labelled UTC in the users table, user page and audit log (noted in B28).
 - `composer test` — **86 tests passed** (6 new: list/search/counts, metadata shown but task content never, support actions audited, support can't delete, admin delete needs matching email + reason and keeps no email in the audit, no create/edit routes). All passed on the first run; the `staffMember()` test helper moved to `tests/Pest.php`. Pint passed.
 - Browser check deferred to one combined pass after B12.
+
+### B30 — Admin: health dashboard
+
+- `App\Admin\Metrics` (users and sync_events only; UTC days; cached 60 s): account totals, new sign-ups this week vs the week before, users synced in 7/30 days, sign-ups per day (zero-filled), sync requests per day split OK/failed, and 24-hour sync health (requests, error rate, average and 95th-percentile duration via Postgres `percentile_cont`). New indexes on `users.created_at` and `users.last_synced_at`.
+- Dashboard widgets (any staff role): Accounts and "Sync, last 24 hours" stat rows, a sign-ups line chart (30 days) and a sync-requests bar chart (14 days, OK vs failed). Widgets load lazily after the page.
+- `composer test` — **91 tests passed** (5 new: account counts, zero-filled UTC days, OK/failed split, health incl. no traffic, widgets render). One failure first: the test looked for a widget heading in the dashboard's initial HTML, but Filament widgets load lazily; the test now renders each widget on its own. Pint passed.
