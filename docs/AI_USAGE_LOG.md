@@ -249,3 +249,14 @@ Both were found by reviewing the generated code against the gesture design, not 
 4. *Correction:* `table.grant(...)` with the exact actions (sync: Put/Update/Delete/Query; delete-account: Query/BatchWrite), plus a stack test that pins them.
 
 **AI mistake (caught before commit) — empty CORS origin list.** The first stack draft set `corsPreflight` with an empty origin list; it was removed, since an HTTP API with no CORS configuration already gives browsers no cross-origin access.
+
+### B18 — Sign-in (Cognito) in the app
+
+- Amplify Android 2.43.0 (`core-kotlin`, `aws-auth-cognito`; auth plugin only, no DataStore) and, because Amplify requires it, core library desugaring (`desugar_jdk_libs` 2.1.5). Debug APK grew from 12.3 MB to 21.4 MB.
+- Backend settings come from the uncommitted `local.properties` (`chronova.region`, `chronova.userPoolId`, `chronova.userPoolClientId`, `chronova.apiUrl`) as `BuildConfig` fields; values with quotes or backslashes fail the build. Without them the app uses `DisabledAuthRepository` and stays offline-only.
+- `AuthRepository` (state: NotConfigured / Checking / SignedOut / SignedIn(sub, email)); `AmplifyAuthRepository` configures Amplify in code with the user pool (SRP, no identity pool) and maps Cognito exceptions to user-facing problems (wrong credentials, existing account, weak password, wrong/expired code, too many attempts, network). Account screen (from the project list's account icon): sign in, create account, confirm with the emailed code, resend, sign out; autofill content types for email, password, new password and one-time code. The password lives only in the ViewModel and is cleared once used.
+- Backup rules now exclude shared preferences (the sign-in session is encrypted with a device-bound key); the Room database is still backed up. `INTERNET` permission added.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 99 tests, 0 failed; lint 0 errors, 12 warnings** (versions only). New: `AccountViewModelTest` (5: validation before calling Cognito, sign-up → confirm → sign-in, failure messages, unconfirmed sign-in, sign-out).
+- On device: the normal build (no backend values) showed "Sync isn't set up in this build…". A temporary build with dummy pool values (added to `local.properties`, then restored and verified identical) configured Amplify without a crash and showed the sign-in form; an empty submit showed "Enter a valid email address.", and "Create account" showed the password rules. No sign-in was attempted, so nothing was sent to AWS. The normal build was reinstalled afterwards.
+- Not verified: real sign-up, confirmation, sign-in and token refresh against Cognito (needs the deployed stack).
+- Interruption: the phone's USB connection dropped once ("waiting for device") and came back; the check was re-run.

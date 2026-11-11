@@ -7,6 +7,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import noel.chronova.app.auth.AmplifyAuthRepository
+import noel.chronova.app.auth.AuthRepository
+import noel.chronova.app.auth.BackendConfig
+import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.data.local.ChronovaDatabase
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
@@ -18,6 +22,7 @@ class ChronovaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container.appScope.launch { container.projectRepository.seedSampleIfFirstLaunch() }
+        container.appScope.launch { container.authRepository.refresh() }
     }
 }
 
@@ -35,6 +40,12 @@ class AppContainer(context: Context) {
     }
 
     val projectRepository: ProjectRepository = RoomProjectRepository(database, firstLaunch)
+
+    val backendConfig: BackendConfig = BackendConfig.fromBuildConfig()
+
+    /** Cognito sign-in when this build has a backend configured; otherwise offline-only. */
+    val authRepository: AuthRepository =
+        if (backendConfig.isComplete) AmplifyAuthRepository.create(context, backendConfig) else DisabledAuthRepository()
 
     private companion object {
         const val KEY_SEEDED = "sample_seeded"

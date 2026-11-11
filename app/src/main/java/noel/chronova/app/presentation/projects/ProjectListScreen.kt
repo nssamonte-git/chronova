@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -55,6 +56,7 @@ import noel.chronova.app.ui.theme.ChronovaTheme
 fun ProjectListScreen(
     viewModel: ProjectListViewModel,
     onOpenProject: (String) -> Unit,
+    onOpenAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -76,6 +78,7 @@ fun ProjectListScreen(
         onCreate = viewModel::startCreate,
         onEdit = { viewModel.startEdit(it.project) },
         onDelete = viewModel::requestDelete,
+        onOpenAccount = onOpenAccount,
         modifier = modifier,
     )
     editor?.let { current ->
@@ -118,6 +121,7 @@ private fun ProjectListContent(
     onCreate: () -> Unit,
     onEdit: (ProjectSummary) -> Unit,
     onDelete: (ProjectSummary) -> Unit,
+    onOpenAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -143,6 +147,11 @@ private fun ProjectListContent(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenAccount) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.account_open))
                     }
                 },
             )
@@ -263,6 +272,7 @@ private fun ProjectListPreview() {
             onCreate = {},
             onEdit = {},
             onDelete = {},
+            onOpenAccount = {},
         )
     }
 }
