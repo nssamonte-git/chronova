@@ -140,3 +140,22 @@ Both were found by reviewing the generated code against the gesture design, not 
 - **AI mistake caught during the lint fix (before running):** building the day formatter per call made the corner day label allocate a formatter on every scroll frame (it is computed in `derivedStateOf`). Changed to derive a day index per scroll and format once per day.
 - Final device smoke check: cold launch OK (`am start -W` TotalTime 5612 ms for the debug build on this low-memory Android 10 phone; release build not measured); corner label switched to "Tue 3 Mar" when scrolled to 22:00 on day 2; no FATAL EXCEPTION or ANR entries in logcat.
 - Added `README.md` and `docs/AI_USAGE_WRITEUP.md` (summary for the shared Google Doc).
+
+### B10 — Snap-grid fixes from a requirements review
+
+- The user asked Claude Code to check the app against the brief. It met every requirement, but the review found two cases where clamping left a dragged edge between grid lines. The user approved fixing both.
+- `TimeSnapper.floor` and `TimeSnapper.ceil` added. `TaskEdits` now rounds each limit inward to the snap grid: the minimum-duration limit in both resizes, and the window-end limit in move. The 15-minute minimum and the "opposite edge never moves" rule are unchanged.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 44 tests, 0 failed; lint 0 errors, 5 warnings** (the same version-update warnings). Five tests were added. `minimumDurationHoldsEvenWithCoarseSnap` now expects 14:00 instead of 13:45.
+- Not verified on device: covered by unit tests only, because the change is in pure `core/` logic and the gesture code is untouched.
+
+**AI mistake — clamps ignored the snap grid.**
+1. *What AI generated:* clamps of `start + 15 min` (resize end), `end − 15 min` (resize start) and `window end − duration` (move), applied after snapping.
+2. *Why wrong:* at 60-minute snap, shrinking a 13:30 task gave a 13:45 end. Moving a 2 h 30 task to the window end gave a :30 start. In both cases the dragged edge landed between grid lines.
+3. *How discovered:* reading `TaskEdits` during the requirements review.
+4. *Correction:* each limit is rounded inward to the nearest grid line that still respects it.
+
+**AI mistake (caught before coding) — proposed fix conflicted with a recorded decision.**
+1. *What AI generated:* a suggested minimum duration of max(15 min, snap interval).
+2. *Why wrong:* the README already records rejecting a per-snap minimum, because a 13:30 task couldn't be kept at 60-minute snap.
+3. *How discovered:* searching the docs for "minimum" before editing.
+4. *Correction:* the minimum stays 15 minutes. Only the dragged edge is rounded to the grid.

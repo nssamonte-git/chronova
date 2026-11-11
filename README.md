@@ -115,22 +115,23 @@ time        = origin + round(x / pxPerMinute) minutes
 - **Nearest interval.** Edits round to the nearest multiple of the snap interval, measured from local midnight. Ties round toward later times. `Math.floorDiv` is used so values before the origin round the same way as values after it.
 - **Move** snaps the start and keeps the duration.
 - **Resize** snaps the edge being dragged. The opposite edge never moves.
-- **Minimum duration** is 15 minutes, independent of the snap interval. If a snapped edge would violate it, the edge stops at the minimum.
-- **Window clamp:** tasks stay inside the 3-day window.
+- **Minimum duration** is 15 minutes, independent of the snap interval. If a snapped edge would violate it, the edge stops at the nearest grid line that still allows 15 minutes. For example, a task starting at 13:30 with 60-minute snap can shrink to 13:30–14:00.
+- **Window clamp:** tasks stay inside the 3-day window. A move that reaches the window end stops at the last grid line where the whole task still fits.
+- **Clamped edges stay on the grid.** Limits are rounded inward to a grid line, so a dragged edge never lands between grid lines.
 
 ## Testing
 
-`./gradlew :app:testDebugUnitTest` runs 39 JVM tests (0 failures in the last run).
+`./gradlew :app:testDebugUnitTest` runs 44 JVM tests (0 failures in the last run).
 
 | Required scenario | Test(s) |
 |---|---|
 | Timestamp → pixel | `TimelineMathTest.timeToX_*` |
 | Pixel → time | `TimelineMathTest.xToTime_inverseOfTimeToX`, `pxToMillis_signedDragDistance` |
-| Positive and negative snapping | `TimeSnapperTest` (nearest, symmetric negatives, ties, origin-relative) |
-| Moving earlier and later | `TaskEditsTest.move_later_*`, `move_earlier_*`, `move_clampsToWindow` |
+| Positive and negative snapping | `TimeSnapperTest` (nearest, symmetric negatives, ties, origin-relative, floor/ceil) |
+| Moving earlier and later | `TaskEditsTest.move_later_*`, `move_earlier_*`, `move_clampsToWindow`, `move_clampAtWindowEnd*` |
 | Left resize keeps end | `TaskEditsTest.resizeStart_preservesEnd` |
 | Right resize keeps start | `TaskEditsTest.resizeEnd_preservesStart` |
-| Minimum duration | `TaskEditsTest.resize*_cannot*`, `minimumDurationHoldsEvenWithCoarseSnap` |
+| Minimum duration | `TaskEditsTest.resize*_cannot*`, `minimumDurationHoldsEvenWithCoarseSnap`, `resizeStart_minimumDurationStopsOnGridWithCoarseSnap` |
 | Zoom keeps timestamps | `TimelineMathTest.zoomChange_preservesTimestamps`, `ChronovaViewModelTest.updateConfig_neverChangesTaskTimestamps` |
 
 Also covered:
@@ -156,7 +157,7 @@ Each check's expected values were calculated before running it. The full record 
 
 - **minSdk 26** (from the template's 24) so `java.time` works without core-library desugaring.
 - **Fixed 3-day window.** The window is the reference day plus two more, with tasks clamped inside it. An unbounded timeline would need virtualised tick drawing and isn't needed for this scope.
-- **Fixed 15-minute minimum duration.** A per-snap minimum would make a 13:30 task impossible to keep at 60-minute snap.
+- **Fixed 15-minute minimum duration.** A per-snap minimum would make a 13:30 task impossible to keep at 60-minute snap. Instead, the dragged edge stops at the grid line nearest the 15-minute limit.
 - **No persistence.** Tasks live in the ViewModel. They survive rotation but reset after process death. Room was explicitly out of scope.
 - **Resize only on the selected bar.** This prevents accidental resizes while still giving large touch targets.
 - **Pinned dependency versions.** Lint reports newer versions (Compose BOM 2026.09, lifecycle 2.11, Kotlin 2.4, Gradle 9.9). The project stays on the versions it was built and verified with.

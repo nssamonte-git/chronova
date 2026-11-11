@@ -46,4 +46,25 @@ class TimeSnapperTest {
             assertEquals(-4 * i, TimeSnapper.snap(-4 * i, i))
         }
     }
+
+    @Test
+    fun floorAndCeilFindGridLinesOnEitherSide() {
+        val origin = 1_000_000L
+        val h = 60 * MINUTE
+        assertEquals(origin + h, TimeSnapper.floor(origin + 85 * MINUTE, h, origin))
+        assertEquals(origin + 2 * h, TimeSnapper.ceil(origin + 85 * MINUTE, h, origin))
+        assertEquals(origin - 2 * h, TimeSnapper.floor(origin - 85 * MINUTE, h, origin))
+        assertEquals(origin - h, TimeSnapper.ceil(origin - 85 * MINUTE, h, origin))
+    }
+
+    @Test
+    fun floorAndCeilKeepValuesAlreadyOnGrid() {
+        listOf(15L, 30L, 60L).forEach { interval ->
+            val i = interval * MINUTE
+            assertEquals(3 * i, TimeSnapper.floor(3 * i, i))
+            assertEquals(3 * i, TimeSnapper.ceil(3 * i, i))
+            assertEquals(-3 * i, TimeSnapper.floor(-3 * i, i))
+            assertEquals(-3 * i, TimeSnapper.ceil(-3 * i, i))
+        }
+    }
 }

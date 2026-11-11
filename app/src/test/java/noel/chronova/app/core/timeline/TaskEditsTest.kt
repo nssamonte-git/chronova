@@ -76,9 +76,37 @@ class TaskEditsTest {
     @Test
     fun minimumDurationHoldsEvenWithCoarseSnap() {
         val qa = task(13, 30, 16, 0)
-        // Right edge snapped to 14:00 would be fine; dragged to 13:00 it must clamp to 13:45.
+        // Dragged to 13:00, the end must stay >= 13:45; the first 60-min grid line
+        // that allows that is 14:00. The off-grid 13:30 start is kept.
         val resized = TaskEdits.resizeEnd(qa, -3 * HOUR, snap60, window)
-        assertEquals(at(13, 45), resized.endMillis)
+        assertEquals(qa.startMillis, resized.startMillis)
+        assertEquals(at(14, 0), resized.endMillis)
+    }
+
+    @Test
+    fun resizeStart_minimumDurationStopsOnGridWithCoarseSnap() {
+        val t = task(13, 0, 14, 30)
+        // Start may not pass 14:15; the last 60-min grid line before that is 14:00.
+        val resized = TaskEdits.resizeStart(t, 3 * HOUR, snap60, window)
+        assertEquals(at(14, 0), resized.startMillis)
+        assertEquals(t.endMillis, resized.endMillis)
+    }
+
+    @Test
+    fun move_clampAtWindowEndStaysOnGrid() {
+        val t = task(9, 0, 11, 30) // 2 h 30: not a whole number of 60-min steps
+        val moved = TaskEdits.move(t, 100 * HOUR, snap60, window)
+        // Latest start that fits is 21:30 on the last day; the grid line before it is 21:00.
+        assertEquals(window.endMillis - 3 * HOUR, moved.startMillis)
+        assertEquals(t.durationMillis, moved.durationMillis)
+        assertEquals(0L, (moved.startMillis - window.startMillis) % snap60)
+    }
+
+    @Test
+    fun move_clampAtWindowEndIsFlushWhenDurationFitsGrid() {
+        val t = task(1, 0, 3, 0)
+        val moved = TaskEdits.move(t, 100 * HOUR, snap15, window)
+        assertEquals(window.endMillis, moved.endMillis)
     }
 
     @Test
