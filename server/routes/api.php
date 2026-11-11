@@ -22,5 +22,6 @@ Route::middleware(['auth:sanctum', 'abilities:sync', 'active'])->group(function 
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('account', [AccountController::class, 'destroy']);
     Route::post('sync', SyncController::class)->middleware('throttle:sync');
+    Route::post('voice/transcribe', [VoiceController::class, 'transcribe'])->middleware('throttle:voice');
     Route::post('voice/interpret', [VoiceController::class, 'interpret'])->middleware('throttle:voice');
 });

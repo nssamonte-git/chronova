@@ -7,6 +7,7 @@ use App\Models\VoiceEvent;
 use App\Voice\Interpreter;
 use App\Voice\ProposalValidator;
 use App\Voice\ProviderUnavailable;
+use App\Voice\Transcriber;
 use Closure;
 use DateTimeZone;
 use Exception;
@@ -20,6 +21,47 @@ use Illuminate\Http\Request;
  */
 class VoiceController extends Controller
 {
+    /** A short recording → its words. Neither the audio nor the words are kept. */
+    public function transcribe(Request $request, Transcriber $transcriber): JsonResponse
+    {
+        $started = hrtime(true);
+        if (! config('voice.enabled')) {
+            $this->record($request, 'transcribe', 503, 'disabled', $started);
+
+            return response()->json(['error' => 'voice_disabled'], 503);
+        }
+
+        $limits = config('voice.limits');
+        $data = $request->validate([
+            // AAC in MPEG-4 from Android's MediaRecorder; a few other common formats for other clients.
+            'audio' => ['required', 'file', 'max:'.$limits['audio_kb'], 'mimetypes:'.implode(',', [
+                'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'video/mp4', 'audio/aac', 'audio/mpeg', 'audio/ogg', 'audio/webm', 'audio/wav', 'audio/x-wav',
+            ])],
+            'durationMs' => ['required', 'integer', 'min:100', 'max:'.($limits['audio_seconds'] * 1000)],
+            'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
+        ]);
+
+        try {
+            $transcription = $transcriber->transcribe($data['audio'], $data['language'] ?? null);
+        } catch (ProviderUnavailable) {
+            $this->record($request, 'transcribe', 502, 'provider_error', $started, ['audio_ms' => $data['durationMs']]);
+
+            return response()->json(['error' => 'provider_unavailable'], 502);
+        }
+
+        $text = trim($transcription->text);
+        $metrics = ['audio_ms' => $transcription->audioMs ?? $data['durationMs'], 'characters' => mb_strlen($text)];
+        if (mb_strlen($text) > $limits['transcript_chars']) {
+            $this->record($request, 'transcribe', 422, 'too_long', $started, $metrics);
+
+            return response()->json(['error' => 'transcript_too_long'], 422);
+        }
+
+        $this->record($request, 'transcribe', 200, $text === '' ? 'empty' : 'text', $started, $metrics);
+
+        return response()->json(['text' => $text, 'language' => $transcription->language]);
+    }
+
     public function interpret(Request $request, Interpreter $interpreter, ProposalValidator $validator): JsonResponse
     {
         $started = hrtime(true);

@@ -7,14 +7,12 @@ use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user, ['sync']);
-    RateLimiter::clear('voice:'.$this->user->getKey());
 });
 
 function voiceContext(array $overrides = []): array
