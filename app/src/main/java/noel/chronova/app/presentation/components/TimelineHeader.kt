@@ -1,7 +1,6 @@
 package noel.chronova.app.presentation.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.material3.MaterialTheme
@@ -25,13 +24,13 @@ import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.presentation.TimeFormat
 
 /**
- * Time-axis header. It is not a scroll container: it reads the body's horizontal
- * [scrollState] inside the draw lambda, so scrolling only re-draws this canvas
- * (no recomposition) and the labels can never drift from the grid below.
+ * Time-axis header. It reads the shared [viewport] scroll inside the draw lambda,
+ * so scrolling only re-draws this canvas (no recomposition) and the labels can
+ * never drift from the grid below. Only visible ticks are visited.
  *
- * Swipes on the header feed the same [scrollState] through `scrollable`, so there is
- * still exactly one scroll position. `reverseDirection = true` matches how
- * `horizontalScroll` maps an LTR drag (drag left -> later times).
+ * Swipes on the header feed the same viewport through `scrollable`, so there is
+ * still exactly one scroll position. `reverseDirection = true` makes a drag to the
+ * left reveal later times.
  */
 @Composable
 fun TimelineHeader(
@@ -40,7 +39,7 @@ fun TimelineHeader(
     scale: TimeScale,
     ticks: List<Tick>,
     pxPerMinute: Float,
-    scrollState: ScrollState,
+    viewport: TimelineViewportState,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -77,15 +76,22 @@ fun TimelineHeader(
     Canvas(
         modifier
             .clipToBounds()
-            .scrollable(scrollState, Orientation.Horizontal, reverseDirection = true),
+            .scrollable(viewport.scrollableState, Orientation.Horizontal, reverseDirection = true),
     ) {
-        val scrollX = scrollState.value.toFloat() // draw-phase read: no recomposition on scroll
+        val scrollX = viewport.scrollX // draw-phase read: no recomposition on scroll
         val labelPadding = 6.dp.toPx()
         val cullMargin = MAX_LABEL_WIDTH.toPx()
+        // Labels start right of their tick, so ticks up to one label width left of the
+        // viewport are still visited.
+        val visible = TimelineMath.visibleTicks(
+            ticks,
+            fromOffsetMillis = TimelineMath.pxToMillis(scrollX - cullMargin, pxPerMinute),
+            toOffsetMillis = TimelineMath.pxToMillis(scrollX + size.width, pxPerMinute),
+        )
 
-        ticks.forEachIndexed { index, tick ->
+        for (index in visible) {
+            val tick = ticks[index]
             val x = TimelineMath.durationToWidth(tick.offsetMillis, pxPerMinute) - scrollX
-            if (x < -cullMargin || x > size.width) return@forEachIndexed
 
             val lineTop = if (tick.isMajor) size.height * 0.55f else size.height * 0.75f
             drawLine(
@@ -98,11 +104,11 @@ fun TimelineHeader(
             val label = labels[index]
             val style = when {
                 tick.isMajor -> {
-                    if ((tick.offsetMillis / unitMillis) % labelStride != 0L) return@forEachIndexed
+                    if ((tick.offsetMillis / unitMillis) % labelStride != 0L) continue
                     if (label.isDay) dayStyle else clockStyle
                 }
                 showMinorLabels -> minorStyle
-                else -> return@forEachIndexed
+                else -> continue
             }
             val layout = textMeasurer.measure(label.text, style)
             drawText(

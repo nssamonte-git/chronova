@@ -1,9 +1,9 @@
 package noel.chronova.app.presentation.components
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -12,25 +12,20 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -42,11 +37,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import kotlin.math.max
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.domain.model.SchedulerTask
-import noel.chronova.app.presentation.timeline.TimelineUiState
 import noel.chronova.app.presentation.TimeFormat
+import noel.chronova.app.presentation.timeline.TimelineUiState
 
 private val NameColumnWidth = 128.dp
 private val HeaderHeight = 44.dp
@@ -55,9 +50,13 @@ private const val DAY_MILLIS = 24 * 60 * TimelineMath.MILLIS_PER_MINUTE
 /**
  * The scheduler: fixed task-name column, time header, grid and task bars.
  *
- * Scrolling: one horizontal [ScrollState] is owned by the body's `horizontalScroll`;
- * the header only reads it while drawing. One vertical scroll wraps names and bars
- * together, so rows can never fall out of alignment.
+ * Horizontal: one [TimelineViewportState] is the only scroll position. The header,
+ * the grid and every bar read it in their draw or layout phase, so content of any
+ * length is never measured at full width.
+ *
+ * Vertical: rows are a [LazyColumn] whose items hold both the name cell and the
+ * bar lane, so names and bars can't fall out of alignment and long task lists are
+ * virtualized.
  */
 @Composable
 fun SchedulerTimeline(
@@ -74,26 +73,29 @@ fun SchedulerTimeline(
     val ticks = remember(window.lengthMillis, config.timeScale) {
         TimelineMath.ticks(window.lengthMillis, config.timeScale)
     }
-    val totalWidth = with(density) { TimelineMath.durationToWidth(window.lengthMillis, pxPerMinute).toDp() }
+    val contentWidthPx = TimelineMath.durationToWidth(window.lengthMillis, pxPerMinute)
     val rowHeight = config.rowHeightDp.dp
 
-    val horizontalScroll = rememberScrollState()
-    val verticalScroll = rememberScrollState()
-    InitialScrollToFirstTask(state, pxPerMinute, horizontalScroll)
+    // First composition only: start with the earliest task one unit from the left edge.
+    val viewport = rememberSaveable(saver = TimelineViewportState.Saver) {
+        TimelineViewportState(initialScrollX(state, pxPerMinute))
+    }
+    val listState = rememberLazyListState()
 
     val colors = MaterialTheme.colorScheme
     // Time always flows left-to-right, even in RTL locales.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier.background(colors.surface)) {
-            val bodyMinHeight = maxHeight - HeaderHeight
-            val viewportWidthPx = constraints.maxWidth - with(density) { NameColumnWidth.roundToPx() }
-            KeepCenterTimeOnZoom(pxPerMinute, viewportWidthPx, horizontalScroll)
+            val viewportWidthPx = max(0, constraints.maxWidth - with(density) { NameColumnWidth.roundToPx() }).toFloat()
+            // Keeps the centre time fixed across zoom/scale changes and clamps the scroll.
+            SideEffect { viewport.onGeometry(contentWidthPx, viewportWidthPx, pxPerMinute) }
+
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(HeaderHeight)) {
                     VisibleDayLabel(
                         state = state,
                         pxPerMinute = pxPerMinute,
-                        scrollState = horizontalScroll,
+                        viewport = viewport,
                         modifier = Modifier
                             .width(NameColumnWidth)
                             .fillMaxHeight()
@@ -106,61 +108,64 @@ fun SchedulerTimeline(
                         scale = config.timeScale,
                         ticks = ticks,
                         pxPerMinute = pxPerMinute,
-                        scrollState = horizontalScroll,
+                        viewport = viewport,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
 
-                Row(
+                Box(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .verticalScroll(verticalScroll),
+                        .scrollable(viewport.scrollableState, Orientation.Horizontal, reverseDirection = true)
+                        // Taps on empty timeline space clear the selection; bars consume their own taps.
+                        .pointerInput(Unit) { detectTapGestures { onSelectTask(null) } },
                 ) {
-                    TaskNameColumn(
-                        tasks = state.tasks,
-                        zone = state.zone,
-                        rowHeight = rowHeight,
+                    TimelineGrid(
+                        ticks = ticks,
+                        pxPerMinute = pxPerMinute,
+                        viewport = viewport,
                         modifier = Modifier
-                            .width(NameColumnWidth)
-                            .heightIn(min = bodyMinHeight)
-                            .columnDivider(colors.outlineVariant),
+                            .fillMaxSize()
+                            .padding(start = NameColumnWidth),
                     )
+                    // The name column's divider runs the full height, below the last row too.
                     Box(
                         Modifier
-                            .weight(1f)
-                            .horizontalScroll(horizontalScroll),
-                    ) {
-                        Box(
-                            Modifier
-                                .width(totalWidth)
-                                .heightIn(min = bodyMinHeight)
-                                // Taps on empty timeline space clear the selection; bars consume their own taps.
-                                .pointerInput(Unit) { detectTapGestures { onSelectTask(null) } },
-                        ) {
-                            TimelineGrid(
-                                ticks = ticks,
-                                pxPerMinute = pxPerMinute,
-                                rowCount = state.tasks.size,
-                                rowHeight = rowHeight,
-                                modifier = Modifier.matchParentSize(),
-                            )
-                            Column {
-                                state.tasks.forEach { task ->
-                                    key(task.id) {
-                                        TaskRow(
-                                            task = task,
-                                            selected = task.id == state.selectedTaskId,
-                                            window = window,
-                                            zone = state.zone,
-                                            pxPerMinute = pxPerMinute,
-                                            snapMinutes = config.snapMinutes,
-                                            rowHeight = rowHeight,
-                                            onSelect = onSelectTask,
-                                            onCommit = onCommitEdit,
-                                        )
-                                    }
-                                }
+                            .width(NameColumnWidth)
+                            .fillMaxHeight()
+                            .columnDivider(colors.outlineVariant),
+                    )
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        items(state.tasks, key = { it.id }) { task ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(rowHeight)
+                                    .rowDivider(colors.outlineVariant.copy(alpha = 0.5f)),
+                            ) {
+                                TaskNameCell(
+                                    task = task,
+                                    zone = state.zone,
+                                    rowHeight = rowHeight,
+                                    modifier = Modifier
+                                        .width(NameColumnWidth)
+                                        .fillMaxHeight(),
+                                )
+                                TaskLane(
+                                    task = task,
+                                    selected = task.id == state.selectedTaskId,
+                                    window = window,
+                                    zone = state.zone,
+                                    pxPerMinute = pxPerMinute,
+                                    snapMinutes = config.snapMinutes,
+                                    viewport = viewport,
+                                    onSelect = onSelectTask,
+                                    onCommit = onCommitEdit,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                )
                             }
                         }
                     }
@@ -168,6 +173,13 @@ fun SchedulerTimeline(
             }
         }
     }
+}
+
+/** The earliest task one scale unit in from the left edge (clamped once laid out). */
+private fun initialScrollX(state: TimelineUiState, pxPerMinute: Float): Float {
+    val first = state.tasks.minOfOrNull { it.startMillis } ?: return 0f
+    val unitPx = pxPerMinute * state.config.timeScale.minutes
+    return max(0f, TimelineMath.timeToX(first, state.window.startMillis, pxPerMinute) - unitPx)
 }
 
 /**
@@ -179,14 +191,14 @@ fun SchedulerTimeline(
 private fun VisibleDayLabel(
     state: TimelineUiState,
     pxPerMinute: Float,
-    scrollState: ScrollState,
+    viewport: TimelineViewportState,
     modifier: Modifier = Modifier,
 ) {
     // Only the day index is derived per scroll change (no allocation); the label is
     // formatted once per day.
     val dayIndex by remember(state.window.startMillis, pxPerMinute) {
         derivedStateOf {
-            val leftEdge = TimelineMath.xToTime(scrollState.value.toFloat(), state.window.startMillis, pxPerMinute)
+            val leftEdge = TimelineMath.xToTime(viewport.scrollX, state.window.startMillis, pxPerMinute)
             Math.floorDiv(leftEdge - state.window.startMillis, DAY_MILLIS)
         }
     }
@@ -205,59 +217,12 @@ private fun VisibleDayLabel(
     }
 }
 
-private class ZoomAnchor(var pxPerMinute: Float, var centerMinutes: Float? = null)
-
-/**
- * Keeps the time at the centre of the viewport fixed when zoom or time scale
- * changes (otherwise content would scale around the left edge).
- *
- * The centre time must be read with the *old* scale, before the new layout clamps
- * the scroll position, so it is captured during composition — without subscribing
- * to scroll changes — and applied one frame later, once the content has been
- * re-measured at its new width.
- */
-@Composable
-private fun KeepCenterTimeOnZoom(
-    pxPerMinute: Float,
-    viewportWidthPx: Int,
-    scrollState: ScrollState,
-) {
-    val anchor = remember { ZoomAnchor(pxPerMinute) }
-    if (anchor.pxPerMinute != pxPerMinute) {
-        // Read once, unobserved, only when the scale changes; lint can't see that this
-        // doesn't subscribe the composition to every scroll pixel.
-        @Suppress("FrequentlyChangingValue")
-        val scrollX = Snapshot.withoutReadObservation { scrollState.value }
-        anchor.centerMinutes = (scrollX + viewportWidthPx / 2f) / anchor.pxPerMinute
-        anchor.pxPerMinute = pxPerMinute
-    }
-    LaunchedEffect(pxPerMinute) {
-        val centerMinutes = anchor.centerMinutes ?: return@LaunchedEffect
-        anchor.centerMinutes = null
-        withFrameNanos { } // wait for the layout at the new content width
-        scrollState.scrollTo((centerMinutes * pxPerMinute - viewportWidthPx / 2f).roundToInt().coerceAtLeast(0))
-    }
-}
-
-/** On first composition only, scroll so the earliest task starts one unit in. */
-@Composable
-private fun InitialScrollToFirstTask(
-    state: TimelineUiState,
-    pxPerMinute: Float,
-    scrollState: ScrollState,
-) {
-    var done by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (done) return@LaunchedEffect
-        val first = state.tasks.minOfOrNull { it.startMillis } ?: return@LaunchedEffect
-        val unitPx = pxPerMinute * state.config.timeScale.minutes
-        val x = TimelineMath.timeToX(first, state.window.startMillis, pxPerMinute) - unitPx
-        scrollState.scrollTo(x.roundToInt().coerceAtLeast(0))
-        done = true
-    }
-}
-
 private fun Modifier.columnDivider(color: Color): Modifier = drawBehind {
     val stroke = 1.dp.toPx()
     drawLine(color, Offset(size.width - stroke / 2, 0f), Offset(size.width - stroke / 2, size.height), stroke)
+}
+
+private fun Modifier.rowDivider(color: Color): Modifier = drawBehind {
+    val stroke = 1.dp.toPx()
+    drawLine(color, Offset(0f, size.height - stroke / 2), Offset(size.width, size.height - stroke / 2), stroke)
 }

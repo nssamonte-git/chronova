@@ -168,3 +168,20 @@ Both were found by reviewing the generated code against the gesture design, not 
 - Screens: project list → `ProjectTimelineRoute(projectId)`. `ChronovaViewModel` became `ProjectTimelineViewModel` (reads the repository, commits edits to it); it reports `NotFound` if the project disappears.
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 51 tests, 0 failed; lint 0 errors, 12 warnings** (all "newer version available"). One `UseKtx` warning on the new SharedPreferences write was fixed. New: `ProjectTimelineViewModelTest` (8, with a fake repository), `ProjectTest` (5, including a 23-hour DST day).
 - On device (Android 10, 720×1600): the list showed "Sample project, 2 Mar – 4 Mar 2026, 4 tasks"; dragging UI Design 192 px left (one hour at 100 % zoom) gave 08:00–10:00 as predicted, and it was still 08:00–10:00 after `am force-stop` and relaunch; the back arrow returned to the list; the crash buffer was empty. One tap after the cold start (7.4 s on this debug build) landed before the list was drawn and did nothing; a second tap worked.
+
+### B12 — Virtualized timeline viewport
+
+- Reordered ahead of project editing (plan batch 5 → B12): user-defined ranges can make the content wider than Compose can measure (e.g. 31 days at the 288 dp/h maximum zoom is ~430k px at 2× density; Compose constraints top out near 262k px), so the viewport had to change before ranges became editable.
+- `horizontalScroll` + `verticalScroll` replaced by `TimelineViewportState` (one scroll position, driven by `scrollable` on the body and the header) and a `LazyColumn` of `[TaskNameCell | TaskLane]` rows. Header and grid draw only visible ticks (`TimelineMath.visibleTicks`, binary search); bars are clipped to `ViewportMath.composeSpan` (page around the scroll ± one viewport) and placed against the scroll in the layout phase. `HandleHitTest` now works in content coordinates. Zoom anchoring moved into a `SideEffect`, which removes the old "one frame at the old scroll position" limitation.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 56 tests, 0 failed; lint 0 errors, 12 warnings** (versions only). New `ViewportMathTest` (5); `HandleHitTestTest` adapted to content coordinates.
+- On device: opened with 07:00 at the left edge (earliest task 08:00 minus one unit), as predicted; a slow 384 px body swipe scrolled ~366 px (touch slop) with the header, grid and bars still aligned (10:00 line = UI Design end, 11:00 line = Implementation start); zoom 100 → 125 % put the 10:00 line at x = 460 px, the predicted value for a fixed centre time; resizing the selected UI Design bar's right edge +120 px (30 min) gave 08:00–10:30. Crash buffer empty.
+- Not verified on device yet: a project long enough to exceed the old layout limit (no UI to create one until B13).
+
+**AI mistake — wide bars were silently narrowed.**
+1. *What AI generated:* the bar container used `Modifier.width(…)` inside a lane only as wide as the viewport.
+2. *Why wrong:* `width` respects the parent's max constraint, so any bar wider than the visible lane was clamped to the lane width; after zooming to 125 %, the 2-hour UI Design bar ended 16 px short of its 10:00 grid line.
+3. *How discovered:* on-device screenshot after zooming, then pixel measurement (bar end 443 px vs. grid line 460 px; the narrower pre-zoom bar was exact).
+4. *Correction:* `wrapContentWidth(Alignment.Start, unbounded = true)` before `width`; re-measured on device, bar end and grid line both at 465 px.
+5. *Decision:* recorded as a constraint in the scroll decision.
+
+**Tooling note:** one `adb shell am start -W` hung after an install (phone awake and unlocked); later launches used `am start` without `-W`.

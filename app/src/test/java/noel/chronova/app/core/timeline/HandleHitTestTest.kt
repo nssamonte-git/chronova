@@ -8,8 +8,9 @@ class HandleHitTestTest {
     private val outset = 40f
     private val inset = 40f
 
+    /** [x] is measured in a touch container that starts [outset] before the bar. */
     private fun mode(x: Float, barWidth: Float, selected: Boolean = true) =
-        HandleHitTest.modeAt(x, barWidth, outset, inset, selected)
+        HandleHitTest.modeAt(x, barStart = outset, barEnd = outset + barWidth, inset = inset, selected = selected)
 
     @Test
     fun unselectedBarOnlyMoves() {

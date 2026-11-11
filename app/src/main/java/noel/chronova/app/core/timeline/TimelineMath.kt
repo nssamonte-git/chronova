@@ -55,6 +55,28 @@ object TimelineMath {
             Tick(offsetMillis = minute * MILLIS_PER_MINUTE, isMajor = minute % majorMinutes == 0L)
         }
     }
+
+    /**
+     * Indices of the [ticks] (sorted by offset) that lie within
+     * [fromOffsetMillis]..[toOffsetMillis], found by binary search so drawing a long
+     * timeline only visits the visible ticks. Empty when none fall inside.
+     */
+    fun visibleTicks(ticks: List<Tick>, fromOffsetMillis: Long, toOffsetMillis: Long): IntRange {
+        val first = lowerBound(ticks, fromOffsetMillis)
+        val endExclusive = lowerBound(ticks, toOffsetMillis + 1)
+        return first until endExclusive
+    }
+
+    /** First index whose offset is >= [offsetMillis]. */
+    private fun lowerBound(ticks: List<Tick>, offsetMillis: Long): Int {
+        var low = 0
+        var high = ticks.size
+        while (low < high) {
+            val mid = (low + high) ushr 1
+            if (ticks[mid].offsetMillis < offsetMillis) low = mid + 1 else high = mid
+        }
+        return low
+    }
 }
 
 /** A grid line at [offsetMillis] from the timeline origin. */

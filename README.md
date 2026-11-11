@@ -9,8 +9,8 @@ It was built for the PicCollage take-home assignment. No third-party timeline or
 | Requirement | Status | Where |
 |---|---|---|
 | F01 Timeline header with readable labels and grid lines, hours or days | Done | `TimelineHeader`, `TimelineGrid`, `TimelineMath.ticks` |
-| F02 Horizontal scrolling with header and content in sync, fixed name column | Done | `SchedulerTimeline` (one `ScrollState`) |
-| F03 Tasks as bars in separate rows, positioned from the time scale | Done | `TaskRow`, `TaskBar`, `TimelineMath` |
+| F02 Horizontal scrolling with header and content in sync, fixed name column | Done | `SchedulerTimeline` (one `TimelineViewportState`) |
+| F03 Tasks as bars in separate rows, positioned from the time scale | Done | `TaskLane`, `TaskBar`, `TimelineMath` |
 | F04 Drag to move (keeps duration) | Done | `detectTaskGestures`, `TaskEdits.move` |
 | F05 Resize from the left (keeps end) | Done | `HandleHitTest`, `TaskEdits.resizeStart` |
 | F06 Resize from the right (keeps start) | Done | `TaskEdits.resizeEnd` |
@@ -63,20 +63,25 @@ noel.chronova.app
 │   └── GestureMode.kt              MOVE, RESIZE_START, RESIZE_END
 ├── domain
 │   ├── SampleTasks.kt              the four sample tasks and the 3-day window
-│   └── model                       SchedulerTask, TimelineConfig/TimeScale, TimelineWindow
+│   ├── model                       Project, SchedulerTask, TimelineConfig/TimeScale, TimelineWindow
+│   └── repository                  ProjectRepository (interface)
+├── data
+│   ├── local                       Room database, entities, DAOs, mappers
+│   └── repository                  RoomProjectRepository
+├── navigation                      ChronovaNavHost (project list → project timeline)
 ├── presentation
-│   ├── ChronovaViewModel.kt        StateFlow<ChronovaUiState>; select / commitEdit / config intents
-│   ├── ChronovaScreen.kt           Scaffold, top bar, toolbar, timeline
+│   ├── projects                    ProjectListScreen / ViewModel
+│   ├── timeline                    ProjectTimelineScreen / ViewModel, TimelineUiState
 │   ├── TimeFormat.kt
-│   └── components                  SchedulerTimeline, TimelineHeader, TimelineGrid, TaskNameColumn,
-│                                   TaskRow, TaskBar, TaskGestures, TimelineControls
+│   └── components                  SchedulerTimeline, TimelineViewportState, TimelineHeader, TimelineGrid,
+│                                   TaskNameCell, TaskLane, TaskBar, TaskGestures, TimelineControls
 └── ui/theme                        Material 3 colour scheme from the Chronova palette
 ```
 
 **State flow:**
 - The ViewModel is the single source of truth for tasks, configuration and selection. It exposes one `StateFlow`, and the screen collects it with `collectAsStateWithLifecycle()`.
 - Data flows one way: the UI sends intents, and the ViewModel produces a new immutable state.
-- Transient drag state (the preview of the bar being edited) stays local to `TaskRow`. Only the finished edit is sent to the ViewModel.
+- Transient drag state (the preview of the bar being edited) stays local to `TaskLane`. Only the finished edit is sent to the ViewModel.
 
 ### Coordinate system
 
@@ -94,9 +99,11 @@ time        = origin + round(x / pxPerMinute) minutes
 
 ### Scrolling
 
-- **One authoritative horizontal `ScrollState`.** It is owned by the task area's `horizontalScroll`.
-- **The header is not a second scroll container.** It is a `Canvas` that reads `scrollState.value` inside its draw lambda. Scrolling therefore only redraws the header (no recomposition), and the labels can't drift from the grid.
-- **Header swipes** feed the same state through `Modifier.scrollable(…, reverseDirection = true)`.
+- **One authoritative horizontal scroll position.** `TimelineViewportState` holds it; the body and the header both feed it through `Modifier.scrollable(…, reverseDirection = true)`.
+- **Nothing is laid out at full content width.** A long project at high zoom is wider than any Compose layout can measure, so the header, grid and bars read the scroll position in their draw or layout phase and handle only what is near the viewport. Scrolling therefore only redraws or re-places (no recomposition), and the labels can't drift from the grid.
+- **Bars are clipped to a compose span**: the viewport-wide page around the scroll position, plus one viewport on each side. It changes only when the scroll crosses a page, so rows don't recompose every frame.
+- **Rows are a `LazyColumn`.** Each item holds both the name cell and the bar lane, so they can't misalign, and long task lists are virtualized.
+- **Zoom keeps the centre time** by moving the scroll in a `SideEffect`, before the frame is laid out and drawn.
 - **Shared ticks:** the header and grid draw from the same `TimelineMath.ticks` list with the same conversion.
 - **One vertical scroll** wraps both the name column and the rows, so rows always stay aligned.
 - **Left-to-right always:** the timeline is forced to LTR so time runs left to right in RTL locales too.
@@ -105,7 +112,7 @@ time        = origin + round(x / pxPerMinute) minutes
 
 - **One handler per bar.** Each bar has a single `pointerInput` (`detectTaskGestures`), keyed on the task id, that decides between a tap and a drag. The drag type (`GestureMode`) is chosen once, at pointer-down, by `HandleHitTest`, so move and resize can never fire together.
 - **Resize grips.** Only the selected bar has resize zones: 20 dp outside each edge plus up to 20 dp inside. On narrow bars the inner part shrinks so the middle third always moves.
-- **Scroll vs drag.** A drag starts only after horizontal touch slop, and that event is consumed so the parent `horizontalScroll` doesn't also scroll. Vertical movement isn't consumed, so vertical scrolling still works over bars. Swipes on empty space scroll normally.
+- **Scroll vs drag.** A drag starts only after horizontal touch slop, and that event is consumed so the parent `scrollable` doesn't also scroll. Vertical movement isn't consumed, so vertical scrolling still works over bars. Swipes on empty space scroll normally.
 - **Edits from the gesture start.** Every pointer event recomputes the bar from the task as it was at gesture start plus the total finger distance since pointer-down. Snapping each small step instead would get stuck, because a slow drag moves less than half a snap interval per event. A unit test demonstrates this.
 - **Commit and cancel.** Release commits the edit. A cancelled gesture discards the preview. The preview is held until the committed task arrives, which avoids a one-frame flash.
 - **Stale values.** `rememberUpdatedState` keeps the long-lived gesture coroutine reading current values (config, task, callbacks) without restarting mid-drag.
@@ -121,7 +128,7 @@ time        = origin + round(x / pxPerMinute) minutes
 
 ## Testing
 
-`./gradlew :app:testDebugUnitTest` runs 51 JVM tests (0 failures in the last run).
+`./gradlew :app:testDebugUnitTest` runs 56 JVM tests (0 failures in the last run).
 
 | Required scenario | Test(s) |
 |---|---|
@@ -165,7 +172,6 @@ Each check's expected values were calculated before running it. The full record 
 ## Known limitations
 
 - Dragging a handle past the edge of the viewport doesn't auto-scroll. Scroll, then keep resizing.
-- After a zoom change, the content is drawn for one frame at the old scroll position before the centre-time anchor is applied.
 - At low zoom, very short tasks (15 minutes) are narrow, so their title is hidden behind the grips when selected.
 - Light theme only. The optional enhancements (dark theme, current-time line, animated selection) weren't implemented.
 - No instrumented or UI tests. Gesture behaviour was verified manually on a device.
