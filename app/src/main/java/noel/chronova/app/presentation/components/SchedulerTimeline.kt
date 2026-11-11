@@ -50,6 +50,7 @@ import noel.chronova.app.presentation.TimeFormat
 
 private val NameColumnWidth = 128.dp
 private val HeaderHeight = 44.dp
+private const val DAY_MILLIS = 24 * 60 * TimelineMath.MILLIS_PER_MINUTE
 
 /**
  * The scheduler: fixed task-name column, time header, grid and task bars.
@@ -181,11 +182,17 @@ private fun VisibleDayLabel(
     scrollState: ScrollState,
     modifier: Modifier = Modifier,
 ) {
-    val day by remember(state.window.startMillis, state.zone, pxPerMinute) {
+    // Only the day index is derived per scroll change (no allocation); the label is
+    // formatted once per day.
+    val dayIndex by remember(state.window.startMillis, pxPerMinute) {
         derivedStateOf {
             val leftEdge = TimelineMath.xToTime(scrollState.value.toFloat(), state.window.startMillis, pxPerMinute)
-            TimeFormat.day(leftEdge, state.zone)
+            Math.floorDiv(leftEdge - state.window.startMillis, DAY_MILLIS)
         }
+    }
+    // +12 h keeps the formatted date correct even if a DST shift moves midnight by an hour.
+    val day = remember(dayIndex, state.window.startMillis, state.zone) {
+        TimeFormat.day(state.window.startMillis + dayIndex * DAY_MILLIS + DAY_MILLIS / 2, state.zone)
     }
     Box(modifier, contentAlignment = Alignment.CenterStart) {
         Text(
@@ -217,6 +224,9 @@ private fun KeepCenterTimeOnZoom(
 ) {
     val anchor = remember { ZoomAnchor(pxPerMinute) }
     if (anchor.pxPerMinute != pxPerMinute) {
+        // Read once, unobserved, only when the scale changes; lint can't see that this
+        // doesn't subscribe the composition to every scroll pixel.
+        @Suppress("FrequentlyChangingValue")
         val scrollX = Snapshot.withoutReadObservation { scrollState.value }
         anchor.centerMinutes = (scrollX + viewportWidthPx / 2f) / anchor.pxPerMinute
         anchor.pxPerMinute = pxPerMinute

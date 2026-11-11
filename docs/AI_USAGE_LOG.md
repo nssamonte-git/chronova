@@ -128,3 +128,15 @@ Both were found by reviewing the generated code against the gesture design, not 
 2. *Why wrong:* Material 3 segmented buttons use `secondaryContainer` for the selected state, which fell back to the default lavender.
 3. *How discovered:* on-device screenshot of the toolbar.
 4. *Correction:* defined `primaryContainer`, `secondaryContainer` (brand blue tint) and `tertiaryContainer`.
+
+### B8 — Optional polish
+
+- Skipped by the user's decision after B7, in favour of documentation and final verification.
+
+### B9 — Documentation and final verification
+
+- `./gradlew clean :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 39 tests, 0 failed; lint 0 errors, 9 warnings**.
+- Lint fixes: moved `mipmap-anydpi-v26` to `mipmap-anydpi` (minSdk 26); `TimeFormat` no longer captures `Locale.getDefault()` in static fields (clock pattern uses `Locale.ROOT`; day names format with the current locale); suppressed `FrequentlyChangingValue` on the deliberate unobserved read in the zoom anchor, with a comment. Re-run: **lint 0 errors, 5 warnings** — all "newer version available" (Gradle 9.9.1, Compose BOM 2026.09.00, lifecycle 2.11.0, Kotlin 2.4.21); versions intentionally left pinned and documented in the README.
+- **AI mistake caught during the lint fix (before running):** building the day formatter per call made the corner day label allocate a formatter on every scroll frame (it is computed in `derivedStateOf`). Changed to derive a day index per scroll and format once per day.
+- Final device smoke check: cold launch OK (`am start -W` TotalTime 5612 ms for the debug build on this low-memory Android 10 phone; release build not measured); corner label switched to "Tue 3 Mar" when scrolled to 22:00 on day 2; no FATAL EXCEPTION or ANR entries in logcat.
+- Added `README.md` and `docs/AI_USAGE_WRITEUP.md` (summary for the shared Google Doc).

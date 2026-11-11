@@ -7,12 +7,14 @@ import java.util.Locale
 
 /** Shared label formatting for the header, task rows and drag feedback. */
 object TimeFormat {
-    private val clock: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-    private val day: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
+    // Digits only, so it is locale-independent and safe to keep as a constant.
+    private val clock: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
 
     fun clock(millis: Long, zone: ZoneId): String = clock.format(Instant.ofEpochMilli(millis).atZone(zone))
 
-    fun day(millis: Long, zone: ZoneId): String = day.format(Instant.ofEpochMilli(millis).atZone(zone))
+    /** Day and month names follow the current locale, so the formatter is built per call. */
+    fun day(millis: Long, zone: ZoneId): String =
+        DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))
 
     fun range(startMillis: Long, endMillis: Long, zone: ZoneId): String =
         "${clock(startMillis, zone)} – ${clock(endMillis, zone)}"
