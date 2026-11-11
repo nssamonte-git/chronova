@@ -1,0 +1,26 @@
+# Local development services: `docker compose up -d`.
+# Ports are bound to localhost only. Credentials are for local development only.
+services:
+  postgres:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_USER: chronova
+      POSTGRES_PASSWORD: chronova
+      POSTGRES_DB: chronova
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronova"]
+      interval: 2s
+      retries: 30
+  # Catches all outgoing mail (verification codes); web UI at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+volumes:
+  postgres-data:

@@ -290,3 +290,15 @@ Both were found by reviewing the generated code against the gesture design, not 
 
 - Tagged the last commit containing it as `serverless-backend-v1`, removed `backend/` (and its local `node_modules`/`cdk.out`), and moved the sync contract into a backend-neutral `docs/sync-protocol.md` (rules, field rules, and the conformance scenarios every server must pass). Two code comments that pointed at `backend/` now point at the contract.
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug` re-run after the comment edits (below). No behaviour change.
+
+### B21 — Laravel skeleton (`server/`)
+
+- `laravel/laravel` 13.11.0 skeleton, created without running its scripts so constraints were set first. Pinned (each ≥ 2 weeks old): `laravel/framework` ~13.39.0 (locked 13.39.0), `pestphp/pest` 5.3.4, `pestphp/pest-plugin-laravel` ~5.0.1, `laravel/pint` 1.32.1; `config.platform.php` 8.4.10 (the production image will run PHP 8.4).
+- Removed the web front-end scaffolding (Vite, npm, welcome page): there is no public website. `/` returns `{"service":"chronova"}`, `/up` is the health check. The skeleton's generic `AGENTS.md`/`CLAUDE.md` (Laravel Boost setup notes, including a `curl | bash` PHP installer) were not kept — PHP was already installed and the repo has its own guidance.
+- Local services in `compose.yaml` (bound to 127.0.0.1): `postgres:16.15-alpine` on port 5433 with a `chronova_test` database created by an init script, and `axllent/mailpit:v1.32.0` for outgoing mail. Docker Desktop was started for this (`open -a Docker`); the user's Homebrew Postgres was left untouched.
+- Pest: feature tests use `RefreshDatabase` on the real Postgres test database (the sync protocol depends on Postgres upserts and row locks).
+- `composer test` — **4 tests passed** (health, root marker, Postgres in tests, no debug calls). `composer lint` (Pint) — passed. `php artisan migrate` on the dev database — the three skeleton migrations ran.
+
+**AI mistake (caught by Composer) — platform PHP too low.** `config.platform.php` was first set to 8.4.0; Symfony 8.1 (needed by Pest 5) requires ≥ 8.4.1, so resolution failed. Set to 8.4.10.
+
+**Version-rule slip (caught before commit).** The first resolve picked Pest 5.3.5 (11 days old) and Pint 1.32.2 through `~` constraints; both were pinned exactly to the ≥ 2-week-old versions and downgraded.
