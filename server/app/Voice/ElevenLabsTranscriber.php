@@ -9,13 +9,14 @@ use Illuminate\Http\UploadedFile;
 /**
  * ElevenLabs Scribe (POST /v1/speech-to-text). The recording is sent once and
  * not kept by the server; with `zero_retention` (an enterprise option at
- * ElevenLabs) the provider doesn't keep it either.
+ * ElevenLabs) the provider doesn't keep it either. Key terms (task titles)
+ * steer it towards the project's own words; they cost 20% more per request.
  */
 final class ElevenLabsTranscriber implements Transcriber
 {
     public function __construct(private readonly Http $http, private readonly array $config) {}
 
-    public function transcribe(UploadedFile $audio, ?string $language): Transcription
+    public function transcribe(UploadedFile $audio, ?string $language, array $keyterms = []): Transcription
     {
         if (blank($this->config['key'] ?? null)) {
             throw new ProviderUnavailable('ElevenLabs is not configured.');
@@ -29,6 +30,10 @@ final class ElevenLabsTranscriber implements Transcriber
         ];
         if ($language !== null) {
             $fields['language_code'] = $language;
+        }
+        // A list is sent as the same field repeated.
+        foreach ($keyterms as $term) {
+            $fields[] = ['name' => 'keyterms', 'contents' => $term];
         }
 
         try {

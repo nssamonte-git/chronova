@@ -106,7 +106,7 @@ class OkHttpVoiceApiTest {
         reply(200, """{"text":" push review by an hour ","language":"en"}""")
         val audio = File.createTempFile("command", ".m4a").apply { writeBytes(byteArrayOf(0, 0, 0, 24, 102, 116, 121, 112)) }
 
-        assertEquals(Transcript("push review by an hour", "en"), api.transcribe("token-1", audio, 2_400, "en"))
+        assertEquals(Transcript("push review by an hour", "en"), api.transcribe("token-1", audio, 2_400, "en", listOf("Build", "Design review")))
 
         val request = server.takeRequest()
         assertEquals("/v1/voice/transcribe", request.url.encodedPath)
@@ -117,6 +117,8 @@ class OkHttpVoiceApiTest {
         assertTrue(body, body.contains("Content-Type: audio/mp4"))
         assertTrue(body, body.contains("name=\"durationMs\"\r\n\r\n2400"))
         assertTrue(body, body.contains("name=\"language\""))
+        assertTrue(body, body.contains("name=\"keyterms[]\"\r\n\r\nBuild\r\n"))
+        assertTrue(body, body.contains("name=\"keyterms[]\"\r\n\r\nDesign review\r\n"))
         audio.delete()
     }
 
@@ -127,7 +129,7 @@ class OkHttpVoiceApiTest {
         reply(422, """{"message":"The audio field is required."}""")
         listOf(VoiceApiException.Kind.TOO_LONG, VoiceApiException.Kind.REJECTED).forEach { kind ->
             try {
-                api.transcribe("t", audio, 2_400, null)
+                api.transcribe("t", audio, 2_400, null, emptyList())
                 fail("expected $kind")
             } catch (error: VoiceApiException) {
                 assertEquals(kind, error.kind)

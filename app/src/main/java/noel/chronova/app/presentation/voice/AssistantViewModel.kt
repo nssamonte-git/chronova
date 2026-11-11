@@ -348,7 +348,9 @@ class AssistantViewModel(
 
     private suspend fun transcribeAndInterpret(recording: Recording): AssistantPhase {
         val token = auth.accessToken() ?: return AssistantPhase.Problem(AssistantProblem.SignedOut)
-        val heard = voiceApi.transcribe(token, recording.file, recording.durationMs, language())
+        // The project's own task names, so they're heard right ("Build", not "filled").
+        val titles = repository.schedule(projectId)?.tasks?.map { it.title }.orEmpty()
+        val heard = voiceApi.transcribe(token, recording.file, recording.durationMs, language(), titles)
         val text = heard.text
         heardLanguage = heard.language ?: language()
         if (text.isEmpty()) return AssistantPhase.Problem(AssistantProblem.NothingHeard)

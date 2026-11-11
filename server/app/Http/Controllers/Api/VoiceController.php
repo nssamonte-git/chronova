@@ -7,6 +7,7 @@ use App\Models\VoiceEvent;
 use App\Voice\ChangeList;
 use App\Voice\Explainer;
 use App\Voice\Interpreter;
+use App\Voice\KeyTerms;
 use App\Voice\ProposalValidator;
 use App\Voice\ProviderUnavailable;
 use App\Voice\Speaker;
@@ -42,10 +43,14 @@ class VoiceController extends Controller
             ])],
             'durationMs' => ['required', 'integer', 'min:100', 'max:'.($limits['audio_seconds'] * 1000)],
             'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
+            // The project's task titles, to hear them right; optional.
+            'keyterms' => ['nullable', 'array', 'list', 'max:'.$limits['tasks']],
+            'keyterms.*' => ['string', 'max:200'],
         ]);
+        $keyterms = config('voice.keyterms') ? KeyTerms::from($data['keyterms'] ?? [], $limits['tasks']) : [];
 
         try {
-            $transcription = $transcriber->transcribe($data['audio'], $data['language'] ?? null);
+            $transcription = $transcriber->transcribe($data['audio'], $data['language'] ?? null, $keyterms);
         } catch (ProviderUnavailable) {
             $this->record($request, 'transcribe', 502, 'provider_error', $started, ['audio_ms' => $data['durationMs']]);
 

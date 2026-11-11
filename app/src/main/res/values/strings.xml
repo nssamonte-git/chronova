@@ -156,7 +156,7 @@
     <string name="assistant_cancel">Cancel</string>
     <string name="assistant_apply">Apply</string>
     <string name="assistant_preview_title">Proposed changes</string>
-    <string name="assistant_privacy">Recordings are sent to ElevenLabs to write down what you said; your words and this project’s task names and times are sent to OpenAI to work out the changes. Nothing changes until you tap Apply.</string>
+    <string name="assistant_privacy">Recordings and this project’s task names are sent to ElevenLabs to write down what you said; your words and this project’s task names and times are sent to OpenAI to work out the changes. Nothing changes until you tap Apply.</string>
     <string name="assistant_speak">Speak</string>
     <string name="assistant_done">Done</string>
     <string name="assistant_listening">Listening… tap Done when you’ve finished.</string>

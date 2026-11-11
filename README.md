@@ -155,7 +155,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
 - Light theme only. Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
-- Voice needs a connection and an account; it sends recordings to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Sound-alike words can be misheard ("filled" for "Build" from a laptop speaker); with one matching task the interpreter still finds it, otherwise it asks.
+- Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
 
 ## AI usage
 

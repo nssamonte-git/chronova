@@ -74,6 +74,28 @@ it('sends the recording to ElevenLabs Scribe with the key only in a header', fun
     expect(VoiceEvent::sole()->audio_ms)->toBe(2350);
 });
 
+it('passes cleaned task titles to Scribe as key terms', function () {
+    useElevenLabs();
+    Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);
+
+    transcribe(['keyterms' => ['Build', 'QA [phase 2]', 'build', '  Design   review ', str_repeat('a', 51), 'one two three four five six', '<>']])->assertOk();
+
+    Http::assertSent(fn (ClientRequest $request) => collect($request->data())
+        ->where('name', 'keyterms')->pluck('contents')->all() === ['Build', 'QA phase 2', 'Design review']);
+});
+
+it('sends no key terms when there are none or they are switched off', function () {
+    useElevenLabs();
+    Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);
+
+    transcribe()->assertOk();
+    config(['voice.keyterms' => false]);
+    transcribe(['keyterms' => ['Build']])->assertOk();
+
+    Http::assertSentCount(2);
+    Http::assertNotSent(fn (ClientRequest $request) => collect($request->data())->contains('name', 'keyterms'));
+});
+
 it('reports languages as two-letter codes, as text to speech needs them', function () {
     useElevenLabs();
     Http::fake(['api.elevenlabs.io/*' => Http::response(['language_code' => 'eng'] + scribeAnswer())]);
@@ -150,6 +172,9 @@ it('validates the recording', function (array $overrides) {
     'too short' => [['durationMs' => 50]],
     'no duration' => [['durationMs' => null]],
     'bad language' => [['language' => 'en-US; drop']],
+    'key terms not a list' => [['keyterms' => 'Build']],
+    'too many key terms' => [['keyterms' => array_fill(0, 301, 'Build')]],
+    'key term too long' => [['keyterms' => [str_repeat('a', 201)]]],
 ]);
 
 it('accepts the formats a phone records', function (string $mime) {

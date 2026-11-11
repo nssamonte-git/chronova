@@ -15,6 +15,9 @@ return [
     // "elevenlabs" in production; "fake" always hears VOICE_FAKE_TRANSCRIPT.
     'transcriber' => env('VOICE_TRANSCRIBER', 'fake'),
     'fake_transcript' => env('VOICE_FAKE_TRANSCRIPT', 'push design by 2 hours'),
+    // Send the project's task titles to the transcriber as words to listen for (fewer
+    // sound-alike mistakes; +20% transcription cost; titles then go to ElevenLabs too).
+    'keyterms' => (bool) env('VOICE_KEYTERMS', true),
 
     // The spoken explanation of a preview: "openai" writes it (else a plain summary), "elevenlabs"
     // says it (else a recorded test phrase). A failure of either still answers, with text only.

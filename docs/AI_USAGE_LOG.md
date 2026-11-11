@@ -534,3 +534,13 @@ The brief (`chronova_ai_voice_integration.md`) asks for voice-driven schedule ed
 - Tests: server **214 passed** (5 new: language conversion and what's sent to speech, the closing-sentence rule). Moved the shared `voiceContext()` test helper into `tests/Pest.php` — two tests only passed when the whole suite ran. Pint clean. App unchanged in this batch (195).
 - Cleanup: signed the phone out (test project lost), deleted the test account and its token, stopped the server, removed the port forward, restored `local.properties`, installed the offline build. **Left for you:** the keys in `server/.env`; the phone's microphone permission (see V5).
 - Idea not done: Scribe's `keyterms` (the project's task titles) would cut sound-alike mistakes like "filled" for "Build", for ~20% more on transcription (~$0.00004 a command) — but it also sends task titles to ElevenLabs, so it's a privacy decision for you.
+
+### V10 — Task names as words to listen for
+
+- You chose to send the project's task titles to ElevenLabs with each recording, after V9's "push filled by two hours". Scribe's `keyterms`, checked against its API reference in V4: ≤ 1,000 terms, each ≤ 50 characters and 5 words, without `< > { } [ ] \`, +20% on transcription.
+- App: `transcribe` sends the titles as repeated `keyterms[]` fields, read from the schedule when the recording is sent. The assistant's notice now says recordings **and this project's task names** go to ElevenLabs.
+- Server: `KeyTerms` cleans them — forbidden characters removed, whitespace collapsed, duplicates (any case) dropped, and titles still too long left out rather than cut — and `ElevenLabsTranscriber` sends each as a repeated `keyterms` field. `VOICE_KEYTERMS=false` turns it off without an app release.
+- Checked against ElevenLabs with your key (local server, throwaway token, deleted after): a Mac-voice clip naming two made-up tasks — without key terms "Move Kestri and Hand off to Friday and push Xylo sync", with them "Move Kestrion handoff to Friday and push Zylo sync", twice each; ~1.1–1.3 s either way. The repeated-field format was accepted. Neither name in any log.
+- Tests: server **219 passed** (5 new: cleaned terms sent to Scribe, none sent when absent or switched off, 3 validations); app **195 passed** (the upload test now checks the `keyterms[]` parts; the ViewModel test that the project's titles go along). Lint 0 errors.
+- **Not checked on the phone:** the app → server field format is covered by the HTTP test and the server side by the live check (same field name), but I didn't repeat the speaker-to-phone test.
+- Docs: `docs/voice-api.md` (field, privacy, setting, measured effect, release checklist now names task titles for ElevenLabs too), README, `.env.example`.

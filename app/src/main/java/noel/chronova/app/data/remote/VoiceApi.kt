@@ -25,8 +25,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 /** The server's voice endpoints (`docs/voice-api.md`). Provider keys never reach the app. */
 interface VoiceApi {
-    /** Sends a recording (AAC in MPEG-4) and returns what was said; empty text when nothing was. */
-    suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): Transcript
+    /**
+     * Sends a recording (AAC in MPEG-4) and returns what was said; empty text when nothing was.
+     * [keyterms] (the project's task titles) help the transcriber hear them right.
+     */
+    suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?, keyterms: List<String>): Transcript
 
     /** Words (and, when speech worked, audio) saying what [request] is about. */
     suspend fun explain(accessToken: String, request: ExplainRequest): SpokenAnswer
@@ -90,12 +93,19 @@ class OkHttpVoiceApi(
 ) : VoiceApi {
     private val base = baseUrl.trimEnd('/')
 
-    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): Transcript {
+    override suspend fun transcribe(
+        accessToken: String,
+        audio: File,
+        durationMs: Long,
+        language: String?,
+        keyterms: List<String>,
+    ): Transcript {
         val form = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("audio", "command.m4a", audio.asRequestBody(M4A))
             .addFormDataPart("durationMs", durationMs.toString())
             .apply { if (language != null) addFormDataPart("language", language) }
+            .apply { keyterms.forEach { addFormDataPart("keyterms[]", it) } }
             .build()
         val reply = call("transcribe", form, TranscribeResponseDto.serializer(), accessToken)
         return Transcript(reply.text.trim(), reply.language)

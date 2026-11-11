@@ -67,14 +67,16 @@ private class FakeVoiceApi : VoiceApi {
     var heard = "push review by an hour"
     var transcribeFailure: VoiceApiException.Kind? = null
     val uploads = mutableListOf<Triple<Boolean, Long, String?>>()
+    val keyterms = mutableListOf<List<String>>()
     var heardLanguage: String? = "fil"
     val explained = mutableListOf<ExplainRequest>()
     var explainGate: CompletableDeferred<Unit>? = null
     var explainFailure: VoiceApiException.Kind? = null
     var spokenAudio: ByteArray? = byteArrayOf(1, 2, 3)
 
-    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): Transcript {
+    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?, keyterms: List<String>): Transcript {
         uploads += Triple(audio.exists(), durationMs, language)
+        this.keyterms += keyterms
         gate?.await()
         transcribeFailure?.let { throw VoiceApiException(it) }
         return Transcript(heard, heardLanguage)
@@ -307,6 +309,8 @@ class AssistantViewModelTest {
 
         viewModel.finishListening()
         assertEquals(listOf(Triple(true, 2_400L, "en")), api.uploads)
+        // The project's task titles go along, to be heard right.
+        assertEquals(listOf(SampleTasks.tasks(zone).map { it.title }), api.keyterms)
         assertEquals("push review by an hour", viewModel.state.value.input)
         assertEquals(listOf("push review by an hour"), api.transcripts)
         assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)

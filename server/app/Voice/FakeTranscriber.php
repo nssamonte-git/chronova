@@ -13,7 +13,7 @@ final class FakeTranscriber implements Transcriber
 {
     public function __construct(private readonly string $phrase) {}
 
-    public function transcribe(UploadedFile $audio, ?string $language): Transcription
+    public function transcribe(UploadedFile $audio, ?string $language, array $keyterms = []): Transcription
     {
         return new Transcription($this->phrase, $language ?? 'en');
     }
