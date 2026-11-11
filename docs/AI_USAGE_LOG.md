@@ -37,3 +37,16 @@ Corrections to the original prompt, found by inspecting the actual project:
 3. *How discovered:* listing the directory when trying to launch the app in B0.
 4. *Correction:* manual verification uses the connected physical device instead (requires USB-debugging authorization) or a system image download.
 5. *Decision:* don't infer installed tooling from directory names; check contents before planning on it.
+
+### B1 — Timeline calculation engine
+
+- Added `SchedulerTask`, `TimelineConfig`/`TimeScale`/`TimelineWindow`, and pure `TimelineMath`, `TimeSnapper`, `TaskEdits`, `GestureMode` (no Android dependencies).
+- 24 JUnit tests cover all 8 required scenarios plus tie-breaking, window clamping, tick generation, and cumulative-rounding avoidance.
+- First run of `./gradlew :app:testDebugUnitTest`: **24 tests, 2 failed**. After the fix below: **24 tests, 0 failed**.
+
+**AI mistake — Float precision in pixel → time conversion.**
+1. *What AI generated:* `pxToMillis` converted pixels to milliseconds exactly (`px / pxPerMinute * 60_000`, rounded to the millisecond), and `xToTime` used it.
+2. *Why wrong:* x positions are `Float`. At x ≈ 1300 px a Float only resolves about 1e-4 px, which is several milliseconds at 96 dp/hour, so time → x → time came back 1 ms early (`…200000` → `…199999`).
+3. *How discovered:* the round-trip tests `xToTime_inverseOfTimeToX` and `zoomChange_preservesTimestamps` failed on the first test run.
+4. *Correction:* pixel → time now rounds to whole minutes (`(px / pxPerMinute).roundToLong() * 60_000`).
+5. *Decision:* the timeline's real resolution is one minute (sub-minute differences are invisible on screen and snapping is ≥ 15 min), so minute rounding is the right precision rather than switching coordinates to Double.
