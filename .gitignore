@@ -1,15 +1,3 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# The Android project keeps its own .gitignore in "Chronova - Android App/"; server/ has its own too.
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+/chronova-android.bundle

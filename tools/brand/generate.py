@@ -4,9 +4,9 @@ Builds every Chronova icon and logo file from the supplied logo image
 the source:  python3 tools/brand/generate.py   (needs Pillow)
 
 Outputs
-  app/src/main/res/drawable-nodpi/brand_icon_art.png       adaptive icon layer (108 dp, logo art scaled into the safe zone)
-  app/src/main/res/drawable-nodpi/brand_icon_mono.png      themed-icon mask (Android 13+)
-  app/src/main/res/drawable-nodpi/brand_splash_logo.png    launch-screen icon
+  Chronova - Android App/app/src/main/res/drawable-nodpi/brand_icon_art.png    adaptive icon layer (108 dp, logo art scaled into the safe zone)
+  Chronova - Android App/app/src/main/res/drawable-nodpi/brand_icon_mono.png   themed-icon mask (Android 13+)
+  Chronova - Android App/app/src/main/res/drawable-nodpi/brand_splash_logo.png launch-screen icon
   (minSdk 26: launchers always use mipmap-anydpi/ic_launcher*.xml, so no per-density bitmaps)
   server/public/images/brand/*.png, server/public/favicon.ico   admin logo, favicons
 """
@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SOURCE = os.path.join(ROOT, "docs", "brand", "chronova-logo.webp")
-RES = os.path.join(ROOT, "app", "src", "main", "res")
+RES = os.path.join(ROOT, "Chronova - Android App", "app", "src", "main", "res")
 PUBLIC = os.path.join(ROOT, "server", "public")
 
 

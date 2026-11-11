@@ -36,13 +36,13 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 
 ## Branding
 
-The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers and the launch-screen logo (`app/src/main/res/drawable-nodpi/brand_*`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
+The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers and the launch-screen logo (`Chronova - Android App/app/src/main/res/drawable-nodpi/brand_*`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
 
 ## Repository layout
 
 ```
-.                       Android app (single Gradle module `app`)
-├── app/
+.
+├── Chronova - Android App/      the Android app: Gradle project, single module `app` (open this folder in Android Studio)
 ├── docs/
 │   ├── sync-protocol.md        the app ↔ server contract
 │   ├── voice-api.md            voice endpoints, privacy, measured cost and the release checklist
@@ -55,14 +55,15 @@ The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python
 
 ## Running the app
 
-Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26.
+Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. The Gradle project is the `Chronova - Android App/` folder.
 
 ```bash
+cd "Chronova - Android App"
 ./gradlew :app:installDebug
 ./gradlew :app:testDebugUnitTest :app:lintDebug
 ```
 
-Without a server the app works fully offline and the account screen says sync isn't set up. To sync, set the server URL in the uncommitted `local.properties`:
+Without a server the app works fully offline and the account screen says sync isn't set up. To sync, set the server URL in the uncommitted `Chronova - Android App/local.properties`:
 
 ```properties
 chronova.apiUrl=https://<your server>          # release builds need https
@@ -82,7 +83,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (226 tests)
+composer test                 # Pest (227 tests)
 ```
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
@@ -133,10 +134,10 @@ noel.chronova.app
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `./gradlew :app:testDebugUnitTest` | 195 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 195 |
 | Android instrumented (Room transaction) | install both APKs, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 226 |
-| Server inside the image | `docker compose --profile test run --rm --build test` | 226 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 227 |
+| Server inside the image | `cd server && docker compose --profile test run --rm --build test` | 227 |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
 
 The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
