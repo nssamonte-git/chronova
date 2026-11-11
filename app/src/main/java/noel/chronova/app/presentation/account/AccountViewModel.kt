@@ -159,7 +159,7 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
     }
 
     companion object {
-        /** Matches the user pool's policy (backend/lib/chronova-stack.ts). */
+        /** Minimum password length; the server enforces the same rule. */
         const val MIN_PASSWORD = 10
         const val CODE_LENGTH = 6
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")

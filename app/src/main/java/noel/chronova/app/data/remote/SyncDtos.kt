@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
-/** Wire format of `POST /v1/sync` (see backend/README.md). */
+/** Wire format of `POST /v1/sync` (see docs/sync-protocol.md). */
 @Serializable
 data class ChangeDto(
     /** "project", "task" or "dependency". */

@@ -285,3 +285,8 @@ Both were found by reviewing the generated code against the gesture design, not 
 4. *Correction:* `svc data disable` straight after; re-read `mobile_data` = 0. Future network toggles restore the previously read state.
 
 **AI mistake (caught by tests) — coroutine test harness.** `advanceUntilIdle()` doesn't run `backgroundScope` work, so 5 coordinator tests failed; the tests now advance virtual time and run pending tasks explicitly.
+
+### B20 — Retire the serverless backend
+
+- Tagged the last commit containing it as `serverless-backend-v1`, removed `backend/` (and its local `node_modules`/`cdk.out`), and moved the sync contract into a backend-neutral `docs/sync-protocol.md` (rules, field rules, and the conformance scenarios every server must pass). Two code comments that pointed at `backend/` now point at the contract.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug` re-run after the comment edits (below). No behaviour change.
