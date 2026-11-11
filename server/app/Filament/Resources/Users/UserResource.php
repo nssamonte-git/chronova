@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users;
 
 use App\Filament\Resources\Users\Pages\ListUsers;
+use App\Filament\Resources\Users\Pages\UserData;
 use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Users\Schemas\UserInfolist;
 use App\Filament\Resources\Users\Tables\UsersTable;
@@ -51,6 +52,7 @@ class UserResource extends Resource
         return [
             'index' => ListUsers::route('/'),
             'view' => ViewUser::route('/{record}'),
+            'data' => UserData::route('/{record}/data'),
         ];
     }
 }

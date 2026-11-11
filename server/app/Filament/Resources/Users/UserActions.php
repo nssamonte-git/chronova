@@ -4,17 +4,63 @@ namespace App\Filament\Resources\Users;
 
 use App\Accounts\DeleteUserAccount;
 use App\Admin\Audit;
+use App\Models\DataAccessGrant;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 /** Account actions shared by the users table and the user page. Each one is audited. */
 class UserActions
 {
+    public const DATA_ACCESS_MINUTES = 30;
+
     public static function all(): array
     {
         return [self::disable(), self::enable(), self::signOutEverywhere(), self::delete()];
+    }
+
+    /** Asks for read-only access to the user's projects and tasks: reason required, 30 minutes, audited. */
+    public static function requestDataAccess(): Action
+    {
+        return Action::make('requestDataAccess')
+            ->label('Access data')
+            ->icon('heroicon-o-lock-open')
+            ->color('gray')
+            ->modalHeading('Access this user\'s projects and tasks?')
+            ->modalDescription('Read-only, for '.self::DATA_ACCESS_MINUTES.' minutes. Your reason and every view are recorded in the audit log.')
+            ->schema([
+                Textarea::make('reason')
+                    ->label('Reason (e.g. support ticket and what you need to check)')
+                    ->required()
+                    ->minLength(10)
+                    ->maxLength(500),
+            ])
+            ->authorize('requestDataAccess')
+            ->visible(fn (User $record) => ! Gate::forUser(Auth::guard('staff')->user())->allows('viewData', $record))
+            ->action(function (User $record, array $data) {
+                DataAccessGrant::create([
+                    'staff_id' => Auth::guard('staff')->id(),
+                    'user_id' => $record->id,
+                    'reason' => $data['reason'],
+                    'expires_at' => now()->addMinutes(self::DATA_ACCESS_MINUTES),
+                ]);
+                Audit::record('user.data_access_granted', $record->id, $data['reason'], ['minutes' => self::DATA_ACCESS_MINUTES]);
+            })
+            ->successRedirectUrl(fn (User $record) => UserResource::getUrl('data', ['record' => $record]));
+    }
+
+    /** Opens the data page while this staff member has an active grant. */
+    public static function viewData(): Action
+    {
+        return Action::make('viewData')
+            ->label('View data')
+            ->icon('heroicon-o-eye')
+            ->visible(fn (User $record) => Gate::forUser(Auth::guard('staff')->user())->allows('viewData', $record))
+            ->url(fn (User $record) => UserResource::getUrl('data', ['record' => $record]));
     }
 
     public static function disable(): Action

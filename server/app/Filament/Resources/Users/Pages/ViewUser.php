@@ -12,6 +12,6 @@ class ViewUser extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return UserActions::all();
+        return [UserActions::viewData(), UserActions::requestDataAccess(), ...UserActions::all()];
     }
 }
