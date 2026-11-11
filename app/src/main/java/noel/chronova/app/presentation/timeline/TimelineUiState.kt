@@ -53,3 +53,9 @@ sealed interface TimelineScreenState {
     data object NotFound : TimelineScreenState
     data class Ready(val timeline: TimelineUiState) : TimelineScreenState
 }
+
+/** One-off messages from the timeline. */
+enum class TimelineNotice {
+    /** A drag or resize couldn't be saved because the task changed meanwhile. */
+    EditNotSaved,
+}

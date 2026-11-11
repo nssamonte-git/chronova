@@ -26,6 +26,9 @@ import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.domain.schedule.ApplyResult
+import noel.chronova.app.domain.schedule.ApplyScheduleChanges
+import noel.chronova.app.domain.schedule.ScheduleChange
 import noel.chronova.app.navigation.ProjectTimelineRoute
 
 /**
@@ -39,6 +42,13 @@ class ProjectTimelineViewModel(
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val today: () -> LocalDate = { LocalDate.now(zone) },
 ) : ViewModel() {
+
+    private val applyChanges = ApplyScheduleChanges(repository, zone)
+
+    private val _notice = MutableStateFlow<TimelineNotice?>(null)
+
+    /** A one-off message for the screen, cleared by [dismissNotice]. */
+    val notice: StateFlow<TimelineNotice?> = _notice.asStateFlow()
 
     /** Null until this project's saved view settings have been read. */
     private val config = MutableStateFlow<TimelineConfig?>(null)
@@ -90,11 +100,25 @@ class ProjectTimelineViewModel(
         selectedTaskId.value = taskId
     }
 
-    /** Saves an edited task. Tasks that aren't in this project are ignored. */
-    fun commitEdit(updated: SchedulerTask) {
+    /**
+     * Saves a dragged or resized task through the shared apply path. [original] is
+     * the task as the drag started from; if it changed in the meantime (e.g. a
+     * sync), the edit is refused and the user told. Tasks that aren't in this
+     * project are ignored.
+     */
+    fun commitEdit(original: SchedulerTask, updated: SchedulerTask) {
         val ready = state.value as? TimelineScreenState.Ready ?: return
-        if (updated.projectId != projectId || ready.timeline.tasks.none { it.id == updated.id }) return
-        viewModelScope.launch { repository.updateTask(updated) }
+        if (ready.timeline.tasks.none { it.id == updated.id }) return
+        if (updated.projectId != projectId || original.id != updated.id || original.projectId != projectId) return
+        if (original == updated) return
+        viewModelScope.launch {
+            val result = applyChanges(projectId, listOf(ScheduleChange.UpdateTask(original, updated)))
+            if (result is ApplyResult.Rejected) _notice.value = TimelineNotice.EditNotSaved
+        }
+    }
+
+    fun dismissNotice() {
+        _notice.value = null
     }
 
     // Task editor intents.

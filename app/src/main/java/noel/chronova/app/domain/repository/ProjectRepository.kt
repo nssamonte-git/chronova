@@ -8,6 +8,8 @@ import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
+import noel.chronova.app.domain.schedule.ScheduleChange
+import noel.chronova.app.domain.schedule.ScheduleState
 
 /**
  * Local source of truth for projects and their tasks. Every write is local first;
@@ -53,6 +55,18 @@ interface ProjectRepository {
 
     /** Undoes [deleteTask]: brings back the task and the links it removed. */
     suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>)
+
+    /**
+     * In one transaction: reads the project's live schedule (null if the project
+     * is gone) and passes it to [verify]. When [verify] returns null, [changes] are
+     * written in order and null is returned; otherwise nothing is written and
+     * [verify]'s result is returned. Use [noel.chronova.app.domain.schedule.ApplyScheduleChanges].
+     */
+    suspend fun <P : Any> applyChanges(
+        projectId: String,
+        changes: List<ScheduleChange>,
+        verify: (ScheduleState?) -> P?,
+    ): P?
 
     /** The project's live links. */
     fun observeDependencies(projectId: String): Flow<List<TaskDependency>>

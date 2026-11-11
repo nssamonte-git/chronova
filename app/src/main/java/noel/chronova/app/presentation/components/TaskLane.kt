@@ -64,7 +64,8 @@ fun TaskLane(
     snapMinutes: Int,
     viewport: TimelineViewportState,
     onSelect: (String) -> Unit,
-    onCommit: (SchedulerTask) -> Unit,
+    /** A finished drag: the task as it was when the drag started, and as edited. */
+    onCommit: (original: SchedulerTask, edited: SchedulerTask) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var preview by remember { mutableStateOf<SchedulerTask?>(null) }
@@ -161,7 +162,7 @@ fun TaskLane(
                         onDragEnd = {
                             dragging = false
                             val edited = preview?.takeIf { it != original }
-                            if (edited != null) currentOnCommit(edited) else preview = null
+                            if (edited != null) currentOnCommit(original, edited) else preview = null
                         },
                         onDragCancel = {
                             dragging = false

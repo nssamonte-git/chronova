@@ -431,3 +431,18 @@ After the fixes: revoked-token sync → "Sync failed: please sign in again"; sig
 - Local-only handoff files (`HANDOFF.md`, `DECISIONS.md`, `CURRENT_TASK.md`) updated with the server/infra invariants and validation commands.
 - Final counts (from the last runs in B32–B33 and B27): app 122 JVM tests, 0 lint errors; server 103 Pest tests (also inside the image); infra 13 Jest tests, synth clean. Nothing pushed; nothing deployed.
 - Git bundle rebuilt from `main` with the `submission-v1` and `serverless-backend-v1` tags.
+
+## AI voice editing (plan: V0–V9)
+
+The brief (`chronova_ai_voice_integration.md`) asks for voice-driven schedule edits (ElevenLabs Scribe → GPT structured proposals → on-device validation → preview → confirm → Undo) sharing one domain path with manual drag/resize. Decisions: providers as in the brief, always preview then confirm with a spoken explanation (GPT text, ElevenLabs speech), "reschedule dependents" via voice only, voice on for everyone (with a kill switch, rate limits and usage metrics).
+
+### V0 — Shared, transactional apply path
+
+- `domain/schedule`: `ScheduleChange` (update / create / delete task, add / remove link — each carries the record as it was when the change was worked out), `ScheduleChanges` (pure: apply in order, find problems, build the undo list), `ApplyScheduleChanges` (the use case every edit path will use).
+- `ProjectRepository.applyChanges(projectId, changes, verify)`: in **one Room transaction** reads the project's live schedule, runs the check, and writes all changes or none (stamped and marked dirty, so they sync like any edit).
+- **Staleness is checked by content, not by an `updatedAt` version**: a change only applies if the record is still exactly what the change was computed from (deviation from the plan's wording — it needs no model change and also catches synced edits). Problems: project gone, stale records, task rules (`TaskRules`), links to missing tasks or deleted tasks that keep links, new links closing a cycle (`DependencyRules`). Pre-existing data isn't judged, so an odd synced row never blocks unrelated edits.
+- Manual drag/resize now saves through `ApplyScheduleChanges`; a refused edit shows "This task changed meanwhile, so the edit wasn't saved. Try again."
+- **Mistake caught while writing the ViewModel test:** my first version took the "before" task from the ViewModel's current state, which already contains a synced change — so the check could never fire and a drag would overwrite the synced title. The lane now passes the task as it was at drag start (`onCommit(original, edited)`).
+- First instrumented test (`androidTest`, androidx.test runner 1.7.0 / ext-junit 1.3.0, both released 30 Jul 2025): `ApplyChangesRoomTest` against an in-memory Room database — applied changes stamped and dirty; a list with one stale change writes nothing; delete-with-links and its undo restore the same rows (undeleted, dirty). Run on the phone with `adb shell am instrument` (not `connectedAndroidTest`, which uninstalls the app and its data afterwards); test APK removed afterwards. **3 passed.**
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **136 tests passed** (14 new: 10 pure rule tests, 3 use-case tests, 1 ViewModel test for a refused drag); lint 0 errors (14 version warnings as before).
+- Not yet checked by hand: dragging on the phone after this change (the phone lost USB authorization right after the instrumented run).

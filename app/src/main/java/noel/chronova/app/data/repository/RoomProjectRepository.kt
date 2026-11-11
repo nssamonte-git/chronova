@@ -18,6 +18,8 @@ import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.domain.schedule.ScheduleChange
+import noel.chronova.app.domain.schedule.ScheduleState
 
 /**
  * Room-backed [ProjectRepository]. Every write stamps `updatedAt` from [clock] and
@@ -100,6 +102,36 @@ class RoomProjectRepository(
             db.taskDao().upsert(task.toEntity(now))
             db.dependencyDao().upsertAll(dependencies.map { it.toEntity(now) })
         }
+    }
+
+    override suspend fun <P : Any> applyChanges(
+        projectId: String,
+        changes: List<ScheduleChange>,
+        verify: (ScheduleState?) -> P?,
+    ): P? = db.withTransaction {
+        val current = db.projectDao().project(projectId)?.let { project ->
+            ScheduleState(
+                project = project.toDomain(),
+                tasks = db.taskDao().tasks(projectId).map { it.toDomain() },
+                links = db.dependencyDao().live(projectId).map { it.toDomain() },
+            )
+        }
+        val problem = verify(current)
+        // Written exactly as given (no trimming), so the undo changes match what is stored.
+        if (problem == null) {
+            val now = clock()
+            for (change in changes) {
+                when (change) {
+                    is ScheduleChange.UpdateTask -> db.taskDao().upsert(change.after.toEntity(now))
+                    // Upserting also restores a tombstoned task (undo of a delete).
+                    is ScheduleChange.CreateTask -> db.taskDao().upsert(change.task.toEntity(now))
+                    is ScheduleChange.DeleteTask -> db.taskDao().markDeleted(change.task.id, now)
+                    is ScheduleChange.AddLink -> db.dependencyDao().upsertAll(listOf(change.link.toEntity(now)))
+                    is ScheduleChange.RemoveLink -> db.dependencyDao().markDeleted(listOf(change.link.id), now)
+                }
+            }
+        }
+        problem
     }
 
     override fun observeDependencies(projectId: String): Flow<List<TaskDependency>> =

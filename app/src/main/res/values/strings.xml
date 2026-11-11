@@ -24,6 +24,7 @@
     <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>
     <string name="task_depends_on">Depends on (must finish first)</string>
     <string name="undo">Undo</string>
+    <string name="edit_not_saved">This task changed meanwhile, so the edit wasn’t saved. Try again.</string>
     <string name="back">Back</string>
     <string name="sync_now">Sync now</string>
     <string name="sync_later">Later</string>

@@ -93,7 +93,7 @@ class ProjectTimelineViewModelTest {
         val state = timeline()
         val before = state().tasks
         val edited = before[1].copy(startMillis = at(10), endMillis = at(13))
-        viewModel.commitEdit(edited)
+        viewModel.commitEdit(before[1], edited)
 
         assertEquals(listOf(edited), repository.updates)
         val after = state().tasks
@@ -102,11 +102,29 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun commitEdit_refusesAndNotifiesWhenTheTaskChangedMeanwhile() = runTest {
+        val state = timeline()
+        val shown = state().tasks[1]
+        // A sync changes the task in the repository; the screen hasn't caught up yet.
+        val synced = shown.copy(title = "Changed by sync")
+        repository.tasks.value = repository.tasks.value.map { if (it.id == shown.id) synced else it }
+        val fresh = state().tasks[1]
+        assertEquals(synced, fresh)
+        // The edit was worked out from the copy the user saw before the sync.
+        viewModel.commitEdit(shown, shown.copy(startMillis = at(10), endMillis = at(13)))
+
+        assertEquals(TimelineNotice.EditNotSaved, viewModel.notice.value)
+        assertEquals(synced, state().tasks[1])
+        viewModel.dismissNotice()
+        assertNull(viewModel.notice.value)
+    }
+
+    @Test
     fun commitEdit_ignoresUnknownTaskOrOtherProject() = runTest {
         val state = timeline()
         val task = state().tasks[0]
-        viewModel.commitEdit(task.copy(id = "missing"))
-        viewModel.commitEdit(task.copy(projectId = "other"))
+        viewModel.commitEdit(task, task.copy(id = "missing"))
+        viewModel.commitEdit(task, task.copy(projectId = "other"))
         assertTrue(repository.updates.isEmpty())
     }
 

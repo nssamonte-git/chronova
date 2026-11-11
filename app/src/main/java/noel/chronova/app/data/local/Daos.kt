@@ -21,6 +21,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id AND deleted = 0")
     fun observeProject(id: String): Flow<ProjectEntity?>
 
+    @Query("SELECT * FROM projects WHERE id = :id AND deleted = 0")
+    suspend fun project(id: String): ProjectEntity?
+
     @Upsert
     suspend fun upsert(project: ProjectEntity)
 

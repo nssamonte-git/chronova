@@ -58,6 +58,7 @@ fun ProjectTimelineScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val deletedTask by viewModel.deletedTask.collectAsStateWithLifecycle()
+    val notice by viewModel.notice.collectAsStateWithLifecycle()
     when (val current = state) {
         TimelineScreenState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -81,8 +82,10 @@ fun ProjectTimelineScreen(
                     onEditTask = viewModel::startEditTask,
                     onUndoDelete = viewModel::undoDelete,
                     onDeletedShown = viewModel::dismissDeleted,
+                    onNoticeShown = viewModel::dismissNotice,
                 ),
                 deletedTask = deletedTask,
+                notice = notice,
                 modifier = modifier,
             )
             taskEditor?.let { editor ->
@@ -109,7 +112,7 @@ fun ProjectTimelineScreen(
 data class TimelineActions(
     val onBack: () -> Unit = {},
     val onSelectTask: (String?) -> Unit = {},
-    val onCommitEdit: (SchedulerTask) -> Unit = {},
+    val onCommitEdit: (original: SchedulerTask, edited: SchedulerTask) -> Unit = { _, _ -> },
     val onTimeScale: (TimeScale) -> Unit = {},
     val onZoomIn: () -> Unit = {},
     val onZoomOut: () -> Unit = {},
@@ -120,6 +123,7 @@ data class TimelineActions(
     val onEditTask: (String) -> Unit = {},
     val onUndoDelete: () -> Unit = {},
     val onDeletedShown: () -> Unit = {},
+    val onNoticeShown: () -> Unit = {},
 )
 
 @Composable
@@ -128,6 +132,7 @@ private fun TimelineContent(
     actions: TimelineActions,
     modifier: Modifier = Modifier,
     deletedTask: SchedulerTask? = null,
+    notice: TimelineNotice? = null,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
@@ -137,6 +142,12 @@ private fun TimelineContent(
         if (deletedTask == null) return@LaunchedEffect
         val result = snackbarHost.showSnackbar(deletedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Short)
         if (result == SnackbarResult.ActionPerformed) actions.onUndoDelete() else actions.onDeletedShown()
+    }
+    val editNotSavedMessage = stringResource(R.string.edit_not_saved)
+    LaunchedEffect(notice) {
+        if (notice == null) return@LaunchedEffect
+        snackbarHost.showSnackbar(editNotSavedMessage, duration = SnackbarDuration.Short)
+        actions.onNoticeShown()
     }
     Scaffold(
         modifier = modifier.fillMaxSize(),

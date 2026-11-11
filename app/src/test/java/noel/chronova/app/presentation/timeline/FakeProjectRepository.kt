@@ -11,6 +11,9 @@ import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.domain.schedule.ScheduleChange
+import noel.chronova.app.domain.schedule.ScheduleChanges
+import noel.chronova.app.domain.schedule.ScheduleState
 
 /** In-memory [ProjectRepository] for ViewModel tests. */
 class FakeProjectRepository(
@@ -85,6 +88,31 @@ class FakeProjectRepository(
     override suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>) {
         updateTask(task)
         this.dependencies.value = this.dependencies.value + dependencies
+    }
+
+    /** Changes applied through [applyChanges], in order. */
+    val applied = mutableListOf<ScheduleChange>()
+
+    override suspend fun <P : Any> applyChanges(
+        projectId: String,
+        changes: List<ScheduleChange>,
+        verify: (ScheduleState?) -> P?,
+    ): P? {
+        val current = projects.value.firstOrNull { it.id == projectId }?.let { project ->
+            ScheduleState(
+                project,
+                tasks.value.filter { it.projectId == projectId },
+                dependencies.value.filter { it.projectId == projectId },
+            )
+        }
+        val problem = verify(current)
+        if (problem != null || current == null) return problem
+        val result = ScheduleChanges.apply(current, changes).state
+        tasks.value = tasks.value.filterNot { it.projectId == projectId } + result.tasks
+        dependencies.value = dependencies.value.filterNot { it.projectId == projectId } + result.links
+        applied += changes
+        changes.filterIsInstance<ScheduleChange.UpdateTask>().forEach { updates += it.after }
+        return null
     }
 
     override fun observeDependencies(projectId: String): Flow<List<TaskDependency>> =

@@ -66,7 +66,7 @@ private val HeaderHeight = 44.dp
 fun SchedulerTimeline(
     state: TimelineUiState,
     onSelectTask: (String?) -> Unit,
-    onCommitEdit: (SchedulerTask) -> Unit,
+    onCommitEdit: (original: SchedulerTask, edited: SchedulerTask) -> Unit,
     onEditTask: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
