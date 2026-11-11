@@ -47,6 +47,9 @@ interface ProjectRepository {
     /** Saves an edited task (from the task editor). */
     suspend fun updateTask(task: SchedulerTask)
 
+    /** The project's live schedule, read consistently; null if the project is gone. */
+    suspend fun schedule(projectId: String): ScheduleState?
+
     /**
      * In one transaction: reads the project's live schedule (null if the project
      * is gone) and passes it to [verify]. When [verify] returns null, [changes] are

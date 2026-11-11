@@ -7,6 +7,9 @@ use App\Models\VoiceEvent;
 use App\Voice\Interpreter;
 use App\Voice\ProposalValidator;
 use App\Voice\ProviderUnavailable;
+use Closure;
+use DateTimeZone;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,7 +37,14 @@ class VoiceController extends Controller
             'context.projectName' => ['required', 'string', 'max:200'],
             'context.startDate' => ['required', 'date_format:Y-m-d'],
             'context.endDate' => ['required', 'date_format:Y-m-d', 'after_or_equal:context.startDate'],
-            'context.timeZone' => ['required', 'timezone:all'],
+            // Zone names and fixed offsets ("+08:00"), as Java and PHP both understand them.
+            'context.timeZone' => ['required', 'string', 'max:64', function (string $attribute, mixed $value, Closure $fail) {
+                try {
+                    new DateTimeZone($value);
+                } catch (Exception) {
+                    $fail('The time zone is not valid.');
+                }
+            }],
             'context.today' => ['required', 'date_format:Y-m-d'],
             'context.now' => ['required', 'date_format:Y-m-d\TH:i'],
             'context.revision' => ['nullable', 'string', 'max:100'],

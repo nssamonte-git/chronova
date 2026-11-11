@@ -35,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,14 +49,22 @@ import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.presentation.components.SchedulerTimeline
 import noel.chronova.app.presentation.components.TimelineControls
+import noel.chronova.app.presentation.TimeFormat
+import noel.chronova.app.presentation.voice.AssistantAvailability
+import noel.chronova.app.presentation.voice.AssistantMessage
+import noel.chronova.app.presentation.voice.AssistantSheet
+import noel.chronova.app.presentation.voice.AssistantViewModel
 import noel.chronova.app.ui.theme.ChronovaTheme
 
 @Composable
 fun ProjectTimelineScreen(
     viewModel: ProjectTimelineViewModel,
+    assistant: AssistantViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val assistantState by assistant.state.collectAsStateWithLifecycle()
+    val assistantMessage by assistant.message.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
@@ -83,11 +93,29 @@ fun ProjectTimelineScreen(
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
+                    onOpenAssistant = assistant::open,
+                    onAssistantUndo = assistant::undo,
+                    onAssistantMessageShown = assistant::dismissMessage,
                 ),
+                assistantAvailable = assistantState.availability != AssistantAvailability.NOT_CONFIGURED,
+                assistantMessage = assistantMessage,
                 undoOffer = undoOffer,
                 notice = notice,
                 modifier = modifier,
             )
+            if (assistantState.open) {
+                val timeline = current.timeline
+                AssistantSheet(
+                    state = assistantState,
+                    zone = timeline.zone,
+                    projectEnd = TimeFormat.day(timeline.window.endMillis - 1, timeline.zone),
+                    onInputChange = assistant::onInputChange,
+                    onSubmit = assistant::submit,
+                    onCancel = assistant::cancel,
+                    onApply = assistant::apply,
+                    onDismiss = assistant::close,
+                )
+            }
             taskEditor?.let { editor ->
                 TaskEditorSheet(
                     editor = editor,
@@ -124,6 +152,9 @@ data class TimelineActions(
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
+    val onOpenAssistant: () -> Unit = {},
+    val onAssistantUndo: () -> Unit = {},
+    val onAssistantMessageShown: () -> Unit = {},
 )
 
 @Composable
@@ -133,6 +164,8 @@ private fun TimelineContent(
     modifier: Modifier = Modifier,
     undoOffer: UndoOffer? = null,
     notice: TimelineNotice? = null,
+    assistantAvailable: Boolean = false,
+    assistantMessage: AssistantMessage? = null,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
@@ -145,6 +178,20 @@ private fun TimelineContent(
         }
         val result = snackbarHost.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
         if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoShown()
+    }
+    val resources = LocalResources.current
+    LaunchedEffect(assistantMessage) {
+        when (val shown = assistantMessage ?: return@LaunchedEffect) {
+            is AssistantMessage.Applied -> {
+                val text = resources.getQuantityString(R.plurals.assistant_applied, shown.taskCount, shown.taskCount)
+                val result = snackbarHost.showSnackbar(text, actionLabel = undoLabel, duration = SnackbarDuration.Long)
+                if (result == SnackbarResult.ActionPerformed) actions.onAssistantUndo() else actions.onAssistantMessageShown()
+            }
+            AssistantMessage.UndoNotPossible -> {
+                snackbarHost.showSnackbar(resources.getString(R.string.undo_not_possible), duration = SnackbarDuration.Short)
+                actions.onAssistantMessageShown()
+            }
+        }
     }
     val editNotSavedMessage = stringResource(R.string.edit_not_saved)
     val undoNotPossibleMessage = stringResource(R.string.undo_not_possible)
@@ -164,6 +211,8 @@ private fun TimelineContent(
                 title = state.projectName,
                 controlsVisible = showControls,
                 selectedTaskId = state.selectedTaskId,
+                assistantAvailable = assistantAvailable,
+                onOpenAssistant = actions.onOpenAssistant,
                 onBack = actions.onBack,
                 onEditTask = actions.onEditTask,
                 onToggleControls = { showControls = !showControls },
@@ -217,6 +266,8 @@ private fun TimelineTopBar(
     title: String,
     controlsVisible: Boolean,
     selectedTaskId: String?,
+    assistantAvailable: Boolean,
+    onOpenAssistant: () -> Unit,
     onBack: () -> Unit,
     onEditTask: (String) -> Unit,
     onToggleControls: () -> Unit,
@@ -237,6 +288,11 @@ private fun TimelineTopBar(
             )
         },
         actions = {
+            if (assistantAvailable) {
+                IconButton(onClick = onOpenAssistant) {
+                    Icon(painterResource(R.drawable.ic_mic), contentDescription = stringResource(R.string.assistant_open))
+                }
+            }
             if (selectedTaskId != null) {
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))

@@ -146,4 +146,46 @@
         <item quantity="one">%d change hasn’t synced and will be lost. Your synced projects stay in your account.</item>
         <item quantity="other">%d changes haven’t synced and will be lost. Your synced projects stay in your account.</item>
     </plurals>
+
+    <!-- Assistant (typed and voice commands) -->
+    <string name="assistant_open">Assistant</string>
+    <string name="assistant_title">Change the schedule</string>
+    <string name="assistant_hint">e.g. “Push design by two days and everything after it”</string>
+    <string name="assistant_send">Send</string>
+    <string name="assistant_thinking">Working it out…</string>
+    <string name="assistant_cancel">Cancel</string>
+    <string name="assistant_apply">Apply</string>
+    <string name="assistant_preview_title">Proposed changes</string>
+    <string name="assistant_privacy">Your words and this project’s task names and times are sent to OpenAI to work out the changes. Nothing changes until you tap Apply.</string>
+    <string name="assistant_signed_out">Sign in (Account) to use the assistant.</string>
+    <string name="assistant_offline">You’re offline. The assistant needs an internet connection.</string>
+    <string name="assistant_disabled">The assistant is switched off right now.</string>
+    <string name="assistant_rate_limited">Too many requests. Wait a minute and try again.</string>
+    <string name="assistant_unavailable">The assistant isn’t available right now. Try again later.</string>
+    <string name="assistant_not_understood">Sorry, I couldn’t turn that into a change. Try saying it another way.</string>
+    <string name="assistant_unsupported">I can only change this project’s schedule.</string>
+    <string name="assistant_nothing_to_change">That wouldn’t change anything.</string>
+    <string name="assistant_schedule_changed">The schedule changed in the meantime, so nothing was changed. Try again.</string>
+    <string name="assistant_unknown_task">I couldn’t find that task.</string>
+    <string name="assistant_task_blank_title">A task needs a name.</string>
+    <string name="assistant_task_end_before_start">“%1$s” would end before it starts.</string>
+    <string name="assistant_task_outside">“%1$s” would fall outside the project’s dates.</string>
+    <string name="assistant_would_cycle">“%2$s” can’t depend on “%1$s”: that would make a loop.</string>
+    <string name="assistant_already_linked">“%2$s” already depends on “%1$s”.</string>
+    <string name="assistant_not_linked">“%2$s” doesn’t depend on “%1$s”.</string>
+    <string name="assistant_does_not_fit">Pushing the tasks after it would run past the project’s end (%1$s).</string>
+    <string name="assistant_preview_moved">%1$s: %2$s → %3$s</string>
+    <string name="assistant_preview_renamed">Rename “%1$s” to “%2$s”</string>
+    <string name="assistant_preview_added">Add “%1$s”: %2$s</string>
+    <string name="assistant_preview_removed">Delete “%1$s”</string>
+    <string name="assistant_preview_linked">“%2$s” will depend on “%1$s”</string>
+    <string name="assistant_preview_unlinked">“%2$s” will no longer depend on “%1$s”</string>
+    <plurals name="assistant_task_too_short">
+        <item quantity="one">“%1$s” would be shorter than %2$d minute.</item>
+        <item quantity="other">“%1$s” would be shorter than %2$d minutes.</item>
+    </plurals>
+    <plurals name="assistant_applied">
+        <item quantity="one">%d task changed</item>
+        <item quantity="other">%d tasks changed</item>
+    </plurals>
 </resources>

@@ -18,6 +18,7 @@ import noel.chronova.app.presentation.sync.SyncPromptDialog
 import noel.chronova.app.presentation.sync.SyncViewModel
 import noel.chronova.app.presentation.timeline.ProjectTimelineScreen
 import noel.chronova.app.presentation.timeline.ProjectTimelineViewModel
+import noel.chronova.app.presentation.voice.AssistantViewModel
 
 @Serializable
 data object ProjectListRoute
@@ -65,6 +66,9 @@ fun ChronovaNavHost(container: AppContainer, modifier: Modifier = Modifier) {
         composable<ProjectTimelineRoute> {
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(container.projectRepository)),
+                assistant = viewModel(
+                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online),
+                ),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
             )
         }

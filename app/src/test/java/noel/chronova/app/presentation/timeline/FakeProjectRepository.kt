@@ -78,6 +78,15 @@ class FakeProjectRepository(
 
     val dependencies = MutableStateFlow<List<TaskDependency>>(emptyList())
 
+    override suspend fun schedule(projectId: String): ScheduleState? =
+        projects.value.firstOrNull { it.id == projectId }?.let { project ->
+            ScheduleState(
+                project,
+                tasks.value.filter { it.projectId == projectId }.sortedBy { it.sortOrder },
+                dependencies.value.filter { it.projectId == projectId },
+            )
+        }
+
     /** Changes applied through [applyChanges], in order. */
     val applied = mutableListOf<ScheduleChange>()
 
@@ -86,13 +95,7 @@ class FakeProjectRepository(
         changes: List<ScheduleChange>,
         verify: (ScheduleState?) -> P?,
     ): P? {
-        val current = projects.value.firstOrNull { it.id == projectId }?.let { project ->
-            ScheduleState(
-                project,
-                tasks.value.filter { it.projectId == projectId },
-                dependencies.value.filter { it.projectId == projectId },
-            )
-        }
+        val current = schedule(projectId)
         val problem = verify(current)
         if (problem != null || current == null) return problem
         val result = ScheduleChanges.apply(current, changes).state

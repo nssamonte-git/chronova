@@ -210,6 +210,10 @@ it('validates the request', function (array $body) {
     'epoch instead of local time' => [['transcript' => 'x', 'context' => voiceContext(['now' => 1_800_000_000_000])]],
 ]);
 
+it('accepts zone names, UTC and fixed offsets', function (string $zone) {
+    interpret('delete review', ['timeZone' => $zone])->assertOk();
+})->with(['Asia/Manila', 'UTC', '+08:00', '-03:30']);
+
 it('is limited per user', function () {
     config(['voice.limits.requests_per_minute' => 2]);
     interpret('delete review')->assertOk();

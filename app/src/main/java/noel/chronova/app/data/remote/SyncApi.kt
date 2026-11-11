@@ -94,7 +94,7 @@ class OkHttpSyncApi(
 }
 
 /** Runs the call without blocking a thread; cancelling the coroutine cancels the request. */
-private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
+internal suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
     continuation.invokeOnCancellation { cancel() }
     enqueue(
         object : Callback {

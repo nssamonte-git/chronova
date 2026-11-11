@@ -88,18 +88,22 @@ class RoomProjectRepository(
         db.taskDao().upsert(task.copy(title = task.title.trim()).toEntity(clock()))
     }
 
+    override suspend fun schedule(projectId: String): ScheduleState? = db.withTransaction { readSchedule(projectId) }
+
+    private suspend fun readSchedule(projectId: String): ScheduleState? = db.projectDao().project(projectId)?.let { project ->
+        ScheduleState(
+            project = project.toDomain(),
+            tasks = db.taskDao().tasks(projectId).map { it.toDomain() },
+            links = db.dependencyDao().live(projectId).map { it.toDomain() },
+        )
+    }
+
     override suspend fun <P : Any> applyChanges(
         projectId: String,
         changes: List<ScheduleChange>,
         verify: (ScheduleState?) -> P?,
     ): P? = db.withTransaction {
-        val current = db.projectDao().project(projectId)?.let { project ->
-            ScheduleState(
-                project = project.toDomain(),
-                tasks = db.taskDao().tasks(projectId).map { it.toDomain() },
-                links = db.dependencyDao().live(projectId).map { it.toDomain() },
-            )
-        }
+        val current = readSchedule(projectId)
         val problem = verify(current)
         // Written exactly as given (no trimming), so the undo changes match what is stored.
         if (problem == null) {

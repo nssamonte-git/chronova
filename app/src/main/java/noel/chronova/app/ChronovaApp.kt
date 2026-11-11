@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import noel.chronova.app.auth.ApiAuthRepository
 import noel.chronova.app.auth.AuthRepository
@@ -15,6 +16,8 @@ import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.auth.KeystoreTokenStore
 import noel.chronova.app.data.local.ChronovaDatabase
 import noel.chronova.app.data.remote.OkHttpSyncApi
+import noel.chronova.app.data.remote.OkHttpVoiceApi
+import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.sync.RoomLocalSyncStore
 import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
@@ -73,6 +76,15 @@ class AppContainer(context: Context) {
     // A build without a backend never calls it (auth stays NotConfigured), but the URL must still parse.
     private val syncApi = OkHttpSyncApi(backendConfig.apiUrl.ifBlank { "https://localhost" }, httpClient)
 
+    /** Voice/typed commands; the server holds the provider keys. Model calls can take a while. */
+    val voiceApi: VoiceApi = OkHttpVoiceApi(
+        backendConfig.apiUrl.ifBlank { "https://localhost" },
+        httpClient.newBuilder().readTimeout(45, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS).build(),
+    )
+
+    /** Whether the internet is reachable (each collector gets its own callback). */
+    val online: Flow<Boolean> = onlineFlow(context)
+
     private val syncEngine = SyncEngine(syncStore, syncApi, accessToken = { authRepository.accessToken() })
 
     val syncCoordinator = SyncCoordinator(
@@ -80,7 +92,7 @@ class AppContainer(context: Context) {
         auth = authRepository,
         local = syncStore,
         api = syncApi,
-        online = onlineFlow(context),
+        online = online,
         runSync = syncEngine::sync,
     )
 
