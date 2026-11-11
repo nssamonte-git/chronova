@@ -1,6 +1,6 @@
 package noel.chronova.app.presentation
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -10,33 +10,48 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import java.time.ZoneOffset
 import noel.chronova.app.R
 import noel.chronova.app.ui.theme.ChronovaTheme
 
 @Composable
-fun ChronovaScreen(modifier: Modifier = Modifier) {
+fun ChronovaScreen(
+    modifier: Modifier = Modifier,
+    viewModel: ChronovaViewModel = viewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    ChronovaContent(state = state, modifier = modifier)
+}
+
+@Composable
+private fun ChronovaContent(state: ChronovaUiState, modifier: Modifier = Modifier) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = { ChronovaTopBar() },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        // Placeholder until the timeline is rendered (Batch 3).
-        Box(
+        // Temporary task list; replaced by the timeline in Batch 3.
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "Timeline coming soon",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            state.tasks.forEach { task ->
+                Text(
+                    text = "${task.title}  ${TimeFormat.range(task.startMillis, task.endMillis, state.zone)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
     }
 }
@@ -64,6 +79,6 @@ private fun ChronovaTopBar() {
 
 @Preview(showBackground = true)
 @Composable
-private fun ChronovaScreenPreview() {
-    ChronovaTheme { ChronovaScreen() }
+private fun ChronovaContentPreview() {
+    ChronovaTheme { ChronovaContent(state = ChronovaUiState.sample(ZoneOffset.UTC)) }
 }

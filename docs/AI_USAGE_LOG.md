@@ -50,3 +50,10 @@ Corrections to the original prompt, found by inspecting the actual project:
 3. *How discovered:* the round-trip tests `xToTime_inverseOfTimeToX` and `zoomChange_preservesTimestamps` failed on the first test run.
 4. *Correction:* pixel → time now rounds to whole minutes (`(px / pxPerMinute).roundToLong() * 60_000`).
 5. *Decision:* the timeline's real resolution is one minute (sub-minute differences are invisible on screen and snapping is ≥ 15 min), so minute rounding is the right precision rather than switching coordinates to Double.
+
+### B2 — Scheduler state and sample tasks
+
+- `SampleTasks` (4 required tasks on fixed reference date 2026-03-02, 3-day window from local midnight), `ChronovaUiState`, `ChronovaViewModel` (`StateFlow`; intents `selectTask`, `commitEdit`, `updateConfig`), `TimeFormat`, and `ChronovaScreen` collecting state with `collectAsStateWithLifecycle()`.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed** (6 new ViewModel tests).
+- First on-device launch (physical phone, Android 10 / API 29, 360 dp wide): app starts, top bar shows "Chronova / Shape Your Time", sample tasks list 09:00–11:00, 11:00–14:00, 13:30–16:00, 16:00–17:00.
+- No AI mistakes recorded in this batch.
