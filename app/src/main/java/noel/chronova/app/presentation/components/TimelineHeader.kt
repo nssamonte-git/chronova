@@ -47,23 +47,32 @@ fun TimelineHeader(
     val textMeasurer = rememberTextMeasurer()
     val clockStyle = MaterialTheme.typography.labelMedium.copy(color = colors.onSurfaceVariant)
     val dayStyle = clockStyle.copy(color = colors.onSurface, fontWeight = FontWeight.SemiBold)
+    val minorStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSurfaceVariant.copy(alpha = 0.8f))
 
     // Labels depend only on time, never on zoom, so they are cached per tick set.
+    // Midnight (and every major tick in Days scale) shows the date; others the clock.
     val labels = remember(ticks, originMillis, zone, scale) {
         ticks.map { tick ->
-            if (!tick.isMajor) return@map null
             val millis = originMillis + tick.offsetMillis
             val isMidnight = Instant.ofEpochMilli(millis).atZone(zone).toLocalTime().toSecondOfDay() == 0
-            if (scale == TimeScale.DAYS || isMidnight) HeaderLabel(TimeFormat.day(millis, zone), isDay = true)
-            else HeaderLabel(TimeFormat.clock(millis, zone), isDay = false)
+            if (tick.isMajor && (scale == TimeScale.DAYS || isMidnight)) {
+                HeaderLabel(TimeFormat.day(millis, zone), isDay = true)
+            } else {
+                HeaderLabel(TimeFormat.clock(millis, zone), isDay = false)
+            }
         }
     }
 
-    // Skip labels when units are too narrow for them (low zoom).
+    // Major labels thin out when units get narrow (low zoom). Minor ticks get labels
+    // only when they are far enough apart, e.g. 06:00/12:00/18:00 in Days scale or
+    // half hours when zoomed in on Hours; otherwise a Days view can show no text at all.
     val density = LocalDensity.current
+    val minSpacingPx = with(density) { MIN_LABEL_SPACING.toPx() }
     val unitWidthPx = pxPerMinute * scale.minutes
-    val labelStride = max(1, ceil(with(density) { MIN_LABEL_SPACING.toPx() } / unitWidthPx).toInt())
+    val labelStride = max(1, ceil(minSpacingPx / unitWidthPx).toInt())
     val unitMillis = scale.minutes * TimelineMath.MILLIS_PER_MINUTE
+    val minorStepMillis = ticks.getOrNull(1)?.offsetMillis ?: unitMillis
+    val showMinorLabels = TimelineMath.durationToWidth(minorStepMillis, pxPerMinute) >= minSpacingPx
 
     Canvas(
         modifier
@@ -86,9 +95,16 @@ fun TimelineHeader(
                 strokeWidth = 1.dp.toPx(),
             )
 
-            val label = labels[index] ?: return@forEachIndexed
-            if ((tick.offsetMillis / unitMillis) % labelStride != 0L) return@forEachIndexed
-            val layout = textMeasurer.measure(label.text, if (label.isDay) dayStyle else clockStyle)
+            val label = labels[index]
+            val style = when {
+                tick.isMajor -> {
+                    if ((tick.offsetMillis / unitMillis) % labelStride != 0L) return@forEachIndexed
+                    if (label.isDay) dayStyle else clockStyle
+                }
+                showMinorLabels -> minorStyle
+                else -> return@forEachIndexed
+            }
+            val layout = textMeasurer.measure(label.text, style)
             drawText(
                 textLayoutResult = layout,
                 topLeft = Offset(x + labelPadding, (size.height * 0.55f - layout.size.height) / 2f),

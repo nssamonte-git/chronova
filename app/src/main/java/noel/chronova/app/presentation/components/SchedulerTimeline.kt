@@ -29,6 +29,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -83,6 +85,8 @@ fun SchedulerTimeline(
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier.background(colors.surface)) {
             val bodyMinHeight = maxHeight - HeaderHeight
+            val viewportWidthPx = constraints.maxWidth - with(density) { NameColumnWidth.roundToPx() }
+            KeepCenterTimeOnZoom(pxPerMinute, viewportWidthPx, horizontalScroll)
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(HeaderHeight)) {
                     VisibleDayLabel(
@@ -191,6 +195,37 @@ private fun VisibleDayLabel(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
+    }
+}
+
+private class ZoomAnchor(var pxPerMinute: Float, var centerMinutes: Float? = null)
+
+/**
+ * Keeps the time at the centre of the viewport fixed when zoom or time scale
+ * changes (otherwise content would scale around the left edge).
+ *
+ * The centre time must be read with the *old* scale, before the new layout clamps
+ * the scroll position, so it is captured during composition — without subscribing
+ * to scroll changes — and applied one frame later, once the content has been
+ * re-measured at its new width.
+ */
+@Composable
+private fun KeepCenterTimeOnZoom(
+    pxPerMinute: Float,
+    viewportWidthPx: Int,
+    scrollState: ScrollState,
+) {
+    val anchor = remember { ZoomAnchor(pxPerMinute) }
+    if (anchor.pxPerMinute != pxPerMinute) {
+        val scrollX = Snapshot.withoutReadObservation { scrollState.value }
+        anchor.centerMinutes = (scrollX + viewportWidthPx / 2f) / anchor.pxPerMinute
+        anchor.pxPerMinute = pxPerMinute
+    }
+    LaunchedEffect(pxPerMinute) {
+        val centerMinutes = anchor.centerMinutes ?: return@LaunchedEffect
+        anchor.centerMinutes = null
+        withFrameNanos { } // wait for the layout at the new content width
+        scrollState.scrollTo((centerMinutes * pxPerMinute - viewportWidthPx / 2f).roundToInt().coerceAtLeast(0))
     }
 }
 

@@ -100,3 +100,31 @@ Both were found by reviewing the generated code against the gesture design, not 
 - Not yet verified on device: resizing with 60-min snap on QA Testing (13:30 start) — needs the B7 snap control; covered by `minimumDurationHoldsEvenWithCoarseSnap` and `resizeEnd_preservesStart` unit tests.
 - Known limitation: dragging a handle past the viewport edge does not auto-scroll; the user scrolls and continues.
 - No AI mistakes recorded in this batch.
+
+### B7 — Configuration controls
+
+- Zoom/scale/snap/row-height rules moved into `TimelineConfig` and `TimeScale` (per-scale default and limits, ×1.25 zoom steps, 40–80 dp rows in 8 dp steps), with ViewModel intents `setTimeScale`, `zoomIn/zoomOut/resetZoom`, `setSnapMinutes`, `changeRowHeight`. `TimelineControls` is a horizontally scrollable toolbar (segmented Hours/Days and 15/30/60 m, −/+ steppers with percentage and dp readouts, zoom reset); the top-bar settings icon shows/hides it. Changing zoom or scale keeps the centre time fixed (`KeepCenterTimeOnZoom`).
+- `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 39 tests, 0 failed** (6 new `TimelineConfigTest`, ViewModel config test rewritten for the new intents).
+- On device (360 dp portrait): zoom 100 → 125 → 156 → 100 % put the 09:00 line at x = 438, 425, 448 px, exactly as predicted for a fixed centre time (≈ 09:12); with 60-min snap a +100 px move gave 10:00–12:00 and a −120 px left-edge resize gave 09:00–12:00 (end kept); row height +2 steps → 72 dp; Days scale kept all task times; the settings icon hid and showed the toolbar.
+- Known limitation: after a zoom change the content is drawn for one frame at the old scroll position before the anchor scroll is applied.
+- Not verified on device: 60-min resize specifically on QA Testing (13:30 start); covered by unit tests.
+
+**AI mistake — icon availability.**
+1. *What AI generated:* `Icons.Filled.Remove` for the minus buttons, after adding `material-icons-core`.
+2. *Why wrong:* `Remove` is only in `material-icons-extended`, a much larger library.
+3. *How discovered:* compile error (`Unresolved reference 'Remove'`).
+4. *Correction:* the single glyph is defined locally with `materialIcon { materialPath { … } }` from its Material path data.
+5. *Decision:* don't add the extended icon set for one icon.
+
+**AI mistake — Days scale showed no time labels.**
+1. *What AI generated:* the header labelled only major ticks (every unit). In Days scale those are midnights only.
+2. *Why wrong:* at the default Days zoom the viewport spans ~12 hours, so most positions showed a header with no text at all.
+3. *How discovered:* on-device screenshot after switching to Days.
+4. *Correction:* minor ticks (6 h in Days, 30 min in Hours) are labelled in a lighter style whenever they are at least 56 dp apart.
+5. *Decision:* label density is decided by on-screen spacing, not by tick type.
+
+**AI mistake — off-brand selection colour.**
+1. *What AI generated:* a colour scheme without container roles.
+2. *Why wrong:* Material 3 segmented buttons use `secondaryContainer` for the selected state, which fell back to the default lavender.
+3. *How discovered:* on-device screenshot of the toolbar.
+4. *Correction:* defined `primaryContainer`, `secondaryContainer` (brand blue tint) and `tertiaryContainer`.

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
 
 /**
@@ -31,8 +32,22 @@ class ChronovaViewModel(zone: ZoneId = ZoneId.systemDefault()) : ViewModel() {
         }
     }
 
-    /** Changes how time is displayed and snapped; never touches task timestamps. */
-    fun updateConfig(config: TimelineConfig) {
-        _state.update { it.copy(config = config) }
+    // Configuration intents. They change how time is displayed and snapped and
+    // never touch task timestamps.
+
+    fun setTimeScale(scale: TimeScale) = updateConfig { it.withTimeScale(scale) }
+
+    fun zoomIn() = updateConfig { it.zoomedIn() }
+
+    fun zoomOut() = updateConfig { it.zoomedOut() }
+
+    fun resetZoom() = updateConfig { it.zoomReset() }
+
+    fun setSnapMinutes(minutes: Int) = updateConfig { it.withSnap(minutes) }
+
+    fun changeRowHeight(steps: Int) = updateConfig { it.withRowHeightStep(steps) }
+
+    fun updateConfig(transform: (TimelineConfig) -> TimelineConfig) {
+        _state.update { it.copy(config = transform(it.config)) }
     }
 }

@@ -8,10 +8,17 @@ import androidx.compose.ui.graphics.Color
 private val ChronovaLightColors = lightColorScheme(
     primary = ChronovaBlue,
     onPrimary = Color.White,
+    primaryContainer = ChronovaBlueContainer,
+    onPrimaryContainer = ChronovaOnBlueContainer,
     secondary = ChronovaGreen,
     onSecondary = Color.White,
+    // Segmented buttons use secondaryContainer for the selected state; keep it on-brand blue.
+    secondaryContainer = ChronovaBlueContainer,
+    onSecondaryContainer = ChronovaOnBlueContainer,
     tertiary = ChronovaPurple,
     onTertiary = Color.White,
+    tertiaryContainer = ChronovaPurpleContainer,
+    onTertiaryContainer = ChronovaOnPurpleContainer,
     background = ChronovaBackground,
     onBackground = ChronovaText,
     surface = ChronovaSurface,

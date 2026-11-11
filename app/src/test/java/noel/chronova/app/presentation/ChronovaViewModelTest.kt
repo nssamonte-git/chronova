@@ -63,10 +63,15 @@ class ChronovaViewModelTest {
     @Test
     fun updateConfig_neverChangesTaskTimestamps() {
         val before = viewModel.state.value.tasks
-        viewModel.updateConfig(
-            TimelineConfig(timeScale = TimeScale.DAYS, unitWidthDp = 720f, snapMinutes = 60, rowHeightDp = 72f),
-        )
-        assertEquals(TimeScale.DAYS, viewModel.state.value.config.timeScale)
+        viewModel.setTimeScale(TimeScale.DAYS)
+        viewModel.zoomIn()
+        viewModel.setSnapMinutes(60)
+        viewModel.changeRowHeight(+2)
+        viewModel.setTimeScale(TimeScale.HOURS)
+        viewModel.zoomOut()
+        viewModel.resetZoom()
+
+        assertEquals(TimelineConfig(snapMinutes = 60, rowHeightDp = 72f), viewModel.state.value.config)
         assertEquals(before, viewModel.state.value.tasks)
     }
 }
