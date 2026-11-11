@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +36,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.presentation.ChronovaUiState
+import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.ui.theme.toColor
 
 private val NameColumnWidth = 128.dp
@@ -81,20 +84,16 @@ fun SchedulerTimeline(
             val bodyMinHeight = maxHeight - HeaderHeight
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(HeaderHeight)) {
-                    Box(
+                    VisibleDayLabel(
+                        state = state,
+                        pxPerMinute = pxPerMinute,
+                        scrollState = horizontalScroll,
                         modifier = Modifier
                             .width(NameColumnWidth)
                             .fillMaxHeight()
                             .columnDivider(colors.outlineVariant)
                             .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Text(
-                            text = "Tasks",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
+                    )
                     TimelineHeader(
                         originMillis = window.startMillis,
                         zone = state.zone,
@@ -159,6 +158,35 @@ fun SchedulerTimeline(
                 }
             }
         }
+    }
+}
+
+/**
+ * Corner cell naming the day at the left edge of the viewport, so the date stays
+ * visible between midnight labels. derivedStateOf limits recomposition to the
+ * moments the day actually changes, not every scrolled pixel.
+ */
+@Composable
+private fun VisibleDayLabel(
+    state: ChronovaUiState,
+    pxPerMinute: Float,
+    scrollState: ScrollState,
+    modifier: Modifier = Modifier,
+) {
+    val day by remember(state.window.startMillis, state.zone, pxPerMinute) {
+        derivedStateOf {
+            val leftEdge = TimelineMath.xToTime(scrollState.value.toFloat(), state.window.startMillis, pxPerMinute)
+            TimeFormat.day(leftEdge, state.zone)
+        }
+    }
+    Box(modifier, contentAlignment = Alignment.CenterStart) {
+        Text(
+            text = day,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
     }
 }
 

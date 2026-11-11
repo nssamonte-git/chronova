@@ -2,6 +2,8 @@ package noel.chronova.app.presentation.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -26,6 +28,10 @@ import noel.chronova.app.presentation.TimeFormat
  * Time-axis header. It is not a scroll container: it reads the body's horizontal
  * [scrollState] inside the draw lambda, so scrolling only re-draws this canvas
  * (no recomposition) and the labels can never drift from the grid below.
+ *
+ * Swipes on the header feed the same [scrollState] through `scrollable`, so there is
+ * still exactly one scroll position. `reverseDirection = true` matches how
+ * `horizontalScroll` maps an LTR drag (drag left -> later times).
  */
 @Composable
 fun TimelineHeader(
@@ -59,7 +65,11 @@ fun TimelineHeader(
     val labelStride = max(1, ceil(with(density) { MIN_LABEL_SPACING.toPx() } / unitWidthPx).toInt())
     val unitMillis = scale.minutes * TimelineMath.MILLIS_PER_MINUTE
 
-    Canvas(modifier.clipToBounds()) {
+    Canvas(
+        modifier
+            .clipToBounds()
+            .scrollable(scrollState, Orientation.Horizontal, reverseDirection = true),
+    ) {
         val scrollX = scrollState.value.toFloat() // draw-phase read: no recomposition on scroll
         val labelPadding = 6.dp.toPx()
         val cullMargin = MAX_LABEL_WIDTH.toPx()

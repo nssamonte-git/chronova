@@ -71,3 +71,11 @@ Corrections to the original prompt, found by inspecting the actual project:
 3. *How discovered:* while implementing B3, before running it.
 4. *Correction:* the single horizontal `ScrollState` and the initial scroll position moved into B3; B4 keeps header swipe-to-scroll, end-of-range and rotation checks.
 5. *Decision:* each batch must be verifiable on its own; the scroll architecture was unchanged, only its timing.
+
+### B4 — Scroll synchronization
+
+- Header swipes now scroll the timeline through `Modifier.scrollable(sameScrollState, reverseDirection = true)` — still one scroll position, no second `horizontalScroll`.
+- Corner cell shows the day at the viewport's left edge (`derivedStateOf`, so it recomposes only when the day changes); added after on-device checks showed no date context between midnight labels.
+- `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed**.
+- On device: a slow header swipe moved header and body together (08:00 → 10:00 view); 12 fast flings reached the end of the range (22:00–23:00, Wed 4 Mar) and 14 back returned to Mon 2 Mar 00:00, with labels aligned to grid lines throughout; rotating to landscape (after enabling auto-rotate on the phone) kept the scroll position, tasks and day label; vertical scroll in landscape moved names and rows together.
+- No AI mistakes recorded in this batch. Observation for B7: in landscape on a 360 dp-tall phone the top app bar takes a large share of the height.
