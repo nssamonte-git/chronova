@@ -342,3 +342,29 @@ Both were found by reviewing the generated code against the gesture design, not 
 - On device against the local server (`artisan serve` + queue worker + Mailpit, `adb reverse tcp:8000 tcp:8000`, `chronova.apiUrl=http://localhost:8000` added to `local.properties` for the check): Create account with `phone@example.test` → server got the register request → "Your Chronova confirmation code" in Mailpit → code entered on the phone → "Signed in as phone@example.test", "9 changes not synced", as predicted.
 - Found on device: with the keyboard open, the Create account button sits under the keyboard (the screen scrolls, but doesn't bring it into view); the keyboard's Done key submits. Noted for polish.
 - Interruption: the phone's USB connection dropped once more, which also cleared `adb reverse`; it was re-added.
+
+### B27 — End-to-end sync on the phone (and three fixes it found)
+
+Setup: local server (`artisan serve` with 4 workers + `queue:work` + Mailpit), `adb reverse tcp:8000 tcp:8000`, a debug build with `chronova.apiUrl=http://localhost:8000` (removed from `local.properties` afterwards and verified identical to the backup; normal build reinstalled), and a Python script acting as a second device signed in to the same account. Each scenario was predicted before it ran.
+
+| Scenario | Predicted | Observed |
+|---|---|---|
+| Phone "Sync now" after sign-up | "All changes synced"; server has all 9 local records | ✔ 2 projects, 5 tasks, 2 links (2 tombstones); device 2 pulled all 9 |
+| Device 2 renames Review (newer) | phone shows "Final review" after syncing | ✔ "Review" before, "Final review" after |
+| Phone edit, then a newer device-2 edit | phone's push is stale; winner returned; phone shows "Impl script 2" | ✔ metrics: pushed 1, stale 1 |
+| Device 2 deletes UI Design + its link | row gone on the phone | ✔ |
+| Phone edit, Wi-Fi off/on (mobile data stayed off) | prompt "1 change … Sync it now?"; device 2 sees "QA 2" | ✔ state read before and restored (`wifi_on=1`, `mobile_data=0`) |
+| Delete account on the phone | server empty, phone signed out and empty | ✘ server correct, **app crashed** → fixed, re-run ✔ |
+| Offline-created project, then first sign-up + sync | project uploaded | ✔ "1 change on this device only" → synced; server 1 project |
+
+**Bug 1 (app) — clearing local data crashed.** `RoomLocalSyncStore.clearAll()` called the blocking `clearAllTables()` from the main thread (Room refuses), so delete account — and sign-out, same path — crashed after signing out but before clearing the device. Found by the delete-account check (`IllegalStateException: Cannot access database on the main thread`). Fix: run it on `Dispatchers.IO`.
+
+**Bug 2 (app) — a crash could leave a stale session.** The token store used `apply()`, so the crash above killed the process before the cleared session reached disk; after relaunch the phone was "signed in" to the deleted account. Fix: the token store writes with `commit = true` (it is always called from an IO thread).
+
+**Bug 3 (server) — unauthenticated API calls without `Accept: application/json` returned 500.** Laravel tried to redirect guests to a `login` route that doesn't exist; the Pest tests always sent `Accept: application/json` (`postJson`), the app's sync client didn't, so the revoked-token sync showed "server problem" instead of "sign in again". Found from that message, reproduced with curl (500, `Route [login] not defined`). Fix: `/v1` guests are never redirected (401 JSON); new test without an Accept header; the app's sync client now sends `Accept: application/json` too.
+
+After the fixes: revoked-token sync → "Sync failed: please sign in again"; sign-out → device cleared, no crash; delete account → app stays open, list empty, server `users=0 projects=0 tokens=0`, crash buffer empty.
+
+- Checks: server `composer test` **65 passed** (Pint passed); app `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` **122 passed, 0 lint errors, 14 version warnings**.
+
+**Unexplained edits (reported to the user, not changed).** Before the first sync, UI Design, Implementation, QA Testing and Review had multi-day times starting at local midnight (e.g. Implementation 12 → 17 Mar). Their `updatedAt` values put the edits at 22:51–22:52 PST, while no commands were being sent to the phone (phone and Mac clocks agree within 1 s; the Launch deletion's timestamp matches its known time). Whole-day, midnight-aligned changes match dragging bars in the Weeks scale (1-day snap), which the sample project was left on. The app changes tasks only through drag, resize or the editor, so this looks like hands-on use of the phone at that time; it was not altered.

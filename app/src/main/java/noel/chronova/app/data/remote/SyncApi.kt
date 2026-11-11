@@ -80,7 +80,8 @@ class OkHttpSyncApi(
         }
     }
 
-    private fun Request.Builder.bearer(token: String) = header("Authorization", "Bearer $token")
+    private fun Request.Builder.bearer(token: String) =
+        header("Authorization", "Bearer $token").header("Accept", "application/json")
 
     private companion object {
         val JSON = "application/json; charset=utf-8".toMediaType()

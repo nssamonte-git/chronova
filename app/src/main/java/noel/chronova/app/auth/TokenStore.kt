@@ -36,8 +36,10 @@ class KeystoreTokenStore(private val prefs: SharedPreferences) : TokenStore {
         return Session(token, userId, email)
     }
 
+    // commit = true: written before returning (callers are on an IO thread), so a crash
+    // right after signing in or out can't leave a stale session behind.
     override fun write(session: Session) {
-        prefs.edit {
+        prefs.edit(commit = true) {
             putString(KEY_TOKEN, encrypt(session.token))
             putString(KEY_USER_ID, session.userId)
             putString(KEY_EMAIL, session.email)
@@ -45,7 +47,7 @@ class KeystoreTokenStore(private val prefs: SharedPreferences) : TokenStore {
     }
 
     override fun clear() {
-        prefs.edit { clear() }
+        prefs.edit(commit = true) { clear() }
     }
 
     private fun encrypt(plain: String): String {

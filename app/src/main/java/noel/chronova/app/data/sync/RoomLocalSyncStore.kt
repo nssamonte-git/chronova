@@ -3,7 +3,9 @@ package noel.chronova.app.data.sync
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.int
@@ -135,8 +137,11 @@ class RoomLocalSyncStore(
     }
 
     override suspend fun clearAll() {
-        db.clearAllTables()
-        prefs.edit { clear() }
+        // clearAllTables() blocks and Room forbids it on the main thread; callers may be on Main.
+        withContext(Dispatchers.IO) {
+            db.clearAllTables()
+            prefs.edit { clear() }
+        }
     }
 
     private fun cursorKey(userId: String) = "cursor_$userId"
