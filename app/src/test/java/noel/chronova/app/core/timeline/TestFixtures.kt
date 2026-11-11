@@ -16,7 +16,7 @@ internal object Fixtures {
         day.atTime(LocalTime.of(hour, minute)).toInstant(ZoneOffset.UTC).toEpochMilli()
 
     fun task(startH: Int, startM: Int, endH: Int, endM: Int) =
-        SchedulerTask("t", "Task", at(startH, startM), at(endH, endM))
+        SchedulerTask("t", "p", "Task", at(startH, startM), at(endH, endM))
 }
 
 internal const val MINUTE = 60_000L

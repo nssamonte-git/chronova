@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.domain.model.SchedulerTask
-import noel.chronova.app.presentation.ChronovaUiState
+import noel.chronova.app.presentation.timeline.TimelineUiState
 import noel.chronova.app.presentation.TimeFormat
 
 private val NameColumnWidth = 128.dp
@@ -61,7 +61,7 @@ private const val DAY_MILLIS = 24 * 60 * TimelineMath.MILLIS_PER_MINUTE
  */
 @Composable
 fun SchedulerTimeline(
-    state: ChronovaUiState,
+    state: TimelineUiState,
     onSelectTask: (String?) -> Unit,
     onCommitEdit: (SchedulerTask) -> Unit,
     modifier: Modifier = Modifier,
@@ -177,7 +177,7 @@ fun SchedulerTimeline(
  */
 @Composable
 private fun VisibleDayLabel(
-    state: ChronovaUiState,
+    state: TimelineUiState,
     pxPerMinute: Float,
     scrollState: ScrollState,
     modifier: Modifier = Modifier,
@@ -242,7 +242,7 @@ private fun KeepCenterTimeOnZoom(
 /** On first composition only, scroll so the earliest task starts one unit in. */
 @Composable
 private fun InitialScrollToFirstTask(
-    state: ChronovaUiState,
+    state: TimelineUiState,
     pxPerMinute: Float,
     scrollState: ScrollState,
 ) {

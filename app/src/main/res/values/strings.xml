@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">Chronova</string>
     <string name="app_tagline">Shape Your Time</string>
+    <string name="projects_empty">No projects yet.</string>
+    <plurals name="task_count">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
 </resources>
