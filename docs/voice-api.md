@@ -140,4 +140,8 @@ Response (200): `{"text": "Build moves to 11 a.m. today. Tap Apply to confirm.",
 | `VOICE_ELEVENLABS_ZERO_RETENTION` | `false` | Enterprise plans only |
 | `VOICE_OPENAI_MODEL` | `gpt-6.1-terra` | |
 | `VOICE_OPENAI_REASONING_EFFORT` | `low` | |
-| `VOICE_REQUESTS_PER_MINUTE` | `10` | Per user |
+| `VOICE_REQUESTS_PER_MINUTE` | `10` | Per user and endpoint |
+| `VOICE_PRICE_OPENAI_INPUT`, `VOICE_PRICE_OPENAI_OUTPUT` | — | Dollars per million tokens, for the admin cost estimate |
+| `VOICE_PRICE_TRANSCRIPTION_HOUR`, `VOICE_PRICE_SPEECH_1K_CHARS` | — | Dollars per audio hour / per 1,000 spoken characters |
+
+On AWS these come from the stack: `-c voice=on` sets the real drivers and injects the keys from the `VoiceKeys` secret into the web container (`server/infra/DEPLOY.md`).

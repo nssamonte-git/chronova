@@ -43,6 +43,15 @@ return [
         'timeout' => (int) env('VOICE_ELEVENLABS_TIMEOUT', 20),
     ],
 
+    // Provider prices, in dollars, for the admin dashboard's cost estimate; no estimate
+    // until all four are set (copy them from the providers' pricing pages).
+    'prices' => [
+        'openai_input_per_million_tokens' => is_numeric(env('VOICE_PRICE_OPENAI_INPUT')) ? (float) env('VOICE_PRICE_OPENAI_INPUT') : null,
+        'openai_output_per_million_tokens' => is_numeric(env('VOICE_PRICE_OPENAI_OUTPUT')) ? (float) env('VOICE_PRICE_OPENAI_OUTPUT') : null,
+        'transcription_per_hour' => is_numeric(env('VOICE_PRICE_TRANSCRIPTION_HOUR')) ? (float) env('VOICE_PRICE_TRANSCRIPTION_HOUR') : null,
+        'speech_per_thousand_characters' => is_numeric(env('VOICE_PRICE_SPEECH_1K_CHARS')) ? (float) env('VOICE_PRICE_SPEECH_1K_CHARS') : null,
+    ],
+
     'limits' => [
         // Per user and per endpoint, so one spoken command (transcribe + interpret) counts once on each.
         'requests_per_minute' => (int) env('VOICE_REQUESTS_PER_MINUTE', 10),

@@ -4,12 +4,13 @@ namespace App\Admin;
 
 use App\Models\SyncEvent;
 use App\Models\User;
+use App\Models\VoiceEvent;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Health numbers for the admin dashboard, from users and sync_events only (counts
- * and timing, never content). Days are UTC. Results are cached briefly so the
+ * Health numbers for the admin dashboard, from users, sync_events and voice_events
+ * only (counts and timing, never content). Days are UTC. Results are cached briefly so the
  * dashboard stays cheap however often it's opened.
  */
 class Metrics
@@ -71,6 +72,74 @@ class Metrics
                 'p95_ms' => (int) round((float) $row->p95_ms),
             ];
         });
+    }
+
+    /**
+     * Voice use in the last 24 hours. Errors are server-side failures (provider or
+     * invalid answers), not the kill switch. The cost is an estimate from the
+     * configured prices (config/voice.php), or null until they are all set.
+     *
+     * @return array{requests: int, users: int, commands: int, error_rate: float, audio_minutes: float,
+     *     speech_characters: int, input_tokens: int, output_tokens: int, estimated_cost: ?float}
+     */
+    public function voiceUsage(): array
+    {
+        return $this->cached('voice-usage', function () {
+            $row = VoiceEvent::query()
+                ->where('created_at', '>=', now()->subDay())
+                ->selectRaw('count(*) as requests')
+                ->selectRaw('count(distinct user_id) as users')
+                ->selectRaw("count(*) filter (where kind = 'interpret' and status = 200) as commands")
+                ->selectRaw("count(*) filter (where status >= 500 and outcome <> 'disabled') as failed")
+                ->selectRaw("coalesce(sum(audio_ms) filter (where kind = 'transcribe' and status in (200, 422)), 0) as audio_ms")
+                ->selectRaw("coalesce(sum(characters) filter (where kind in ('explain', 'speak')), 0) as speech_characters")
+                ->selectRaw('coalesce(sum(input_tokens), 0) as input_tokens')
+                ->selectRaw('coalesce(sum(output_tokens), 0) as output_tokens')
+                ->first();
+            $requests = (int) $row->requests;
+            $usage = [
+                'requests' => $requests,
+                'users' => (int) $row->users,
+                'commands' => (int) $row->commands,
+                'error_rate' => $requests === 0 ? 0.0 : round(100 * $row->failed / $requests, 1),
+                'audio_minutes' => round($row->audio_ms / 60000, 1),
+                'speech_characters' => (int) $row->speech_characters,
+                'input_tokens' => (int) $row->input_tokens,
+                'output_tokens' => (int) $row->output_tokens,
+            ];
+
+            return $usage + ['estimated_cost' => $this->voiceCost($usage, (int) $row->audio_ms)];
+        });
+    }
+
+    /** @return array<string, array<string, int>> voice requests per UTC day, by endpoint (explain includes spoken questions) */
+    public function voicePerDay(int $days = 14): array
+    {
+        return $this->cached("voice:$days", function () use ($days) {
+            $since = VoiceEvent::query()->where('created_at', '>=', $this->since($days));
+
+            return [
+                'transcribe' => $this->perDay((clone $since)->where('kind', 'transcribe'), 'created_at', $days),
+                'interpret' => $this->perDay((clone $since)->where('kind', 'interpret'), 'created_at', $days),
+                'explain' => $this->perDay((clone $since)->whereIn('kind', ['explain', 'speak']), 'created_at', $days),
+            ];
+        });
+    }
+
+    private function voiceCost(array $usage, int $audioMs): ?float
+    {
+        $prices = config('voice.prices');
+        if (in_array(null, $prices, true)) {
+            return null;
+        }
+
+        return round(
+            $usage['input_tokens'] / 1e6 * $prices['openai_input_per_million_tokens']
+            + $usage['output_tokens'] / 1e6 * $prices['openai_output_per_million_tokens']
+            + $audioMs / 3_600_000 * $prices['transcription_per_hour']
+            + $usage['speech_characters'] / 1000 * $prices['speech_per_thousand_characters'],
+            2,
+        );
     }
 
     private function since(int $days): CarbonImmutable

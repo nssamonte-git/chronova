@@ -26,6 +26,11 @@ export interface ChronovaStackProps extends StackProps {
   readonly alarmEmail?: string;
   /** Build context of the server image (the Laravel app). Defaults to ../ (server/). */
   readonly imageDirectory?: string;
+  /**
+   * Voice editing with the real providers (OpenAI, ElevenLabs). Off by default: put the keys in the
+   * VoiceKeys secret first (DEPLOY.md). Deploying with it off is also the kill switch.
+   */
+  readonly voice?: boolean;
 }
 
 /**
@@ -40,8 +45,9 @@ export interface ChronovaStackProps extends StackProps {
  *   CloudFront, and the app can trust CloudFront-Viewer-Address for client IPs.
  * - No NAT gateway: tasks sit in public subnets (to pull images and call AWS APIs)
  *   but accept traffic only from the load balancer's security group.
- * - Secrets (app key, database password) live in Secrets Manager and are injected
- *   at start; email goes through SES with the task role (no SMTP credentials).
+ * - Secrets (app key, database password, voice provider keys) live in Secrets Manager and
+ *   are injected at start; email goes through SES with the task role (no SMTP credentials).
+ *   Only the web container gets the voice provider keys.
  */
 export class ChronovaStack extends Stack {
   constructor(scope: Construct, id: string, props: ChronovaStackProps) {
@@ -88,6 +94,18 @@ export class ChronovaStack extends Stack {
       generateSecretString: { passwordLength: 32, excludePunctuation: true, includeSpace: false },
     });
 
+    // Voice provider keys, as JSON {"openai": "...", "elevenlabs": "..."}. Created with empty values;
+    // the real keys are put in by hand (never in code or the template) — see DEPLOY.md.
+    const voiceKeys = new secretsmanager.Secret(this, 'VoiceKeys', {
+      description: 'Chronova voice provider keys: {"openai": "...", "elevenlabs": "..."}',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ openai: '', elevenlabs: '' }),
+        generateStringKey: 'placeholder',
+        excludePunctuation: true,
+      },
+    });
+    const voiceOn = props.voice ?? false;
+
     // --- Email (SES) ----------------------------------------------------------------
     const mailIdentity = new ses.EmailIdentity(this, 'MailFrom', { identity: ses.Identity.email(props.mailFrom) });
 
@@ -113,6 +131,12 @@ export class ChronovaStack extends Stack {
       MAIL_FROM_NAME: 'Chronova',
       AWS_DEFAULT_REGION: this.region,
       LOG_CHANNEL: 'stderr',
+      // Off: every voice endpoint answers 503 and the app shows "switched off". On: real providers.
+      VOICE_ENABLED: voiceOn ? 'true' : 'false',
+      VOICE_TRANSCRIBER: voiceOn ? 'elevenlabs' : 'fake',
+      VOICE_INTERPRETER: voiceOn ? 'openai' : 'fake',
+      VOICE_EXPLAINER: voiceOn ? 'openai' : 'fake',
+      VOICE_SPEECH: voiceOn ? 'elevenlabs' : 'fake',
     };
     const secrets: Record<string, ecs.Secret> = {
       APP_KEY: ecs.Secret.fromSecretsManager(appKey),
@@ -122,6 +146,15 @@ export class ChronovaStack extends Stack {
       DB_USERNAME: ecs.Secret.fromSecretsManager(dbSecret, 'username'),
       DB_PASSWORD: ecs.Secret.fromSecretsManager(dbSecret, 'password'),
     };
+
+    // The web container alone calls the providers.
+    const webSecrets: Record<string, ecs.Secret> = voiceOn
+      ? {
+          ...secrets,
+          OPENAI_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'openai'),
+          ELEVENLABS_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'elevenlabs'),
+        }
+      : secrets;
 
     const sendMail = new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],
@@ -146,7 +179,7 @@ export class ChronovaStack extends Stack {
       image,
       command: ['web'],
       environment,
-      secrets,
+      secrets: webSecrets,
       logging: logDriver('web'),
       portMappings: [{ containerPort: 8080 }],
       healthCheck: { command: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8080/up'], interval: Duration.seconds(15), startPeriod: Duration.seconds(30) },
@@ -292,5 +325,6 @@ export class ChronovaStack extends Stack {
     new CfnOutput(this, 'TaskSecurityGroup', { value: serviceSecurityGroup.securityGroupId });
     new CfnOutput(this, 'MailIdentity', { value: mailIdentity.emailIdentityName });
     new CfnOutput(this, 'JobsService', { value: jobs.serviceName });
+    new CfnOutput(this, 'VoiceKeysSecret', { value: voiceKeys.secretName, description: 'Put the OpenAI and ElevenLabs keys here (DEPLOY.md)' });
   }
 }

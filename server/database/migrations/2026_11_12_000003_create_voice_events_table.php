@@ -13,9 +13,10 @@ return new class extends Migration
             $table->id();
             // Kept (without the user) when an account is deleted, so totals stay correct.
             $table->foreignUuid('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('kind', 16); // interpret | transcribe | explain
+            $table->string('kind', 16); // transcribe | interpret | explain | speak (a spoken question)
             $table->unsignedSmallInteger('status');
-            // operations | clarification | unsupported | invalid | provider_error | disabled
+            // interpret: operations | clarification | unsupported | invalid; transcribe: text | empty | too_long;
+            // explain/speak: [fallback_]spoken | [fallback_]text; any: provider_error | disabled
             $table->string('outcome', 16);
             $table->unsignedInteger('duration_ms');
             $table->unsignedInteger('audio_ms')->nullable();

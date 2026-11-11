@@ -10,9 +10,13 @@ if (!mailFrom || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailFrom)) {
   throw new Error('Set the sender address: -c mailFrom=no-reply@your-domain.com');
 }
 
+const voice: string = app.node.tryGetContext('voice') ?? 'off';
+if (voice !== 'on' && voice !== 'off') throw new Error(`Invalid voice: ${voice} (use -c voice=on or -c voice=off)`);
+
 new ChronovaStack(app, `Chronova-${stage}`, {
   stage,
   mailFrom,
+  voice: voice === 'on',
   alarmEmail: app.node.tryGetContext('alarmEmail'),
   // Account and region come from the deploying credentials/profile.
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },

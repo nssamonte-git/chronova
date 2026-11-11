@@ -2,8 +2,15 @@ import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { ChronovaStack } from '../lib/chronova-stack';
 
-const synth = (stage: string) =>
-  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com' }));
+const synth = (stage: string, voice?: boolean) =>
+  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com', voice }));
+const containersOf = (template: Template) =>
+  Object.values(template.findResources('AWS::ECS::TaskDefinition')).flatMap(
+    (r) => r.Properties.ContainerDefinitions as Array<Record<string, any>>,
+  );
+const envOf = (container: Record<string, any>) =>
+  Object.fromEntries((container.Environment as Array<{ Name: string; Value: string }>).map((e) => [e.Name, e.Value]));
+const secretNamesOf = (container: Record<string, any>) => (container.Secrets as Array<{ Name: string }>).map((s) => s.Name);
 
 const dev = synth('dev');
 const CACHING_DISABLED = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad';
@@ -106,5 +113,42 @@ describe('containers', () => {
   it('allows interactive admin commands on the jobs service only', () => {
     const services = Object.values(dev.findResources('AWS::ECS::Service')).map((r) => r.Properties.EnableExecuteCommand ?? false);
     expect(services.sort()).toEqual([false, true]);
+  });
+});
+
+describe('voice', () => {
+  it('keeps a secret for the provider keys, created without real values', () => {
+    dev.hasResourceProperties('AWS::SecretsManager::Secret', {
+      GenerateSecretString: Match.objectLike({ SecretStringTemplate: '{"openai":"","elevenlabs":""}', GenerateStringKey: 'placeholder' }),
+    });
+    dev.hasOutput('VoiceKeysSecret', Match.anyValue());
+  });
+
+  it('is off by default: no provider keys in any container, fake drivers', () => {
+    for (const container of containersOf(dev)) {
+      expect(envOf(container)).toMatchObject({ VOICE_ENABLED: 'false', VOICE_INTERPRETER: 'fake', VOICE_SPEECH: 'fake' });
+      expect(secretNamesOf(container)).not.toEqual(expect.arrayContaining(['OPENAI_API_KEY']));
+      expect(secretNamesOf(container)).not.toEqual(expect.arrayContaining(['ELEVENLABS_API_KEY']));
+    }
+  });
+
+  it('when on, gives the provider keys to the web container only, as secrets', () => {
+    const on = synth('dev', true);
+    for (const container of containersOf(on)) {
+      const env = envOf(container);
+      expect(env).toMatchObject({
+        VOICE_ENABLED: 'true',
+        VOICE_TRANSCRIBER: 'elevenlabs',
+        VOICE_INTERPRETER: 'openai',
+        VOICE_EXPLAINER: 'openai',
+        VOICE_SPEECH: 'elevenlabs',
+      });
+      expect(Object.keys(env)).not.toEqual(expect.arrayContaining(['OPENAI_API_KEY', 'ELEVENLABS_API_KEY']));
+      const hasKeys = secretNamesOf(container).includes('OPENAI_API_KEY') && secretNamesOf(container).includes('ELEVENLABS_API_KEY');
+      expect(hasKeys).toBe(container.Command[0] === 'web');
+    }
+    const web = containersOf(on).find((c) => c.Command[0] === 'web')!;
+    const openai = (web.Secrets as Array<{ Name: string; ValueFrom: unknown }>).find((s) => s.Name === 'OPENAI_API_KEY')!;
+    expect(JSON.stringify(openai.ValueFrom)).toContain(':openai::');
   });
 });

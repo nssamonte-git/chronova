@@ -5,8 +5,11 @@ use App\Filament\Widgets\AccountsOverview;
 use App\Filament\Widgets\SignupsChart;
 use App\Filament\Widgets\SyncHealthOverview;
 use App\Filament\Widgets\SyncRequestsChart;
+use App\Filament\Widgets\VoiceRequestsChart;
+use App\Filament\Widgets\VoiceUsageOverview;
 use App\Models\SyncEvent;
 use App\Models\User;
+use App\Models\VoiceEvent;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -76,4 +79,66 @@ it('renders the dashboard widgets for any staff member', function () {
     Livewire::test(SyncHealthOverview::class)->assertSee('Error rate');
     Livewire::test(SignupsChart::class)->assertOk();
     Livewire::test(SyncRequestsChart::class)->assertOk();
+    Livewire::test(VoiceUsageOverview::class)->assertSee('Voice requests')->assertSee('Set VOICE_PRICE_* to estimate');
+    Livewire::test(VoiceRequestsChart::class)->assertOk();
+});
+
+function voiceEvent(string $kind, int $status, string $outcome, string $at, array $extra = [], ?User $user = null): void
+{
+    $event = new VoiceEvent(['kind' => $kind, 'status' => $status, 'outcome' => $outcome, 'duration_ms' => 100] + $extra);
+    $event->user_id = $user?->getKey();
+    $event->created_at = Carbon::parse($at, 'UTC');
+    $event->save();
+}
+
+it('sums 24-hour voice use without an estimate until prices are set', function () {
+    expect(app(Metrics::class)->voiceUsage())->toMatchArray(['requests' => 0, 'error_rate' => 0.0, 'estimated_cost' => null]);
+
+    Cache::flush();
+    [$ana, $ben] = User::factory()->count(2)->create();
+    voiceEvent('transcribe', 200, 'text', '2026-11-12 09:00', ['audio_ms' => 90_000, 'characters' => 21], $ana);
+    voiceEvent('interpret', 200, 'operations', '2026-11-12 09:00', ['input_tokens' => 1000, 'output_tokens' => 100], $ana);
+    voiceEvent('explain', 200, 'spoken', '2026-11-12 09:00', ['input_tokens' => 200, 'output_tokens' => 50, 'characters' => 70], $ana);
+    voiceEvent('transcribe', 422, 'too_long', '2026-11-12 09:30', ['audio_ms' => 30_000, 'characters' => 1200], $ben);
+    voiceEvent('speak', 200, 'spoken', '2026-11-12 09:30', ['characters' => 30], $ben);
+    voiceEvent('interpret', 502, 'provider_error', '2026-11-12 09:40', [], $ben);
+    voiceEvent('interpret', 503, 'disabled', '2026-11-12 09:50', [], $ben);
+    voiceEvent('interpret', 200, 'operations', '2026-11-10 09:00', ['input_tokens' => 9999]); // older than 24 h
+
+    $usage = app(Metrics::class)->voiceUsage();
+    expect($usage)->toBe([
+        'requests' => 7,
+        'users' => 2,
+        'commands' => 1,
+        'error_rate' => 14.3,           // 1 provider error in 7; the kill switch isn't an error
+        'audio_minutes' => 2.0,         // 90 s + 30 s, both sent to the provider
+        'speech_characters' => 100,     // spoken answers only, not transcript lengths
+        'input_tokens' => 1200,
+        'output_tokens' => 150,
+        'estimated_cost' => null,
+    ]);
+
+    Cache::flush();
+    config(['voice.prices' => [
+        'openai_input_per_million_tokens' => 1.0,
+        'openai_output_per_million_tokens' => 10.0,
+        'transcription_per_hour' => 0.6,
+        'speech_per_thousand_characters' => 50.0,
+    ]]);
+    // 1200/1e6*1 + 150/1e6*10 + 2/60*0.6 + 100/1000*50 = 0.0012 + 0.0015 + 0.02 + 5
+    expect(app(Metrics::class)->voiceUsage()['estimated_cost'])->toBe(5.02);
+});
+
+it('counts voice requests per day by endpoint', function () {
+    voiceEvent('transcribe', 200, 'text', '2026-11-12 08:00');
+    voiceEvent('interpret', 200, 'operations', '2026-11-12 08:00');
+    voiceEvent('interpret', 200, 'operations', '2026-11-11 08:00');
+    voiceEvent('explain', 200, 'spoken', '2026-11-12 08:00');
+    voiceEvent('speak', 200, 'spoken', '2026-11-12 08:00');
+
+    expect(app(Metrics::class)->voicePerDay(2))->toBe([
+        'transcribe' => ['2026-11-11' => 0, '2026-11-12' => 1],
+        'interpret' => ['2026-11-11' => 1, '2026-11-12' => 1],
+        'explain' => ['2026-11-11' => 0, '2026-11-12' => 2],
+    ]);
 });
