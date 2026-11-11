@@ -38,7 +38,7 @@ npx cdk deploy -c stage=dev -c mailFrom=no-reply@your-domain.com \
   [-c alarmEmail=ops@your-domain.com] --profile chronova
 ```
 
-Outputs: `ApiUrl` (put it in the app's `local.properties` as `chronova.apiUrl`), `AdminUrl`, `ClusterName`, `MigrateTaskDefinition`, `TaskSubnets`, `TaskSecurityGroup`, `JobsService`, `VoiceKeysSecret`.
+Outputs: `ApiUrl` (put it in the app's `Chronova - Android App/local.properties` as `chronova.apiUrl`), `AdminUrl`, `ClusterName`, `MigrateTaskDefinition`, `TaskSubnets`, `TaskSecurityGroup`, `JobsService`, `VoiceKeysSecret`.
 
 1. **Verify the sender**: SES emails `mailFrom` a verification link — click it. New accounts start in the SES *sandbox* (mail only to verified addresses); request production access in the SES console before real users sign up.
 2. **Run migrations** (also after every deploy that adds one):

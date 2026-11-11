@@ -2,7 +2,7 @@
 
 Chronova is an offline-first project scheduler: a native Android app (Kotlin, Jetpack Compose) with a Gantt-style timeline, a Laravel server it syncs with, and a staff admin panel.
 
-- **App** — create projects with a date range, add tasks and finish-to-start dependencies, and edit them on a timeline by dragging and resizing bars (Hours, Days, Weeks or Months). Everything works offline; when the phone comes back online with unsynced changes it **asks** before syncing.
+- **App** (`Chronova - Android App/`) — create projects with a date range, add tasks and finish-to-start dependencies, and edit them on a timeline by dragging and resizing bars (Hours, Days, Weeks or Months). Everything works offline; when the phone comes back online with unsynced changes it **asks** before syncing.
 - **Server** (`server/`) — Laravel 13 on Postgres: sign-up with an emailed code, Sanctum tokens, and a sync API (last write wins per record).
 - **Admin** (`/admin`) — Filament 5 panel for staff with required MFA: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
 - **AWS** (`server/infra/`) — CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES. Not deployed yet; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
@@ -40,22 +40,33 @@ The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python
 
 ## Repository layout
 
+One git repository; this folder is its root. The Android app is a self-contained Gradle project in its own folder, and everything else sits next to it.
+
 ```
 .
-├── Chronova - Android App/      the Android app: Gradle project, single module `app` (open this folder in Android Studio)
+├── Chronova - Android App/          the Android app — open this folder (not the repository root) in Android Studio
+│   ├── app/src/main/             app code (package noel.chronova.app) and resources
+│   ├── app/src/test/             JVM unit tests
+│   ├── app/src/androidTest/      instrumented tests (Room)
+│   ├── gradle/  build.gradle.kts  settings.gradle.kts  gradlew
+│   └── local.properties          uncommitted: SDK path and the server URL
+├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
+│   ├── app/  routes/  resources/  public/  tests/
+│   └── infra/                    AWS CDK + DEPLOY.md
 ├── docs/
-│   ├── sync-protocol.md        the app ↔ server contract
-│   ├── voice-api.md            voice endpoints, privacy, measured cost and the release checklist
-│   ├── brand/                  the logo as supplied
-│   └── AI_USAGE_LOG.md         per-batch development log
-├── tools/brand/                icon and logo generator
-└── server/                     Laravel app (API + admin panel), Dockerfile, compose.yaml
-    └── infra/                  AWS CDK + DEPLOY.md
+│   ├── sync-protocol.md          the app ↔ server sync contract
+│   ├── voice-api.md              voice endpoints, privacy, measured cost and the release checklist
+│   ├── brand/                    the logo as supplied
+│   ├── AI_USAGE_LOG.md           per-batch development log
+│   └── AI_USAGE_WRITEUP.md       summary written for the original take-home
+└── tools/brand/                  icon and logo generator (writes into both the app and the server)
 ```
+
+App commands run from `Chronova - Android App/`; server and infrastructure commands from `server/` and `server/infra/`; git and the brand generator from the repository root.
 
 ## Running the app
 
-Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. The Gradle project is the `Chronova - Android App/` folder.
+Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. Open `Chronova - Android App/` in Android Studio, or use Gradle from that folder:
 
 ```bash
 cd "Chronova - Android App"
@@ -92,7 +103,7 @@ Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-bas
 
 ### App
 
-Single module with package boundaries and manual dependency injection (`ChronovaApp` / `AppContainer`):
+In `Chronova - Android App/app/src/main/java/`: a single module with package boundaries and manual dependency injection (`ChronovaApp` / `AppContainer`):
 
 ```
 noel.chronova.app
@@ -124,6 +135,8 @@ noel.chronova.app
 
 ### Server
 
+In `server/` (Laravel 13; `server/README.md` covers setup and commands):
+
 - `POST /v1/sync`: one transaction per request with the user's row locked (a user's syncs run one at a time); each push is a Postgres upsert that only replaces an older copy; stale pushes return the winning copy; pulls page by a per-user sequence number. Tombstones drop the deleted content.
 - `/v1/auth/*`: enumeration-safe sign-up/forgot (always "check your email"), hashed one-time codes with attempt limits, rate limits per email and IP, Sanctum tokens (60 days, `sync` ability), disabled accounts refused.
 - **Admin** (`/admin`, separate `staff` guard): authenticator-app MFA required; roles admin/support; staff management (admins); user search, disable/enable, sign out everywhere, delete (admins, typed confirmation + reason); dashboard (accounts, active users, sign-ups, sync volume, error rate, latency); support data access (reason → 30 minutes, read-only, re-checked on every request). Every privileged action goes to an append-only audit log; user pages never show project content.
@@ -135,7 +148,7 @@ noel.chronova.app
 | Suite | Command | Count |
 |---|---|---|
 | Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 195 |
-| Android instrumented (Room transaction) | install both APKs, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
+| Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
 | Server (Pest, real Postgres) | `cd server && composer test` | 227 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | 227 |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
