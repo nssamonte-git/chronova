@@ -88,22 +88,6 @@ class RoomProjectRepository(
         db.taskDao().upsert(task.copy(title = task.title.trim()).toEntity(clock()))
     }
 
-    override suspend fun deleteTask(taskId: String): List<TaskDependency> = db.withTransaction {
-        val now = clock()
-        val links = db.dependencyDao().touching(taskId)
-        if (links.isNotEmpty()) db.dependencyDao().markDeleted(links.map { it.id }, now)
-        db.taskDao().markDeleted(taskId, now)
-        links.map { it.toDomain() }
-    }
-
-    override suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>) {
-        val now = clock()
-        db.withTransaction {
-            db.taskDao().upsert(task.toEntity(now))
-            db.dependencyDao().upsertAll(dependencies.map { it.toEntity(now) })
-        }
-    }
-
     override suspend fun <P : Any> applyChanges(
         projectId: String,
         changes: List<ScheduleChange>,

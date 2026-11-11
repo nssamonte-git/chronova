@@ -57,7 +57,7 @@ fun ProjectTimelineScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
-    val deletedTask by viewModel.deletedTask.collectAsStateWithLifecycle()
+    val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
     when (val current = state) {
         TimelineScreenState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -80,11 +80,11 @@ fun ProjectTimelineScreen(
                     onRowHeightStep = viewModel::changeRowHeight,
                     onAddTask = viewModel::startAddTask,
                     onEditTask = viewModel::startEditTask,
-                    onUndoDelete = viewModel::undoDelete,
-                    onDeletedShown = viewModel::dismissDeleted,
+                    onUndo = viewModel::undo,
+                    onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
                 ),
-                deletedTask = deletedTask,
+                undoOffer = undoOffer,
                 notice = notice,
                 modifier = modifier,
             )
@@ -121,8 +121,8 @@ data class TimelineActions(
     val onRowHeightStep: (Int) -> Unit = {},
     val onAddTask: () -> Unit = {},
     val onEditTask: (String) -> Unit = {},
-    val onUndoDelete: () -> Unit = {},
-    val onDeletedShown: () -> Unit = {},
+    val onUndo: () -> Unit = {},
+    val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
 )
 
@@ -131,22 +131,30 @@ private fun TimelineContent(
     state: TimelineUiState,
     actions: TimelineActions,
     modifier: Modifier = Modifier,
-    deletedTask: SchedulerTask? = null,
+    undoOffer: UndoOffer? = null,
     notice: TimelineNotice? = null,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
     val deletedMessage = stringResource(R.string.task_deleted)
     val undoLabel = stringResource(R.string.undo)
-    LaunchedEffect(deletedTask) {
-        if (deletedTask == null) return@LaunchedEffect
-        val result = snackbarHost.showSnackbar(deletedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Short)
-        if (result == SnackbarResult.ActionPerformed) actions.onUndoDelete() else actions.onDeletedShown()
+    LaunchedEffect(undoOffer) {
+        val offer = undoOffer ?: return@LaunchedEffect
+        val message = when (offer.kind) {
+            UndoKind.TaskDeleted -> deletedMessage
+        }
+        val result = snackbarHost.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
+        if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoShown()
     }
     val editNotSavedMessage = stringResource(R.string.edit_not_saved)
+    val undoNotPossibleMessage = stringResource(R.string.undo_not_possible)
     LaunchedEffect(notice) {
-        if (notice == null) return@LaunchedEffect
-        snackbarHost.showSnackbar(editNotSavedMessage, duration = SnackbarDuration.Short)
+        val shown = notice ?: return@LaunchedEffect
+        val message = when (shown) {
+            TimelineNotice.EditNotSaved -> editNotSavedMessage
+            TimelineNotice.UndoNotPossible -> undoNotPossibleMessage
+        }
+        snackbarHost.showSnackbar(message, duration = SnackbarDuration.Short)
         actions.onNoticeShown()
     }
     Scaffold(

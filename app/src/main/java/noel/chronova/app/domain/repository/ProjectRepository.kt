@@ -44,17 +44,8 @@ interface ProjectRepository {
         color: TaskColor,
     ): String
 
-    /** Saves an edited task; also restores a deleted one (undo). */
+    /** Saves an edited task (from the task editor). */
     suspend fun updateTask(task: SchedulerTask)
-
-    /**
-     * Deletes the task and its links (as tombstones until synced). Returns the links
-     * it removed, so an undo can restore them with [restoreTask].
-     */
-    suspend fun deleteTask(taskId: String): List<TaskDependency>
-
-    /** Undoes [deleteTask]: brings back the task and the links it removed. */
-    suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>)
 
     /**
      * In one transaction: reads the project's live schedule (null if the project

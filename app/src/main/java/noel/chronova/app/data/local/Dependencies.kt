@@ -47,10 +47,6 @@ interface DependencyDao {
     @Query("SELECT * FROM dependencies WHERE project_id = :projectId AND deleted = 0")
     suspend fun live(projectId: String): List<DependencyEntity>
 
-    /** Live links touching the task, either as predecessor or successor. */
-    @Query("SELECT * FROM dependencies WHERE (predecessor_id = :taskId OR successor_id = :taskId) AND deleted = 0")
-    suspend fun touching(taskId: String): List<DependencyEntity>
-
     @Query("UPDATE dependencies SET deleted = 1, dirty = 1, updated_at = :now WHERE id IN (:ids)")
     suspend fun markDeleted(ids: List<String>, now: Long)
 

@@ -231,11 +231,11 @@ class ProjectTimelineViewModelTest {
         viewModel.startEditTask("qa-testing")
         viewModel.deleteEditingTask()
         assertEquals(listOf("ui-design", "implementation", "review"), state().tasks.map { it.id })
-        assertEquals("qa-testing", viewModel.deletedTask.value?.id)
+        assertEquals(UndoKind.TaskDeleted, viewModel.undoOffer.value?.kind)
 
-        viewModel.undoDelete()
+        viewModel.undo()
         assertEquals(before, state().tasks)
-        assertNull(viewModel.deletedTask.value)
+        assertNull(viewModel.undoOffer.value)
     }
 
     @Test
@@ -293,7 +293,21 @@ class ProjectTimelineViewModelTest {
         viewModel.deleteEditingTask()
         assertTrue(state().dependencies.isEmpty())
 
-        viewModel.undoDelete()
+        viewModel.undo()
         assertEquals(2, state().dependencies.size)
+    }
+
+    @Test
+    fun undoIsRefusedOnceTheTaskChangedAgain() = runTest {
+        val state = timeline()
+        viewModel.startEditTask("qa-testing")
+        viewModel.deleteEditingTask()
+        // Another device's copy of the task arrives by sync before the undo.
+        val synced = SampleTasks.tasks(zone)[2].copy(title = "QA (synced)")
+        repository.tasks.value = repository.tasks.value + synced
+
+        viewModel.undo()
+        assertEquals(TimelineNotice.UndoNotPossible, viewModel.notice.value)
+        assertEquals("QA (synced)", state().tasks.first { it.id == "qa-testing" }.title)
     }
 }

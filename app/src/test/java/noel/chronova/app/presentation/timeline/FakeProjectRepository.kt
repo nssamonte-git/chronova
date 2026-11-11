@@ -78,18 +78,6 @@ class FakeProjectRepository(
 
     val dependencies = MutableStateFlow<List<TaskDependency>>(emptyList())
 
-    override suspend fun deleteTask(taskId: String): List<TaskDependency> {
-        val links = dependencies.value.filter { it.predecessorId == taskId || it.successorId == taskId }
-        dependencies.value = dependencies.value - links.toSet()
-        tasks.value = tasks.value.filterNot { it.id == taskId }
-        return links
-    }
-
-    override suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>) {
-        updateTask(task)
-        this.dependencies.value = this.dependencies.value + dependencies
-    }
-
     /** Changes applied through [applyChanges], in order. */
     val applied = mutableListOf<ScheduleChange>()
 

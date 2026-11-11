@@ -1,5 +1,7 @@
 package noel.chronova.app.presentation.timeline
 
+import noel.chronova.app.domain.schedule.ScheduleChange
+
 import java.time.ZoneId
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.TaskProblem
@@ -58,4 +60,12 @@ sealed interface TimelineScreenState {
 enum class TimelineNotice {
     /** A drag or resize couldn't be saved because the task changed meanwhile. */
     EditNotSaved,
+
+    /** Undo was refused because the tasks were edited again since. */
+    UndoNotPossible,
 }
+
+/** What an undo would reverse; [changes] are applied as-is to undo it. */
+data class UndoOffer(val kind: UndoKind, val changes: List<ScheduleChange>)
+
+enum class UndoKind { TaskDeleted }

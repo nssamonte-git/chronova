@@ -22,7 +22,6 @@ import noel.chronova.app.domain.DependencyRules
 import noel.chronova.app.domain.TaskRules
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
-import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -59,13 +58,10 @@ class ProjectTimelineViewModel(
     /** The add/edit task sheet, or null when closed. */
     val taskEditor: StateFlow<TaskEditorState?> = _taskEditor.asStateFlow()
 
-    private val _deletedTask = MutableStateFlow<SchedulerTask?>(null)
+    private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
 
-    /** Links removed together with [deletedTask], restored by [undoDelete]. */
-    private var deletedLinks: List<TaskDependency> = emptyList()
-
-    /** The task just deleted, offered for undo until [dismissDeleted]. */
-    val deletedTask: StateFlow<SchedulerTask?> = _deletedTask.asStateFlow()
+    /** The last change set that can be undone, offered until [dismissUndo]. */
+    val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
 
     val state: StateFlow<TimelineScreenState> = combine(
         repository.observeProject(projectId),
@@ -217,28 +213,40 @@ class ProjectTimelineViewModel(
         }
     }
 
-    /** Deletes the task being edited and offers undo. */
+    /** Deletes the task being edited, with its links, and offers undo. */
     fun deleteEditingTask() {
         val taskId = _taskEditor.value?.taskId ?: return
-        val task = readyTimeline()?.tasks?.firstOrNull { it.id == taskId } ?: return
+        val timeline = readyTimeline() ?: return
+        val task = timeline.tasks.firstOrNull { it.id == taskId } ?: return
         _taskEditor.value = null
+        val links = timeline.dependencies.filter { it.predecessorId == taskId || it.successorId == taskId }
+        applyWithUndo(links.map { ScheduleChange.RemoveLink(it) } + ScheduleChange.DeleteTask(task), UndoKind.TaskDeleted)
+    }
+
+    /**
+     * Applies [changes] through the shared apply path and, if they were saved,
+     * offers to undo them. A refusal (the schedule changed meanwhile) is reported.
+     */
+    private fun applyWithUndo(changes: List<ScheduleChange>, kind: UndoKind) {
         viewModelScope.launch {
-            deletedLinks = repository.deleteTask(taskId)
-            _deletedTask.value = task
+            when (val result = applyChanges(projectId, changes)) {
+                is ApplyResult.Applied -> _undoOffer.value = UndoOffer(kind, result.undo)
+                is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
+            }
         }
     }
 
-    fun undoDelete() {
-        val task = _deletedTask.value ?: return
-        val links = deletedLinks
-        _deletedTask.value = null
-        deletedLinks = emptyList()
-        viewModelScope.launch { repository.restoreTask(task, links) }
+    /** Reverses the offered change set, unless those tasks were edited again since. */
+    fun undo() {
+        val offer = _undoOffer.value ?: return
+        _undoOffer.value = null
+        viewModelScope.launch {
+            if (applyChanges(projectId, offer.changes) is ApplyResult.Rejected) _notice.value = TimelineNotice.UndoNotPossible
+        }
     }
 
-    fun dismissDeleted() {
-        _deletedTask.value = null
-        deletedLinks = emptyList()
+    fun dismissUndo() {
+        _undoOffer.value = null
     }
 
     private fun readyTimeline(): TimelineUiState? = (state.value as? TimelineScreenState.Ready)?.timeline
