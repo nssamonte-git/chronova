@@ -6,6 +6,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 
 /**
@@ -44,8 +45,23 @@ interface ProjectRepository {
     /** Saves an edited task; also restores a deleted one (undo). */
     suspend fun updateTask(task: SchedulerTask)
 
-    /** Deletes the task (as a tombstone until synced). */
-    suspend fun deleteTask(taskId: String)
+    /**
+     * Deletes the task and its links (as tombstones until synced). Returns the links
+     * it removed, so an undo can restore them with [restoreTask].
+     */
+    suspend fun deleteTask(taskId: String): List<TaskDependency>
+
+    /** Undoes [deleteTask]: brings back the task and the links it removed. */
+    suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>)
+
+    /** The project's live links. */
+    fun observeDependencies(projectId: String): Flow<List<TaskDependency>>
+
+    /**
+     * Makes [predecessorIds] exactly the tasks that [taskId] depends on: missing
+     * links are added and others removed. Callers check [noel.chronova.app.domain.DependencyRules].
+     */
+    suspend fun setPredecessors(projectId: String, taskId: String, predecessorIds: Set<String>)
 
     /** How this project's timeline was last viewed on this device, or null if never. */
     suspend fun viewSettings(projectId: String): TimelineConfig?

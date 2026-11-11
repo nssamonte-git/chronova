@@ -5,6 +5,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 
 internal fun ProjectEntity.toDomain() = Project(
     id = id,
@@ -37,6 +38,11 @@ internal fun TaskEntity.toDomain() = SchedulerTask(
     color = TaskColor.entries.firstOrNull { it.name == color } ?: TaskColor.BLUE,
     sortOrder = sortOrder,
 )
+
+internal fun DependencyEntity.toDomain() = TaskDependency(id, projectId, predecessorId, successorId)
+
+/** A locally edited link: stamped with [now] and marked for sync. */
+internal fun TaskDependency.toEntity(now: Long) = DependencyEntity(id, projectId, predecessorId, successorId, updatedAt = now)
 
 /** A locally edited task: stamped with [now] and marked for sync. */
 internal fun SchedulerTask.toEntity(now: Long) = TaskEntity(

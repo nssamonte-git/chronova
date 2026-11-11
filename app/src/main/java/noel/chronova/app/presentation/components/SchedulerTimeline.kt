@@ -187,6 +187,18 @@ fun SchedulerTimeline(
                             }
                         }
                     }
+                    DependencyArrows(
+                        tasks = state.tasks,
+                        dependencies = state.dependencies,
+                        originMillis = window.startMillis,
+                        pxPerMinute = pxPerMinute,
+                        rowHeight = rowHeight,
+                        viewport = viewport,
+                        listState = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = NameColumnWidth),
+                    )
                 }
             }
         }

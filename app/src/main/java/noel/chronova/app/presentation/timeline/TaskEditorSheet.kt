@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -52,6 +55,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
@@ -60,6 +64,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import noel.chronova.app.R
 import noel.chronova.app.domain.TaskProblem
+import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TimelineWindow
 import noel.chronova.app.presentation.TimeFormat
@@ -72,8 +77,10 @@ private enum class Picking { START_DATE, START_TIME, END_DATE, END_TIME }
 @Composable
 fun TaskEditorSheet(
     editor: TaskEditorState,
+    otherTasks: List<SchedulerTask>,
     window: TimelineWindow,
     zone: ZoneId,
+    onTogglePredecessor: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onColorChange: (TaskColor) -> Unit,
     onStartChange: (Long) -> Unit,
@@ -130,6 +137,14 @@ fun TaskEditorSheet(
                 onPickDate = { pick(Picking.END_DATE) },
                 onPickTime = { pick(Picking.END_TIME) },
             )
+            if (otherTasks.isNotEmpty()) {
+                PredecessorChoice(
+                    tasks = otherTasks,
+                    selected = editor.predecessorIds,
+                    forbidden = editor.forbiddenPredecessorIds,
+                    onToggle = onTogglePredecessor,
+                )
+            }
             editor.problem?.let { problem ->
                 Text(
                     text = problemText(problem),
@@ -176,6 +191,37 @@ private fun DateTimeRow(
         }
         OutlinedButton(onClick = onPickTime) {
             Text(TimeFormat.clock(millis, zone))
+        }
+    }
+}
+
+/** Tasks this one depends on. Picking a task that already depends on this one is disabled (cycle). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PredecessorChoice(
+    tasks: List<SchedulerTask>,
+    selected: Set<String>,
+    forbidden: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.task_depends_on), style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            tasks.forEach { task ->
+                FilterChip(
+                    selected = task.id in selected,
+                    onClick = { onToggle(task.id) },
+                    enabled = task.id !in forbidden,
+                    label = { Text(task.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingIcon = {
+                        Box(
+                            Modifier
+                                .size(8.dp)
+                                .background(task.color.toColor(), CircleShape),
+                        )
+                    },
+                )
+            }
         }
     }
 }

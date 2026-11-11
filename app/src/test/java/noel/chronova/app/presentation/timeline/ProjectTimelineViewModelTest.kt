@@ -233,4 +233,49 @@ class ProjectTimelineViewModelTest {
         viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone, today = { today })
         assertEquals(saved, timeline()().config)
     }
+
+    @Test
+    fun predecessorsAreSavedAndCyclesAreForbidden() = runTest {
+        val state = timeline()
+        // Implementation depends on UI Design.
+        viewModel.startEditTask("implementation")
+        viewModel.onTogglePredecessor("ui-design")
+        viewModel.saveTask()
+        assertEquals(listOf("ui-design" to "implementation"), state().dependencies.map { it.predecessorId to it.successorId })
+
+        // UI Design can't now depend on Implementation (cycle), and can't depend on itself.
+        viewModel.startEditTask("ui-design")
+        val editor = viewModel.taskEditor.value!!
+        assertTrue("implementation" in editor.forbiddenPredecessorIds)
+        assertTrue("ui-design" in editor.forbiddenPredecessorIds)
+        viewModel.onTogglePredecessor("implementation")
+        assertTrue(viewModel.taskEditor.value!!.predecessorIds.isEmpty())
+
+        // Unticking removes the link.
+        viewModel.dismissTaskEditor()
+        viewModel.startEditTask("implementation")
+        assertEquals(setOf("ui-design"), viewModel.taskEditor.value!!.predecessorIds)
+        viewModel.onTogglePredecessor("ui-design")
+        viewModel.saveTask()
+        assertTrue(state().dependencies.isEmpty())
+    }
+
+    @Test
+    fun undoingADeleteRestoresItsLinks() = runTest {
+        val state = timeline()
+        viewModel.startEditTask("qa-testing")
+        viewModel.onTogglePredecessor("implementation")
+        viewModel.saveTask()
+        viewModel.startEditTask("review")
+        viewModel.onTogglePredecessor("qa-testing")
+        viewModel.saveTask()
+        assertEquals(2, state().dependencies.size)
+
+        viewModel.startEditTask("qa-testing")
+        viewModel.deleteEditingTask()
+        assertTrue(state().dependencies.isEmpty())
+
+        viewModel.undoDelete()
+        assertEquals(2, state().dependencies.size)
+    }
 }

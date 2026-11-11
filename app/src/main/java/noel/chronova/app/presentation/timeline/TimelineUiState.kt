@@ -5,6 +5,7 @@ import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.TaskProblem
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.model.TimelineWindow
 
@@ -16,6 +17,7 @@ data class TimelineUiState(
     val zone: ZoneId,
     val config: TimelineConfig = TimelineConfig(),
     val selectedTaskId: String? = null,
+    val dependencies: List<TaskDependency> = emptyList(),
 ) {
     companion object {
         /** The sample project, for previews. */
@@ -35,6 +37,10 @@ data class TaskEditorState(
     val startMillis: Long,
     val endMillis: Long,
     val color: TaskColor,
+    /** Tasks this one depends on (finish-to-start). */
+    val predecessorIds: Set<String> = emptySet(),
+    /** Tasks that can't be picked as predecessors: itself and its successors (would form a cycle). */
+    val forbiddenPredecessorIds: Set<String> = emptySet(),
     val problem: TaskProblem? = null,
     val saving: Boolean = false,
 ) {

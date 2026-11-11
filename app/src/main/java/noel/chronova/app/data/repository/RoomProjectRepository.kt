@@ -15,6 +15,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
 
@@ -55,6 +56,7 @@ class RoomProjectRepository(
     override suspend fun deleteProject(projectId: String) {
         val now = clock()
         db.withTransaction {
+            db.dependencyDao().markDeletedInProject(projectId, now)
             db.taskDao().markDeletedInProject(projectId, now)
             db.projectDao().markDeleted(projectId, now)
         }
@@ -84,8 +86,35 @@ class RoomProjectRepository(
         db.taskDao().upsert(task.copy(title = task.title.trim()).toEntity(clock()))
     }
 
-    override suspend fun deleteTask(taskId: String) {
-        db.taskDao().markDeleted(taskId, clock())
+    override suspend fun deleteTask(taskId: String): List<TaskDependency> = db.withTransaction {
+        val now = clock()
+        val links = db.dependencyDao().touching(taskId)
+        if (links.isNotEmpty()) db.dependencyDao().markDeleted(links.map { it.id }, now)
+        db.taskDao().markDeleted(taskId, now)
+        links.map { it.toDomain() }
+    }
+
+    override suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>) {
+        val now = clock()
+        db.withTransaction {
+            db.taskDao().upsert(task.toEntity(now))
+            db.dependencyDao().upsertAll(dependencies.map { it.toEntity(now) })
+        }
+    }
+
+    override fun observeDependencies(projectId: String): Flow<List<TaskDependency>> =
+        db.dependencyDao().observe(projectId).map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun setPredecessors(projectId: String, taskId: String, predecessorIds: Set<String>) {
+        db.withTransaction {
+            val now = clock()
+            val current = db.dependencyDao().live(projectId).filter { it.successorId == taskId }
+            val removed = current.filter { it.predecessorId !in predecessorIds }
+            if (removed.isNotEmpty()) db.dependencyDao().markDeleted(removed.map { it.id }, now)
+            val existing = current.map { it.predecessorId }.toSet()
+            val added = (predecessorIds - existing).map { TaskDependency(newId(), projectId, it, taskId).toEntity(now) }
+            if (added.isNotEmpty()) db.dependencyDao().upsertAll(added)
+        }
     }
 
     override suspend fun viewSettings(projectId: String): TimelineConfig? =

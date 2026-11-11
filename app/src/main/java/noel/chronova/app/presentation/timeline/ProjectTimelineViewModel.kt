@@ -18,9 +18,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import noel.chronova.app.domain.DependencyRules
 import noel.chronova.app.domain.TaskRules
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -49,15 +51,19 @@ class ProjectTimelineViewModel(
 
     private val _deletedTask = MutableStateFlow<SchedulerTask?>(null)
 
+    /** Links removed together with [deletedTask], restored by [undoDelete]. */
+    private var deletedLinks: List<TaskDependency> = emptyList()
+
     /** The task just deleted, offered for undo until [dismissDeleted]. */
     val deletedTask: StateFlow<SchedulerTask?> = _deletedTask.asStateFlow()
 
     val state: StateFlow<TimelineScreenState> = combine(
         repository.observeProject(projectId),
         repository.observeTasks(projectId),
+        repository.observeDependencies(projectId),
         config,
         selectedTaskId,
-    ) { project, tasks, config, selected ->
+    ) { project, tasks, dependencies, config, selected ->
         if (project == null) {
             TimelineScreenState.NotFound
         } else if (config == null) {
@@ -73,6 +79,7 @@ class ProjectTimelineViewModel(
                     config = config,
                     // A selection whose task disappeared is dropped.
                     selectedTaskId = selected?.takeIf { id -> tasks.any { it.id == id } },
+                    dependencies = dependencies,
                 ),
             )
         }
@@ -113,8 +120,26 @@ class ProjectTimelineViewModel(
     }
 
     fun startEditTask(taskId: String) {
-        val task = readyTimeline()?.tasks?.firstOrNull { it.id == taskId } ?: return
-        _taskEditor.value = TaskEditorState(task.id, task.title, task.startMillis, task.endMillis, task.color)
+        val timeline = readyTimeline() ?: return
+        val task = timeline.tasks.firstOrNull { it.id == taskId } ?: return
+        _taskEditor.value = TaskEditorState(
+            taskId = task.id,
+            title = task.title,
+            startMillis = task.startMillis,
+            endMillis = task.endMillis,
+            color = task.color,
+            predecessorIds = timeline.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
+            forbiddenPredecessorIds = DependencyRules.forbiddenPredecessors(taskId, timeline.dependencies),
+        )
+    }
+
+    /** Adds or removes a predecessor in the editor; forbidden ones are ignored. */
+    fun onTogglePredecessor(predecessorId: String) = _taskEditor.update { editor ->
+        when {
+            editor == null || predecessorId in editor.forbiddenPredecessorIds -> editor
+            predecessorId in editor.predecessorIds -> editor.copy(predecessorIds = editor.predecessorIds - predecessorId)
+            else -> editor.copy(predecessorIds = editor.predecessorIds + predecessorId)
+        }
     }
 
     fun onTaskTitleChange(title: String) = _taskEditor.update { it?.copy(title = title, problem = null) }
@@ -142,9 +167,9 @@ class ProjectTimelineViewModel(
         }
         _taskEditor.value = entered.copy(saving = true)
         viewModelScope.launch {
-            if (entered.taskId == null) {
-                val id = repository.createTask(projectId, entered.title, entered.startMillis, entered.endMillis, entered.color)
-                selectedTaskId.value = id
+            val taskId = if (entered.taskId == null) {
+                repository.createTask(projectId, entered.title, entered.startMillis, entered.endMillis, entered.color)
+                    .also { selectedTaskId.value = it }
             } else {
                 val existing = timeline.tasks.firstOrNull { it.id == entered.taskId }
                 if (existing != null) {
@@ -157,7 +182,13 @@ class ProjectTimelineViewModel(
                         ),
                     )
                 }
+                entered.taskId
             }
+            // Re-check against the links as they are now: only existing tasks, no cycles.
+            val latest = readyTimeline()
+            val validIds = latest?.tasks?.map { it.id }?.toSet().orEmpty()
+            val forbidden = DependencyRules.forbiddenPredecessors(taskId, latest?.dependencies.orEmpty())
+            repository.setPredecessors(projectId, taskId, entered.predecessorIds.filter { it in validIds && it !in forbidden }.toSet())
             _taskEditor.value = null
         }
     }
@@ -167,18 +198,23 @@ class ProjectTimelineViewModel(
         val taskId = _taskEditor.value?.taskId ?: return
         val task = readyTimeline()?.tasks?.firstOrNull { it.id == taskId } ?: return
         _taskEditor.value = null
-        _deletedTask.value = task
-        viewModelScope.launch { repository.deleteTask(taskId) }
+        viewModelScope.launch {
+            deletedLinks = repository.deleteTask(taskId)
+            _deletedTask.value = task
+        }
     }
 
     fun undoDelete() {
         val task = _deletedTask.value ?: return
+        val links = deletedLinks
         _deletedTask.value = null
-        viewModelScope.launch { repository.updateTask(task) }
+        deletedLinks = emptyList()
+        viewModelScope.launch { repository.restoreTask(task, links) }
     }
 
     fun dismissDeleted() {
         _deletedTask.value = null
+        deletedLinks = emptyList()
     }
 
     private fun readyTimeline(): TimelineUiState? = (state.value as? TimelineScreenState.Ready)?.timeline

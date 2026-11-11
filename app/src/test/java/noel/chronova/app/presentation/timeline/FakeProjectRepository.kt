@@ -8,6 +8,7 @@ import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
+import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.repository.ProjectRepository
 
@@ -72,8 +73,26 @@ class FakeProjectRepository(
         }
     }
 
-    override suspend fun deleteTask(taskId: String) {
+    val dependencies = MutableStateFlow<List<TaskDependency>>(emptyList())
+
+    override suspend fun deleteTask(taskId: String): List<TaskDependency> {
+        val links = dependencies.value.filter { it.predecessorId == taskId || it.successorId == taskId }
+        dependencies.value = dependencies.value - links.toSet()
         tasks.value = tasks.value.filterNot { it.id == taskId }
+        return links
+    }
+
+    override suspend fun restoreTask(task: SchedulerTask, dependencies: List<TaskDependency>) {
+        updateTask(task)
+        this.dependencies.value = this.dependencies.value + dependencies
+    }
+
+    override fun observeDependencies(projectId: String): Flow<List<TaskDependency>> =
+        dependencies.map { list -> list.filter { it.projectId == projectId } }
+
+    override suspend fun setPredecessors(projectId: String, taskId: String, predecessorIds: Set<String>) {
+        val others = dependencies.value.filterNot { it.successorId == taskId }
+        dependencies.value = others + predecessorIds.map { TaskDependency("dep-$it-$taskId", projectId, it, taskId) }
     }
 
     val viewSettings = mutableMapOf<String, TimelineConfig>()

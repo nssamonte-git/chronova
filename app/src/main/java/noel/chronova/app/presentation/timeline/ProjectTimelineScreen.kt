@@ -88,8 +88,10 @@ fun ProjectTimelineScreen(
             taskEditor?.let { editor ->
                 TaskEditorSheet(
                     editor = editor,
+                    otherTasks = current.timeline.tasks.filter { it.id != editor.taskId },
                     window = current.timeline.window,
                     zone = current.timeline.zone,
+                    onTogglePredecessor = viewModel::onTogglePredecessor,
                     onTitleChange = viewModel::onTaskTitleChange,
                     onColorChange = viewModel::onTaskColorChange,
                     onStartChange = viewModel::onTaskStartChange,

@@ -128,7 +128,7 @@ time        = origin + round(x / pxPerMinute) minutes
 
 ## Testing
 
-`./gradlew :app:testDebugUnitTest` runs 87 JVM tests (0 failures in the last run).
+`./gradlew :app:testDebugUnitTest` runs 94 JVM tests (0 failures in the last run).
 
 | Required scenario | Test(s) |
 |---|---|
@@ -175,6 +175,8 @@ Each check's expected values were calculated before running it. The full record 
 - At low zoom, very short tasks (15 minutes) are narrow, so their title is hidden behind the grips when selected.
 - Light theme only. The optional enhancements (dark theme, current-time line, animated selection) weren't implemented.
 - No instrumented or UI tests. Gesture behaviour was verified manually on a device.
+- On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen; scroll the toolbar sideways to reach them.
+- Dependency arrows update when a drag ends, not during it.
 
 ## AI usage
 
