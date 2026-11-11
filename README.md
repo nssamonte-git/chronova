@@ -34,6 +34,10 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Accounts**: sign up with an emailed 6-digit code, sign in, forgot/reset password, delete account. The token is encrypted with an Android Keystore key.
 - **Voice and typed commands** (signed in, online): tap the mic in the timeline, then **Speak** ("push build by two hours and everything after it") or type. The server transcribes (ElevenLabs Scribe) and interprets (OpenAI, strict schema) the instruction; the app checks the proposal against its own data and shows a **preview** — nothing changes until **Apply**, and **Undo** follows. Spoken commands also get a short **spoken answer** ("Build will move to today from 11 a.m. to noon. Tap Apply to confirm."), with Replay and a remembered mute. "…and everything after it" pushes dependent tasks just enough; dragging never moves other tasks. See [`docs/voice-api.md`](docs/voice-api.md).
 
+## Branding
+
+The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers and the launch-screen logo (`app/src/main/res/drawable-nodpi/brand_*`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
+
 ## Repository layout
 
 ```
@@ -42,7 +46,9 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 ├── docs/
 │   ├── sync-protocol.md        the app ↔ server contract
 │   ├── voice-api.md            voice endpoints, privacy, measured cost and the release checklist
+│   ├── brand/                  the logo as supplied
 │   └── AI_USAGE_LOG.md         per-batch development log
+├── tools/brand/                icon and logo generator
 └── server/                     Laravel app (API + admin panel), Dockerfile, compose.yaml
     └── infra/                  AWS CDK + DEPLOY.md
 ```
@@ -76,7 +82,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (214 tests)
+composer test                 # Pest (226 tests)
 ```
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
@@ -129,8 +135,8 @@ noel.chronova.app
 |---|---|---|
 | Android JVM unit tests | `./gradlew :app:testDebugUnitTest` | 195 |
 | Android instrumented (Room transaction) | install both APKs, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 214 |
-| Server inside the image | `docker compose --profile test run --rm --build test` | 214 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 226 |
+| Server inside the image | `docker compose --profile test run --rm --build test` | 226 |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
 
 The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
@@ -154,7 +160,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - In Months scale a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
-- Light theme only. Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
+- The app is light-themed (the admin panel is dark-only). Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
 - Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
 
 ## AI usage

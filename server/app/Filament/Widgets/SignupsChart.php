@@ -18,7 +18,16 @@ class SignupsChart extends ChartWidget
         $series = app(Metrics::class)->signupsPerDay(30);
 
         return [
-            'datasets' => [['label' => 'Sign-ups', 'data' => array_values($series)]],
+            'datasets' => [[
+                'label' => 'Sign-ups',
+                'data' => array_values($series),
+                // The logo's cyan, with a faint fill under the line.
+                'borderColor' => '#00f9fb',
+                'backgroundColor' => 'rgba(0, 249, 251, 0.12)',
+                'pointBackgroundColor' => '#00f9fb',
+                'fill' => true,
+                'tension' => 0.3,
+            ]],
             'labels' => array_map(fn (string $day) => substr($day, 5), array_keys($series)),
         ];
     }

@@ -19,9 +19,9 @@ class VoiceRequestsChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => 'Transcribe', 'data' => array_values($series['transcribe']), 'backgroundColor' => '#14b8a6'],
-                ['label' => 'Interpret', 'data' => array_values($series['interpret']), 'backgroundColor' => '#3b82f6'],
-                ['label' => 'Explain', 'data' => array_values($series['explain']), 'backgroundColor' => '#a855f7'],
+                ['label' => 'Transcribe', 'data' => array_values($series['transcribe']), 'backgroundColor' => '#00f9fb'],
+                ['label' => 'Interpret', 'data' => array_values($series['interpret']), 'backgroundColor' => '#02a8fd'],
+                ['label' => 'Explain', 'data' => array_values($series['explain']), 'backgroundColor' => '#a83cfb'],
             ],
             'labels' => array_map(fn (string $day) => substr($day, 5), array_keys($series['interpret'])),
         ];

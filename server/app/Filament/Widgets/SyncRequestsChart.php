@@ -19,7 +19,7 @@ class SyncRequestsChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => 'OK', 'data' => array_values($series['ok']), 'backgroundColor' => '#3b82f6'],
+                ['label' => 'OK', 'data' => array_values($series['ok']), 'backgroundColor' => '#02a8fd'],
                 ['label' => 'Failed', 'data' => array_values($series['failed']), 'backgroundColor' => '#ef4444'],
             ],
             'labels' => array_map(fn (string $day) => substr($day, 5), array_keys($series['ok'])),
