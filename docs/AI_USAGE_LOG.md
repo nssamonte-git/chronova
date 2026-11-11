@@ -424,3 +424,10 @@ After the fixes: revoked-token sync → "Sync failed: please sign in again"; sig
 1. *Authorization forwarding:* naming `Authorization` in an origin request policy is rejected by CDK/CloudFront. Checked the AWS docs (managed origin request policies; HTTP 401 page): an all-viewer-headers policy forwards it, and with caching disabled no response can be served to another user. The policy is now "all viewer headers + `CloudFront-Viewer-Address`" (`OriginRequestHeaderBehavior.all(...)` in this CDK version — the name I first used doesn't exist here).
 2. *TLS policy:* `minimumProtocolVersion` has no effect with the default `*.cloudfront.net` certificate (CDK warning); removed so it doesn't look enforced, and documented that a custom domain is needed for TLS 1.2+.
 3. *First draft details:* a prefix-list lookup for the ALB rule needed a real account at synth and wasn't necessary for an internal ALB (now: VPC range only); the health alarm used a placeholder dimension (now the target group's own metric).
+
+### B34 — Docs and handoff
+
+- `README.md` rewritten for the whole system (app, server, admin, AWS): features (the original take-home table kept), repository layout, running the app (offline, or against a server via `chronova.apiUrl`; `adb reverse` for the local server), running the server, app and server architecture, timeline engineering notes updated (project windows, calendar ticks, snap grids, virtualized viewport), test suites with counts, decisions, and an updated known-limitations list. Stale statements from the take-home README (no persistence, fixed 3-day window, "39 tests", dependency list) were removed.
+- Local-only handoff files (`HANDOFF.md`, `DECISIONS.md`, `CURRENT_TASK.md`) updated with the server/infra invariants and validation commands.
+- Final counts (from the last runs in B32–B33 and B27): app 122 JVM tests, 0 lint errors; server 103 Pest tests (also inside the image); infra 13 Jest tests, synth clean. Nothing pushed; nothing deployed.
+- Git bundle rebuilt from `main` with the `submission-v1` and `serverless-backend-v1` tags.

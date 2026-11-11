@@ -1,183 +1,150 @@
 # Chronova — Shape Your Time
 
-Chronova is a native Android timeline (Gantt-style) scheduler built with Kotlin and Jetpack Compose. Tasks are shown as bars on a horizontal time axis. You can drag a bar to reschedule it, resize it from either edge, and snap edits to a configurable grid.
+Chronova is an offline-first project scheduler: a native Android app (Kotlin, Jetpack Compose) with a Gantt-style timeline, a Laravel server it syncs with, and a staff admin panel.
 
-It was built for the PicCollage take-home assignment. No third-party timeline or Gantt libraries are used.
+- **App** — create projects with a date range, add tasks and finish-to-start dependencies, and edit them on a timeline by dragging and resizing bars (Hours, Days, Weeks or Months). Everything works offline; when the phone comes back online with unsynced changes it **asks** before syncing.
+- **Server** (`server/`) — Laravel 13 on Postgres: sign-up with an emailed code, Sanctum tokens, and a sync API (last write wins per record).
+- **Admin** (`/admin`) — Filament 5 panel for staff with required MFA: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
+- **AWS** (`server/infra/`) — CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES. Not deployed yet; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
+
+It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used.
 
 ## Features
 
-| Requirement | Status | Where |
-|---|---|---|
-| F01 Timeline header with readable labels and grid lines, hours or days | Done | `TimelineHeader`, `TimelineGrid`, `TimelineMath.ticks` |
-| F02 Horizontal scrolling with header and content in sync, fixed name column | Done | `SchedulerTimeline` (one `TimelineViewportState`) |
-| F03 Tasks as bars in separate rows, positioned from the time scale | Done | `TaskLane`, `TaskBar`, `TimelineMath` |
-| F04 Drag to move (keeps duration) | Done | `detectTaskGestures`, `TaskEdits.move` |
-| F05 Resize from the left (keeps end) | Done | `HandleHitTest`, `TaskEdits.resizeStart` |
-| F06 Resize from the right (keeps start) | Done | `TaskEdits.resizeEnd` |
-| F07 Snapping 15 / 30 / 60 min, both directions, no cumulative error | Done | `TimeSnapper`, `TaskEdits` |
-| F08 Configuration: time unit, zoom, snap, row height | Done | `TimelineControls`, `TimelineConfig` |
-| F09 Sample tasks on launch | Done | `SampleTasks` |
+### Timeline (the original take-home requirements, all kept)
 
-Also included:
-- Selection highlight with resize grips.
-- A live start–end label while dragging.
-- A haptic tick on each snap step.
-- A corner label showing the day currently in view.
-- Zoom and scale changes keep the centre time fixed.
-- A settings toggle in the top bar that hides the toolbar.
+| Requirement | Where |
+|---|---|
+| Header with readable labels and grid lines | `TimelineHeader`, `TimelineGrid`, `TimelineMath.ticks` (calendar-based) |
+| Header and content scroll in sync; fixed name column | `SchedulerTimeline`, one `TimelineViewportState` |
+| Tasks as bars in rows, positioned from the time scale | `TaskLane`, `TaskBar`, `TimelineMath` |
+| Drag to move (keeps duration) | `detectTaskGestures`, `TaskEdits.move` |
+| Resize from either edge | `HandleHitTest`, `TaskEdits.resizeStart` / `resizeEnd` |
+| Snapping, both directions, no cumulative error | `SnapGrid` (`FixedGrid`, `DayGrid`), `TaskEdits` |
+| Configurable scale, zoom, snap and row height (saved per project) | `TimelineControls`, `TimelineConfig`, `view_settings` table |
+| Sample data on first launch | `SampleTasks` |
 
-## Running
+### Beyond the take-home
 
-Requirements: Android Studio with AGP 9.5 support, JDK 17 or newer (Gradle's toolchain resolver can download JDK 25 for the daemon), and Android SDK 37.
+- **Projects**: create, rename, set an inclusive date range (up to 366 days; can't shrink past existing tasks), delete.
+- **Tasks**: add, edit (title, colour, start/end date and time), delete with undo.
+- **Scales**: Hours, Days, Weeks, Months; ticks follow the real calendar (DST days, month lengths) and whole-day snapping follows local midnights.
+- **Dependencies**: finish-to-start links chosen in the task editor (cycles are blocked); arrows on the timeline turn red when violated.
+- **Offline-first sync**: local Room database; a reconnect prompt ("You're back online — sync now?"), a sync button with the number of unsynced changes, last-write-wins conflict handling, sign-out/delete account clear the device.
+- **Accounts**: sign up with an emailed 6-digit code, sign in, forgot/reset password, delete account. The token is encrypted with an Android Keystore key.
 
-```bash
-./gradlew :app:installDebug          # build and install on a connected device/emulator
-./gradlew :app:testDebugUnitTest     # 39 JVM unit tests
-./gradlew :app:lintDebug             # Android lint
+## Repository layout
+
+```
+.                       Android app (single Gradle module `app`)
+├── app/
+├── docs/
+│   ├── sync-protocol.md        the app ↔ server contract
+│   └── AI_USAGE_LOG.md         per-batch development log
+└── server/                     Laravel app (API + admin panel), Dockerfile, compose.yaml
+    └── infra/                  AWS CDK + DEPLOY.md
 ```
 
-- `minSdk` 26, `targetSdk`/`compileSdk` 37.
-- Single `app` module.
-- Dependencies: Compose BOM 2026.04.01 (Material 3, material-icons-core), activity-compose, and the lifecycle Compose artifacts. Nothing else.
+## Running the app
 
-## Using it
+Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26.
 
-- **Scroll:** swipe the empty timeline or the header to scroll horizontally, and swipe vertically to see more rows.
-- **Select:** tap a bar to select it. It gets an outline and a grip on each edge. Tap empty space to deselect.
-- **Move:** drag any bar. It follows your finger, shows its snapped start–end time, and is saved when you lift your finger.
-- **Resize:** drag a selected bar's grip. The left grip changes the start time and the right grip changes the end time.
-- **Settings:** use the toolbar (gear icon) to switch Hours/Days, zoom in or out (or reset), pick the snap interval, and change the row height.
+```bash
+./gradlew :app:installDebug
+./gradlew :app:testDebugUnitTest :app:lintDebug
+```
+
+Without a server the app works fully offline and the account screen says sync isn't set up. To sync, set the server URL in the uncommitted `local.properties`:
+
+```properties
+chronova.apiUrl=https://<your server>          # release builds need https
+# or, for a debug build against the local server:
+chronova.apiUrl=http://localhost:8000
+```
+
+For the local server on your machine, forward the port to a USB-connected phone: `adb reverse tcp:8000 tcp:8000` (debug builds allow plain HTTP to `localhost` only).
+
+## Running the server
+
+Requirements: PHP 8.4+ with `pdo_pgsql`, Composer 2, Docker. Details in [`server/README.md`](server/README.md).
+
+```bash
+cd server
+docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (mail UI on :8025)
+composer setup                # install, .env, app key, migrate
+php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
+php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
+composer test                 # Pest (103 tests)
+```
 
 ## Architecture
 
-The app has a single module. It uses package boundaries rather than Gradle modules and has no DI framework.
+### App
+
+Single module with package boundaries and manual dependency injection (`ChronovaApp` / `AppContainer`):
 
 ```
 noel.chronova.app
-├── MainActivity.kt                 edge-to-edge host for ChronovaScreen
-├── core/timeline                   pure Kotlin, no Android dependencies
-│   ├── TimelineMath.kt             time <-> x, duration -> width, tick generation
-│   ├── TimeSnapper.kt              floorDiv-based nearest-interval snapping
-│   ├── TaskEdits.kt                move / resizeStart / resizeEnd from gesture-start values
-│   ├── HandleHitTest.kt            which GestureMode a pointer-down selects
-│   └── GestureMode.kt              MOVE, RESIZE_START, RESIZE_END
-├── domain
-│   ├── SampleTasks.kt              the four sample tasks and the 3-day window
-│   ├── model                       Project, SchedulerTask, TimelineConfig/TimeScale, TimelineWindow
-│   └── repository                  ProjectRepository (interface)
-├── data
-│   ├── local                       Room database, entities, DAOs, mappers
-│   └── repository                  RoomProjectRepository
-├── navigation                      ChronovaNavHost (project list → project timeline)
-├── presentation
-│   ├── projects                    ProjectListScreen / ViewModel
-│   ├── timeline                    ProjectTimelineScreen / ViewModel, TimelineUiState
-│   ├── TimeFormat.kt
-│   └── components                  SchedulerTimeline, TimelineViewportState, TimelineHeader, TimelineGrid,
-│                                   TaskNameCell, TaskLane, TaskBar, TaskGestures, TimelineControls
-└── ui/theme                        Material 3 colour scheme from the Chronova palette
+├── core/timeline     pure Kotlin: time ↔ pixels, calendar ticks, snap grids, edits, hit testing, viewport math
+├── domain            models (Project, SchedulerTask, TaskDependency, TimelineConfig), rules (projects, tasks, dependencies)
+├── data/local        Room: projects, tasks, dependencies, view_settings (schema v3, with migrations)
+├── data/repository   RoomProjectRepository (every write stamps updatedAt and marks the row dirty)
+├── data/remote       OkHttp sync client + DTOs
+├── data/sync         SyncEngine, RoomLocalSyncStore, SyncCoordinator (reconnect prompt), connectivity
+├── auth              ApiAuthRepository, Keystore token store, backend config
+├── navigation        project list → timeline, account
+└── presentation      projects, timeline (+ task editor), account, sync UI, components
 ```
 
-**State flow:**
-- The ViewModel is the single source of truth for tasks, configuration and selection. It exposes one `StateFlow`, and the screen collects it with `collectAsStateWithLifecycle()`.
-- Data flows one way: the UI sends intents, and the ViewModel produces a new immutable state.
-- Transient drag state (the preview of the bar being edited) stays local to `TaskLane`. Only the finished edit is sent to the ViewModel.
+- **Local first.** Screens read Room through repository `Flow`s; edits are written locally and marked dirty. Deletes are tombstones until synced.
+- **Sync never runs on its own.** Coming back online with unsynced changes shows a prompt; only "Sync now" (prompt, button or account screen) runs `SyncEngine`: push dirty records in batches of 500, pull every page since the cursor, then apply the pulled changes (parents first) and save the cursor. A failed run changes nothing that the next run can't redo.
+- **Conflicts**: last write wins per record by edit time; ties go to the server. See [`docs/sync-protocol.md`](docs/sync-protocol.md).
 
-### Coordinate system
+#### Timeline engineering
 
-There is a single origin: the start of the timeline window (local midnight of the reference day). Every on-screen position is derived from time, and time is never stored as pixels.
+- **One origin.** Every x is derived from time relative to the project's first midnight: `x = (t − origin) minutes × pxPerMinute`; pixel → time rounds to whole minutes. Zoom, scale and row height never change task times.
+- **Virtualized viewport.** One horizontal scroll position (`TimelineViewportState`) feeds the header and body. Nothing is laid out at full content width (a long project at high zoom exceeds what Compose can measure): the header and grid draw only visible ticks, and bars are clipped to a page-quantized span and placed in the layout phase, so scrolling doesn't recompose rows. Rows are a `LazyColumn` of `[name cell | lane]`.
+- **Gestures.** One `pointerInput` per bar decides tap vs drag; the drag type (move / resize start / resize end) is chosen once at pointer-down. Every pointer event recomputes the bar from the gesture-start task plus the total distance, so slow drags don't get stuck by per-event snapping. The edit is saved on release.
+- **Snapping.** Sub-day intervals snap to a fixed grid from local midnight; whole days follow local midnights (DST-safe). The dragged edge snaps; limits (15-minute minimum, project end) are rounded inward so a clamped edge stays on the grid.
 
-```
-pxPerMinute = unitWidthPx / minutesPerUnit        (unit = hour or day; unitWidth = zoom)
-x           = (time − origin) in minutes × pxPerMinute
-width       = duration in minutes × pxPerMinute
-time        = origin + round(x / pxPerMinute) minutes
-```
+### Server
 
-- Pixel → time conversions round to whole minutes. Positions are `Float`s, which can't represent millisecond-exact values at large x, and one minute is the timeline's real resolution.
-- Changing zoom, scale or row height only changes `pxPerMinute` or the layout. Task timestamps are untouched, and there's a test for this.
-
-### Scrolling
-
-- **One authoritative horizontal scroll position.** `TimelineViewportState` holds it; the body and the header both feed it through `Modifier.scrollable(…, reverseDirection = true)`.
-- **Nothing is laid out at full content width.** A long project at high zoom is wider than any Compose layout can measure, so the header, grid and bars read the scroll position in their draw or layout phase and handle only what is near the viewport. Scrolling therefore only redraws or re-places (no recomposition), and the labels can't drift from the grid.
-- **Bars are clipped to a compose span**: the viewport-wide page around the scroll position, plus one viewport on each side. It changes only when the scroll crosses a page, so rows don't recompose every frame.
-- **Rows are a `LazyColumn`.** Each item holds both the name cell and the bar lane, so they can't misalign, and long task lists are virtualized.
-- **Zoom keeps the centre time** by moving the scroll in a `SideEffect`, before the frame is laid out and drawn.
-- **Shared ticks:** the header and grid draw from the same `TimelineMath.ticks` list with the same conversion.
-- **One vertical scroll** wraps both the name column and the rows, so rows always stay aligned.
-- **Left-to-right always:** the timeline is forced to LTR so time runs left to right in RTL locales too.
-
-### Gestures
-
-- **One handler per bar.** Each bar has a single `pointerInput` (`detectTaskGestures`), keyed on the task id, that decides between a tap and a drag. The drag type (`GestureMode`) is chosen once, at pointer-down, by `HandleHitTest`, so move and resize can never fire together.
-- **Resize grips.** Only the selected bar has resize zones: 20 dp outside each edge plus up to 20 dp inside. On narrow bars the inner part shrinks so the middle third always moves.
-- **Scroll vs drag.** A drag starts only after horizontal touch slop, and that event is consumed so the parent `scrollable` doesn't also scroll. Vertical movement isn't consumed, so vertical scrolling still works over bars. Swipes on empty space scroll normally.
-- **Edits from the gesture start.** Every pointer event recomputes the bar from the task as it was at gesture start plus the total finger distance since pointer-down. Snapping each small step instead would get stuck, because a slow drag moves less than half a snap interval per event. A unit test demonstrates this.
-- **Commit and cancel.** Release commits the edit. A cancelled gesture discards the preview. The preview is held until the committed task arrives, which avoids a one-frame flash.
-- **Stale values.** `rememberUpdatedState` keeps the long-lived gesture coroutine reading current values (config, task, callbacks) without restarting mid-drag.
-
-### Snapping rules
-
-- **Nearest interval.** Edits round to the nearest multiple of the snap interval, measured from local midnight. Ties round toward later times. `Math.floorDiv` is used so values before the origin round the same way as values after it.
-- **Move** snaps the start and keeps the duration.
-- **Resize** snaps the edge being dragged. The opposite edge never moves.
-- **Minimum duration** is 15 minutes, independent of the snap interval. If a snapped edge would violate it, the edge stops at the nearest grid line that still allows 15 minutes. For example, a task starting at 13:30 with 60-minute snap can shrink to 13:30–14:00.
-- **Window clamp:** tasks stay inside the 3-day window. A move that reaches the window end stops at the last grid line where the whole task still fits.
-- **Clamped edges stay on the grid.** Limits are rounded inward to a grid line, so a dragged edge never lands between grid lines.
+- `POST /v1/sync`: one transaction per request with the user's row locked (a user's syncs run one at a time); each push is a Postgres upsert that only replaces an older copy; stale pushes return the winning copy; pulls page by a per-user sequence number. Tombstones drop the deleted content.
+- `/v1/auth/*`: enumeration-safe sign-up/forgot (always "check your email"), hashed one-time codes with attempt limits, rate limits per email and IP, Sanctum tokens (60 days, `sync` ability), disabled accounts refused.
+- **Admin** (`/admin`, separate `staff` guard): authenticator-app MFA required; roles admin/support; staff management (admins); user search, disable/enable, sign out everywhere, delete (admins, typed confirmation + reason); dashboard (accounts, active users, sign-ups, sync volume, error rate, latency); support data access (reason → 30 minutes, read-only, re-checked on every request). Every privileged action goes to an append-only audit log; user pages never show project content.
+- **Container**: one FrankenPHP/PHP 8.4 image, roles `web`, `worker`, `scheduler`, `migrate`; non-root; caches built at start from the injected environment.
 
 ## Testing
 
-`./gradlew :app:testDebugUnitTest` runs 122 JVM tests (0 failures in the last run).
+| Suite | Command | Count |
+|---|---|---|
+| Android JVM unit tests | `./gradlew :app:testDebugUnitTest` | 122 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 103 |
+| Server inside the image | `docker compose --profile test run --rm --build test` | 103 |
+| Infrastructure assertions | `cd server/infra && npm test` | 13 |
 
-| Required scenario | Test(s) |
-|---|---|
-| Timestamp → pixel | `TimelineMathTest.timeToX_*` |
-| Pixel → time | `TimelineMathTest.xToTime_inverseOfTimeToX`, `pxToMillis_signedDragDistance` |
-| Positive and negative snapping | `TimeSnapperTest` (nearest, symmetric negatives, ties, origin-relative, floor/ceil) |
-| Moving earlier and later | `TaskEditsTest.move_later_*`, `move_earlier_*`, `move_clampsToWindow`, `move_clampAtWindowEnd*` |
-| Left resize keeps end | `TaskEditsTest.resizeStart_preservesEnd` |
-| Right resize keeps start | `TaskEditsTest.resizeEnd_preservesStart` |
-| Minimum duration | `TaskEditsTest.resize*_cannot*`, `minimumDurationHoldsEvenWithCoarseSnap`, `resizeStart_minimumDurationStopsOnGridWithCoarseSnap` |
-| Zoom keeps timestamps | `TimelineMathTest.zoomChange_preservesTimestamps`, `ChronovaViewModelTest.updateConfig_neverChangesTaskTimestamps` |
-
-Also covered:
-- Tick generation
-- Cumulative-rounding avoidance
-- Handle hit zones (`HandleHitTestTest`)
-- Config limits and steps (`TimelineConfigTest`)
-- ViewModel intents
-
-**Manual verification:** done on a physical phone (Android 10, 720×1600, 360 dp wide) with screenshots, after each feature batch:
-- Bars on their grid lines.
-- Header and body in sync, including both ends of the range.
-- Rotation keeps scroll position and state.
-- Drag later and earlier.
-- Both resizes and the minimum duration.
-- 60-minute snapping.
-- Zoom keeps the centre time.
-- Days scale, row height, and the toolbar toggle.
-
-Each check's expected values were calculated before running it. The full record is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
+The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
 
 ## Decisions and trade-offs
 
-- **minSdk 26** (from the template's 24) so `java.time` works without core-library desugaring.
-- **Fixed 3-day window.** The window is the reference day plus two more, with tasks clamped inside it. An unbounded timeline would need virtualised tick drawing and isn't needed for this scope.
-- **Fixed 15-minute minimum duration.** A per-snap minimum would make a 13:30 task impossible to keep at 60-minute snap. Instead, the dragged edge stops at the grid line nearest the 15-minute limit.
-- **No persistence.** Tasks live in the ViewModel. They survive rotation but reset after process death. Room was explicitly out of scope.
-- **Resize only on the selected bar.** This prevents accidental resizes while still giving large touch targets.
-- **Pinned dependency versions.** Lint reports newer versions (Compose BOM 2026.09, lifecycle 2.11, Kotlin 2.4, Gradle 9.9). The project stays on the versions it was built and verified with.
+- **Offline first, sync on request.** The user asked to be prompted on reconnect rather than syncing silently; sync never starts on its own.
+- **Last write wins per record**, by edit time with the server clock as a ceiling — simple and predictable; no field-level merging.
+- **Laravel + Postgres + Filament** instead of the first serverless prototype (Cognito, Lambda, DynamoDB; tag `serverless-backend-v1`): an admin back-office and relational data were wanted. Trade-off: an always-on database and containers, and our own auth to secure.
+- **No custom domain required on AWS**: CloudFront's default domain gives HTTPS; the load balancer is private (VPC origin), so client IPs come from CloudFront's own header. A custom domain is needed to enforce TLS 1.2+.
+- **Fixed 15-minute minimum duration** across all snap intervals; the dragged edge snaps to the nearest allowed grid line.
+- **Pinned dependency versions**, each at least two weeks old when chosen; lint and npm report newer ones.
 
 ## Known limitations
 
-- Dragging a handle past the edge of the viewport doesn't auto-scroll. Scroll, then keep resizing.
-- At low zoom, very short tasks (15 minutes) are narrow, so their title is hidden behind the grips when selected.
-- Light theme only. The optional enhancements (dark theme, current-time line, animated selection) weren't implemented.
-- No instrumented or UI tests. Gesture behaviour was verified manually on a device.
-- On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen; scroll the toolbar sideways to reach them.
+- Not deployed: the AWS stack has been synthesized and tested, not run. Email in AWS needs SES production access.
+- Dragging a handle past the edge of the viewport doesn't auto-scroll.
+- On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen (the toolbar scrolls sideways).
 - Dependency arrows update when a drag ends, not during it.
+- In Months scale a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).
+- With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
+- Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
+- Light theme only. No instrumented or UI test suite; device behaviour was verified by hand.
 
 ## AI usage
 
-This project was built with Claude Code. [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log, and [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) is the summary prepared for the shared Google Doc.
+Built with Claude Code. [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) is the summary written for the original take-home.
