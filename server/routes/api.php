@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
 
 // Every route here is under /v1 (see bootstrap/app.php).
@@ -19,4 +20,5 @@ Route::middleware(['auth:sanctum', 'abilities:sync', 'active'])->group(function 
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('account', [AccountController::class, 'destroy']);
+    Route::post('sync', SyncController::class)->middleware('throttle:sync');
 });

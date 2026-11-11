@@ -23,7 +23,7 @@ POST /v1/sync   Authorization: Bearer <access token>
 2. **Clock clamp:** an `updatedAt` in the future is stored as the server's current time, so a device whose clock runs ahead can't win every conflict.
 3. **Stale pushes return the winner:** for every `stale` result, `changes` also contains the server's current copy of that record — even when its sequence number is behind the client's cursor (a device with a slow clock may have pulled it already). Not repeated if it's already in the page.
 4. **Cursor:** every stored write gets a per-user, strictly increasing sequence number (gaps allowed). The cursor is the last one the client has seen. `changes` holds records with a higher number, ascending, at most **500** per response; the client repeats with the new cursor (and no changes) while `hasMore` is true. With nothing new the cursor is returned unchanged.
-5. **Serialised per user:** two syncs of the same user never interleave (they would otherwise leave a sequence gap a puller could skip).
+5. **Serialised per user:** two syncs of the same user never interleave (they would otherwise leave a sequence gap a puller could skip). The Laravel server does this by locking the user's row for the whole request, so it waits rather than answering 409; clients still handle 409.
 6. **Tombstones:** deletes are `deleted: true` with no `data`; they replace the stored record under rule 1 and are pulled like any change.
 7. **Isolation:** a user only ever reads and writes their own records. Record ids are only unique per user (e.g. every device seeds `sample-project`).
 8. **At most 500 changes per request.** Unknown fields are dropped, never stored.

@@ -27,5 +27,8 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by('auth-email:'.mb_strtolower((string) $request->input('email')).'|'.$request->ip()),
             Limit::perMinute(30)->by('auth-ip:'.$request->ip()),
         ]);
+
+        // A device syncs on demand, but a full pull of a big account takes a few pages.
+        RateLimiter::for('sync', fn (Request $request) => Limit::perMinute(60)->by('sync:'.$request->user()?->getKey()));
     }
 }
