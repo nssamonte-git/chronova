@@ -63,6 +63,17 @@ describe('sync', () => {
     expect(store.items.get('alice')!.get('task#t1')!.data!.title).toBe('Newer edit');
   });
 
+  it('returns the server copy of a stale push even when it is behind the cursor', async () => {
+    const store = new MemoryStore();
+    await ok(store, 'alice', { changes: [task('t1', NOW - 100, 'Server')] });
+    const pulled = await ok(store, 'alice', { cursor: null }); // this device is now past seq 1
+    // A later push with an older edit time (slow device clock) loses...
+    const stale = await ok(store, 'alice', { cursor: pulled.cursor, changes: [task('t1', NOW - 500, 'Slow clock')] });
+    expect(stale.results[0].status).toBe('stale');
+    // ...and the response says what won, although its seq is behind the cursor.
+    expect(stale.changes).toEqual([task('t1', NOW - 100, 'Server')]);
+  });
+
   it('clamps future edit times to the server clock', async () => {
     const store = new MemoryStore();
     await ok(store, 'alice', { changes: [task('t1', NOW + 86_400_000, 'Clock ahead')] });

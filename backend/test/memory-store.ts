@@ -37,6 +37,10 @@ export class MemoryStore implements SyncStore {
     return true;
   }
 
+  async get(userId: string, entity: StoredChange['entity'], id: string) {
+    return this.userItems(userId).get(`${entity}#${id}`);
+  }
+
   async changesSince(userId: string, cursor: number, limit: number) {
     const all = [...this.userItems(userId).values()].filter((c) => c.seq > cursor).sort((a, b) => a.seq - b.seq);
     return { items: all.slice(0, limit), hasMore: all.length > limit };

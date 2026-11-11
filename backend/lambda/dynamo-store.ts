@@ -3,6 +3,7 @@ import {
   BatchWriteCommand,
   DeleteCommand,
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
   UpdateCommand,
@@ -78,6 +79,11 @@ export class DynamoSyncStore implements SyncStore {
     }
   }
 
+  async get(userId: string, entity: Entity, id: string): Promise<StoredChange | undefined> {
+    const result = await this.db.send(new GetCommand({ TableName: this.tableName, Key: { pk: pk(userId), sk: sk(entity, id) } }));
+    return result.Item ? toChange(result.Item) : undefined;
+  }
+
   async changesSince(userId: string, cursor: number, limit: number) {
     const result = await this.db.send(
       new QueryCommand({
@@ -89,16 +95,7 @@ export class DynamoSyncStore implements SyncStore {
         Limit: limit,
       }),
     );
-    const items = (result.Items ?? []).map(
-      (item): StoredChange => ({
-        entity: item.entity,
-        id: item.id,
-        deleted: item.deleted,
-        updatedAt: item.updatedAt,
-        ...(item.data ? { data: item.data } : {}),
-        seq: item.seq,
-      }),
-    );
+    const items = (result.Items ?? []).map(toChange);
     return { items, hasMore: result.LastEvaluatedKey !== undefined };
   }
 
@@ -132,6 +129,17 @@ export class DynamoSyncStore implements SyncStore {
     } while (startKey);
     return deleted;
   }
+}
+
+function toChange(item: Record<string, any>): StoredChange {
+  return {
+    entity: item.entity,
+    id: item.id,
+    deleted: item.deleted,
+    updatedAt: item.updatedAt,
+    ...(item.data ? { data: item.data } : {}),
+    seq: item.seq,
+  };
 }
 
 const pk = (userId: string) => `USER#${userId}`;

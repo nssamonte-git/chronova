@@ -60,7 +60,7 @@ describe('ChronovaStack', () => {
         .Properties.PolicyDocument.Statement;
       return statements.flatMap((statement) => [statement.Action].flat()).filter((action) => action.startsWith('dynamodb:')).sort();
     };
-    expect(actionsOf('Sync')).toEqual(['dynamodb:DeleteItem', 'dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:UpdateItem']);
+    expect(actionsOf('Sync')).toEqual(['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:UpdateItem']);
     expect(actionsOf('DeleteAccount')).toEqual(['dynamodb:BatchWriteItem', 'dynamodb:Query']);
   });
 });

@@ -8,7 +8,10 @@
  * with a clock in the future can't win every conflict forever.
  *
  * Every applied write gets a per-user, increasing sequence number; the cursor is the
- * last sequence number a client has seen. Sync requests of one user are serialised
+ * last sequence number a client has seen. When a push is stale, the response also
+ * carries the server's current copy of that record: its sequence number may be
+ * behind the client's cursor (e.g. a device whose clock runs slow edited a record it
+ * had already pulled), and without it the client would keep its losing edit. Sync requests of one user are serialised
  * by a short lock so two devices can't interleave sequence numbers and leave a gap
  * a puller would skip.
  */
@@ -38,6 +41,8 @@ export interface SyncStore {
   nextSeq(userId: string): Promise<number>;
   /** Stores [change] unless the stored copy has an equal or newer `updatedAt`. Returns whether it was stored. */
   putIfNewer(userId: string, change: StoredChange): Promise<boolean>;
+  /** The stored copy of one record, or undefined. */
+  get(userId: string, entity: Entity, id: string): Promise<StoredChange | undefined>;
   /** Changes with seq > [cursor], ascending, at most [limit]. */
   changesSince(userId: string, cursor: number, limit: number): Promise<{ items: StoredChange[]; hasMore: boolean }>;
 }
@@ -70,6 +75,7 @@ export async function sync(store: SyncStore, userId: string, body: unknown, now:
   if (!(await store.acquireLock(userId, now, now + LOCK_MILLIS))) return { status: 409, body: { error: 'busy' } };
   try {
     const results: SyncResponse['results'] = [];
+    const winners: StoredChange[] = [];
     for (const change of parsed.changes) {
       const stored: StoredChange = {
         ...change,
@@ -78,14 +84,21 @@ export async function sync(store: SyncStore, userId: string, body: unknown, now:
       };
       const applied = await store.putIfNewer(userId, stored);
       results.push({ entity: change.entity, id: change.id, status: applied ? 'applied' : 'stale' });
+      if (!applied) {
+        const current = await store.get(userId, change.entity, change.id);
+        if (current) winners.push(current);
+      }
     }
     const page = await store.changesSince(userId, parsed.cursor, PAGE_SIZE);
     const last = page.items.length > 0 ? page.items[page.items.length - 1].seq : parsed.cursor;
+    // Winners already in the page aren't repeated.
+    const inPage = new Set(page.items.map((item) => `${item.entity}#${item.id}`));
+    const extra = winners.filter((item) => !inPage.has(`${item.entity}#${item.id}`));
     return {
       status: 200,
       body: {
         results,
-        changes: page.items.map(({ seq: _seq, ...change }) => change),
+        changes: [...page.items, ...extra].map(({ seq: _seq, ...change }) => change),
         cursor: String(last),
         hasMore: page.hasMore,
       },

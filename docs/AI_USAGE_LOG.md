@@ -260,3 +260,12 @@ Both were found by reviewing the generated code against the gesture design, not 
 - On device: the normal build (no backend values) showed "Sync isn't set up in this build…". A temporary build with dummy pool values (added to `local.properties`, then restored and verified identical) configured Amplify without a crash and showed the sign-in form; an empty submit showed "Enter a valid email address.", and "Create account" showed the password rules. No sign-in was attempted, so nothing was sent to AWS. The normal build was reinstalled afterwards.
 - Not verified: real sign-up, confirmation, sign-in and token refresh against Cognito (needs the deployed stack).
 - Interruption: the phone's USB connection dropped once ("waiting for device") and came back; the check was re-run.
+
+### B19a — Backend fix: stale pushes return the winning copy
+
+**AI mistake — sync protocol could leave devices disagreeing.**
+1. *What AI generated (B17):* a stale push (older edit time than the server copy) was only reported as `stale`; the client was expected to receive the winning copy through the pull.
+2. *Why wrong:* the winning copy's `seq` can be behind the client's cursor — e.g. a device with a slow clock edits a record it had already pulled — so the pull never returns it, and the client would keep its losing edit marked as synced.
+3. *How discovered:* while designing the Android sync engine (B19), walking through clock-skew cases before writing code.
+4. *Correction:* `SyncStore.get`; for each stale push the response's `changes` includes the server's current copy (not repeated if it's already in the page). The sync Lambda gains `dynamodb:GetItem` (and the IAM test was updated). New test: "returns the server copy of a stale push even when it is behind the cursor".
+- `npx tsc --noEmit` clean; `npx jest` — **21 tests passed**; `cdk synth` OK. Still not deployed.

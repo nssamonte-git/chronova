@@ -23,7 +23,7 @@ POST /v1/sync   Authorization: Bearer <Cognito access token>
 409 { "error": "busy" } another sync of the same user is running; retry shortly
 ```
 
-- **Last write wins per record by edit time** (`updatedAt`). A pushed change is stored only if it is newer than the stored copy; ties keep the stored copy. Edit times in the future are clamped to the server clock.
+- **Last write wins per record by edit time** (`updatedAt`). A pushed change is stored only if it is newer than the stored copy; ties keep the stored copy. Edit times in the future are clamped to the server clock. When a push is `stale`, `changes` also includes the server's current copy of that record, even if its `seq` is behind the cursor, so the client can replace its losing edit.
 - Every stored write gets a per-user, increasing `seq`; the cursor is the last `seq` the client has seen. Pull pages hold at most 500 changes; repeat with the new cursor while `hasMore` is true.
 - Syncs of one user are serialised with a 30-second lock item, so two devices can't interleave sequence numbers and leave a gap.
 - Deletes are tombstones (`deleted: true`, no `data`).

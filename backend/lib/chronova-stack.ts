@@ -71,7 +71,7 @@ export class ChronovaStack extends Stack {
 
     // Least privilege: exactly the calls each function makes (on the table and its index).
     const syncFn = this.lambda('Sync', 'sync.ts', { TABLE_NAME: table.tableName });
-    table.grant(syncFn, 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:Query');
+    table.grant(syncFn, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:Query');
 
     const deleteAccountFn = this.lambda('DeleteAccount', 'delete-account.ts', {
       TABLE_NAME: table.tableName,
