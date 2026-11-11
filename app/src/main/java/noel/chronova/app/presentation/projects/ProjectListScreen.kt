@@ -50,6 +50,9 @@ import noel.chronova.app.R
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.presentation.TimeFormat
+import noel.chronova.app.presentation.sync.SyncButton
+import noel.chronova.app.presentation.sync.SyncStatusLine
+import noel.chronova.app.presentation.sync.SyncUi
 import noel.chronova.app.ui.theme.ChronovaTheme
 
 @Composable
@@ -57,6 +60,8 @@ fun ProjectListScreen(
     viewModel: ProjectListViewModel,
     onOpenProject: (String) -> Unit,
     onOpenAccount: () -> Unit,
+    syncUi: SyncUi,
+    onSync: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -79,6 +84,8 @@ fun ProjectListScreen(
         onEdit = { viewModel.startEdit(it.project) },
         onDelete = viewModel::requestDelete,
         onOpenAccount = onOpenAccount,
+        syncUi = syncUi,
+        onSync = onSync,
         modifier = modifier,
     )
     editor?.let { current ->
@@ -122,6 +129,8 @@ private fun ProjectListContent(
     onEdit: (ProjectSummary) -> Unit,
     onDelete: (ProjectSummary) -> Unit,
     onOpenAccount: () -> Unit,
+    syncUi: SyncUi,
+    onSync: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -150,6 +159,7 @@ private fun ProjectListContent(
                     }
                 },
                 actions = {
+                    if (syncUi.signedIn) SyncButton(syncUi, onSync)
                     IconButton(onClick = onOpenAccount) {
                         Icon(Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.account_open))
                     }
@@ -158,39 +168,42 @@ private fun ProjectListContent(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Box(
+        Column(
             Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            when (state) {
-                ProjectListState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                is ProjectListState.Loaded ->
-                    if (state.projects.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.projects_empty),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(24.dp),
-                        )
-                    } else {
-                        LazyColumn(
-                            // Bottom padding keeps the last card clear of the FAB.
-                            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            items(state.projects, key = { it.project.id }) { summary ->
-                                ProjectCard(
-                                    summary = summary,
-                                    onClick = { onOpenProject(summary.project.id) },
-                                    onEdit = { onEdit(summary) },
-                                    onDelete = { onDelete(summary) },
-                                )
+            SyncStatusLine(syncUi, onClick = onOpenAccount)
+            Box(Modifier.fillMaxSize()) {
+                when (state) {
+                    ProjectListState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    is ProjectListState.Loaded ->
+                        if (state.projects.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.projects_empty),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(24.dp),
+                            )
+                        } else {
+                            LazyColumn(
+                                // Bottom padding keeps the last card clear of the FAB.
+                                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                items(state.projects, key = { it.project.id }) { summary ->
+                                    ProjectCard(
+                                        summary = summary,
+                                        onClick = { onOpenProject(summary.project.id) },
+                                        onEdit = { onEdit(summary) },
+                                        onDelete = { onDelete(summary) },
+                                    )
+                                }
                             }
                         }
-                    }
+                }
             }
         }
     }
@@ -273,6 +286,8 @@ private fun ProjectListPreview() {
             onEdit = {},
             onDelete = {},
             onOpenAccount = {},
+            syncUi = SyncUi(),
+            onSync = {},
         )
     }
 }

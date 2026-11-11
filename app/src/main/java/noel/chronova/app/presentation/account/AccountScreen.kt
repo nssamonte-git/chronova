@@ -14,6 +14,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.text.format.DateUtils
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import noel.chronova.app.R
 import noel.chronova.app.auth.AuthProblem
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.sync.SyncStatus
+import noel.chronova.app.presentation.sync.SyncUi
+import noel.chronova.app.presentation.sync.syncFailureText
+import noel.chronova.app.presentation.sync.syncStatusText
 
 /** Sign up, confirm, sign in and sign out for sync. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,6 +56,8 @@ import noel.chronova.app.auth.AuthState
 fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
+    val dialog by viewModel.dialog.collectAsStateWithLifecycle()
+    dialog?.let { AccountConfirmDialog(it, onConfirm = viewModel::confirmDialog, onDismiss = viewModel::dismissDialog) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,7 +89,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 when (val state = authState) {
                     AuthState.NotConfigured -> Explanation(stringResource(R.string.account_not_configured))
                     AuthState.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-                    is AuthState.SignedIn -> SignedIn(state.email, onSignOut = viewModel::signOut)
+                    is AuthState.SignedIn -> SignedIn(state.email, viewModel)
                     AuthState.SignedOut -> SignInForm(form, viewModel)
                 }
             }
@@ -95,12 +103,73 @@ private fun Explanation(text: String) {
 }
 
 @Composable
-private fun SignedIn(email: String, onSignOut: () -> Unit) {
+private fun SignedIn(email: String, viewModel: AccountViewModel) {
+    val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val status by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
     Text(stringResource(R.string.account_signed_in_as, email), style = MaterialTheme.typography.titleMedium)
     Explanation(stringResource(R.string.account_signed_in_body))
-    OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
+
+    val ui = SyncUi(configured = true, signedIn = true, pending = pending, status = status)
+    Text(
+        syncStatusText(ui) ?: lastSyncedText(viewModel.lastSyncedAt()),
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (status is SyncStatus.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Button(onClick = viewModel::syncNow, enabled = status != SyncStatus.Syncing, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.sync_now))
+    }
+    OutlinedButton(onClick = viewModel::requestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
     }
+    TextButton(onClick = viewModel::requestDeleteAccount, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
+    }
+    deleteFailure?.let {
+        Text(
+            stringResource(R.string.account_delete_failed, syncFailureText(it)),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun lastSyncedText(at: Long?): String =
+    if (at == null) {
+        stringResource(R.string.sync_never)
+    } else {
+        stringResource(
+            R.string.sync_last,
+            DateUtils.getRelativeTimeSpanString(at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString(),
+        )
+    }
+
+@Composable
+private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val (title, body, confirm) = when (dialog) {
+        is AccountDialog.SignOut -> Triple(
+            stringResource(R.string.account_sign_out_title),
+            if (dialog.unsynced > 0) {
+                pluralStringResource(R.plurals.account_sign_out_unsynced, dialog.unsynced, dialog.unsynced)
+            } else {
+                stringResource(R.string.account_sign_out_body)
+            },
+            stringResource(R.string.account_sign_out),
+        )
+        AccountDialog.DeleteAccount -> Triple(
+            stringResource(R.string.account_delete_title),
+            stringResource(R.string.account_delete_body),
+            stringResource(R.string.account_delete_confirm),
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirm, color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable

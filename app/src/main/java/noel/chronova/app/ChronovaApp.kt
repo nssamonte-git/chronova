@@ -12,6 +12,11 @@ import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.data.local.ChronovaDatabase
+import noel.chronova.app.data.remote.OkHttpSyncApi
+import noel.chronova.app.data.sync.RoomLocalSyncStore
+import noel.chronova.app.data.sync.SyncCoordinator
+import noel.chronova.app.data.sync.SyncEngine
+import noel.chronova.app.data.sync.onlineFlow
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -46,6 +51,22 @@ class AppContainer(context: Context) {
     /** Cognito sign-in when this build has a backend configured; otherwise offline-only. */
     val authRepository: AuthRepository =
         if (backendConfig.isComplete) AmplifyAuthRepository.create(context, backendConfig) else DisabledAuthRepository()
+
+    private val syncStore = RoomLocalSyncStore(database, context.getSharedPreferences("chronova_sync", Context.MODE_PRIVATE))
+
+    // A build without a backend never calls it (auth stays NotConfigured), but the URL must still parse.
+    private val syncApi = OkHttpSyncApi(backendConfig.apiUrl.ifBlank { "https://localhost" })
+
+    private val syncEngine = SyncEngine(syncStore, syncApi, accessToken = { authRepository.accessToken() })
+
+    val syncCoordinator = SyncCoordinator(
+        scope = appScope,
+        auth = authRepository,
+        local = syncStore,
+        api = syncApi,
+        online = onlineFlow(context),
+        runSync = syncEngine::sync,
+    )
 
     private companion object {
         const val KEY_SEEDED = "sample_seeded"

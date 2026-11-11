@@ -14,6 +14,9 @@ import noel.chronova.app.auth.AuthOutcome
 import noel.chronova.app.auth.AuthProblem
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.sync.AccountSync
+import noel.chronova.app.data.sync.SyncFailure
+import noel.chronova.app.data.sync.SyncStatus
 
 enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM }
 
@@ -38,9 +41,29 @@ data class AccountForm(
 
 enum class AccountNotice { CODE_SENT, CONFIRMED }
 
-class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
+/** A confirmation the signed-in account screen is asking for. */
+sealed interface AccountDialog {
+    /** Signing out removes this device's data; [unsynced] changes would be lost. */
+    data class SignOut(val unsynced: Int) : AccountDialog
+    data object DeleteAccount : AccountDialog
+}
+
+class AccountViewModel(private val auth: AuthRepository, private val sync: AccountSync) : ViewModel() {
 
     val authState: StateFlow<AuthState> = auth.state
+    val pendingCount: StateFlow<Int> = sync.pendingCount
+    val syncStatus: StateFlow<SyncStatus> = sync.status
+
+    private val _dialog = MutableStateFlow<AccountDialog?>(null)
+    val dialog: StateFlow<AccountDialog?> = _dialog.asStateFlow()
+
+    /** Why the last account deletion failed, if it did. */
+    private val _deleteFailure = MutableStateFlow<SyncFailure?>(null)
+    val deleteFailure: StateFlow<SyncFailure?> = _deleteFailure.asStateFlow()
+
+    fun lastSyncedAt(): Long? = sync.lastSyncedAt()
+
+    fun syncNow() = sync.syncNow()
 
     private val _form = MutableStateFlow(AccountForm())
     val form: StateFlow<AccountForm> = _form.asStateFlow()
@@ -86,9 +109,28 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
         }
     }
 
-    fun signOut() {
+    /** Always confirms: signing out also removes this device's copy of the data. */
+    fun requestSignOut() {
+        _dialog.value = AccountDialog.SignOut(sync.pendingCount.value)
+    }
+
+    fun requestDeleteAccount() {
+        _deleteFailure.value = null
+        _dialog.value = AccountDialog.DeleteAccount
+    }
+
+    fun dismissDialog() {
+        _dialog.value = null
+    }
+
+    fun confirmDialog() {
+        val dialog = _dialog.value ?: return
+        _dialog.value = null
         viewModelScope.launch {
-            auth.signOut()
+            when (dialog) {
+                is AccountDialog.SignOut -> sync.signOutAndClear()
+                AccountDialog.DeleteAccount -> _deleteFailure.value = sync.deleteAccount()
+            }
             _form.value = AccountForm()
         }
     }
@@ -122,8 +164,8 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
         const val CODE_LENGTH = 6
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
-        fun factory(auth: AuthRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountViewModel(auth) }
+        fun factory(auth: AuthRepository, sync: AccountSync): ViewModelProvider.Factory = viewModelFactory {
+            initializer { AccountViewModel(auth, sync) }
         }
     }
 }

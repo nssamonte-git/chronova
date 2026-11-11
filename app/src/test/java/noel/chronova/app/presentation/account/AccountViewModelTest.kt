@@ -10,6 +10,9 @@ import noel.chronova.app.auth.AuthOutcome
 import noel.chronova.app.auth.AuthProblem
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.sync.AccountSync
+import noel.chronova.app.data.sync.SyncFailure
+import noel.chronova.app.data.sync.SyncStatus
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -41,16 +44,35 @@ private class FakeAuth : AuthRepository {
     override suspend fun accessToken(): String? = null
 }
 
+private class FakeAccountSync : AccountSync {
+    override val pendingCount = MutableStateFlow(0)
+    override val status = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
+    var signOuts = 0
+    var deletes = 0
+    var deleteResult: SyncFailure? = null
+    override fun lastSyncedAt(): Long? = null
+    override fun syncNow() = Unit
+    override suspend fun signOutAndClear() {
+        signOuts++
+    }
+    override suspend fun deleteAccount(): SyncFailure? {
+        deletes++
+        return deleteResult
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountViewModelTest {
     private lateinit var auth: FakeAuth
     private lateinit var viewModel: AccountViewModel
+    private lateinit var sync: FakeAccountSync
 
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         auth = FakeAuth()
-        viewModel = AccountViewModel(auth)
+        sync = FakeAccountSync()
+        viewModel = AccountViewModel(auth, sync)
     }
 
     @After
@@ -128,10 +150,32 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun signOutResetsTheForm() {
+    fun signOutIsConfirmedAndWarnsAboutUnsyncedChanges() {
         auth.state.value = AuthState.SignedIn("sub", "ana@example.com")
-        viewModel.signOut()
-        assertEquals(AuthState.SignedOut, viewModel.authState.value)
-        assertEquals("signOut", auth.calls.single())
+        sync.pendingCount.value = 3
+        viewModel.requestSignOut()
+        assertEquals(AccountDialog.SignOut(unsynced = 3), viewModel.dialog.value)
+        viewModel.dismissDialog()
+        assertEquals(0, sync.signOuts)
+
+        viewModel.requestSignOut()
+        viewModel.confirmDialog()
+        assertEquals(1, sync.signOuts)
+        assertNull(viewModel.dialog.value)
+    }
+
+    @Test
+    fun deleteAccountReportsFailures() {
+        sync.deleteResult = SyncFailure.OFFLINE
+        viewModel.requestDeleteAccount()
+        viewModel.confirmDialog()
+        assertEquals(SyncFailure.OFFLINE, viewModel.deleteFailure.value)
+
+        sync.deleteResult = null
+        viewModel.requestDeleteAccount()
+        assertNull(viewModel.deleteFailure.value) // cleared when asking again
+        viewModel.confirmDialog()
+        assertNull(viewModel.deleteFailure.value)
+        assertEquals(2, sync.deletes)
     }
 }

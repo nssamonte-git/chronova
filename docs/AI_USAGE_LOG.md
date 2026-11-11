@@ -269,3 +269,19 @@ Both were found by reviewing the generated code against the gesture design, not 
 3. *How discovered:* while designing the Android sync engine (B19), walking through clock-skew cases before writing code.
 4. *Correction:* `SyncStore.get`; for each stale push the response's `changes` includes the server's current copy (not repeated if it's already in the page). The sync Lambda gains `dynamodb:GetItem` (and the IAM test was updated). New test: "returns the server copy of a stale push even when it is behind the cursor".
 - `npx tsc --noEmit` clean; `npx jest` — **21 tests passed**; `cdk synth` OK. Still not deployed.
+
+### B19 — App sync engine and reconnect prompt
+
+- Plan change agreed with the user before this batch: the backend moves to Laravel + Postgres + Filament on ECS Fargate + RDS (new 16-batch plan). This batch is backend-agnostic because the app only depends on the `/v1/sync` JSON contract, which Laravel will implement unchanged.
+- App: `OkHttpSyncApi` (OkHttp 5.3.2, kotlinx-serialization DTOs, non-blocking calls that cancel with the coroutine), `RoomLocalSyncStore` (dirty rows incl. tombstones → changes; clean-marking only if not edited mid-sync; remote changes applied projects → tasks → links, last write wins with ties to the server; cursor per user in non-backed-up preferences), `SyncEngine` (push in 500-change batches, pull all pages, apply at the end so parents arrive first; no cursor saved on failure), `onlineFlow` (validated default network), `SyncCoordinator` (app scope; prompt only on an offline → online transition with pending changes; never syncs on its own; busy retries; sign-out and delete-account clear the device). UI: reconnect dialog (Sync now / Later, or Sign in to sync), sync button with pending badge and a status line on the project list, account screen sync section, sign-out confirmation that warns about unsynced changes, delete account.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 114 tests, 0 failed; lint 0 errors, 13 warnings** (versions only; OkHttp added one). New: `SyncEngineTest` (7, against an in-memory server with the protocol's rules: push/clean, paging, LWW, stale winner behind the cursor, failure keeps state, no token, 500-change batches), `SyncCoordinatorTest` (7: prompt only on reconnect, none without changes or backend, signed-out variant, Later, busy retry, failure mapping, delete-account order), 2 account tests.
+- On device, with a temporary dummy-backend build (`local.properties` backed up, restored and verified identical; normal build reinstalled afterwards): the project list showed "9 changes on this device only. Sign in to sync."; turning Wi-Fi and mobile data off and on showed "You're back online / 9 changes on this device aren't backed up. Sign in to sync them." with Later and Sign in to sync, as predicted; "Sign in to sync" opened the sign-in form. Crash buffer empty.
+- Not verified: a real sync (no deployed backend yet; planned against the local Laravel server in batch 8 of the new plan).
+
+**AI mistake — test changed a phone setting.**
+1. *What AI did:* reconnected the phone with `svc wifi enable` and `svc data enable`.
+2. *Why wrong:* mobile data had been off (`settings get global mobile_data` = 0, read just before); the test turned it on.
+3. *How discovered:* the value printed at the start of the same check.
+4. *Correction:* `svc data disable` straight after; re-read `mobile_data` = 0. Future network toggles restore the previously read state.
+
+**AI mistake (caught by tests) — coroutine test harness.** `advanceUntilIdle()` doesn't run `backgroundScope` work, so 5 coordinator tests failed; the tests now advance virtual time and run pending tasks explicitly.

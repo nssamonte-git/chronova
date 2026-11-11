@@ -128,7 +128,7 @@ time        = origin + round(x / pxPerMinute) minutes
 
 ## Testing
 
-`./gradlew :app:testDebugUnitTest` runs 99 JVM tests (0 failures in the last run).
+`./gradlew :app:testDebugUnitTest` runs 114 JVM tests (0 failures in the last run).
 
 | Required scenario | Test(s) |
 |---|---|

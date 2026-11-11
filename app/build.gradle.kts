@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp)
     implementation(libs.amplify.core.kotlin)
     implementation(libs.amplify.auth.cognito)
     coreLibraryDesugaring(libs.desugar.jdk.libs)

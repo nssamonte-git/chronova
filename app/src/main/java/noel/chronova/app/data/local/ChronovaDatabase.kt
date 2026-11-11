@@ -15,6 +15,7 @@ abstract class ChronovaDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun viewSettingsDao(): ViewSettingsDao
     abstract fun dependencyDao(): DependencyDao
+    abstract fun syncDao(): SyncDao
 
     companion object {
         fun create(context: Context): ChronovaDatabase =
