@@ -302,3 +302,10 @@ Both were found by reviewing the generated code against the gesture design, not 
 **AI mistake (caught by Composer) — platform PHP too low.** `config.platform.php` was first set to 8.4.0; Symfony 8.1 (needed by Pest 5) requires ≥ 8.4.1, so resolution failed. Set to 8.4.10.
 
 **Version-rule slip (caught before commit).** The first resolve picked Pest 5.3.5 (11 days old) and Pint 1.32.2 through `~` constraints; both were pinned exactly to the ≥ 2-week-old versions and downgraded.
+
+### B22 — Server data model
+
+- Migrations (the skeleton's users migration rewritten, since nothing was ever deployed): `users` (uuid ids, lower-cased email with a unique `lower(email)` index, `disabled_at`, `sync_seq`, `last_synced_at`), `email_codes` (hashed one-time codes), `sessions` (staff panel only); `projects`, `tasks`, `dependencies` (server copy of client records: `unique(user_id, client_id)` because client ids repeat across users, nullable entity fields for tombstones of unseen records, `client_updated_at` LWW clock, `seq` with an `(user_id, seq)` index, links by client id without foreign keys); `sync_events` (counts only, kept anonymously when a user is deleted); `staff`, `audit_logs` (append-only, survives user deletion), `data_access_grants`. The skeleton's `password_reset_tokens` table was dropped (codes replace it).
+- Models with explicit fillable/hidden attributes (sync records aren't mass-assignable at all), an immutable `AuditLog`, `DataAccessGrant::active()`; factories for users, staff and the three record types. The seeder seeds nothing (no demo accounts in any environment).
+- `php artisan migrate:fresh` — all 5 migrations ran on the local Postgres. `composer test` — **12 tests passed** (8 new: lower-case unique email enforced by the database, uuid ids and hidden password, per-user client ids, project → tasks within one user, cascade delete with anonymised metrics, immutable audit log, active grants, staff roles). Pint passed.
+- First run: 1 failure — the test mass-assigned `SyncEvent` metric fields; they were made fillable (server-written counts; `user_id` stays explicit).

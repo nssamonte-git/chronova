@@ -2,31 +2,69 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+/**
+ * Someone who syncs projects from the app. Emails are stored lower-cased.
+ */
+#[Fillable(['email', 'password'])]
+#[Hidden(['password'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasUuids, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'disabled_at' => 'datetime',
+            'last_synced_at' => 'datetime',
+            'sync_seq' => 'integer',
             'password' => 'hashed',
         ];
+    }
+
+    /** Always stored lower-cased, so lookups and the unique index agree. */
+    public function setEmailAttribute(string $value): void
+    {
+        $this->attributes['email'] = mb_strtolower(trim($value));
+    }
+
+    public function isDisabled(): bool
+    {
+        return $this->disabled_at !== null;
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(Dependency::class);
+    }
+
+    public function syncEvents(): HasMany
+    {
+        return $this->hasMany(SyncEvent::class);
+    }
+
+    public function emailCodes(): HasMany
+    {
+        return $this->hasMany(EmailCode::class);
     }
 }
