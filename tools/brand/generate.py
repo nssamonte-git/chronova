@@ -4,10 +4,10 @@ Builds every Chronova icon and logo file from the supplied logo image
 the source:  python3 tools/brand/generate.py   (needs Pillow)
 
 Outputs
-  app/src/main/res/drawable-nodpi/ic_launcher_art.png      adaptive icon layer (108 dp, logo art scaled into the safe zone)
-  app/src/main/res/drawable-nodpi/ic_launcher_mono.png     themed-icon mask (Android 13+)
-  app/src/main/res/drawable-nodpi/ic_splash_logo.png       launch-screen icon
-  app/src/main/res/mipmap-*/ic_launcher(_round).webp       legacy launcher icons
+  app/src/main/res/drawable-nodpi/brand_icon_art.png       adaptive icon layer (108 dp, logo art scaled into the safe zone)
+  app/src/main/res/drawable-nodpi/brand_icon_mono.png      themed-icon mask (Android 13+)
+  app/src/main/res/drawable-nodpi/brand_splash_logo.png    launch-screen icon
+  (minSdk 26: launchers always use mipmap-anydpi/ic_launcher*.xml, so no per-density bitmaps)
   server/public/images/brand/*.png, server/public/favicon.ico   admin logo, favicons
 """
 import math
@@ -164,15 +164,6 @@ def without_specks(mask: Image.Image, keep_fraction: float = 0.01) -> Image.Imag
     return out
 
 
-def circle(img: Image.Image) -> Image.Image:
-    s = img.size[0]
-    big = Image.new("L", (s * 4, s * 4), 0)
-    ImageDraw.Draw(big).ellipse((0, 0, s * 4 - 1, s * 4 - 1), fill=255)
-    out = img.convert("RGBA")
-    out.putalpha(big.resize((s, s), Image.LANCZOS))
-    return out
-
-
 def save(img: Image.Image, *parts, **kwargs):
     path = os.path.join(*parts)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -192,20 +183,11 @@ def main():
     fill = edge_navy(art)
     print("edge fill #%02x%02x%02x" % fill)
     adaptive = composed(art, fill, 432, ART_FRACTION, feather=0.05)
-    save(adaptive, RES, "drawable-nodpi", "ic_launcher_art.png", optimize=True)
-    save(monochrome(art, 432, ART_FRACTION), RES, "drawable-nodpi", "ic_launcher_mono.png", optimize=True)
+    save(adaptive, RES, "drawable-nodpi", "brand_icon_art.png", optimize=True)
+    save(monochrome(art, 432, ART_FRACTION), RES, "drawable-nodpi", "brand_icon_mono.png", optimize=True)
 
     # Launch screen: icon area 288 dp, content inside a 192 dp circle (xxhdpi, 864 px).
-    save(composed(art, fill, 864, ART_FRACTION, feather=0.05), RES, "drawable-nodpi", "ic_splash_logo.png", optimize=True)
-
-    # Legacy launcher icons (unused with adaptive icons on API 26+, kept consistent).
-    visible = adaptive.crop((72, 72, 360, 360))  # the 72 dp a launcher shows
-    for density, px in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
-        square = Image.new("RGBA", (px, px), (0, 0, 0, 0))
-        inner = round(px * 0.92)
-        square.alpha_composite(logo.resize((inner, inner), Image.LANCZOS), ((px - inner) // 2, (px - inner) // 2))
-        save(square, RES, f"mipmap-{density}", "ic_launcher.webp", lossless=True)
-        save(circle(visible.resize((px, px), Image.LANCZOS)), RES, f"mipmap-{density}", "ic_launcher_round.webp", lossless=True)
+    save(composed(art, fill, 864, ART_FRACTION, feather=0.05), RES, "drawable-nodpi", "brand_splash_logo.png", optimize=True)
 
     # Admin panel and browser icons.
     save(logo.resize((256, 256), Image.LANCZOS), PUBLIC, "images", "brand", "chronova-logo.png", optimize=True)

@@ -2,4 +2,6 @@
 <resources>
     <!-- Window background shown before Compose draws; matches the Compose theme background. -->
     <color name="chronova_background">#FFF8FAFC</color>
+    <!-- The logo's navy (its art edge), behind the launch-screen logo; see tools/brand/generate.py. -->
+    <color name="chronova_brand_navy">#FF021037</color>
 </resources>

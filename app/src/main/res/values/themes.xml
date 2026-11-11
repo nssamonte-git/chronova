@@ -3,4 +3,11 @@
     <style name="Theme.Chronova" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/chronova_background</item>
     </style>
+
+    <!-- Launch screen: the logo on its navy while the app starts, then Theme.Chronova (androidx core-splashscreen). -->
+    <style name="Theme.Chronova.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/chronova_brand_navy</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/brand_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Chronova</item>
+    </style>
 </resources>
