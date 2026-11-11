@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\CredentialsRequest;
 use App\Http\Requests\Auth\EmailRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\VerifyRequest;
 use App\Mail\AlreadyRegisteredMail;
 use App\Mail\EmailCodeMail;
@@ -73,6 +74,38 @@ class AuthController extends Controller
         }
 
         return $this->verificationRequired();
+    }
+
+    /** POST /v1/auth/forgot — always 202; a reset code is emailed if the account exists. */
+    public function forgot(EmailRequest $request): JsonResponse
+    {
+        $user = $this->findByEmail($request->string('email'));
+        if ($user !== null && ! $user->isDisabled()) {
+            $this->sendCode($user, EmailCode::PURPOSE_RESET);
+        }
+
+        return response()->json(['status' => 'reset_code_sent'], 202);
+    }
+
+    /**
+     * POST /v1/auth/reset — sets a new password with an emailed code, signs out every
+     * other device (all tokens revoked) and signs this one in. The code proves the
+     * inbox, so an unconfirmed account becomes confirmed.
+     */
+    public function reset(ResetPasswordRequest $request): JsonResponse
+    {
+        $user = $this->findByEmail($request->string('email'));
+        if ($user === null || $user->isDisabled()
+            || ! $this->codes->consume($user, EmailCode::PURPOSE_RESET, $request->string('code'))) {
+            return response()->json(['error' => 'invalid_code'], 422);
+        }
+        $user->tokens()->delete();
+        $user->forceFill([
+            'password' => $request->string('password'),
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ])->save();
+
+        return $this->signedIn($user, $request->string('device_name', 'android'));
     }
 
     /** POST /v1/auth/login */
