@@ -57,3 +57,17 @@ Corrections to the original prompt, found by inspecting the actual project:
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed** (6 new ViewModel tests).
 - First on-device launch (physical phone, Android 10 / API 29, 360 dp wide): app starts, top bar shows "Chronova / Shape Your Time", sample tasks list 09:00–11:00, 11:00–14:00, 13:30–16:00, 16:00–17:00.
 - No AI mistakes recorded in this batch.
+
+### B3 — Time axis, grid and task bars
+
+- `SchedulerTimeline` (fixed name column + header + vertically scrolled rows), `TimelineHeader` (canvas; reads the horizontal `ScrollState` in the draw phase), `TimelineGrid`, `TaskBar`, `TaskNameColumn`, `TaskColor.toColor()` (blue/green/purple from the M3 scheme, amber from the palette). Timeline forced to LTR.
+- One horizontal `ScrollState` owned by the body's `horizontalScroll`; initial scroll to one unit before the first task (saved, so it runs once).
+- `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed**.
+- On device: opens at 08:00; UI Design's left edge and the 09:00 grid line are both at x = 448 px. After three slow swipes, bar edges sit on 11:00, 13:30, 14:00 and 16:00 lines and header labels stay aligned with the grid.
+
+**AI mistake — batch boundary in the plan.**
+1. *What AI planned:* B3 renders bars "with no gestures/scrolling", and B4 adds the shared scroll.
+2. *Why unsuitable:* the timeline origin is 00:00 and the first task is at 09:00 (~860 dp right), so without scrolling none of the bars are on screen and B3 could not be verified.
+3. *How discovered:* while implementing B3, before running it.
+4. *Correction:* the single horizontal `ScrollState` and the initial scroll position moved into B3; B4 keeps header swipe-to-scroll, end-of-range and rotation checks.
+5. *Decision:* each batch must be verifiable on its own; the scroll architecture was unchanged, only its timing.

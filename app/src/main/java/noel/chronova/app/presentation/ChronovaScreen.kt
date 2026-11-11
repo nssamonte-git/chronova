@@ -1,6 +1,5 @@
 package noel.chronova.app.presentation
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.ZoneOffset
 import noel.chronova.app.R
+import noel.chronova.app.presentation.components.SchedulerTimeline
 import noel.chronova.app.ui.theme.ChronovaTheme
 
 @Composable
@@ -38,21 +37,12 @@ private fun ChronovaContent(state: ChronovaUiState, modifier: Modifier = Modifie
         topBar = { ChronovaTopBar() },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        // Temporary task list; replaced by the timeline in Batch 3.
-        Column(
+        SchedulerTimeline(
+            state = state,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.tasks.forEach { task ->
-                Text(
-                    text = "${task.title}  ${TimeFormat.range(task.startMillis, task.endMillis, state.zone)}",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        }
+                .padding(innerPadding),
+        )
     }
 }
 
