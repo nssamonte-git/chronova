@@ -22,5 +22,64 @@ services:
     ports:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
+
+  # --- Production-like run of the server image: `docker compose --profile prod up --build`
+  # Needs APP_KEY in your shell (php artisan key:generate --show); never committed.
+  migrate:
+    profiles: [prod]
+    build: { context: ., target: app }
+    image: chronova-server:local
+    command: migrate
+    environment: &server-env
+      APP_KEY: ${APP_KEY:?set APP_KEY to run the prod profile}
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: chronova
+      DB_USERNAME: chronova
+      DB_PASSWORD: chronova
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_FROM_ADDRESS: no-reply@chronova.local
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+    depends_on:
+      postgres: { condition: service_healthy }
+  web:
+    profiles: [prod]
+    image: chronova-server:local
+    command: web
+    environment: *server-env
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/up"]
+      interval: 5s
+      retries: 20
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+  worker:
+    profiles: [prod]
+    image: chronova-server:local
+    command: worker
+    environment: *server-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  # Test suite inside the image: `docker compose --profile test run --rm --build test`
+  test:
+    profiles: [test]
+    build: { context: ., target: test }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USERNAME: chronova
+      DB_PASSWORD: chronova
+    depends_on:
+      postgres: { condition: service_healthy }
+
 volumes:
   postgres-data:

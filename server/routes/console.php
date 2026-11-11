@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\EmailCode;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Housekeeping (runs in the scheduler container).
+Schedule::command('sanctum:prune-expired --hours=24')->daily();
+Schedule::call(fn () => EmailCode::where('expires_at', '<', now()->subDay())->delete())->name('prune-email-codes')->daily();

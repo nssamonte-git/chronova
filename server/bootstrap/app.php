@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind the load balancer: trust X-Forwarded-* only from the proxies named in
+        // TRUSTED_PROXIES (comma-separated, e.g. the VPC range). Unset = trust none.
+        if ($proxies = getenv('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: array_map('trim', explode(',', $proxies)));
+        }
         // API clients are never redirected to a login page: unauthenticated /v1 calls get a 401.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('v1/*') ? null : '/');
         $middleware->alias([
