@@ -8,8 +8,8 @@ plugins {
 }
 
 /**
- * Sync backend settings from the (uncommitted) local.properties, as printed by
- * `npx cdk deploy` in backend/. Missing values build an offline-only app.
+ * Sync server URL from the (uncommitted) local.properties: `chronova.apiUrl`.
+ * Without it the app builds offline-only.
  */
 val backendProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
@@ -35,9 +35,6 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "SYNC_REGION", backendSetting("region"))
-        buildConfigField("String", "SYNC_USER_POOL_ID", backendSetting("userPoolId"))
-        buildConfigField("String", "SYNC_USER_POOL_CLIENT_ID", backendSetting("userPoolClientId"))
         buildConfigField("String", "SYNC_API_URL", backendSetting("apiUrl"))
     }
 
@@ -50,8 +47,6 @@ android {
         }
     }
     compileOptions {
-        // Required by Amplify (Cognito auth).
-        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -82,11 +77,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
-    implementation(libs.amplify.core.kotlin)
-    implementation(libs.amplify.auth.cognito)
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 }

@@ -178,25 +178,37 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
         AccountMode.SIGN_IN -> R.string.account_sign_in
         AccountMode.SIGN_UP -> R.string.account_create
         AccountMode.CONFIRM -> R.string.account_confirm
+        AccountMode.FORGOT -> R.string.account_forgot_title
+        AccountMode.RESET -> R.string.account_reset_title
     }
     Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
     Explanation(
-        stringResource(if (form.mode == AccountMode.CONFIRM) R.string.account_confirm_body else R.string.account_why),
+        stringResource(
+            when (form.mode) {
+                AccountMode.CONFIRM -> R.string.account_confirm_body
+                AccountMode.FORGOT -> R.string.account_forgot_body
+                AccountMode.RESET -> R.string.account_reset_body
+                else -> R.string.account_why
+            },
+        ),
     )
+    val needsCode = form.mode == AccountMode.CONFIRM || form.mode == AccountMode.RESET
+    val needsPassword = form.mode != AccountMode.CONFIRM && form.mode != AccountMode.FORGOT
+    val choosingPassword = form.mode == AccountMode.SIGN_UP || form.mode == AccountMode.RESET
 
     OutlinedTextField(
         value = form.email,
         onValueChange = viewModel::onEmailChange,
         label = { Text(stringResource(R.string.account_email)) },
         singleLine = true,
-        enabled = form.mode != AccountMode.CONFIRM && !form.busy,
+        enabled = !needsCode && !form.busy,
         isError = form.formProblem == FormProblem.INVALID_EMAIL,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
         modifier = Modifier
             .fillMaxWidth()
             .semantics { contentType = ContentType.EmailAddress + ContentType.Username },
     )
-    if (form.mode == AccountMode.CONFIRM) {
+    if (needsCode) {
         OutlinedTextField(
             value = form.code,
             onValueChange = viewModel::onCodeChange,
@@ -204,18 +216,22 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
             singleLine = true,
             enabled = !form.busy,
             isError = form.formProblem == FormProblem.MISSING_CODE,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = if (needsPassword) ImeAction.Next else ImeAction.Done,
+            ),
             keyboardActions = KeyboardActions(onDone = { viewModel.submit() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentType = ContentType.SmsOtpCode },
         )
-    } else {
+    }
+    if (needsPassword) {
         OutlinedTextField(
             value = form.password,
             onValueChange = viewModel::onPasswordChange,
-            label = { Text(stringResource(R.string.account_password)) },
-            supportingText = if (form.mode == AccountMode.SIGN_UP) {
+            label = { Text(stringResource(if (form.mode == AccountMode.RESET) R.string.account_new_password else R.string.account_password)) },
+            supportingText = if (choosingPassword) {
                 { Text(pluralStringResource(R.plurals.account_password_rules, AccountViewModel.MIN_PASSWORD, AccountViewModel.MIN_PASSWORD)) }
             } else {
                 null
@@ -229,7 +245,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    contentType = if (form.mode == AccountMode.SIGN_UP) ContentType.NewPassword else ContentType.Password
+                    contentType = if (choosingPassword) ContentType.NewPassword else ContentType.Password
                 },
         )
     }
@@ -238,7 +254,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
     message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
     form.notice?.let {
         Text(
-            stringResource(if (it == AccountNotice.CODE_SENT) R.string.account_code_sent else R.string.account_confirmed),
+            stringResource(if (it == AccountNotice.CODE_SENT) R.string.account_code_sent else R.string.account_reset_code_sent),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -252,8 +268,16 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
         }
     }
     when (form.mode) {
-        AccountMode.SIGN_IN -> TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_UP) }, enabled = !form.busy) {
-            Text(stringResource(R.string.account_no_account))
+        AccountMode.SIGN_IN -> {
+            TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_UP) }, enabled = !form.busy) {
+                Text(stringResource(R.string.account_no_account))
+            }
+            TextButton(onClick = { viewModel.setMode(AccountMode.FORGOT) }, enabled = !form.busy) {
+                Text(stringResource(R.string.account_forgot))
+            }
+        }
+        AccountMode.FORGOT, AccountMode.RESET -> TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
+            Text(stringResource(R.string.account_back_to_sign_in))
         }
         AccountMode.SIGN_UP -> TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
             Text(stringResource(R.string.account_have_account))
@@ -280,6 +304,7 @@ private fun authProblemText(problem: AuthProblem): String = stringResource(
         AuthProblem.ACCOUNT_EXISTS -> R.string.auth_account_exists
         AuthProblem.WEAK_PASSWORD -> R.string.auth_weak_password
         AuthProblem.WRONG_CODE -> R.string.auth_wrong_code
+        AuthProblem.ACCOUNT_DISABLED -> R.string.auth_account_disabled
         AuthProblem.CODE_EXPIRED -> R.string.auth_code_expired
         AuthProblem.TOO_MANY_ATTEMPTS -> R.string.auth_too_many
         AuthProblem.NETWORK -> R.string.auth_network

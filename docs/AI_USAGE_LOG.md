@@ -331,3 +331,14 @@ Both were found by reviewing the generated code against the gesture design, not 
 - `composer test` — **64 tests passed** (27 new: every reference conformance scenario, plus a tombstone for an unseen record, cross-type ordering, text kept untrimmed, metrics recorded, auth/ability/disabled checks; 11 malformed-input cases as a dataset). All passed on the first run. Pint passed.
 - Concurrency smoke test (can't be done inside one test transaction): `artisan serve` with 4 PHP workers, two clients pushing 100 tasks each, 5 rounds in parallel for the same user → all 10 requests 200; 1000 rows with sequence numbers 1–1000, all distinct, user counter 1000 — no interleaving or gaps, as predicted.
 - `docs/sync-protocol.md` notes that this server waits on the row lock rather than answering 409.
+
+### B26 — App sign-in switched to the Laravel API
+
+- Removed Amplify and core-library desugaring; `AmplifyAuthRepository` replaced by `ApiAuthRepository` (OkHttp, `/v1/auth/*`, shared client with the sync API). Debug APK **21.4 MB → 13.5 MB**.
+- `KeystoreTokenStore`: the token is encrypted with an AES-GCM key held in the Android Keystore, in preferences excluded from backup; an unreadable token (e.g. key gone) reads as signed out.
+- Config is now just `chronova.apiUrl`. Release builds require https; debug builds also accept `http://localhost`/`127.0.0.1`, allowed only by a debug-only network security config (release config: no cleartext at all).
+- Auth interface: confirming the email now signs in; new `requestPasswordReset` / `resetPassword`; `ACCOUNT_DISABLED` problem. Account screen: "Forgot password?" → email → code + new password (signs in, other devices signed out).
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 122 tests, 0 failed; lint 0 errors, 14 warnings** (versions only; MockWebServer added one). New: `ApiAuthRepositoryTest` (7, MockWebServer 5.3.2: lower-cased email, session stored on confirm, error mapping, network failure, reset flow, sign-out revokes and forgets even on server error, refresh), account tests updated (confirm signs in; forgot → reset).
+- On device against the local server (`artisan serve` + queue worker + Mailpit, `adb reverse tcp:8000 tcp:8000`, `chronova.apiUrl=http://localhost:8000` added to `local.properties` for the check): Create account with `phone@example.test` → server got the register request → "Your Chronova confirmation code" in Mailpit → code entered on the phone → "Signed in as phone@example.test", "9 changes not synced", as predicted.
+- Found on device: with the keyboard open, the Create account button sits under the keyboard (the screen scrolls, but doesn't bring it into view); the keyboard's Done key submits. Noted for polish.
+- Interruption: the phone's USB connection dropped once more, which also cleared `adb reverse`; it was re-added.

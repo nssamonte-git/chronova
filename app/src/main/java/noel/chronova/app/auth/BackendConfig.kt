@@ -3,25 +3,17 @@ package noel.chronova.app.auth
 import noel.chronova.app.BuildConfig
 
 /**
- * Where the sync backend lives, from the CDK stack outputs placed in local.properties
- * (`chronova.region`, `chronova.userPoolId`, `chronova.userPoolClientId`, `chronova.apiUrl`).
- * A build without them works fully offline and offers no sign-in.
+ * Where the Chronova server lives, from `chronova.apiUrl` in the uncommitted
+ * local.properties. A build without it works fully offline and offers no sign-in.
+ * Release builds need https; debug builds may also use http://localhost (the phone
+ * reaches a server on the development machine through `adb reverse`).
  */
-data class BackendConfig(
-    val region: String,
-    val userPoolId: String,
-    val userPoolClientId: String,
-    val apiUrl: String,
-) {
+data class BackendConfig(val apiUrl: String, val allowLocalHttp: Boolean = false) {
     val isComplete: Boolean
-        get() = listOf(region, userPoolId, userPoolClientId, apiUrl).all { it.isNotBlank() } && apiUrl.startsWith("https://")
+        get() = apiUrl.startsWith("https://") ||
+            (allowLocalHttp && (apiUrl.startsWith("http://localhost") || apiUrl.startsWith("http://127.0.0.1")))
 
     companion object {
-        fun fromBuildConfig() = BackendConfig(
-            region = BuildConfig.SYNC_REGION,
-            userPoolId = BuildConfig.SYNC_USER_POOL_ID,
-            userPoolClientId = BuildConfig.SYNC_USER_POOL_CLIENT_ID,
-            apiUrl = BuildConfig.SYNC_API_URL,
-        )
+        fun fromBuildConfig() = BackendConfig(apiUrl = BuildConfig.SYNC_API_URL, allowLocalHttp = BuildConfig.DEBUG)
     }
 }

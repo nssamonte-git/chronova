@@ -18,9 +18,10 @@ import noel.chronova.app.data.sync.AccountSync
 import noel.chronova.app.data.sync.SyncFailure
 import noel.chronova.app.data.sync.SyncStatus
 
-enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM }
+/** SIGN_IN/SIGN_UP → CONFIRM (code) for new accounts; FORGOT (email) → RESET (code + new password). */
+enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM, FORGOT, RESET }
 
-/** Problems the form itself catches before calling Cognito. */
+/** Problems the form itself catches before calling the server. */
 enum class FormProblem { INVALID_EMAIL, SHORT_PASSWORD, MISSING_CODE }
 
 /**
@@ -39,7 +40,7 @@ data class AccountForm(
     val notice: AccountNotice? = null,
 )
 
-enum class AccountNotice { CODE_SENT, CONFIRMED }
+enum class AccountNotice { CODE_SENT, RESET_CODE_SENT }
 
 /** A confirmation the signed-in account screen is asking for. */
 sealed interface AccountDialog {
@@ -89,6 +90,8 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
                 AccountMode.SIGN_IN -> auth.signIn(form.email, form.password)
                 AccountMode.SIGN_UP -> auth.signUp(form.email, form.password)
                 AccountMode.CONFIRM -> auth.confirmSignUp(form.email, form.code)
+                AccountMode.FORGOT -> auth.requestPasswordReset(form.email)
+                AccountMode.RESET -> auth.resetPassword(form.email, form.code, form.password)
             }
             _form.value = next(form, outcome)
         }
@@ -136,12 +139,11 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
     }
 
     private fun next(form: AccountForm, outcome: AuthOutcome): AccountForm = when (outcome) {
-        // Signed in: the auth state changes; the form resets.
         AuthOutcome.Done -> when (form.mode) {
-            AccountMode.SIGN_IN -> AccountForm()
-            // Confirmed: ask the user to sign in with the password they chose.
-            AccountMode.CONFIRM, AccountMode.SIGN_UP ->
-                AccountForm(mode = AccountMode.SIGN_IN, email = form.email, notice = AccountNotice.CONFIRMED)
+            // The reset code is on its way: ask for it and the new password.
+            AccountMode.FORGOT -> AccountForm(mode = AccountMode.RESET, email = form.email, notice = AccountNotice.RESET_CODE_SENT)
+            // Signed in (sign-in, confirmation or reset): the auth state changes and the form resets.
+            else -> AccountForm()
         }
         AuthOutcome.NeedsConfirmation ->
             form.copy(mode = AccountMode.CONFIRM, password = "", busy = false, notice = AccountNotice.CODE_SENT, authProblem = null)
@@ -156,6 +158,12 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
             else -> null
         }
         AccountMode.CONFIRM -> if (form.code.length == CODE_LENGTH) null else FormProblem.MISSING_CODE
+        AccountMode.FORGOT -> if (EMAIL.matches(form.email)) null else FormProblem.INVALID_EMAIL
+        AccountMode.RESET -> when {
+            form.code.length != CODE_LENGTH -> FormProblem.MISSING_CODE
+            form.password.length < MIN_PASSWORD -> FormProblem.SHORT_PASSWORD
+            else -> null
+        }
     }
 
     companion object {

@@ -27,13 +27,14 @@ enum class AuthProblem {
     ACCOUNT_EXISTS,
     WEAK_PASSWORD,
     WRONG_CODE,
+    ACCOUNT_DISABLED,
     CODE_EXPIRED,
     TOO_MANY_ATTEMPTS,
     NETWORK,
     UNKNOWN,
 }
 
-/** Sign-in for sync. Passwords are passed straight through and never stored by the app. */
+/** Sign-in for sync. Passwords go straight to the server and are never stored by the app. */
 interface AuthRepository {
     val state: StateFlow<AuthState>
 
@@ -41,9 +42,18 @@ interface AuthRepository {
     suspend fun refresh()
 
     suspend fun signUp(email: String, password: String): AuthOutcome
+
+    /** Confirms the email with the emailed code and signs in. */
     suspend fun confirmSignUp(email: String, code: String): AuthOutcome
     suspend fun resendCode(email: String): AuthOutcome
     suspend fun signIn(email: String, password: String): AuthOutcome
+
+    /** Emails a reset code (the answer doesn't reveal whether the account exists). */
+    suspend fun requestPasswordReset(email: String): AuthOutcome
+
+    /** Sets a new password with the emailed code, signs out other devices and signs in here. */
+    suspend fun resetPassword(email: String, code: String, newPassword: String): AuthOutcome
+
     suspend fun signOut()
 
     /** A valid access token for the sync API (refreshed if needed), or null when signed out. */
@@ -58,6 +68,8 @@ class DisabledAuthRepository : AuthRepository {
     override suspend fun confirmSignUp(email: String, code: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun resendCode(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun signIn(email: String, password: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
+    override suspend fun requestPasswordReset(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
+    override suspend fun resetPassword(email: String, code: String, newPassword: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun signOut() = Unit
     override suspend fun accessToken(): String? = null
 }

@@ -32,9 +32,15 @@ private class FakeAuth : AuthRepository {
 
     override suspend fun refresh() = Unit
     override suspend fun signUp(email: String, password: String) = next("signUp:$email")
-    override suspend fun confirmSignUp(email: String, code: String) = next("confirm:$email:$code")
+    override suspend fun confirmSignUp(email: String, code: String) = next("confirm:$email:$code").also {
+        if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
+    }
     override suspend fun resendCode(email: String) = next("resend:$email")
     override suspend fun signIn(email: String, password: String) = next("signIn:$email").also {
+        if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
+    }
+    override suspend fun requestPasswordReset(email: String) = next("forgot:$email")
+    override suspend fun resetPassword(email: String, code: String, newPassword: String) = next("reset:$email:$code").also {
         if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
     }
     override suspend fun signOut() {
@@ -94,14 +100,14 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun signUpConfirmThenSignIn() {
+    fun signUpThenConfirmSignsIn() {
         viewModel.setMode(AccountMode.SIGN_UP)
         viewModel.onEmailChange(" ana@example.com ")
         viewModel.onPasswordChange("Correct-horse-1")
         auth.outcomes += AuthOutcome.NeedsConfirmation
         viewModel.submit()
 
-        var form = viewModel.form.value
+        val form = viewModel.form.value
         assertEquals(AccountMode.CONFIRM, form.mode)
         assertEquals("", form.password) // not kept once used
         assertEquals(AccountNotice.CODE_SENT, form.notice)
@@ -109,16 +115,28 @@ class AccountViewModelTest {
         viewModel.onCodeChange("12a34 56")
         assertEquals("123456", viewModel.form.value.code)
         viewModel.submit()
-        form = viewModel.form.value
-        assertEquals(AccountMode.SIGN_IN, form.mode)
-        assertEquals("ana@example.com", form.email)
-        assertEquals(AccountNotice.CONFIRMED, form.notice)
-
-        viewModel.onPasswordChange("Correct-horse-1")
-        viewModel.submit()
         assertEquals(AuthState.SignedIn("sub", "ana@example.com"), viewModel.authState.value)
-        assertEquals(listOf("signUp:ana@example.com", "confirm:ana@example.com:123456", "signIn:ana@example.com"), auth.calls)
+        assertEquals(listOf("signUp:ana@example.com", "confirm:ana@example.com:123456"), auth.calls)
         assertEquals(AccountForm(), viewModel.form.value)
+    }
+
+    @Test
+    fun forgotThenResetSignsIn() {
+        viewModel.setMode(AccountMode.FORGOT)
+        viewModel.onEmailChange("ana@example.com")
+        viewModel.submit()
+        assertEquals(AccountMode.RESET, viewModel.form.value.mode)
+        assertEquals(AccountNotice.RESET_CODE_SENT, viewModel.form.value.notice)
+
+        viewModel.onCodeChange("654321")
+        viewModel.onPasswordChange("short")
+        viewModel.submit()
+        assertEquals(FormProblem.SHORT_PASSWORD, viewModel.form.value.formProblem)
+
+        viewModel.onPasswordChange("New-password-42")
+        viewModel.submit()
+        assertEquals(listOf("forgot:ana@example.com", "reset:ana@example.com:654321"), auth.calls)
+        assertEquals(AuthState.SignedIn("sub", "ana@example.com"), viewModel.authState.value)
     }
 
     @Test
