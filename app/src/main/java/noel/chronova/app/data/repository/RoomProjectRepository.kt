@@ -1,7 +1,9 @@
 package noel.chronova.app.data.repository
 
 import androidx.room.withTransaction
+import java.time.LocalDate
 import java.time.ZoneId
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import noel.chronova.app.data.local.ChronovaDatabase
@@ -22,6 +24,7 @@ class RoomProjectRepository(
     private val firstLaunch: FirstLaunchFlag,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val newId: () -> String = { UUID.randomUUID().toString() },
 ) : ProjectRepository {
 
     override fun observeProjects(): Flow<List<ProjectSummary>> =
@@ -32,6 +35,27 @@ class RoomProjectRepository(
 
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
         db.taskDao().observeTasks(projectId).map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun tasksOf(projectId: String): List<SchedulerTask> =
+        db.taskDao().tasks(projectId).map { it.toDomain() }
+
+    override suspend fun createProject(name: String, startDate: LocalDate, endDate: LocalDate): String {
+        val project = Project(newId(), name.trim(), startDate, endDate)
+        db.projectDao().upsert(project.toEntity(clock()))
+        return project.id
+    }
+
+    override suspend fun updateProject(project: Project) {
+        db.projectDao().upsert(project.copy(name = project.name.trim()).toEntity(clock()))
+    }
+
+    override suspend fun deleteProject(projectId: String) {
+        val now = clock()
+        db.withTransaction {
+            db.taskDao().markDeletedInProject(projectId, now)
+            db.projectDao().markDeleted(projectId, now)
+        }
+    }
 
     override suspend fun updateTask(task: SchedulerTask) {
         db.taskDao().upsert(task.toEntity(clock()))

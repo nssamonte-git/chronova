@@ -1,5 +1,6 @@
 package noel.chronova.app.domain.repository
 
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
@@ -17,6 +18,17 @@ interface ProjectRepository {
 
     /** The project's tasks in row order. */
     fun observeTasks(projectId: String): Flow<List<SchedulerTask>>
+
+    /** The project's live tasks right now (for validation). */
+    suspend fun tasksOf(projectId: String): List<SchedulerTask>
+
+    /** Creates a project and returns its new id. */
+    suspend fun createProject(name: String, startDate: LocalDate, endDate: LocalDate): String
+
+    suspend fun updateProject(project: Project)
+
+    /** Deletes the project and its tasks (as tombstones until synced). */
+    suspend fun deleteProject(projectId: String)
 
     suspend fun updateTask(task: SchedulerTask)
 

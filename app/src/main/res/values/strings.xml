@@ -1,9 +1,39 @@
 <resources>
     <string name="app_name">Chronova</string>
     <string name="app_tagline">Shape Your Time</string>
-    <string name="projects_empty">No projects yet.</string>
+    <string name="projects_empty">No projects yet. Tap New project to plan one.</string>
+    <string name="project_new">New project</string>
+    <string name="project_edit">Edit project</string>
+    <string name="project_name">Project name</string>
+    <string name="project_actions">Actions for %1$s</string>
+    <string name="project_delete_title">Delete “%1$s”?</string>
+    <string name="problem_blank_name">Give the project a name.</string>
+    <string name="problem_end_before_start">The project can’t end before it starts.</string>
+    <string name="project_delete_body_empty">The project will be deleted.</string>
+    <string name="create">Create</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="ok">OK</string>
     <plurals name="task_count">
         <item quantity="one">%d task</item>
         <item quantity="other">%d tasks</item>
+    </plurals>
+    <plurals name="day_count">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="project_delete_body">
+        <item quantity="one">The project and its %d task will be deleted.</item>
+        <item quantity="other">The project and its %d tasks will be deleted.</item>
+    </plurals>
+    <plurals name="problem_excludes_tasks">
+        <item quantity="one">%d task falls outside these dates. Move it first or keep a wider range.</item>
+        <item quantity="other">%d tasks fall outside these dates. Move them first or keep a wider range.</item>
+    </plurals>
+    <plurals name="problem_too_long">
+        <item quantity="one">A project can span at most %d day.</item>
+        <item quantity="other">A project can span at most %d days.</item>
     </plurals>
 </resources>

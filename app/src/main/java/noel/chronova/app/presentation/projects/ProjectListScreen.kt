@@ -9,6 +9,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,7 +58,56 @@ fun ProjectListScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ProjectListContent(state = state, onOpenProject = onOpenProject, modifier = modifier)
+    val editor by viewModel.editor.collectAsStateWithLifecycle()
+    val pendingDelete by viewModel.pendingDelete.collectAsStateWithLifecycle()
+    val openProject by viewModel.openProject.collectAsStateWithLifecycle()
+
+    // A project was just created: go straight into it.
+    LaunchedEffect(openProject) {
+        openProject?.let { id ->
+            viewModel.onProjectOpened()
+            onOpenProject(id)
+        }
+    }
+
+    ProjectListContent(
+        state = state,
+        onOpenProject = onOpenProject,
+        onCreate = viewModel::startCreate,
+        onEdit = { viewModel.startEdit(it.project) },
+        onDelete = viewModel::requestDelete,
+        modifier = modifier,
+    )
+    editor?.let { current ->
+        ProjectEditorSheet(
+            editor = current,
+            onNameChange = viewModel::onNameChange,
+            onRangeChange = viewModel::onRangeChange,
+            onSave = viewModel::saveEditor,
+            onDismiss = viewModel::dismissEditor,
+        )
+    }
+    pendingDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDelete,
+            title = { Text(stringResource(R.string.project_delete_title, target.project.name)) },
+            text = {
+                Text(
+                    if (target.taskCount == 0) {
+                        stringResource(R.string.project_delete_body_empty)
+                    } else {
+                        pluralStringResource(R.plurals.project_delete_body, target.taskCount, target.taskCount)
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDelete) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,10 +115,20 @@ fun ProjectListScreen(
 private fun ProjectListContent(
     state: ProjectListState,
     onOpenProject: (String) -> Unit,
+    onCreate: () -> Unit,
+    onEdit: (ProjectSummary) -> Unit,
+    onDelete: (ProjectSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onCreate,
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.project_new)) },
+            )
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -92,11 +168,17 @@ private fun ProjectListContent(
                         )
                     } else {
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
+                            // Bottom padding keeps the last card clear of the FAB.
+                            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             items(state.projects, key = { it.project.id }) { summary ->
-                                ProjectCard(summary, onClick = { onOpenProject(summary.project.id) })
+                                ProjectCard(
+                                    summary = summary,
+                                    onClick = { onOpenProject(summary.project.id) },
+                                    onEdit = { onEdit(summary) },
+                                    onDelete = { onDelete(summary) },
+                                )
                             }
                         }
                     }
@@ -106,30 +188,66 @@ private fun ProjectListContent(
 }
 
 @Composable
-private fun ProjectCard(summary: ProjectSummary, onClick: () -> Unit) {
+private fun ProjectCard(summary: ProjectSummary, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = summary.project.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Row(verticalAlignment = Alignment.Top) {
+            ProjectCardText(summary, Modifier.weight(1f))
+            ProjectMenu(projectName = summary.project.name, onEdit = onEdit, onDelete = onDelete)
+        }
+    }
+}
+
+@Composable
+private fun ProjectCardText(summary: ProjectSummary, modifier: Modifier = Modifier) {
+    Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = summary.project.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = TimeFormat.dateRange(summary.project.startDate, summary.project.endDate),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(Modifier.padding(4.dp)) {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.project_actions, projectName))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.edit)) },
+                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onEdit()
+                },
             )
-            Text(
-                text = TimeFormat.dateRange(summary.project.startDate, summary.project.endDate),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete)) },
+                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                },
             )
         }
     }
@@ -142,6 +260,9 @@ private fun ProjectListPreview() {
         ProjectListContent(
             state = ProjectListState.Loaded(listOf(ProjectSummary(SampleTasks.project, taskCount = 4))),
             onOpenProject = {},
+            onCreate = {},
+            onEdit = {},
+            onDelete = {},
         )
     }
 }

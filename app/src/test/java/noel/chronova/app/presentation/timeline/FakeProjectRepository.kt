@@ -1,5 +1,6 @@
 package noel.chronova.app.presentation.timeline
 
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -25,6 +26,26 @@ class FakeProjectRepository(
 
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
         tasks.map { list -> list.filter { it.projectId == projectId }.sortedBy { it.sortOrder } }
+
+    override suspend fun tasksOf(projectId: String): List<SchedulerTask> =
+        tasks.value.filter { it.projectId == projectId }
+
+    private var nextId = 1
+
+    override suspend fun createProject(name: String, startDate: LocalDate, endDate: LocalDate): String {
+        val id = "new-${nextId++}"
+        projects.value = projects.value + Project(id, name.trim(), startDate, endDate)
+        return id
+    }
+
+    override suspend fun updateProject(project: Project) {
+        projects.value = projects.value.map { if (it.id == project.id) project else it }
+    }
+
+    override suspend fun deleteProject(projectId: String) {
+        projects.value = projects.value.filterNot { it.id == projectId }
+        tasks.value = tasks.value.filterNot { it.projectId == projectId }
+    }
 
     override suspend fun updateTask(task: SchedulerTask) {
         updates += task

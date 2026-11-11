@@ -185,3 +185,17 @@ Both were found by reviewing the generated code against the gesture design, not 
 5. *Decision:* recorded as a constraint in the scroll decision.
 
 **Tooling note:** one `adb shell am start -W` hung after an install (phone awake and unlocked); later launches used `am start` without `-W`.
+
+### B13 — Project create, edit and delete
+
+- `ProjectRules.validate` (domain): blank name, end before start, more than 366 days, or a range that would leave existing tasks outside it. Repository: `createProject` (UUID), `updateProject`, `deleteProject` (tombstones the project and its tasks in one transaction, `dirty = 1`), `tasksOf`. Project list: "New project" FAB, per-card Edit/Delete menu, a bottom-sheet editor with the Material date-range picker, and a delete confirmation. A newly created project opens straight away.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 67 tests, 0 failed; lint 0 errors, 12 warnings** (versions only; a `PluralsCandidate` warning on the max-days message was fixed by making it a plural). New: `ProjectRulesTest` (5), `ProjectListViewModelTest` (6).
+- On device: the sheet defaulted to 11 Nov – 17 Nov 2026 (7 days from today); Create with a blank name showed "Give the project a name."; a 141-day project (11 Nov 2026 – 31 Mar 2027, typed in the picker's text mode) opened straight away; at 300 % Hours zoom (~1.95 M px of content) twelve fast flings reached Sat 14 Nov without a crash, with header, grid and day label consistent; shrinking the sample to 3–4 Mar showed "4 tasks fall outside these dates…" and saved nothing; deleting the 141-day project left only the unchanged sample. Crash buffer empty. `gfxinfo` reported 21 % janky frames over the whole session (debug build, includes cold start and sheet animations) — not treated as a performance measurement.
+
+**AI mistake — keyboard covered the date picker.**
+1. *What AI generated:* the date button opened the picker while the name field kept focus.
+2. *Why wrong:* the soft keyboard stayed up over the picker's lower half and its OK/Cancel buttons.
+3. *How discovered:* on-device screenshot of the picker.
+4. *Correction:* the date button clears focus before opening the picker; re-checked on device with `dumpsys input_method` (`mInputShown=false`) and a screenshot.
+
+**Testing note:** pressing Escape to hide the keyboard dismissed the whole bottom sheet (expected sheet behaviour, not a bug); later runs left the keyboard up instead.
