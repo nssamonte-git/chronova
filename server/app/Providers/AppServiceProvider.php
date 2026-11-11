@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Voice\FakeInterpreter;
+use App\Voice\Interpreter;
+use App\Voice\OpenAiInterpreter;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -15,7 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Voice providers: real ones only when configured; the fake needs no network or key.
+        $this->app->bind(Interpreter::class, fn ($app) => match (config('voice.interpreter')) {
+            'openai' => new OpenAiInterpreter($app->make(Http::class), config('voice.openai')),
+            default => new FakeInterpreter,
+        });
     }
 
     /**
@@ -35,5 +43,9 @@ class AppServiceProvider extends ServiceProvider
 
         // A device syncs on demand, but a full pull of a big account takes a few pages.
         RateLimiter::for('sync', fn (Request $request) => Limit::perMinute(60)->by('sync:'.$request->user()?->getKey()));
+
+        // Every voice request costs provider money; on for everyone, so capped per user.
+        RateLimiter::for('voice', fn (Request $request) => Limit::perMinute(config('voice.limits.requests_per_minute'))
+            ->by('voice:'.$request->user()?->getKey()));
     }
 }
