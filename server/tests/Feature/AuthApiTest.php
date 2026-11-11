@@ -161,6 +161,13 @@ describe('tokens', function () {
         $this->getJson('/v1/me')->assertUnauthorized();
     });
 
+    it('answers 401 JSON even when the client sends no Accept header', function () {
+        // The app's HTTP client doesn't always ask for JSON; this used to end in a 500.
+        $this->post('/v1/sync', [], ['Authorization' => 'Bearer 999|not-a-token'])
+            ->assertUnauthorized()->assertHeader('Content-Type', 'application/json');
+        $this->call('GET', '/v1/me')->assertUnauthorized();
+    });
+
     it('stops working when revoked, expired, disabled, or lacking the sync ability', function () {
         $user = User::factory()->create();
         $sync = $user->createToken('phone', ['sync'], now()->addDays(60))->plainTextToken;

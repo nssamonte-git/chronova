@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // API clients are never redirected to a login page: unauthenticated /v1 calls get a 401.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('v1/*') ? null : '/');
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'active' => EnsureUserIsActive::class,
