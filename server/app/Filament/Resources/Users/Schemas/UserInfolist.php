@@ -10,11 +10,22 @@ use Filament\Schemas\Schema;
 /** Account metadata only. Project, task and link content is never shown here. */
 class UserInfolist
 {
+    /*
+     * Columns follow each card's own width (container queries: @xs 320 px, @sm 384, @md 448,
+     * @lg 512), not the window's: the cards sit side by side, so on a laptop a card can be
+     * ~240 px wide, where fixed columns ran labels into each other. `!@lg` is the old fixed
+     * layout for browsers without container queries. Each card is its own grid container
+     * (`gridContainer()`); without it the @ breakpoints never match.
+     */
+    public const ACCOUNT_COLUMNS = ['default' => 1, '@sm' => 2, '@lg' => 3, '!@lg' => 3];
+
+    public const COUNT_COLUMNS = ['default' => 1, '@xs' => 2, '@md' => 4, '!@lg' => 4];
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Account')->columns(3)->schema([
+                Section::make('Account')->gridContainer()->columns(self::ACCOUNT_COLUMNS)->schema([
                     TextEntry::make('email')->copyable(),
                     TextEntry::make('id')->label('User id')->copyable(),
                     TextEntry::make('status')
@@ -25,7 +36,7 @@ class UserInfolist
                     TextEntry::make('email_verified_at')->label('Email confirmed (UTC)')->dateTime()->placeholder('Not confirmed'),
                     TextEntry::make('last_synced_at')->label('Last sync (UTC)')->dateTime()->placeholder('Never'),
                 ]),
-                Section::make('Synced data')->description('Counts only.')->columns(4)->schema([
+                Section::make('Synced data')->description('Counts only.')->gridContainer()->columns(self::COUNT_COLUMNS)->schema([
                     TextEntry::make('live_projects_count')->label('Projects')->numeric(),
                     TextEntry::make('live_tasks_count')->label('Tasks')->numeric(),
                     TextEntry::make('live_links_count')->label('Dependencies')->numeric(),

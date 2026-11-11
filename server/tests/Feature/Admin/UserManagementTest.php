@@ -46,6 +46,21 @@ it('shows account metadata but never project or task content', function () {
         ->assertDontSee('Secret roadmap item');
 });
 
+it('lays out the user page by each card\'s width, so narrow cards stack instead of overlapping', function () {
+    $html = $this->actingAs(staffMember(), 'staff')->get("/admin/users/{$this->ana->id}")->assertOk()->getContent();
+
+    // Each card is a query container (without one the @ breakpoints never match), and Filament
+    // writes each breakpoint as a CSS variable on the grid ("@" → "c", "!" → "n").
+    expect(substr_count($html, 'fi-grid-ctn'))->toBeGreaterThanOrEqual(2);
+    expect($html)
+        ->toContain('--cols-default: repeat(1, minmax(0, 1fr))')   // a narrow card: one column
+        ->toContain('--cols-cxs: repeat(2, minmax(0, 1fr))')       // Synced data from 320 px
+        ->toContain('--cols-cmd: repeat(4, minmax(0, 1fr))')       // … four from 448 px
+        ->toContain('--cols-csm: repeat(2, minmax(0, 1fr))')       // Account: two from 384 px
+        ->toContain('--cols-clg: repeat(3, minmax(0, 1fr))')       // … three from 512 px
+        ->toContain('--cols-nclg: repeat(4, minmax(0, 1fr))');     // fallback without container queries
+});
+
 it('lets support disable, enable and sign a user out everywhere, all audited', function () {
     $support = staffMember();
     $this->actingAs($support, 'staff');
