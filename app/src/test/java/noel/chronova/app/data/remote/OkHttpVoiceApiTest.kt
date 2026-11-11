@@ -1,5 +1,6 @@
 package noel.chronova.app.data.remote
 
+import java.io.File
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
@@ -95,5 +96,42 @@ class OkHttpVoiceApiTest {
         } catch (error: VoiceApiException) {
             assertEquals(VoiceApiException.Kind.UNAVAILABLE, error.kind)
         }
+    }
+
+    @Test
+    fun uploadsTheRecordingAsAForm() = runTest {
+        reply(200, """{"text":" push review by an hour ","language":"en"}""")
+        val audio = File.createTempFile("command", ".m4a").apply { writeBytes(byteArrayOf(0, 0, 0, 24, 102, 116, 121, 112)) }
+
+        assertEquals("push review by an hour", api.transcribe("token-1", audio, 2_400, "en"))
+
+        val request = server.takeRequest()
+        assertEquals("/v1/voice/transcribe", request.url.encodedPath)
+        assertEquals("Bearer token-1", request.headers["Authorization"])
+        assertTrue(request.headers["Content-Type"]!!.startsWith("multipart/form-data"))
+        val body = request.body!!.utf8()
+        assertTrue(body, body.contains("""name="audio"; filename="command.m4a""""))
+        assertTrue(body, body.contains("Content-Type: audio/mp4"))
+        assertTrue(body, body.contains("name=\"durationMs\"\r\n\r\n2400"))
+        assertTrue(body, body.contains("name=\"language\""))
+        audio.delete()
+    }
+
+    @Test
+    fun aTranscriptTooLongIsItsOwnProblem() = runTest {
+        val audio = File.createTempFile("command", ".m4a")
+        reply(422, """{"error":"transcript_too_long"}""")
+        reply(422, """{"message":"The audio field is required."}""")
+        listOf(VoiceApiException.Kind.TOO_LONG, VoiceApiException.Kind.REJECTED).forEach { kind ->
+            try {
+                api.transcribe("t", audio, 2_400, null)
+                fail("expected $kind")
+            } catch (error: VoiceApiException) {
+                assertEquals(kind, error.kind)
+            }
+        }
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(body, !body.contains("name=\"language\""))
+        audio.delete()
     }
 }

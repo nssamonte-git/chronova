@@ -1,11 +1,15 @@
 package noel.chronova.app.presentation.voice
 
+import java.io.File
 import java.time.ZoneOffset
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -19,8 +23,12 @@ import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.presentation.timeline.FakeProjectRepository
+import noel.chronova.app.voice.RecorderUnavailable
+import noel.chronova.app.voice.Recording
+import noel.chronova.app.voice.VoiceRecorder
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -43,15 +51,53 @@ private class FakeVoiceApi : VoiceApi {
     var answer: (VoiceContext) -> Proposal = { Proposal(it.revision, "unsupported", emptyList(), null, null) }
     var failure: VoiceApiException.Kind? = null
     var gate: CompletableDeferred<Unit>? = null
+    var interpretGate: CompletableDeferred<Unit>? = null
     val transcripts = mutableListOf<String>()
     var beforeAnswer: suspend () -> Unit = {}
+    var heard = "push review by an hour"
+    var transcribeFailure: VoiceApiException.Kind? = null
+    val uploads = mutableListOf<Triple<Boolean, Long, String?>>()
+
+    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): String {
+        uploads += Triple(audio.exists(), durationMs, language)
+        gate?.await()
+        transcribeFailure?.let { throw VoiceApiException(it) }
+        return heard
+    }
 
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
         transcripts += transcript
         gate?.await()
+        interpretGate?.await()
         beforeAnswer()
         failure?.let { throw VoiceApiException(it) }
         return answer(context)
+    }
+}
+
+/** Hands out temp files as recordings; [nothing] makes stop() find nothing usable. */
+private class FakeRecorder(private val dir: File) : VoiceRecorder {
+    var recording = false
+    var unavailable = false
+    var nothing = false
+    val files = mutableListOf<File>()
+    var cancels = 0
+
+    override fun start() {
+        if (unavailable) throw RecorderUnavailable(IllegalStateException("busy"))
+        recording = true
+    }
+
+    override fun stop(): Recording? {
+        check(recording)
+        recording = false
+        if (nothing) return null
+        return Recording(File.createTempFile("command", ".m4a", dir).also { files += it }, 2_400)
+    }
+
+    override fun cancel() {
+        if (recording) cancels++
+        recording = false
     }
 }
 
@@ -63,6 +109,7 @@ class AssistantViewModelTest {
     private val api = FakeVoiceApi()
     private val auth = FakeAuth(AuthState.SignedIn("u1", "ana@example.com"))
     private val online = MutableStateFlow(true)
+    private val recorder = FakeRecorder(kotlin.io.path.createTempDirectory("voice").toFile())
     private lateinit var viewModel: AssistantViewModel
 
     private val review get() = repository.tasks.value.first { it.id == "review" }
@@ -72,8 +119,16 @@ class AssistantViewModelTest {
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
-        viewModel = AssistantViewModel(SampleTasks.PROJECT_ID, repository, api, auth, online, zone, clock = { 0L }, newId = { "new" })
+        viewModel = newViewModel(UnconfinedTestDispatcher())
+    }
+
+    private fun newViewModel(dispatcher: kotlinx.coroutines.test.TestDispatcher): AssistantViewModel {
+        Dispatchers.resetMain()
+        Dispatchers.setMain(dispatcher)
+        return AssistantViewModel(
+            SampleTasks.PROJECT_ID, repository, api, auth, online, recorder, zone,
+            clock = { 1_000L }, newId = { "new" }, language = { "en" },
+        )
     }
 
     @After
@@ -192,5 +247,132 @@ class AssistantViewModelTest {
     fun noServerMeansNoAssistant() = runTest {
         auth.state.value = AuthState.NotConfigured
         assertEquals(AssistantAvailability.NOT_CONFIGURED, viewModel.state.value.availability)
+    }
+
+    @Test
+    fun speakingIsTranscribedShownThenPreviewed() = runTest {
+        api.answer = shiftReview
+        viewModel.open()
+        viewModel.startListening()
+        assertEquals(AssistantPhase.Listening(1_000L), viewModel.state.value.phase)
+        assertTrue(recorder.recording)
+
+        viewModel.finishListening()
+        assertEquals(listOf(Triple(true, 2_400L, "en")), api.uploads)
+        assertEquals("push review by an hour", viewModel.state.value.input)
+        assertEquals(listOf("push review by an hour"), api.transcripts)
+        assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)
+        // The recording is deleted once it has been sent.
+        assertFalse(recorder.files.single().exists())
+    }
+
+    @Test
+    fun theWordsAreShownWhileTheyAreInterpreted() = runTest {
+        api.answer = shiftReview
+        api.interpretGate = CompletableDeferred()
+        viewModel.open()
+        viewModel.startListening()
+        viewModel.finishListening()
+        assertEquals("push review by an hour", viewModel.state.value.input)
+        assertEquals(AssistantPhase.Thinking, viewModel.state.value.phase)
+
+        api.interpretGate!!.complete(Unit)
+        assertTrue(viewModel.state.value.phase is AssistantPhase.Preview)
+    }
+
+    @Test
+    fun cancellingWhileListeningOrTranscribingSendsAndAppliesNothing() = runTest {
+        viewModel.open()
+        viewModel.startListening()
+        viewModel.cancel()
+        assertEquals(1, recorder.cancels)
+        assertEquals(AssistantPhase.Idle, viewModel.state.value.phase)
+        assertTrue(api.uploads.isEmpty())
+
+        api.gate = CompletableDeferred()
+        viewModel.startListening()
+        viewModel.finishListening()
+        assertEquals(AssistantPhase.Transcribing, viewModel.state.value.phase)
+        viewModel.cancel()
+        api.gate!!.complete(Unit)
+        assertEquals(AssistantPhase.Idle, viewModel.state.value.phase)
+        assertTrue(api.transcripts.isEmpty())
+        assertTrue(repository.applied.isEmpty())
+        assertFalse(recorder.files.single().exists())
+    }
+
+    @Test
+    fun closingOrLeavingTheAppDropsTheRecording() = runTest {
+        viewModel.open()
+        viewModel.startListening()
+        viewModel.onLeftApp()
+        assertEquals(1, recorder.cancels)
+        assertEquals(AssistantPhase.Idle, viewModel.state.value.phase)
+
+        viewModel.startListening()
+        viewModel.close()
+        assertEquals(2, recorder.cancels)
+        assertTrue(api.uploads.isEmpty())
+    }
+
+    @Test
+    fun listeningStopsByItselfAfterAMinute() {
+        val dispatcher = kotlinx.coroutines.test.StandardTestDispatcher()
+        viewModel = newViewModel(dispatcher)
+        TestScope(dispatcher).runTest {
+            runCurrent() // availability is worked out
+            viewModel.open()
+            viewModel.startListening()
+            advanceTimeBy(AssistantViewModel.MAX_LISTENING_MS - 1)
+            assertTrue(recorder.recording)
+            advanceTimeBy(2)
+            assertFalse(recorder.recording)
+            assertEquals(1, api.uploads.size)
+        }
+    }
+
+    @Test
+    fun microphoneAndTranscriptionProblemsAreShown() = runTest {
+        viewModel.open()
+        viewModel.onMicrophoneDenied()
+        assertEquals(AssistantPhase.Problem(AssistantProblem.MicrophoneDenied), viewModel.state.value.phase)
+
+        recorder.unavailable = true
+        viewModel.startListening()
+        assertEquals(AssistantPhase.Problem(AssistantProblem.MicrophoneUnavailable), viewModel.state.value.phase)
+        recorder.unavailable = false
+
+        recorder.nothing = true
+        viewModel.startListening()
+        viewModel.finishListening()
+        assertEquals(AssistantPhase.Problem(AssistantProblem.NothingHeard), viewModel.state.value.phase)
+        recorder.nothing = false
+
+        api.heard = ""
+        viewModel.startListening()
+        viewModel.finishListening()
+        assertEquals(AssistantPhase.Problem(AssistantProblem.NothingHeard), viewModel.state.value.phase)
+
+        api.transcribeFailure = VoiceApiException.Kind.TOO_LONG
+        viewModel.startListening()
+        viewModel.finishListening()
+        assertEquals(AssistantPhase.Problem(AssistantProblem.TooLong), viewModel.state.value.phase)
+        assertTrue(api.transcripts.isEmpty())
+        assertTrue(recorder.files.none { it.exists() })
+    }
+
+    @Test
+    fun theMicrophoneStaysOffWhenOfflineOrSignedOut() = runTest {
+        online.value = false
+        viewModel.open()
+        viewModel.startListening()
+        assertFalse(recorder.recording)
+        assertEquals(AssistantPhase.Problem(AssistantProblem.Offline), viewModel.state.value.phase)
+
+        online.value = true
+        auth.state.value = AuthState.SignedOut
+        viewModel.startListening()
+        assertFalse(recorder.recording)
+        assertEquals(AssistantPhase.Problem(AssistantProblem.SignedOut), viewModel.state.value.phase)
     }
 }

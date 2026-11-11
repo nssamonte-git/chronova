@@ -1,22 +1,30 @@
 package noel.chronova.app.data.remote
 
+import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.VoiceContext
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /** The server's voice endpoints (`docs/voice-api.md`). Provider keys never reach the app. */
 interface VoiceApi {
+    /** Sends a recording (AAC in MPEG-4) and returns what was said; `""` when nothing was. */
+    suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): String
+
     /** Asks the server to interpret [transcript]; cancelling the coroutine cancels the request. */
     suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal
 }
@@ -36,6 +44,9 @@ class VoiceApiException(val kind: Kind, cause: Throwable? = null) : Exception(ki
 
         /** The request was refused as malformed (a bug). */
         REJECTED,
+
+        /** More was said than one command can hold. */
+        TOO_LONG,
         NETWORK,
     }
 
@@ -57,25 +68,47 @@ class OkHttpVoiceApi(
 ) : VoiceApi {
     private val base = baseUrl.trimEnd('/')
 
-    // Callers are often on the main thread (ViewModels): reading the body must not be.
-    override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal = withContext(io) {
+    override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?): String {
+        val form = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("audio", "command.m4a", audio.asRequestBody(M4A))
+            .addFormDataPart("durationMs", durationMs.toString())
+            .apply { if (language != null) addFormDataPart("language", language) }
+            .build()
+        return call("transcribe", form, TranscribeResponseDto.serializer(), accessToken).text.trim()
+    }
+
+    override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
         val body = SyncJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto()))
+        return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
+    }
+
+    // Callers are often on the main thread (ViewModels): the whole call, body reading included, runs on [io].
+    private suspend fun <T> call(
+        endpoint: String,
+        body: RequestBody,
+        reply: KSerializer<T>,
+        accessToken: String,
+    ): T = withContext(io) {
         val request = Request.Builder()
-            .url("$base/v1/voice/interpret")
-            .post(body.toRequestBody(JSON))
+            .url("$base/v1/voice/$endpoint")
+            .post(body)
             .header("Authorization", "Bearer $accessToken")
             .header("Accept", "application/json")
             .build()
         val text = try {
             client.newCall(request).await().use { response ->
-                if (!response.isSuccessful) throw VoiceApiException(VoiceApiException.forStatus(response.code))
+                if (!response.isSuccessful) {
+                    val tooLong = response.code == 422 && TOO_LONG in response.body.string()
+                    throw VoiceApiException(if (tooLong) VoiceApiException.Kind.TOO_LONG else VoiceApiException.forStatus(response.code))
+                }
                 response.body.string()
             }
         } catch (error: IOException) {
             throw VoiceApiException(VoiceApiException.Kind.NETWORK, error)
         }
         try {
-            SyncJson.json.decodeFromString(InterpretResponseDto.serializer(), text).toDomain()
+            SyncJson.json.decodeFromString(reply, text)
         } catch (error: SerializationException) {
             throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
         } catch (error: IllegalArgumentException) {
@@ -85,8 +118,13 @@ class OkHttpVoiceApi(
 
     private companion object {
         val JSON = "application/json; charset=utf-8".toMediaType()
+        val M4A = "audio/mp4".toMediaType()
+        const val TOO_LONG = "transcript_too_long"
     }
 }
+
+@Serializable
+internal data class TranscribeResponseDto(val text: String, val language: String? = null)
 
 @Serializable
 internal data class InterpretRequestDto(val transcript: String, val context: VoiceContextDto)

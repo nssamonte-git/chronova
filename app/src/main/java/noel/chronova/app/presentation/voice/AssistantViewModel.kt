@@ -8,9 +8,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import java.time.ZoneId
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +37,9 @@ import noel.chronova.app.domain.voice.HandledProposal
 import noel.chronova.app.domain.voice.PreviewItem
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.navigation.ProjectTimelineRoute
+import noel.chronova.app.voice.RecorderUnavailable
+import noel.chronova.app.voice.Recording
+import noel.chronova.app.voice.VoiceRecorder
 
 /** Whether the assistant can be used right now. */
 enum class AssistantAvailability {
@@ -47,6 +52,12 @@ enum class AssistantAvailability {
 
 sealed interface AssistantPhase {
     data object Idle : AssistantPhase
+
+    /** The microphone is on since [startedAtMillis]; Done sends it, Cancel throws it away. */
+    data class Listening(val startedAtMillis: Long) : AssistantPhase
+
+    /** The recording is being turned into words; [AssistantViewModel.cancel] stops it. */
+    data object Transcribing : AssistantPhase
 
     /** Waiting for the server; [AssistantViewModel.cancel] stops it. */
     data object Thinking : AssistantPhase
@@ -61,6 +72,11 @@ sealed interface AssistantPhase {
     data object Applying : AssistantPhase
 }
 
+/** While true, the input can't be edited and Send/Speak are hidden. */
+val AssistantPhase.busy: Boolean
+    get() = this is AssistantPhase.Listening || this is AssistantPhase.Transcribing ||
+        this is AssistantPhase.Thinking || this is AssistantPhase.Applying
+
 sealed interface AssistantProblem {
     data object SignedOut : AssistantProblem
     data object Offline : AssistantProblem
@@ -70,6 +86,18 @@ sealed interface AssistantProblem {
     data object NotUnderstood : AssistantProblem
     data class Unsupported(val reason: String?) : AssistantProblem
     data object NothingToChange : AssistantProblem
+
+    /** The user said no to the microphone permission; typing still works. */
+    data object MicrophoneDenied : AssistantProblem
+
+    /** The microphone couldn't be started (another app may be using it). */
+    data object MicrophoneUnavailable : AssistantProblem
+
+    /** The recording was empty or silent. */
+    data object NothingHeard : AssistantProblem
+
+    /** More was said than one instruction can hold. */
+    data object TooLong : AssistantProblem
 
     /** The schedule changed while the request was being answered, or before Apply. */
     data object ScheduleChanged : AssistantProblem
@@ -92,7 +120,8 @@ sealed interface AssistantMessage {
 }
 
 /**
- * The timeline's assistant: the user types (or, later, says) an instruction;
+ * The timeline's assistant: the user types or says an instruction (a
+ * recording is transcribed by the server first, and the words are shown);
  * the server proposes operations; [AICommandHandler] plans them against the
  * current schedule; the user sees a preview and only Apply writes anything,
  * through the same [ApplyScheduleChanges] path as manual edits.
@@ -103,15 +132,19 @@ class AssistantViewModel(
     private val voiceApi: VoiceApi,
     private val auth: AuthRepository,
     online: Flow<Boolean>,
+    private val recorder: VoiceRecorder,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val clock: () -> Long = System::currentTimeMillis,
     newId: () -> String = { UUID.randomUUID().toString() },
+    /** A hint for the transcriber: the phone's language ("en", "fil"), or null to let it detect. */
+    private val language: () -> String? = { Locale.getDefault().toLanguageTag().substringBefore('-').ifBlank { null } },
 ) : ViewModel() {
 
     private val handler = AICommandHandler(CommandPlanner(zone, newId))
     private val applyChanges = ApplyScheduleChanges(repository, zone)
     private val ui = MutableStateFlow(AssistantUiState())
     private var request: Job? = null
+    private var listeningLimit: Job? = null
 
     val state: StateFlow<AssistantUiState> = combine(ui, auth.state, online) { ui, auth, online ->
         ui.copy(
@@ -129,8 +162,9 @@ class AssistantViewModel(
 
     fun open() = ui.update { it.copy(open = true) }
 
-    /** Closes the sheet; a running request is cancelled and nothing is applied. */
+    /** Closes the sheet; a recording or running request is thrown away and nothing is applied. */
     fun close() {
+        stopListening()
         request?.cancel()
         ui.update { it.copy(open = false, phase = AssistantPhase.Idle) }
     }
@@ -147,35 +181,90 @@ class AssistantViewModel(
 
     private fun setInput(text: String) = ui.update {
         // Editing after an answer starts over; a preview being edited away is dropped.
-        it.copy(input = text, phase = if (it.phase is AssistantPhase.Thinking || it.phase is AssistantPhase.Applying) it.phase else AssistantPhase.Idle)
+        it.copy(input = text, phase = if (it.phase.busy) it.phase else AssistantPhase.Idle)
     }
 
-    /** Stops waiting for the server; nothing is applied. */
+    /** Throws away a recording or stops waiting for the server; nothing is applied. */
     fun cancel() {
+        stopListening()
         request?.cancel()
-        ui.update { if (it.phase is AssistantPhase.Thinking) it.copy(phase = AssistantPhase.Idle) else it }
+        ui.update { if (it.phase.waiting || it.phase is AssistantPhase.Listening) it.copy(phase = AssistantPhase.Idle) else it }
     }
 
     fun submit() {
         val text = ui.value.input.trim()
-        val current = state.value
-        if (text.isEmpty() || current.phase is AssistantPhase.Thinking || current.phase is AssistantPhase.Applying) return
-        when (current.availability) {
-            AssistantAvailability.READY -> Unit
-            AssistantAvailability.OFFLINE -> return show(AssistantProblem.Offline)
-            else -> return show(AssistantProblem.SignedOut)
-        }
+        if (text.isEmpty() || ui.value.phase.busy || !ready()) return
         ui.update { it.copy(phase = AssistantPhase.Thinking) }
-        request = viewModelScope.launch {
-            val phase = try {
-                interpret(text)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: VoiceApiException) {
-                AssistantPhase.Problem(problemFor(error.kind))
-            }
-            ui.update { if (it.phase is AssistantPhase.Thinking) it.copy(phase = phase) else it }
+        request = viewModelScope.launch { settle { interpret(text) } }
+    }
+
+    /** Turns the microphone on. The screen asks for RECORD_AUDIO first. */
+    fun startListening() {
+        if (ui.value.phase.busy || !ready()) return
+        try {
+            recorder.start()
+        } catch (_: RecorderUnavailable) {
+            return show(AssistantProblem.MicrophoneUnavailable)
         }
+        ui.update { it.copy(phase = AssistantPhase.Listening(clock())) }
+        listeningLimit = viewModelScope.launch {
+            delay(MAX_LISTENING_MS)
+            finishListening()
+        }
+    }
+
+    /** Done speaking: the recording is transcribed, the words shown, then interpreted. */
+    fun finishListening() {
+        if (ui.value.phase !is AssistantPhase.Listening) return
+        listeningLimit?.cancel()
+        val recording = recorder.stop() ?: return show(AssistantProblem.NothingHeard)
+        ui.update { it.copy(phase = AssistantPhase.Transcribing) }
+        request = viewModelScope.launch {
+            try {
+                settle { transcribeAndInterpret(recording) }
+            } finally {
+                recording.file.delete()
+            }
+        }
+    }
+
+    fun onMicrophoneDenied() = show(AssistantProblem.MicrophoneDenied)
+
+    /** The app went to the background: Android silences the microphone there, so a recording is dropped. */
+    fun onLeftApp() {
+        if (ui.value.phase is AssistantPhase.Listening) cancel()
+    }
+
+    private fun stopListening() {
+        listeningLimit?.cancel()
+        if (ui.value.phase is AssistantPhase.Listening) recorder.cancel()
+    }
+
+    private fun ready(): Boolean = when (state.value.availability) {
+        AssistantAvailability.READY -> true
+        AssistantAvailability.OFFLINE -> false.also { show(AssistantProblem.Offline) }
+        else -> false.also { show(AssistantProblem.SignedOut) }
+    }
+
+    /** Runs a server round trip and shows its outcome, unless it was cancelled meanwhile. */
+    private suspend fun settle(work: suspend () -> AssistantPhase) {
+        val phase = try {
+            work()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: VoiceApiException) {
+            AssistantPhase.Problem(problemFor(error.kind))
+        }
+        ui.update { if (it.phase.waiting) it.copy(phase = phase) else it }
+    }
+
+    private suspend fun transcribeAndInterpret(recording: Recording): AssistantPhase {
+        val token = auth.accessToken() ?: return AssistantPhase.Problem(AssistantProblem.SignedOut)
+        val text = voiceApi.transcribe(token, recording.file, recording.durationMs, language())
+        if (text.isEmpty()) return AssistantPhase.Problem(AssistantProblem.NothingHeard)
+        // Show what was heard while it's being worked out; the user can correct it and Send again.
+        ui.update { if (it.phase is AssistantPhase.Transcribing) it.copy(input = text, phase = AssistantPhase.Thinking) else it }
+        return interpret(text)
     }
 
     private suspend fun interpret(text: String): AssistantPhase {
@@ -225,11 +314,18 @@ class AssistantViewModel(
 
     private fun show(problem: AssistantProblem) = ui.update { it.copy(phase = AssistantPhase.Problem(problem)) }
 
+    private val AssistantPhase.waiting get() = this is AssistantPhase.Transcribing || this is AssistantPhase.Thinking
+
+    override fun onCleared() {
+        stopListening()
+    }
+
     private fun problemFor(kind: VoiceApiException.Kind): AssistantProblem = when (kind) {
         VoiceApiException.Kind.UNAUTHORIZED -> AssistantProblem.SignedOut
         VoiceApiException.Kind.DISABLED -> AssistantProblem.Disabled
         VoiceApiException.Kind.RATE_LIMITED -> AssistantProblem.RateLimited
         VoiceApiException.Kind.NETWORK -> AssistantProblem.Offline
+        VoiceApiException.Kind.TOO_LONG -> AssistantProblem.TooLong
         VoiceApiException.Kind.UNAVAILABLE, VoiceApiException.Kind.REJECTED -> AssistantProblem.Unavailable
     }
 
@@ -244,15 +340,19 @@ class AssistantViewModel(
     }.toSet().size
 
     companion object {
+        /** Matches the server's limit (`docs/voice-api.md`). */
+        const val MAX_LISTENING_MS = 60_000L
+
         fun factory(
             repository: ProjectRepository,
             voiceApi: VoiceApi,
             auth: AuthRepository,
             online: Flow<Boolean>,
+            newRecorder: () -> VoiceRecorder,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val route = createSavedStateHandle().toRoute<ProjectTimelineRoute>()
-                AssistantViewModel(route.projectId, repository, voiceApi, auth, online)
+                AssistantViewModel(route.projectId, repository, voiceApi, auth, online, newRecorder())
             }
         }
     }

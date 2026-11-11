@@ -22,6 +22,8 @@ import noel.chronova.app.data.sync.RoomLocalSyncStore
 import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.onlineFlow
+import noel.chronova.app.voice.AndroidVoiceRecorder
+import noel.chronova.app.voice.VoiceRecorder
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -38,7 +40,7 @@ class ChronovaApp : Application() {
 }
 
 /** Manual dependency container; one instance per process. */
-class AppContainer(context: Context) {
+class AppContainer(private val context: Context) {
     /** Outlives screens; for work that must finish even if the user navigates away. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -81,6 +83,9 @@ class AppContainer(context: Context) {
         backendConfig.apiUrl.ifBlank { "https://localhost" },
         httpClient.newBuilder().readTimeout(45, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS).build(),
     )
+
+    /** A microphone recorder for one assistant (one recording at a time). */
+    fun newVoiceRecorder(): VoiceRecorder = AndroidVoiceRecorder(context)
 
     /** Whether the internet is reachable (each collector gets its own callback). */
     val online: Flow<Boolean> = onlineFlow(context)
