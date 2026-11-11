@@ -1,0 +1,7 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/chronova.ts",
+  "watch": { "include": ["bin", "lib", "lambda"] },
+  "context": {
+    "stage": "dev"
+  }
+}

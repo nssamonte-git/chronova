@@ -231,3 +231,21 @@ Both were found by reviewing the generated code against the gesture design, not 
 - Found while testing: with four scales, the scale buttons push the zoom controls off-screen on a 360 dp phone (the toolbar scrolls horizontally, so they're reachable). Tighter segment padding had no visible effect and was reverted; recorded as a known limitation.
 - Arrows follow committed task times, not the live drag preview, so they update when a drag ends.
 - Tooling note: one relaunch after `installDebug` left the phone on the launcher (the next `am start` worked).
+
+### B17 — Sync backend (AWS CDK)
+
+- `backend/`: CDK app (TypeScript) with a Cognito user pool (email sign-in, public SRP client, no secret), an HTTP API with a Cognito JWT authorizer and stage throttling, two Node.js 22 arm64 Lambdas (`POST /v1/sync`, `DELETE /v1/account`), and one on-demand DynamoDB table with point-in-time recovery and a sparse `bySeq` index. `dev` destroys the pool and table with the stack; `prod` retains them with deletion protection.
+- Sync protocol in `lambda/sync-core.ts`, independent of AWS: request validation that copies only known fields, last-write-wins by edit time (ties keep the server copy; future times clamped to the server clock), per-user sequence numbers as the pull cursor, 500-change pages, and a per-user lock (409 busy) so concurrent devices can't leave sequence gaps. Account deletion removes data before the Cognito user so a failure can be retried.
+- Dependencies pinned exactly (aws-cdk-lib 2.275.0, aws-cdk 2.1146.1, AWS SDK v3 3.1158.0, jest 30.5.2, ts-jest 29.4.15, esbuild 0.28.2, all at least two weeks old). TypeScript is 5.9.3 because ts-jest requires `<7`.
+- `npx tsc --noEmit` — clean. `npx jest` — **3 suites, 20 tests passed** (sync protocol 12, account deletion 2, stack assertions 6). `npx cdk synth --quiet` — template with 21 resources and the four outputs (Region, UserPoolId, UserPoolClientId, ApiUrl).
+- `npm audit --omit=dev`: 2 moderate (`minimatch` inside `aws-cdk-lib`, synth-time only, fix offered is a major downgrade) — documented, not changed.
+- Not done: no deploy (this machine has no AWS CLI or credentials; deploying needs the user's approval and account). The DynamoDB store (`dynamo-store.ts`) is only exercised against AWS after a deploy; the unit tests use an in-memory store with the same semantics.
+- Jest prints "a worker process has failed to exit gracefully" after the CDK stack test; results are unaffected.
+
+**AI mistake (caught before commit) — broad IAM grants.**
+1. *What AI generated:* `table.grantReadWriteData(...)` for both functions.
+2. *Why wrong:* it also grants `Scan`, `BatchGetItem` and stream reads that neither function uses.
+3. *How discovered:* reading the IAM policies in the synthesized template.
+4. *Correction:* `table.grant(...)` with the exact actions (sync: Put/Update/Delete/Query; delete-account: Query/BatchWrite), plus a stack test that pins them.
+
+**AI mistake (caught before commit) — empty CORS origin list.** The first stack draft set `corsPreflight` with an empty origin list; it was removed, since an HTTP API with no CORS configuration already gives browsers no cross-origin access.
