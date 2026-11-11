@@ -199,3 +199,12 @@ Both were found by reviewing the generated code against the gesture design, not 
 4. *Correction:* the date button clears focus before opening the picker; re-checked on device with `dumpsys input_method` (`mInputShown=false`) and a screenshot.
 
 **Testing note:** pressing Escape to hide the keyboard dismissed the whole bottom sheet (expected sheet behaviour, not a bug); later runs left the keyboard up instead.
+
+### B14 — Task add, edit and delete
+
+- `TaskRules.validate` (domain): blank title, end not after start, shorter than the 15-minute minimum, or outside the project's dates. Repository: `createTask` (next `sort_order`, counting deleted rows so an undone task keeps its row), `deleteTask` (tombstone), and `updateTask` doubles as undo (an upsert clears `deleted`).
+- Timeline: "Add task" FAB; editing from the name cell or a pencil in the top bar when a bar is selected; a bottom sheet with title, colour (radio semantics), and start/end date and time pickers (dates limited to the project). Moving the start keeps the duration. New tasks default to 09:00–10:00 today if today is in the project, else on its first day, and are selected after saving. Delete shows a snackbar with Undo. Empty projects show a hint.
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` — **BUILD SUCCESSFUL, 76 tests, 0 failed; lint 0 errors, 12 warnings** (versions only). New: `TaskRulesTest` (2), 7 ViewModel tests (defaults, last row + selection, duration-preserving start, validation, edit, delete + undo).
+- On device: the sheet defaulted to Mon 2 Mar 09:00–10:00 (today, 11 Nov, is outside the sample project), as predicted; "Launch" was added in the last row at the 09:00 grid line and selected (handles and top-bar pencil shown); tapping its name opened "Edit task"; deleting showed "Task deleted / Undo". Undo on a second delete (Review) restored it at 16:00–17:00 in its row. Crash buffer empty.
+- Partly a test-timing issue: the first Undo attempt missed because the short snackbar had closed before the next UI dump; "Launch" therefore stayed deleted, which is the correct behaviour when Undo isn't pressed.
+- Interruption: the phone revoked USB debugging authorization mid-check (`adb: device unauthorized`); the user re-allowed it and the check continued.

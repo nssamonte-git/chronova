@@ -2,7 +2,9 @@ package noel.chronova.app.presentation.timeline
 
 import java.time.ZoneId
 import noel.chronova.app.domain.SampleTasks
+import noel.chronova.app.domain.TaskProblem
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TimelineConfig
 import noel.chronova.app.domain.model.TimelineWindow
 
@@ -24,6 +26,19 @@ data class TimelineUiState(
             zone = zone,
         )
     }
+}
+
+/** The add/edit task sheet. [taskId] is null when adding. [problem] shows after a failed save. */
+data class TaskEditorState(
+    val taskId: String?,
+    val title: String,
+    val startMillis: Long,
+    val endMillis: Long,
+    val color: TaskColor,
+    val problem: TaskProblem? = null,
+    val saving: Boolean = false,
+) {
+    val isNew: Boolean get() = taskId == null
 }
 
 /** The timeline screen while its project loads, once loaded, or after it disappears. */

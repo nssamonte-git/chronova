@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.map
 import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.repository.ProjectRepository
 
 /** In-memory [ProjectRepository] for ViewModel tests. */
@@ -47,9 +48,31 @@ class FakeProjectRepository(
         tasks.value = tasks.value.filterNot { it.projectId == projectId }
     }
 
+    override suspend fun createTask(
+        projectId: String,
+        title: String,
+        startMillis: Long,
+        endMillis: Long,
+        color: TaskColor,
+    ): String {
+        val id = "task-${nextId++}"
+        val order = (tasks.value.filter { it.projectId == projectId }.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        tasks.value = tasks.value + SchedulerTask(id, projectId, title.trim(), startMillis, endMillis, color, order)
+        return id
+    }
+
+    /** Like the Room repository, an update of a deleted task restores it. */
     override suspend fun updateTask(task: SchedulerTask) {
         updates += task
-        tasks.value = tasks.value.map { if (it.id == task.id) task else it }
+        tasks.value = if (tasks.value.any { it.id == task.id }) {
+            tasks.value.map { if (it.id == task.id) task else it }
+        } else {
+            tasks.value + task
+        }
+    }
+
+    override suspend fun deleteTask(taskId: String) {
+        tasks.value = tasks.value.filterNot { it.id == taskId }
     }
 
     override suspend fun seedSampleIfFirstLaunch() = Unit

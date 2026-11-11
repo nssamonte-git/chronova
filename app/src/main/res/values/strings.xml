@@ -10,6 +10,20 @@
     <string name="problem_blank_name">Give the project a name.</string>
     <string name="problem_end_before_start">The project can’t end before it starts.</string>
     <string name="project_delete_body_empty">The project will be deleted.</string>
+    <string name="task_new">New task</string>
+    <string name="task_edit">Edit task</string>
+    <string name="task_add">Add task</string>
+    <string name="task_title">Task title</string>
+    <string name="task_starts">Starts</string>
+    <string name="task_ends">Ends</string>
+    <string name="task_deleted">Task deleted</string>
+    <string name="task_edit_selected">Edit selected task</string>
+    <string name="tasks_empty">No tasks yet. Tap Add task to schedule one.</string>
+    <string name="task_problem_blank_title">Give the task a title.</string>
+    <string name="task_problem_end_not_after_start">The task must end after it starts.</string>
+    <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>
+    <string name="undo">Undo</string>
+    <string name="add">Add</string>
     <string name="create">Create</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
@@ -35,5 +49,9 @@
     <plurals name="problem_too_long">
         <item quantity="one">A project can span at most %d day.</item>
         <item quantity="other">A project can span at most %d days.</item>
+    </plurals>
+    <plurals name="task_problem_too_short">
+        <item quantity="one">A task must last at least %d minute.</item>
+        <item quantity="other">A task must last at least %d minutes.</item>
     </plurals>
 </resources>

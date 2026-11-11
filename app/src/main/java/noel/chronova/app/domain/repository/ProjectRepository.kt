@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.domain.model.TaskColor
 
 /**
  * Local source of truth for projects and their tasks. Every write is local first;
@@ -30,7 +31,20 @@ interface ProjectRepository {
     /** Deletes the project and its tasks (as tombstones until synced). */
     suspend fun deleteProject(projectId: String)
 
+    /** Creates a task in the project's last row and returns its new id. */
+    suspend fun createTask(
+        projectId: String,
+        title: String,
+        startMillis: Long,
+        endMillis: Long,
+        color: TaskColor,
+    ): String
+
+    /** Saves an edited task; also restores a deleted one (undo). */
     suspend fun updateTask(task: SchedulerTask)
+
+    /** Deletes the task (as a tombstone until synced). */
+    suspend fun deleteTask(taskId: String)
 
     /** Inserts the sample project the first time the app runs; no-op afterwards. */
     suspend fun seedSampleIfFirstLaunch()

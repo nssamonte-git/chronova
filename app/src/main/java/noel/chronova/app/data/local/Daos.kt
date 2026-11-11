@@ -39,6 +39,13 @@ interface TaskDao {
     @Query("UPDATE tasks SET deleted = 1, dirty = 1, updated_at = :now WHERE project_id = :projectId AND deleted = 0")
     suspend fun markDeletedInProject(projectId: String, now: Long)
 
+    /** Highest row position ever used in the project, including deleted rows (so undo keeps its row). */
+    @Query("SELECT MAX(sort_order) FROM tasks WHERE project_id = :projectId")
+    suspend fun maxSortOrder(projectId: String): Int?
+
+    @Query("UPDATE tasks SET deleted = 1, dirty = 1, updated_at = :now WHERE id = :id")
+    suspend fun markDeleted(id: String, now: Long)
+
     @Upsert
     suspend fun upsert(task: TaskEntity)
 

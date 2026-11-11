@@ -1,5 +1,6 @@
 package noel.chronova.app.presentation.timeline
 
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,6 +11,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import noel.chronova.app.domain.SampleTasks
+import noel.chronova.app.domain.TaskProblem
+import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
 import org.junit.After
@@ -23,6 +26,9 @@ import org.junit.Test
 class ProjectTimelineViewModelTest {
 
     private val zone = ZoneOffset.UTC
+
+    /** Outside the sample project's dates unless a test changes it. */
+    private var today: LocalDate = LocalDate.of(2026, 11, 11)
     private lateinit var repository: FakeProjectRepository
     private lateinit var viewModel: ProjectTimelineViewModel
 
@@ -33,7 +39,7 @@ class ProjectTimelineViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone)
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone, today = { today })
     }
 
     @After
@@ -126,5 +132,91 @@ class ProjectTimelineViewModelTest {
         assertEquals(TimelineConfig(snapMinutes = 60, rowHeightDp = 72f), state().config)
         assertEquals(before, state().tasks)
         assertTrue(repository.updates.isEmpty())
+    }
+
+    @Test
+    fun addTask_defaultsToNineOnTheFirstDayWhenTodayIsOutsideTheProject() = runTest {
+        timeline()
+        viewModel.startAddTask()
+        val editor = viewModel.taskEditor.value!!
+        assertTrue(editor.isNew)
+        assertEquals(at(9), editor.startMillis)
+        assertEquals(at(10), editor.endMillis)
+    }
+
+    @Test
+    fun addTask_defaultsToTodayWhenTodayIsInsideTheProject() = runTest {
+        today = SampleTasks.REFERENCE_DATE.plusDays(1)
+        timeline()
+        viewModel.startAddTask()
+        assertEquals(at(9) + 24 * 60 * 60_000L, viewModel.taskEditor.value!!.startMillis)
+    }
+
+    @Test
+    fun addTask_savesInTheLastRowAndSelectsIt() = runTest {
+        val state = timeline()
+        viewModel.startAddTask()
+        viewModel.onTaskTitleChange("  Launch ")
+        viewModel.onTaskColorChange(TaskColor.GREEN)
+        viewModel.saveTask()
+
+        val added = state().tasks.last()
+        assertEquals("Launch", added.title)
+        assertEquals(TaskColor.GREEN, added.color)
+        assertEquals(4, added.sortOrder)
+        assertEquals(added.id, state().selectedTaskId)
+        assertNull(viewModel.taskEditor.value)
+    }
+
+    @Test
+    fun movingTheStartKeepsTheDuration() = runTest {
+        timeline()
+        viewModel.startEditTask("implementation") // 11:00-14:00
+        viewModel.onTaskStartChange(at(12))
+        assertEquals(at(15), viewModel.taskEditor.value!!.endMillis)
+    }
+
+    @Test
+    fun invalidTaskKeepsTheEditorOpen() = runTest {
+        timeline()
+        viewModel.startEditTask("review")
+        viewModel.onTaskEndChange(at(16, 10))
+        viewModel.saveTask()
+        assertEquals(TaskProblem.TooShort(15), viewModel.taskEditor.value?.problem)
+        assertTrue(repository.updates.isEmpty())
+
+        viewModel.onTaskEndChange(at(0) + 4 * 24 * 60 * 60_000L) // past the project end
+        viewModel.saveTask()
+        assertEquals(TaskProblem.OutsideProject, viewModel.taskEditor.value?.problem)
+    }
+
+    @Test
+    fun editTask_savesTitleTimesAndColour() = runTest {
+        val state = timeline()
+        viewModel.startEditTask("review")
+        viewModel.onTaskTitleChange("Final review")
+        viewModel.onTaskEndChange(at(18))
+        viewModel.onTaskColorChange(TaskColor.PURPLE)
+        viewModel.saveTask()
+        val review = state().tasks.single { it.id == "review" }
+        assertEquals("Final review", review.title)
+        assertEquals(at(16), review.startMillis)
+        assertEquals(at(18), review.endMillis)
+        assertEquals(TaskColor.PURPLE, review.color)
+        assertEquals(3, review.sortOrder)
+    }
+
+    @Test
+    fun deleteThenUndoRestoresTheTask() = runTest {
+        val state = timeline()
+        val before = state().tasks
+        viewModel.startEditTask("qa-testing")
+        viewModel.deleteEditingTask()
+        assertEquals(listOf("ui-design", "implementation", "review"), state().tasks.map { it.id })
+        assertEquals("qa-testing", viewModel.deletedTask.value?.id)
+
+        viewModel.undoDelete()
+        assertEquals(before, state().tasks)
+        assertNull(viewModel.deletedTask.value)
     }
 }

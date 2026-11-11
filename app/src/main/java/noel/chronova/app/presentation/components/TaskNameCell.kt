@@ -1,6 +1,7 @@
 package noel.chronova.app.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,24 +14,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import noel.chronova.app.R
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.ui.theme.toColor
 
-/** The fixed left cell of a timeline row: colour dot, title and time range. */
+/** The fixed left cell of a timeline row: colour dot, title and time range. Tapping it edits the task. */
 @Composable
 fun TaskNameCell(
     task: SchedulerTask,
     zone: ZoneId,
     rowHeight: Dp,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier) {
+    Box(modifier.clickable(onClickLabel = stringResource(R.string.task_edit), onClick = onClick)) {
         Row(
             modifier = Modifier
                 .align(Alignment.CenterStart)

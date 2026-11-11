@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,10 +35,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import noel.chronova.app.R
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.TimeFormat
@@ -63,7 +66,9 @@ fun SchedulerTimeline(
     state: TimelineUiState,
     onSelectTask: (String?) -> Unit,
     onCommitEdit: (SchedulerTask) -> Unit,
+    onEditTask: (String) -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
     val config = state.config
     val window = state.window
@@ -136,7 +141,18 @@ fun SchedulerTimeline(
                             .fillMaxHeight()
                             .columnDivider(colors.outlineVariant),
                     )
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                    if (state.tasks.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.tasks_empty),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(start = NameColumnWidth)
+                                .padding(24.dp),
+                        )
+                    }
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
                         items(state.tasks, key = { it.id }) { task ->
                             Row(
                                 Modifier
@@ -148,6 +164,7 @@ fun SchedulerTimeline(
                                     task = task,
                                     zone = state.zone,
                                     rowHeight = rowHeight,
+                                    onClick = { onEditTask(task.id) },
                                     modifier = Modifier
                                         .width(NameColumnWidth)
                                         .fillMaxHeight(),

@@ -13,6 +13,7 @@ import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.repository.ProjectRepository
 
 /**
@@ -57,8 +58,32 @@ class RoomProjectRepository(
         }
     }
 
-    override suspend fun updateTask(task: SchedulerTask) {
+    override suspend fun createTask(
+        projectId: String,
+        title: String,
+        startMillis: Long,
+        endMillis: Long,
+        color: TaskColor,
+    ): String = db.withTransaction {
+        val task = SchedulerTask(
+            id = newId(),
+            projectId = projectId,
+            title = title.trim(),
+            startMillis = startMillis,
+            endMillis = endMillis,
+            color = color,
+            sortOrder = (db.taskDao().maxSortOrder(projectId) ?: -1) + 1,
+        )
         db.taskDao().upsert(task.toEntity(clock()))
+        task.id
+    }
+
+    override suspend fun updateTask(task: SchedulerTask) {
+        db.taskDao().upsert(task.copy(title = task.title.trim()).toEntity(clock()))
+    }
+
+    override suspend fun deleteTask(taskId: String) {
+        db.taskDao().markDeleted(taskId, clock())
     }
 
     override suspend fun seedSampleIfFirstLaunch() {
