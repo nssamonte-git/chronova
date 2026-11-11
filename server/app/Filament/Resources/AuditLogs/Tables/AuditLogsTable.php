@@ -14,7 +14,7 @@ class AuditLogsTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('created_at')->label('When')->dateTime()->sortable(),
+                TextColumn::make('created_at')->label('When (UTC)')->dateTime()->sortable(),
                 TextColumn::make('staff.name')->label('Staff')->placeholder('(removed)')->searchable(),
                 TextColumn::make('action')->badge()->searchable(),
                 TextColumn::make('subject_user_id')->label('User')->placeholder('—')->copyable()->searchable(),

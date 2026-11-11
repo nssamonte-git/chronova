@@ -11,15 +11,6 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
-/** A staff member who has already enrolled an authenticator app. */
-function staffMember(string $role = Staff::ROLE_SUPPORT, array $attributes = []): Staff
-{
-    $staff = Staff::factory()->create(['role' => $role] + $attributes);
-    $staff->saveAppAuthenticationSecret('JBSWY3DPEHPK3PXP');
-
-    return $staff->fresh();
-}
-
 beforeEach(fn () => Filament::setCurrentPanel('admin'));
 
 describe('panel access', function () {
