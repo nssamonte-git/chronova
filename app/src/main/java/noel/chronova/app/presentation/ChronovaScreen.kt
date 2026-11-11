@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.ZoneOffset
 import noel.chronova.app.R
+import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.components.SchedulerTimeline
 import noel.chronova.app.ui.theme.ChronovaTheme
 
@@ -27,11 +28,21 @@ fun ChronovaScreen(
     viewModel: ChronovaViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ChronovaContent(state = state, modifier = modifier)
+    ChronovaContent(
+        state = state,
+        onSelectTask = viewModel::selectTask,
+        onCommitEdit = viewModel::commitEdit,
+        modifier = modifier,
+    )
 }
 
 @Composable
-private fun ChronovaContent(state: ChronovaUiState, modifier: Modifier = Modifier) {
+private fun ChronovaContent(
+    state: ChronovaUiState,
+    onSelectTask: (String?) -> Unit,
+    onCommitEdit: (SchedulerTask) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = { ChronovaTopBar() },
@@ -39,6 +50,8 @@ private fun ChronovaContent(state: ChronovaUiState, modifier: Modifier = Modifie
     ) { innerPadding ->
         SchedulerTimeline(
             state = state,
+            onSelectTask = onSelectTask,
+            onCommitEdit = onCommitEdit,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -70,5 +83,9 @@ private fun ChronovaTopBar() {
 @Preview(showBackground = true)
 @Composable
 private fun ChronovaContentPreview() {
-    ChronovaTheme { ChronovaContent(state = ChronovaUiState.sample(ZoneOffset.UTC)) }
+    ChronovaTheme { ChronovaContent(
+            state = ChronovaUiState.sample(ZoneOffset.UTC),
+            onSelectTask = {},
+            onCommitEdit = {},
+        ) }
 }

@@ -2,6 +2,7 @@ package noel.chronova.app.presentation.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -34,21 +34,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import noel.chronova.app.core.timeline.TimelineMath
+import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.ChronovaUiState
 import noel.chronova.app.presentation.TimeFormat
-import noel.chronova.app.ui.theme.toColor
 
 private val NameColumnWidth = 128.dp
 private val HeaderHeight = 44.dp
-private val MinBarWidth = 4.dp
 
 /**
  * The scheduler: fixed task-name column, time header, grid and task bars.
@@ -60,6 +59,8 @@ private val MinBarWidth = 4.dp
 @Composable
 fun SchedulerTimeline(
     state: ChronovaUiState,
+    onSelectTask: (String?) -> Unit,
+    onCommitEdit: (SchedulerTask) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val config = state.config
@@ -125,7 +126,13 @@ fun SchedulerTimeline(
                             .weight(1f)
                             .horizontalScroll(horizontalScroll),
                     ) {
-                        Box(Modifier.width(totalWidth).heightIn(min = bodyMinHeight)) {
+                        Box(
+                            Modifier
+                                .width(totalWidth)
+                                .heightIn(min = bodyMinHeight)
+                                // Taps on empty timeline space clear the selection; bars consume their own taps.
+                                .pointerInput(Unit) { detectTapGestures { onSelectTask(null) } },
+                        ) {
                             TimelineGrid(
                                 ticks = ticks,
                                 pxPerMinute = pxPerMinute,
@@ -136,20 +143,17 @@ fun SchedulerTimeline(
                             Column {
                                 state.tasks.forEach { task ->
                                     key(task.id) {
-                                        val x = TimelineMath.timeToX(task.startMillis, window.startMillis, pxPerMinute)
-                                        val width = with(density) {
-                                            TimelineMath.durationToWidth(task.durationMillis, pxPerMinute).toDp()
-                                        }.coerceAtLeast(MinBarWidth)
-                                        Box(Modifier.fillMaxWidth().height(rowHeight)) {
-                                            TaskBar(
-                                                title = task.title,
-                                                color = task.color.toColor(),
-                                                // Layout-phase offset: moving a bar won't re-measure siblings.
-                                                modifier = Modifier
-                                                    .offset { IntOffset(x.roundToInt(), 0) }
-                                                    .width(width),
-                                            )
-                                        }
+                                        TaskRow(
+                                            task = task,
+                                            selected = task.id == state.selectedTaskId,
+                                            window = window,
+                                            zone = state.zone,
+                                            pxPerMinute = pxPerMinute,
+                                            snapMinutes = config.snapMinutes,
+                                            rowHeight = rowHeight,
+                                            onSelect = onSelectTask,
+                                            onCommit = onCommitEdit,
+                                        )
                                     }
                                 }
                             }

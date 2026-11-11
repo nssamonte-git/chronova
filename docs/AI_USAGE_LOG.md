@@ -79,3 +79,15 @@ Corrections to the original prompt, found by inspecting the actual project:
 - `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed**.
 - On device: a slow header swipe moved header and body together (08:00 → 10:00 view); 12 fast flings reached the end of the range (22:00–23:00, Wed 4 Mar) and 14 back returned to Mon 2 Mar 00:00, with labels aligned to grid lines throughout; rotating to landscape (after enabling auto-rotate on the phone) kept the scroll position, tasks and day label; vertical scroll in landscape moved names and rows together.
 - No AI mistakes recorded in this batch. Observation for B7: in landscape on a 360 dp-tall phone the top app bar takes a large share of the height.
+
+### B5 — Selection and drag-to-move with snapping
+
+- `detectTaskGestures` (one handler per bar: tap vs horizontal drag, mode chosen at pointer-down, total distance from the down position reported on every move), `TaskRow` (local preview from the gesture-start task, `TaskEdits.apply`, commit on release, revert on cancel, haptic tick when the snapped time changes, `pointerInput` keyed on task id with `rememberUpdatedState`), `TaskBar` selected/active states, tap-on-empty-space to deselect.
+- `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 30 tests, 0 failed** (after fixing a brace error from a scripted edit; compile error, caught by the build).
+- On device (15-min snap): tap outlines UI Design; mid-drag the bar is raised and shows the snapped live range "09:30 – 11:30"; +150 px (≈ +47 min) committed 09:45–11:45 and −200 px (≈ −62.5 min) committed 08:45–10:45, exactly as predicted by the engine; the header stayed at 08:00 during both drags (no accidental scroll); a swipe over empty row space scrolled the timeline without moving bars; tapping empty space cleared the selection.
+- Not verified on device: haptic tick (not observable via screenshots), gesture-cancel path, 30/60-min snapping (no UI to change it until B7; covered by unit tests).
+
+**AI mistakes caught during implementation (before running):**
+- *Drag lag:* the first draft of the detector started the total distance from the over-slop amount, so the bar would trail the finger by the touch slop (~8 dp). Changed to measure from the pointer-down position.
+- *One-frame flicker:* the first draft cleared the preview on release, before the committed task arrived from the `StateFlow`, which would snap the bar back to its old position for a frame. The preview is now kept until the new task arrives (`LaunchedEffect(task)`).
+Both were found by reviewing the generated code against the gesture design, not by observing the bug on device.
