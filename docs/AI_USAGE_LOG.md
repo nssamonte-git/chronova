@@ -544,3 +544,16 @@ The brief (`chronova_ai_voice_integration.md`) asks for voice-driven schedule ed
 - Tests: server **219 passed** (5 new: cleaned terms sent to Scribe, none sent when absent or switched off, 3 validations); app **195 passed** (the upload test now checks the `keyterms[]` parts; the ViewModel test that the project's titles go along). Lint 0 errors.
 - **Not checked on the phone:** the app → server field format is covered by the HTTP test and the server side by the live check (same field name), but I didn't repeat the speaker-to-phone test.
 - Docs: `docs/voice-api.md` (field, privacy, setting, measured effect, release checklist now names task titles for ElevenLabs too), README, `.env.example`.
+
+## Branding: the Chronova logo in the app and the admin panel
+
+Your logo image is used as is (your choice over a vector redraw): it is processed into every icon and logo, not traced. The admin panel becomes dark-only in the logo's colours.
+
+### B1 — Brand assets from the image
+
+- Source kept at `docs/brand/chronova-logo.webp` (1254 × 1254). `tools/brand/generate.py` (Pillow, a dev tool, ~3 s) rebuilds every output from it.
+- Measured from the image: the rounded square spans pixels 9–1244 with a ~340 px corner radius; navy `#010f37` (art edge `#021037`); cyan `#00f9fb`, teal `#02fde1`, blue `#02a8fd` / `#0d6cf0`, purple `#a83cfb`.
+- The white surround is removed by scanning each row and column for the edge and un-mixing the anti-aliased pixels from white; the last 3 px of rim are painted navy, because a faint light outline still showed on dark backgrounds.
+- Android adaptive icon: one 432 px layer (108 dp) with the full-bleed art scaled to 62% and feathered into the art's own edge colour. My first scale (68%) put the hourglass's corners about 36.6 dp from the centre — outside the 33 dp safe radius, so round masks would clip them. A wide feather (14%) then dimmed the outline; the final feather is 5%, inside the margin. Previewed under circle and squircle masks at full size and 96 px.
+- Themed icon (Android 13+): a brightness mask of the glyph; the glow arcs were removed by raising the threshold, an opening (erode/dilate) and dropping blobs under 1% of the area.
+- Also: the launch-screen icon (864 px), legacy `mipmap-*` icons (square and round), and for the admin panel the logo (256 px), favicon (32 px and `.ico` 16/32/48) and apple-touch icon (180 px, full bleed). Every output was inspected on a contact sheet next to the original.
