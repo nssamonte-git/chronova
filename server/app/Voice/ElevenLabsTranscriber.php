@@ -56,7 +56,7 @@ final class ElevenLabsTranscriber implements Transcriber
 
         return new Transcription(
             trim($json['text']),
-            is_string($json['language_code'] ?? null) ? $json['language_code'] : null,
+            LanguageCode::normalize(is_string($json['language_code'] ?? null) ? $json['language_code'] : null),
             is_numeric($seconds) ? (int) round($seconds * 1000) : null,
         );
     }

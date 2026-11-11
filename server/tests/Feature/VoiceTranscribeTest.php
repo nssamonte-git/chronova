@@ -74,6 +74,13 @@ it('sends the recording to ElevenLabs Scribe with the key only in a header', fun
     expect(VoiceEvent::sole()->audio_ms)->toBe(2350);
 });
 
+it('reports languages as two-letter codes, as text to speech needs them', function () {
+    useElevenLabs();
+    Http::fake(['api.elevenlabs.io/*' => Http::response(['language_code' => 'eng'] + scribeAnswer())]);
+
+    transcribe()->assertOk()->assertJson(['language' => 'en']);
+});
+
 it('detects the language when the app gives none, and asks for zero retention only when enabled', function () {
     useElevenLabs(['voice.elevenlabs.zero_retention' => true]);
     Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);

@@ -15,25 +15,6 @@ beforeEach(function () {
     Sanctum::actingAs($this->user, ['sync']);
 });
 
-function voiceContext(array $overrides = []): array
-{
-    return array_merge([
-        'projectId' => 'p1',
-        'projectName' => 'Launch',
-        'startDate' => '2026-11-12',
-        'endDate' => '2026-11-18',
-        'timeZone' => 'America/Los_Angeles',
-        'today' => '2026-11-12',
-        'now' => '2026-11-12T10:15',
-        'revision' => 'r17',
-        'tasks' => [
-            ['id' => 't1', 'title' => 'Design', 'start' => '2026-11-12T09:00', 'end' => '2026-11-12T11:00', 'predecessorIds' => []],
-            ['id' => 't2', 'title' => 'Build', 'start' => '2026-11-12T11:00', 'end' => '2026-11-13T17:00', 'predecessorIds' => ['t1']],
-            ['id' => 't3', 'title' => 'Review', 'start' => '2026-11-16T09:00', 'end' => '2026-11-16T10:00', 'predecessorIds' => ['t2']],
-        ],
-    ], $overrides);
-}
-
 function interpret(string $transcript, array $context = []): TestResponse
 {
     return test()->postJson('/v1/voice/interpret', ['transcript' => $transcript, 'context' => voiceContext($context)]);

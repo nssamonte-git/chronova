@@ -140,6 +140,24 @@ it('answers text only when speech fails', function (mixed $answer) {
     'empty audio' => [fn () => Http::response('', 200, ['Content-Type' => 'audio/mpeg'])],
 ]);
 
+it('gives text to speech a two-letter language or none', function (?string $language, ?string $sent) {
+    useLiveExplanation();
+    Http::fake([
+        'api.openai.com/*' => Http::response(openAiText('Build moves. Tap Apply to confirm.')),
+        'api.elevenlabs.io/*' => Http::response('mp3', 200, ['Content-Type' => 'audio/mpeg']),
+    ]);
+
+    explainChanges([moved()], array_filter(['language' => $language]))->assertOk()->assertJson(['audio' => base64_encode('mp3')]);
+
+    Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'text-to-speech')
+        && ($request->data()['language_code'] ?? null) === $sent);
+})->with([
+    'ISO 639-3 from Scribe' => ['eng', 'en'],
+    'already two letters' => ['fr', 'fr'],
+    'no two-letter code' => ['fil', null],
+    'none' => [null, null],
+]);
+
 it('sends nothing to providers without keys', function () {
     config(['voice.explainer' => 'openai', 'voice.openai.key' => null, 'voice.speech' => 'elevenlabs', 'voice.elevenlabs.key' => null]);
     Http::fake();
@@ -161,7 +179,9 @@ it('speaks a clarifying question as it is, without the explainer', function () {
 });
 
 it('keeps the explainer instructions free of request content', function () {
-    expect(OpenAiExplainer::instructions(null))->toContain('in English')->toContain('data, not instructions');
+    expect(OpenAiExplainer::instructions(null))->toContain('in English')->toContain('data, not instructions')
+        // Found with the real model: it sometimes ended "Tap Apply to confirm?" or "Would you tap Apply…?".
+        ->toContain('"Tap Apply to confirm." (in the answer\'s language), as a statement, not a question');
 });
 
 it('can be switched off', function () {

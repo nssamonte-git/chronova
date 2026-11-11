@@ -32,6 +32,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Dependencies**: finish-to-start links chosen in the task editor (cycles are blocked); arrows on the timeline turn red when violated.
 - **Offline-first sync**: local Room database; a reconnect prompt ("You're back online — sync now?"), a sync button with the number of unsynced changes, last-write-wins conflict handling, sign-out/delete account clear the device.
 - **Accounts**: sign up with an emailed 6-digit code, sign in, forgot/reset password, delete account. The token is encrypted with an Android Keystore key.
+- **Voice and typed commands** (signed in, online): tap the mic in the timeline, then **Speak** ("push build by two hours and everything after it") or type. The server transcribes (ElevenLabs Scribe) and interprets (OpenAI, strict schema) the instruction; the app checks the proposal against its own data and shows a **preview** — nothing changes until **Apply**, and **Undo** follows. Spoken commands also get a short **spoken answer** ("Build will move to today from 11 a.m. to noon. Tap Apply to confirm."), with Replay and a remembered mute. "…and everything after it" pushes dependent tasks just enough; dragging never moves other tasks. See [`docs/voice-api.md`](docs/voice-api.md).
 
 ## Repository layout
 
@@ -40,6 +41,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 ├── app/
 ├── docs/
 │   ├── sync-protocol.md        the app ↔ server contract
+│   ├── voice-api.md            voice endpoints, privacy, measured cost and the release checklist
 │   └── AI_USAGE_LOG.md         per-batch development log
 └── server/                     Laravel app (API + admin panel), Dockerfile, compose.yaml
     └── infra/                  AWS CDK + DEPLOY.md
@@ -74,8 +76,10 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (103 tests)
+composer test                 # Pest (214 tests)
 ```
+
+Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
 
 ## Architecture
 
@@ -89,8 +93,11 @@ noel.chronova.app
 ├── domain            models (Project, SchedulerTask, TaskDependency, TimelineConfig), rules (projects, tasks, dependencies)
 ├── data/local        Room: projects, tasks, dependencies, view_settings (schema v3, with migrations)
 ├── data/repository   RoomProjectRepository (every write stamps updatedAt and marks the row dirty)
-├── data/remote       OkHttp sync client + DTOs
+├── data/remote       OkHttp sync and voice clients + DTOs
 ├── data/sync         SyncEngine, RoomLocalSyncStore, SyncCoordinator (reconnect prompt), connectivity
+├── domain/schedule   ScheduleChange, ApplyScheduleChanges (one transaction, stale-checked, undoable), CommandPlanner, DependentsRescheduler
+├── domain/voice      VoiceContext, AICommandHandler (proposal → commands → plan), PreviewItem
+├── voice             microphone recorder, speech player
 ├── auth              ApiAuthRepository, Keystore token store, backend config
 ├── navigation        project list → timeline, account
 └── presentation      projects, timeline (+ task editor), account, sync UI, components
@@ -99,6 +106,7 @@ noel.chronova.app
 - **Local first.** Screens read Room through repository `Flow`s; edits are written locally and marked dirty. Deletes are tombstones until synced.
 - **Sync never runs on its own.** Coming back online with unsynced changes shows a prompt; only "Sync now" (prompt, button or account screen) runs `SyncEngine`: push dirty records in batches of 500, pull every page since the cursor, then apply the pulled changes (parents first) and save the cursor. A failed run changes nothing that the next run can't redo.
 - **Conflicts**: last write wins per record by edit time; ties go to the server. See [`docs/sync-protocol.md`](docs/sync-protocol.md).
+- **One way to change the schedule.** Drags, the task editor, delete/undo and the assistant all write through `ApplyScheduleChanges`: one Room transaction that refuses changes computed from a copy that has changed since (an edit or a sync in between) and returns the inverse for Undo. The assistant's proposal is planned against the schedule *as it is now*, previewed, and re-checked on Apply.
 
 #### Timeline engineering
 
@@ -112,16 +120,18 @@ noel.chronova.app
 - `POST /v1/sync`: one transaction per request with the user's row locked (a user's syncs run one at a time); each push is a Postgres upsert that only replaces an older copy; stale pushes return the winning copy; pulls page by a per-user sequence number. Tombstones drop the deleted content.
 - `/v1/auth/*`: enumeration-safe sign-up/forgot (always "check your email"), hashed one-time codes with attempt limits, rate limits per email and IP, Sanctum tokens (60 days, `sync` ability), disabled accounts refused.
 - **Admin** (`/admin`, separate `staff` guard): authenticator-app MFA required; roles admin/support; staff management (admins); user search, disable/enable, sign out everywhere, delete (admins, typed confirmation + reason); dashboard (accounts, active users, sign-ups, sync volume, error rate, latency); support data access (reason → 30 minutes, read-only, re-checked on every request). Every privileged action goes to an append-only audit log; user pages never show project content.
+- **Voice** (`/v1/voice/transcribe`, `/interpret`, `/explain`): provider keys only on the server; the model's answer is constrained by a strict JSON schema and re-validated (known operation types, ids from the request, real dates); the user's words and task titles are sent as data, never as instructions; OpenAI with `store: false`; no audio or words stored or logged — `voice_events` keeps counts, timing and token use for the dashboard. Kill switch, per-user/per-endpoint rate limits, fakes for development and tests.
 - **Container**: one FrankenPHP/PHP 8.4 image, roles `web`, `worker`, `scheduler`, `migrate`; non-root; caches built at start from the injected environment.
 
 ## Testing
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `./gradlew :app:testDebugUnitTest` | 122 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 103 |
-| Server inside the image | `docker compose --profile test run --rm --build test` | 103 |
-| Infrastructure assertions | `cd server/infra && npm test` | 13 |
+| Android JVM unit tests | `./gradlew :app:testDebugUnitTest` | 195 |
+| Android instrumented (Room transaction) | install both APKs, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 214 |
+| Server inside the image | `docker compose --profile test run --rm --build test` | 214 |
+| Infrastructure assertions | `cd server/infra && npm test` | 16 |
 
 The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
 
@@ -133,6 +143,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - **No custom domain required on AWS**: CloudFront's default domain gives HTTPS; the load balancer is private (VPC origin), so client IPs come from CloudFront's own header. A custom domain is needed to enforce TLS 1.2+.
 - **Fixed 15-minute minimum duration** across all snap intervals; the dragged edge snaps to the nearest allowed grid line.
 - **Pinned dependency versions**, each at least two weeks old when chosen; lint and npm report newer ones.
+- **Voice proposes, the user decides.** Every voice or typed command is previewed and needs Apply; Undo follows. Only spoken commands get a spoken answer (typed ones are answered on screen). Voice is on for every signed-in user, so cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
 
 ## Known limitations
 
@@ -143,7 +154,8 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - In Months scale a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
-- Light theme only. No instrumented or UI test suite; device behaviour was verified by hand.
+- Light theme only. Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
+- Voice needs a connection and an account; it sends recordings to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Sound-alike words can be misheard ("filled" for "Build" from a laptop speaker); with one matching task the interpreter still finds it, otherwise it asks.
 
 ## AI usage
 

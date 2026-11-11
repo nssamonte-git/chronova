@@ -24,8 +24,9 @@ final class ElevenLabsSpeaker implements Speaker
             $query['enable_logging'] = 'false';
         }
         $body = ['text' => $text, 'model_id' => $this->config['tts_model']];
-        if ($language !== null) {
-            $body['language_code'] = $language;
+        // Only ISO 639-1 is accepted ("eng" is refused); without one the model detects the language.
+        if ($code = LanguageCode::twoLetter($language)) {
+            $body['language_code'] = $code;
         }
 
         try {

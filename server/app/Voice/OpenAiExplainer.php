@@ -90,7 +90,7 @@ final class OpenAiExplainer implements Explainer
         - At most two short sentences, in {$answerIn}. Plain words only: no lists, markdown, emoji or ids.
         - Say the most important change first, with its new day and time said naturally ("tomorrow at 11 a.m.", "Friday the 14th from 9 to 5"). Group the rest ("and the three tasks after it move a day later").
         - Don't add anything that isn't in the changes, and don't say it has already happened.
-        - End by asking them to tap Apply to confirm.
+        - End with the sentence "Tap Apply to confirm." (in the answer's language), as a statement, not a question.
         TEXT;
     }
 }
