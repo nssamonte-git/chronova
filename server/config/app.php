@@ -55,6 +55,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Running behind CloudFront (AWS): client IP from CloudFront-Viewer-Address and
+    | https URLs (CloudFront reaches the private load balancer over plain HTTP).
+    */
+    'behind_cloudfront' => (bool) env('BEHIND_CLOUDFRONT', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

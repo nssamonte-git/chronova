@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.behind_cloudfront')) {
+            URL::forceScheme('https');
+        }
+
         // Sign-up, sign-in and code endpoints: per email+IP, and per IP overall.
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)->by('auth-email:'.mb_strtolower((string) $request->input('email')).'|'.$request->ip()),

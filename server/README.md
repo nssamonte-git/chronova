@@ -31,3 +31,7 @@ docker compose --profile test run --rm --build test # the test suite inside the 
 ```
 
 Behind a load balancer set `TRUSTED_PROXIES` (comma-separated addresses/ranges) so client IPs and HTTPS are detected; unset trusts no proxy.
+
+## Deploying to AWS
+
+See [`infra/DEPLOY.md`](infra/DEPLOY.md): CDK stack (CloudFront → private ALB → ECS Fargate, RDS Postgres, SES), costs, first deploy, migrations, first admin, rollback.

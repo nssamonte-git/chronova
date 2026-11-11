@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\UseCloudFrontViewerAddress;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         }
         // API clients are never redirected to a login page: unauthenticated /v1 calls get a 401.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('v1/*') ? null : '/');
+        $middleware->prepend(UseCloudFrontViewerAddress::class);
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'active' => EnsureUserIsActive::class,
