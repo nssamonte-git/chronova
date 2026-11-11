@@ -58,7 +58,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── voice-api.md              voice endpoints, privacy, measured cost and the release checklist
 │   ├── brand/                    the logo as supplied
 │   ├── AI_USAGE_LOG.md           per-batch development log
-│   └── AI_USAGE_WRITEUP.md       summary written for the original take-home
+│   └── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it
 └── tools/brand/                  icon and logo generator (writes into both the app and the server)
 ```
 
@@ -179,4 +179,4 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 
 ## AI usage
 
-Built with Claude Code. [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) is the summary written for the original take-home.
+Built with Claude Code. [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
