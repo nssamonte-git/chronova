@@ -85,10 +85,40 @@ Operations (every field is always present):
 
 The server checks that every id is in the request's `tasks`, dates are real, amounts are sane and the shape is exact; otherwise the whole proposal is rejected. The app then plans the operations against its current data (`CommandPlanner`) and rejects anything stale or invalid before showing the preview.
 
+## `POST /v1/voice/explain`
+
+Says what a preview will change, so the user hears it before tapping Apply — or speaks a clarifying question. Send either `changes` (with `today`) or `question`:
+
+```json
+{
+  "today": "2026-11-12",
+  "language": "en",
+  "changes": [
+    { "change": "moved", "task": "Build", "fromStart": "2026-11-12T09:00", "fromEnd": "2026-11-12T10:00", "toStart": "2026-11-12T11:00", "toEnd": "2026-11-12T12:00" }
+  ]
+}
+```
+
+| `change` | Fields (exactly these) |
+|---|---|
+| `moved` | `task`, `fromStart`, `fromEnd`, `toStart`, `toEnd` |
+| `renamed` | `task`, `title` (the new one) |
+| `added` | `task`, `toStart`, `toEnd` |
+| `removed` | `task` |
+| `linked` / `unlinked` | `predecessor`, `successor` |
+
+Titles ≤ 200 characters, ≤ 100 changes, local date-times as in `/interpret`. `question` ≤ 300 characters. `language` (optional) is the language to answer in — the one `/transcribe` detected.
+
+Response (200): `{"text": "Build moves to 11 a.m. today. Tap Apply to confirm.", "audio": "<base64>", "audioType": "audio/mpeg"}`.
+
+- The words are written by the explainer (at most two sentences, ≤ 400 characters, checked); if it fails, a plain English summary is used instead. A question is spoken as it is.
+- `audio` and `audioType` are null when speech failed; the text is still returned. The endpoint never fails because a provider did — only for the kill switch, validation, auth and rate limits.
+
 ## Privacy
 
 - The recording goes to the transcriber (ElevenLabs Scribe) and is not stored by the server. ElevenLabs keeps request logs unless `VOICE_ELEVENLABS_ZERO_RETENTION=true` (`enable_logging=false`), which needs an enterprise plan.
 - The words and the schedule context are sent to the interpreter (OpenAI, `store: false`) and are never stored or logged by the server.
+- For explanations, the changed tasks' titles and times go to OpenAI (`store: false`) and the resulting sentence to ElevenLabs text to speech.
 - `voice_events` keeps only kind, status, outcome, duration, audio length, transcript length and token counts, for the admin dashboard.
 
 ## Configuration
@@ -99,6 +129,11 @@ The server checks that every id is in the request's `tasks`, dates are real, amo
 | `VOICE_INTERPRETER` | `fake` | `openai`, or `fake` (rule-based, no network) for development and tests |
 | `VOICE_TRANSCRIBER` | `fake` | `elevenlabs`, or `fake` (always hears `VOICE_FAKE_TRANSCRIPT`) |
 | `VOICE_FAKE_TRANSCRIPT` | `push design by 2 hours` | Development only |
+| `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
+| `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |
+| `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_flash_v2_5` | |
+| `VOICE_ELEVENLABS_VOICE_ID` | `JBFqnCBsd6RMkjVDRZzb` | A premade voice; pick one in V9 |
+| `VOICE_ELEVENLABS_OUTPUT_FORMAT` | `mp3_22050_32` | |
 | `OPENAI_API_KEY` | — | Secret |
 | `ELEVENLABS_API_KEY` | — | Secret |
 | `VOICE_ELEVENLABS_STT_MODEL` | `scribe_v2` | |

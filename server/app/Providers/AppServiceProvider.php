@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Voice\ElevenLabsSpeaker;
 use App\Voice\ElevenLabsTranscriber;
+use App\Voice\Explainer;
+use App\Voice\FakeExplainer;
 use App\Voice\FakeInterpreter;
+use App\Voice\FakeSpeaker;
 use App\Voice\FakeTranscriber;
 use App\Voice\Interpreter;
+use App\Voice\OpenAiExplainer;
 use App\Voice\OpenAiInterpreter;
+use App\Voice\Speaker;
 use App\Voice\Transcriber;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Client\Factory as Http;
@@ -31,6 +37,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(Transcriber::class, fn ($app) => match (config('voice.transcriber')) {
             'elevenlabs' => new ElevenLabsTranscriber($app->make(Http::class), config('voice.elevenlabs')),
             default => new FakeTranscriber(config('voice.fake_transcript')),
+        });
+        $this->app->bind(Explainer::class, fn ($app) => match (config('voice.explainer')) {
+            'openai' => new OpenAiExplainer($app->make(Http::class), config('voice.openai')),
+            default => new FakeExplainer,
+        });
+        $this->app->bind(Speaker::class, fn ($app) => match (config('voice.speech')) {
+            'elevenlabs' => new ElevenLabsSpeaker($app->make(Http::class), config('voice.elevenlabs')),
+            default => new FakeSpeaker,
         });
     }
 

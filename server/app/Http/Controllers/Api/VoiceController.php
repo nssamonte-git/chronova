@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\VoiceEvent;
+use App\Voice\ChangeList;
+use App\Voice\Explainer;
 use App\Voice\Interpreter;
 use App\Voice\ProposalValidator;
 use App\Voice\ProviderUnavailable;
+use App\Voice\Speaker;
 use App\Voice\Transcriber;
 use Closure;
 use DateTimeZone;
@@ -119,6 +122,79 @@ class VoiceController extends Controller
         $this->record($request, 'interpret', 200, $proposal['result'], $started, $tokens);
 
         return response()->json(['revision' => $context['revision']] + $proposal);
+    }
+
+    /**
+     * Says what a preview will change (or speaks a clarifying question), so
+     * the user hears it before deciding. Never blocks the preview: if writing
+     * the words fails a plain summary is used, and if speech fails the words
+     * come back without audio.
+     */
+    public function explain(Request $request, Explainer $explainer, Speaker $speaker): JsonResponse
+    {
+        $started = hrtime(true);
+        if (! config('voice.enabled')) {
+            $this->record($request, 'explain', 503, 'disabled', $started);
+
+            return response()->json(['error' => 'voice_disabled'], 503);
+        }
+
+        $limits = config('voice.limits');
+        $text = ['string', 'max:200'];
+        $time = ['date_format:Y-m-d\TH:i'];
+        $data = $request->validate([
+            'question' => ['required_without:changes', 'prohibits:changes', 'string', 'max:'.$limits['question_chars']],
+            'changes' => ['required_without:question', 'array', 'list', 'min:1', 'max:'.$limits['explained_changes']],
+            'changes.*' => ['array', function (string $attribute, mixed $value, Closure $fail) {
+                if ($problem = ChangeList::problem($value)) {
+                    $fail($problem);
+                }
+            }],
+            'changes.*.change' => ['string'],
+            'changes.*.task' => $text,
+            'changes.*.title' => $text,
+            'changes.*.predecessor' => $text,
+            'changes.*.successor' => $text,
+            'changes.*.fromStart' => $time,
+            'changes.*.fromEnd' => $time,
+            'changes.*.toStart' => $time,
+            'changes.*.toEnd' => $time,
+            'today' => ['required_with:changes', 'date_format:Y-m-d'],
+            'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
+        ]);
+        $language = $data['language'] ?? null;
+
+        $kind = 'speak';
+        $fallback = false;
+        $metrics = [];
+        if (isset($data['question'])) {
+            $words = trim($data['question']);
+        } else {
+            $kind = 'explain';
+            try {
+                $explanation = $explainer->explain($data['changes'], $data['today'], $language);
+                $words = $explanation->text;
+                $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
+            } catch (ProviderUnavailable) {
+                $words = ChangeList::summary($data['changes']);
+                $fallback = true;
+            }
+        }
+
+        try {
+            $speech = $speaker->speak($words, $language);
+        } catch (ProviderUnavailable) {
+            $speech = null;
+        }
+
+        $outcome = ($fallback ? 'fallback_' : '').($speech ? 'spoken' : 'text');
+        $this->record($request, $kind, 200, $outcome, $started, $metrics + ['characters' => $speech ? mb_strlen($words) : 0]);
+
+        return response()->json([
+            'text' => $words,
+            'audio' => $speech ? base64_encode($speech->audio) : null,
+            'audioType' => $speech?->type,
+        ]);
     }
 
     /** Only the fields the interpreter needs, in a fixed shape. */

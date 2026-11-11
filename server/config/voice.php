@@ -16,6 +16,11 @@ return [
     'transcriber' => env('VOICE_TRANSCRIBER', 'fake'),
     'fake_transcript' => env('VOICE_FAKE_TRANSCRIPT', 'push design by 2 hours'),
 
+    // The spoken explanation of a preview: "openai" writes it (else a plain summary), "elevenlabs"
+    // says it (else a recorded test phrase). A failure of either still answers, with text only.
+    'explainer' => env('VOICE_EXPLAINER', 'fake'),
+    'speech' => env('VOICE_SPEECH', 'fake'),
+
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
@@ -29,6 +34,10 @@ return [
         'key' => env('ELEVENLABS_API_KEY'),
         'base_url' => env('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io/v1'),
         'stt_model' => env('VOICE_ELEVENLABS_STT_MODEL', 'scribe_v2'),
+        // Fast and the cheaper low-latency model; a premade voice until one is chosen.
+        'tts_model' => env('VOICE_ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5'),
+        'voice_id' => env('VOICE_ELEVENLABS_VOICE_ID', 'JBFqnCBsd6RMkjVDRZzb'),
+        'output_format' => env('VOICE_ELEVENLABS_OUTPUT_FORMAT', 'mp3_22050_32'),
         // Zero retention at ElevenLabs (enable_logging=false) needs an enterprise plan.
         'zero_retention' => (bool) env('VOICE_ELEVENLABS_ZERO_RETENTION', false),
         'timeout' => (int) env('VOICE_ELEVENLABS_TIMEOUT', 20),
@@ -43,5 +52,7 @@ return [
         'audio_kb' => 1024,
         'tasks' => 300,
         'operations' => 20,
+        'explained_changes' => 100,
+        'question_chars' => 300,
     ],
 ];
