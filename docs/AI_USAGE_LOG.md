@@ -91,3 +91,12 @@ Corrections to the original prompt, found by inspecting the actual project:
 - *Drag lag:* the first draft of the detector started the total distance from the over-slop amount, so the bar would trail the finger by the touch slop (~8 dp). Changed to measure from the pointer-down position.
 - *One-frame flicker:* the first draft cleared the preview on release, before the committed task arrived from the `StateFlow`, which would snap the bar back to its old position for a frame. The preview is now kept until the new task arrives (`LaunchedEffect(task)`).
 Both were found by reviewing the generated code against the gesture design, not by observing the bug on device.
+
+### B6 — Left/right resize
+
+- Selected bars get a white grip on each edge and a touch container extended 20 dp beyond each edge. `HandleHitTest.modeAt` (pure, unit-tested) picks `RESIZE_START` / `RESIZE_END` / `MOVE` at pointer-down: 20 dp outside + up to 20 dp inside each edge, shrinking to a third of the bar on narrow bars so the middle third always moves. Unselected bars only move. Resize goes through the same single detector and `TaskEdits.apply`, so move and resize cannot run together.
+- `./gradlew :app:testDebugUnitTest :app:installDebug` — **BUILD SUCCESSFUL, 33 tests, 0 failed** (3 new hit-zone tests).
+- On device (15-min snap, UI Design selected): right edge −160 px → 09:00–10:15 (start kept); left edge +100 px → 09:30–10:15 (end kept); left edge −80 px → 09:00–10:15; left edge dragged past the end → clamped to 10:00–10:15 (15-min minimum); right edge dragged past the start → stayed 10:00–10:15; middle of the 15-min bar +96 px → moved to 10:30–10:45. All matched values predicted from the engine before running.
+- Not yet verified on device: resizing with 60-min snap on QA Testing (13:30 start) — needs the B7 snap control; covered by `minimumDurationHoldsEvenWithCoarseSnap` and `resizeEnd_preservesStart` unit tests.
+- Known limitation: dragging a handle past the viewport edge does not auto-scroll; the user scrolls and continues.
+- No AI mistakes recorded in this batch.
