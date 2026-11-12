@@ -2,10 +2,6 @@ package noel.chronova.feature.assistant.presentation
 
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.core.domain.schedule.ApplyResult
@@ -16,33 +12,12 @@ import noel.chronova.feature.assistant.domain.EndpointDetector
 import noel.chronova.feature.assistant.domain.ExplainStage
 import noel.chronova.feature.assistant.domain.ExplainedChange
 import noel.chronova.feature.assistant.domain.Interpretation
-import noel.chronova.feature.assistant.domain.Listened
-import noel.chronova.feature.assistant.domain.PreviewItem
 import noel.chronova.feature.assistant.domain.RecorderUnavailable
-import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.feature.assistant.domain.VoiceApiException
 import noel.chronova.feature.assistant.domain.VoicePlan
 import noel.chronova.feature.assistant.domain.changedTaskIds
 import noel.chronova.feature.assistant.domain.taskCount
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
-
-/** What the conversation and [AssistantViewModel] share: the state the screen shows, and the scope it runs in. */
-internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boolean) {
-    val ui = MutableStateFlow(AssistantUiState(noticeAccepted = noticeAccepted))
-    val message = MutableStateFlow<AssistantMessage?>(null)
-
-    /** The microphone level (0..1) while listening, for the orb's pulse. */
-    val level = MutableStateFlow(0f)
-
-    /** Tasks just changed by the assistant, highlighted while it says what changed. */
-    val highlight = MutableStateFlow<Set<String>>(emptySet())
-
-    /** Still saying what changed after the orb closed. */
-    val explaining = MutableStateFlow(false)
-
-    /** Saying what changed, after the orb has closed. */
-    var afterword: Job? = null
-}
 
 /**
  * One spoken conversation. It greets, then listens until the speaker stops ([EndpointDetector]);
@@ -65,16 +40,11 @@ internal class AssistantConversation(
     private val language: () -> String?,
     private val session: AssistantSession,
 ) {
-    private var greeting: Spoken? = null
-
-    /** How loud the last words heard were ([EndpointDetector.loudestSpeech]). */
-    private var lastLoudness = 0
-
-    /** The language the user was last heard in, for what the assistant says back. */
-    private var heardLanguage: String? = null
+    private val ears = AssistantEars(projectId, useCases, language, session)
+    private val voice = AssistantVoice(useCases, phrases, session, heardLanguage = { ears.heardLanguage })
 
     /** The first-open introduction: only spoken; nothing is recorded and nothing of the user's is sent. */
-    suspend fun introduce() = say(phrases.introduction())
+    suspend fun introduce() = voice.say(phrases.introduction())
 
     private sealed interface Outcome {
         data class Proposal(val plan: VoicePlan) : Outcome
@@ -90,12 +60,12 @@ internal class AssistantConversation(
         var pendingWords: String? = null
         var strikes = 0
         try {
-            greet()
+            voice.greet()
             while (true) {
-                val words = pendingWords ?: listen() ?: run {
+                val words = pendingWords ?: ears.listen() ?: run {
                     strikes++
-                    if (strikes >= MAX_STRIKES) return say(phrases.goodbye())
-                    say(phrases.nothingHeard())
+                    if (strikes >= MAX_STRIKES) return voice.say(phrases.goodbye())
+                    voice.say(phrases.nothingHeard())
                     null
                 } ?: continue
                 pendingWords = null
@@ -131,12 +101,12 @@ internal class AssistantConversation(
                         strikes = 0
                     }
                     is Outcome.Question -> {
-                        say(outcome.text)
+                        voice.say(outcome.text)
                         context = "$request. Answer to \"${outcome.text}\":"
                     }
                     is Outcome.Problem -> {
                         strikes++
-                        say(outcome.text)
+                        voice.say(outcome.text)
                         if (outcome.final || strikes >= MAX_STRIKES) return
                     }
                 }
@@ -144,51 +114,12 @@ internal class AssistantConversation(
         } catch (error: CancellationException) {
             throw error
         } catch (error: VoiceApiException) {
-            say(phrases.failure(error.kind))
+            voice.say(phrases.failure(error.kind))
             // The server ended the session: the app goes back to the sign-in page.
             if (error.kind == VoiceApiException.Kind.UNAUTHORIZED) useCases.endSession()
         } catch (_: RecorderUnavailable) {
-            say(phrases.microphoneUnavailable())
+            voice.say(phrases.microphoneUnavailable())
         }
-    }
-
-    /**
-     * Listens until the user stops speaking; their words, or null if nothing was heard.
-     * [answering]: a yes or no is expected, so the transcriber listens for those words too,
-     * and a sound that turns out to hold no words (a cough, a door) gets one more listen
-     * instead of counting as no answer.
-     */
-    private suspend fun listen(answering: Boolean = false): String? {
-        repeat(if (answering) 2 else 1) {
-            when (val heard = hear(answering)) {
-                Heard.Silence -> return null
-                Heard.NoWords -> Unit
-                is Heard.Words -> return heard.text
-            }
-        }
-        return null
-    }
-
-    private sealed interface Heard {
-        /** Nobody spoke before the no-speech limit. */
-        data object Silence : Heard
-
-        /** Something was loud enough to record but held no words. */
-        data object NoWords : Heard
-        data class Words(val text: String) : Heard
-    }
-
-    private suspend fun hear(answering: Boolean): Heard {
-        session.ui.update { it.copy(mode = OrbMode.Listening, saying = null) }
-        val recorded = useCases.listen { session.level.value = it } as? Listened.Recorded ?: return Heard.Silence
-        session.ui.update { it.copy(mode = OrbMode.Thinking) }
-        val heard = useCases.transcribe(projectId, recorded.recording, language(), answering)
-        heardLanguage = heard.language ?: language()
-        val text = heard.text.trim()
-        if (text.isEmpty()) return Heard.NoWords
-        lastLoudness = recorded.loudestSpeech
-        session.ui.update { it.copy(heard = text) }
-        return Heard.Words(text)
     }
 
     private suspend fun interpret(text: String): Outcome {
@@ -212,8 +143,8 @@ internal class AssistantConversation(
         val different = offer.filter { item -> ExplainedChange.from(listOf(item), zone).any { it !in asked } }
         session.ui.update { it.copy(proposal = proposal.items, warnings = proposal.warnings, offer = different) }
         // A clash is named before the question, which offers the alternative or asks whether to apply it anyway.
-        speak(explain(proposal.items, ExplainStage.Proposal, proposal.warnings, offer))
-        return listen(answering = true)
+        voice.speak(voice.explain(proposal.items, ExplainStage.Proposal, proposal.warnings, offer))
+        return ears.listen(answering = true)
     }
 
     /**
@@ -224,11 +155,11 @@ internal class AssistantConversation(
      */
     private suspend fun answer(heard: String): Pair<ConfirmationReply, String>? {
         val kind = ConfirmationReply.of(heard)
-        if (kind != ConfirmationReply.Yes || lastLoudness >= NEAR_SPEECH_LEVEL) return kind to heard
-        say(phrases.wasThatAYes())
-        val again = listen(answering = true) ?: return null
+        if (kind != ConfirmationReply.Yes || ears.lastLoudness >= NEAR_SPEECH_LEVEL) return kind to heard
+        voice.say(phrases.wasThatAYes())
+        val again = ears.listen(answering = true) ?: return null
         val second = ConfirmationReply.of(again)
-        if (second == ConfirmationReply.Yes && lastLoudness < NEAR_SPEECH_LEVEL) return null
+        if (second == ConfirmationReply.Yes && ears.lastLoudness < NEAR_SPEECH_LEVEL) return null
         return second to again
     }
 
@@ -239,8 +170,8 @@ internal class AssistantConversation(
      */
     private suspend fun keepAsAsked(request: String, proposal: VoicePlan): String? {
         session.ui.update { it.copy(offer = emptyList()) }
-        say(phrases.applyAsAsked())
-        val heard = listen(answering = true)
+        voice.say(phrases.applyAsAsked())
+        val heard = ears.listen(answering = true)
         val (kind, reply) = heard?.let { answer(it) } ?: return run {
             report(request, proposal, DecisionAnswer.Declined)
             declined()
@@ -268,7 +199,7 @@ internal class AssistantConversation(
 
     private suspend fun applyAndExplain(proposal: VoicePlan) {
         when (val result = useCases.apply(projectId, proposal)) {
-            is ApplyResult.Rejected -> say(phrases.scheduleChanged())
+            is ApplyResult.Rejected -> voice.say(phrases.scheduleChanged())
             is ApplyResult.Applied -> {
                 session.message.value = AssistantMessage.Applied(proposal.changes.taskCount(), result.undo)
                 useCases.recordChange(projectId, proposal, result.undo)
@@ -280,7 +211,7 @@ internal class AssistantConversation(
                 session.afterword = session.scope.launch {
                     session.highlight.value = changed
                     try {
-                        speak(explain(proposal.items, ExplainStage.Applied), captioned = false)
+                        voice.speak(voice.explain(proposal.items, ExplainStage.Applied), captioned = false)
                     } finally {
                         session.highlight.value = emptySet()
                         session.explaining.value = false
@@ -290,45 +221,10 @@ internal class AssistantConversation(
         }
     }
 
-    /** The server's words (and audio) for [items]; null if it couldn't be reached. */
-    private suspend fun explain(
-        items: List<PreviewItem>,
-        stage: ExplainStage,
-        warnings: List<ScheduleWarning> = emptyList(),
-        offer: List<PreviewItem> = emptyList(),
-    ): Spoken? = useCases.explain(items, stage, heardLanguage, warnings, offer)?.let { Spoken(it.text, it.audio) }
-
     /** The proposal was turned down (or not answered): its lines go, so nothing looks applied. */
     private suspend fun declined() {
         session.ui.update { it.copy(proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
-        say(phrases.nothingChanged())
-    }
-
-    /** Says hello when the orb opens. The voiced greeting is fetched once and replayed after that. */
-    private suspend fun greet() {
-        val cached = greeting
-        if (cached != null) return speak(cached)
-        val spoken = voice(phrases.greeting())
-        if (spoken.audio != null) greeting = spoken
-        speak(spoken)
-    }
-
-    /** Says [text] in the assistant's voice (falls back to a caption alone). */
-    private suspend fun say(text: String) = speak(voice(text))
-
-    private suspend fun voice(text: String): Spoken = useCases.voicePhrase(text, heardLanguage).let { Spoken(it.text, it.audio) }
-
-    private data class Spoken(val text: String, val audio: ByteArray?)
-
-    private suspend fun speak(spoken: Spoken?, captioned: Boolean = true) {
-        if (spoken == null) return
-        if (captioned) session.ui.update { it.copy(mode = OrbMode.Speaking, saying = spoken.text) }
-        val audio = spoken.audio
-        if (audio == null) {
-            delay(readingTimeMs(spoken.text))
-            return
-        }
-        useCases.play(audio)
+        voice.say(phrases.nothingChanged())
     }
 
     /** Stops saying what changed (after an apply), and the highlight that goes with it. */
@@ -352,8 +248,5 @@ internal class AssistantConversation(
          * twice and nothing changed; the faintest voices across the room are still asked about.
          */
         const val NEAR_SPEECH_LEVEL = 2_000
-
-        /** How long a caption stays when there's no audio: about 15 characters a second, at least 2 s. */
-        fun readingTimeMs(text: String): Long = (text.length * 65L).coerceIn(2_000L, 8_000L)
     }
 }
