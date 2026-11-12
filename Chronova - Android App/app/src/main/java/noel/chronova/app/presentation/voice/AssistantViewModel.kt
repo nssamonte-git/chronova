@@ -32,6 +32,8 @@ import noel.chronova.app.data.remote.ExplainStage
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
 import noel.chronova.app.data.remote.VoiceDecision
+import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.repository.ProjectRepository
 import noel.chronova.app.domain.schedule.ApplyResult
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
@@ -117,6 +119,8 @@ class AssistantViewModel(
     newId: () -> String = { UUID.randomUUID().toString() },
     /** A hint for the transcriber: the phone's language ("en", "fil"), or null to let it detect. */
     private val language: () -> String? = { Locale.getDefault().toLanguageTag().substringBefore('-').ifBlank { null } },
+    /** Where applied changes are recorded (with their undo) for the notifications page. */
+    private val notifications: NotificationRepository? = null,
 ) : ViewModel() {
 
     private val handler = AICommandHandler(CommandPlanner(zone, newId))
@@ -496,6 +500,7 @@ class AssistantViewModel(
             is ApplyResult.Rejected -> say(phrases.scheduleChanged())
             is ApplyResult.Applied -> {
                 _message.value = AssistantMessage.Applied(taskCount(proposal.changes), result.undo)
+                record(proposal, result.undo)
                 // The orb goes first, so the user sees the timeline while hearing what changed.
                 ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
                 val changed = changedTaskIds(proposal.changes)
@@ -509,6 +514,22 @@ class AssistantViewModel(
                 }
             }
         }
+    }
+
+    /** Adds the change to the notifications page, with what undoes it. */
+    private suspend fun record(proposal: Outcome.Proposal, undo: List<ScheduleChange>) {
+        val notifications = notifications ?: return
+        val project = repository.schedule(projectId)?.project
+        val titles = ExplainedChange.from(proposal.items, zone).mapNotNull { it.task ?: it.successor }.distinct()
+        val args = mutableMapOf("count" to "${taskCount(proposal.changes)}", "tasks" to titles.joinToString("\n"))
+        val clash = proposal.warnings.firstOrNull()
+        when (clash) {
+            is ScheduleWarning.Overlap -> args += mapOf("clash" to "overlap", "first" to clash.task, "second" to clash.other)
+            is ScheduleWarning.BrokenLink -> args += mapOf("clash" to "link", "first" to clash.successor, "second" to clash.predecessor)
+            null -> Unit
+        }
+        val kind = if (clash == null) NotificationKind.ASSISTANT_APPLIED else NotificationKind.ASSISTANT_CLASH
+        notifications.add(kind, args, projectId, project?.name, undo)
     }
 
     /** The server's words (and audio) for [items]; null if it couldn't be reached. */
@@ -637,10 +658,14 @@ class AssistantViewModel(
             newPlayer: () -> SpeechPlayer,
             settings: AssistantSettings,
             phrases: AssistantPhrases,
+            notifications: NotificationRepository,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val route = createSavedStateHandle().toRoute<ProjectTimelineRoute>()
-                AssistantViewModel(route.projectId, repository, voiceApi, auth, online, newRecorder(), newPlayer(), settings, phrases)
+                AssistantViewModel(
+                    route.projectId, repository, voiceApi, auth, online, newRecorder(), newPlayer(), settings, phrases,
+                    notifications = notifications,
+                )
             }
         }
     }

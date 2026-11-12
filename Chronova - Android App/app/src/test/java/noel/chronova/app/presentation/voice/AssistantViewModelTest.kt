@@ -30,12 +30,15 @@ import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
 import noel.chronova.app.data.remote.VoiceDecision
 import noel.chronova.app.domain.SampleTasks
+import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.schedule.CommandProblem
+import noel.chronova.app.domain.schedule.ScheduleChange
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
+import noel.chronova.app.presentation.notifications.FakeNotificationRepository
 import noel.chronova.app.presentation.timeline.FakeProjectRepository
 import noel.chronova.app.voice.AssistantSettings
 import noel.chronova.app.voice.RecorderUnavailable
@@ -217,6 +220,7 @@ class AssistantViewModelTest {
     private val recorder = FakeRecorder()
     private val player = FakePlayer()
     private val settings = FakeSettings()
+    private val notifications = FakeNotificationRepository()
     private lateinit var viewModel: AssistantViewModel
 
     private val review get() = repository.tasks.value.first { it.id == "review" }
@@ -232,6 +236,7 @@ class AssistantViewModelTest {
         viewModel = AssistantViewModel(
             SampleTasks.PROJECT_ID, repository, api, auth, online, recorder, player, settings, FakePhrases, zone,
             clock = { 0L }, newId = { "new" }, language = { "en" },
+            notifications = notifications,
         )
     }
 
@@ -441,6 +446,37 @@ class AssistantViewModelTest {
         talk()
         assertEquals(listOf("hello", "failure UNAUTHORIZED"), api.said)
         assertTrue(auth.ended)
+    }
+
+    @Test
+    fun anAppliedChangeIsRecordedWithWhatUndoesIt() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "yes")
+        talk()
+        val added = notifications.added.single()
+        assertEquals(NotificationKind.ASSISTANT_APPLIED, added.notification.kind)
+        assertEquals(SampleTasks.PROJECT_ID, added.notification.projectId)
+        assertEquals("Sample project", added.notification.projectName)
+        assertEquals(mapOf("count" to "1", "tasks" to "Review"), added.notification.args)
+        assertEquals(originalReview, (added.undo.single() as ScheduleChange.UpdateTask).after) // undo puts it back
+    }
+
+    @Test
+    fun aChangeAppliedDespiteAClashIsRecordedAsSuch() = runTest(dispatcher) {
+        api.answer = shift(-1) // overlaps QA Testing; no alternative
+        says("move review an hour earlier", "yes")
+        talk()
+        val added = notifications.added.single().notification
+        assertEquals(NotificationKind.ASSISTANT_CLASH, added.kind)
+        assertEquals(mapOf("clash" to "overlap", "first" to "Review", "second" to "QA Testing"), added.args.filterKeys { it in setOf("clash", "first", "second") })
+    }
+
+    @Test
+    fun nothingIsRecordedWithoutAChange() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "no")
+        talk()
+        assertTrue(notifications.added.isEmpty())
     }
 
     @Test

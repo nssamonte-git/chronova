@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Spoken commands in the timeline's assistant; asked for on first use, typing works without it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Android 13+: asked on the notifications page, for failed syncs and ended sessions. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ChronovaApp"
@@ -21,7 +23,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

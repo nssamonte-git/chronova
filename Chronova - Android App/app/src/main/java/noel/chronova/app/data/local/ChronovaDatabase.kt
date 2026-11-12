@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [ProjectEntity::class, TaskEntity::class, ViewSettingsEntity::class, DependencyEntity::class],
-    version = 3,
+    entities = [ProjectEntity::class, TaskEntity::class, ViewSettingsEntity::class, DependencyEntity::class, NotificationEntity::class],
+    version = 4,
     exportSchema = true,
 )
 abstract class ChronovaDatabase : RoomDatabase() {
@@ -16,11 +16,12 @@ abstract class ChronovaDatabase : RoomDatabase() {
     abstract fun viewSettingsDao(): ViewSettingsDao
     abstract fun dependencyDao(): DependencyDao
     abstract fun syncDao(): SyncDao
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         fun create(context: Context): ChronovaDatabase =
             Room.databaseBuilder(context, ChronovaDatabase::class.java, "chronova.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

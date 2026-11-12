@@ -4,43 +4,48 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +67,8 @@ fun ProjectListScreen(
     onOpenAccount: () -> Unit,
     syncUi: SyncUi,
     onSync: () -> Unit,
+    unreadNotifications: Int,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,6 +93,8 @@ fun ProjectListScreen(
         onOpenAccount = onOpenAccount,
         syncUi = syncUi,
         onSync = onSync,
+        unreadNotifications = unreadNotifications,
+        onOpenNotifications = onOpenNotifications,
         modifier = modifier,
     )
     editor?.let { current ->
@@ -131,6 +140,8 @@ private fun ProjectListContent(
     onOpenAccount: () -> Unit,
     syncUi: SyncUi,
     onSync: () -> Unit,
+    unreadNotifications: Int,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -159,6 +170,7 @@ private fun ProjectListContent(
                     }
                 },
                 actions = {
+                    NotificationsButton(unreadNotifications, onOpenNotifications)
                     if (syncUi.signedIn) SyncButton(syncUi, onSync)
                     IconButton(onClick = onOpenAccount) {
                         Icon(Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.account_open))
@@ -288,6 +300,23 @@ private fun ProjectListPreview() {
             onOpenAccount = {},
             syncUi = SyncUi(),
             onSync = {},
+            unreadNotifications = 2,
+            onOpenNotifications = {},
         )
+    }
+}
+
+/** The bell: opens the notifications page; the badge counts unread ones. */
+@Composable
+private fun NotificationsButton(unread: Int, onClick: () -> Unit) {
+    val description = if (unread > 0) {
+        pluralStringResource(R.plurals.notifications_open, unread, unread)
+    } else {
+        stringResource(R.string.notifications_open_none)
+    }
+    IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = description }) {
+        BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else "$unread") } }) {
+            Icon(Icons.Filled.Notifications, contentDescription = null)
+        }
     }
 }

@@ -1,6 +1,5 @@
 package noel.chronova.app.data.sync
 
-import org.junit.Assert.assertFalse
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -12,7 +11,9 @@ import noel.chronova.app.auth.AuthOutcome
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
 import noel.chronova.app.data.remote.SyncApiException
+import noel.chronova.app.domain.notifications.NotificationKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -57,6 +58,7 @@ class SyncCoordinatorTest {
     }
 
     private lateinit var auth: StubAuth
+    private val recorded = mutableListOf<Pair<NotificationKind, Map<String, String>>>()
 
     private fun TestScope.coordinator(state: AuthState = AuthState.SignedIn("sub", "a@b.c")) = SyncCoordinator(
         scope = backgroundScope,
@@ -70,6 +72,7 @@ class SyncCoordinatorTest {
         },
         clock = { 1L },
         busyRetryDelayMillis = 10,
+        notify = { kind, args -> recorded += kind to args },
     )
 
     @Test
@@ -176,5 +179,40 @@ class SyncCoordinatorTest {
         sync.syncNow()
         settle()
         assertFalse(auth.ended)
+    }
+
+    @Test
+    fun recordsSyncsFailuresReplacedChangesAndWaitingChanges() = runTest(StandardTestDispatcher()) {
+        val sync = coordinator()
+        outcomes.addLast(SyncOutcome.Synced(pushed = 3, pulled = 2, replaced = 1))
+        outcomes.addLast(SyncOutcome.Failed(SyncApiException.Kind.NETWORK))
+        sync.syncNow()
+        settle()
+        sync.syncNow()
+        settle()
+        local.edit(task("t1", 1))
+        online.value = false
+        settle()
+        online.value = true
+        settle()
+
+        assertEquals(
+            listOf(
+                NotificationKind.SYNCED to mapOf("sent" to "3", "received" to "2"),
+                NotificationKind.SYNC_CONFLICT to mapOf("count" to "1"),
+                NotificationKind.SYNC_FAILED to mapOf("reason" to "OFFLINE"),
+                NotificationKind.SYNC_WAITING to mapOf("count" to "1"),
+            ),
+            recorded,
+        )
+    }
+
+    @Test
+    fun anEndedSessionIsRecordedBySignInNotHere() = runTest(StandardTestDispatcher()) {
+        val sync = coordinator()
+        outcomes.addLast(SyncOutcome.Failed(SyncApiException.Kind.UNAUTHORIZED))
+        sync.syncNow()
+        settle()
+        assertTrue(recorded.isEmpty())
     }
 }

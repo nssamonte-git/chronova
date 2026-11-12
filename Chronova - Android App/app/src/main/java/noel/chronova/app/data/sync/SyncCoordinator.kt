@@ -15,6 +15,7 @@ import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
 import noel.chronova.app.data.remote.SyncApi
 import noel.chronova.app.data.remote.SyncApiException
+import noel.chronova.app.domain.notifications.NotificationKind
 
 sealed interface SyncStatus {
     data object Idle : SyncStatus
@@ -53,6 +54,8 @@ class SyncCoordinator(
     private val runSync: suspend (userId: String) -> SyncOutcome,
     private val clock: () -> Long = System::currentTimeMillis,
     private val busyRetryDelayMillis: Long = 2_000,
+    /** Records what happened for the notifications page. */
+    private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { _, _ -> },
 ) : AccountSync {
     override val pendingCount: StateFlow<Int> = local.pendingCount().stateIn(scope, SharingStarted.Eagerly, 0)
 
@@ -82,7 +85,10 @@ class SyncCoordinator(
         val state = auth.state.value
         if (state == AuthState.NotConfigured || job?.isActive == true) return
         val pending = local.pendingCount().first()
-        if (pending > 0) _prompt.value = SyncPrompt(pending, signedIn = state is AuthState.SignedIn)
+        if (pending > 0) {
+            _prompt.value = SyncPrompt(pending, signedIn = state is AuthState.SignedIn)
+            notify(NotificationKind.SYNC_WAITING, mapOf("count" to "$pending"))
+        }
     }
 
     /** "Later": the prompt comes back on the next reconnect, not before. */
@@ -116,6 +122,7 @@ class SyncCoordinator(
                     _status.value = SyncStatus.Idle
                 } else {
                     _status.value = statusOf(outcome)
+                    record(outcome)
                 }
                 break
             }
@@ -145,6 +152,17 @@ class SyncCoordinator(
         }
         signOutAndClear()
         return null
+    }
+
+    private suspend fun record(outcome: SyncOutcome) {
+        when (outcome) {
+            is SyncOutcome.Synced -> {
+                notify(NotificationKind.SYNCED, mapOf("sent" to "${outcome.pushed}", "received" to "${outcome.pulled}"))
+                if (outcome.replaced > 0) notify(NotificationKind.SYNC_CONFLICT, mapOf("count" to "${outcome.replaced}"))
+            }
+            is SyncOutcome.Failed -> notify(NotificationKind.SYNC_FAILED, mapOf("reason" to failureOf(outcome.kind).name))
+            SyncOutcome.NotSignedIn -> Unit
+        }
     }
 
     private fun statusOf(outcome: SyncOutcome): SyncStatus = when (outcome) {

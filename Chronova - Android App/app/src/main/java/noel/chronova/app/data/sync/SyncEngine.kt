@@ -6,7 +6,8 @@ import noel.chronova.app.data.remote.SyncApiException
 import noel.chronova.app.data.remote.SyncRequestDto
 
 sealed interface SyncOutcome {
-    data class Synced(val pushed: Int, val pulled: Int) : SyncOutcome
+    /** [replaced]: changes sent from here that the server didn't take because its own copy was newer. */
+    data class Synced(val pushed: Int, val pulled: Int, val replaced: Int = 0) : SyncOutcome
     data object NotSignedIn : SyncOutcome
     data class Failed(val kind: SyncApiException.Kind) : SyncOutcome
 }
@@ -30,12 +31,15 @@ class SyncEngine(
         var cursor = local.cursor(userId)
         val pending = local.dirtyChanges()
         val pulled = mutableListOf<ChangeDto>()
+        var stale = 0
         try {
             var hasMore = false
             // Always at least one request, so a device with nothing to push still pulls.
             for (batch in pending.chunked(MAX_CHANGES).ifEmpty { listOf(emptyList()) }) {
                 val response = api.sync(token, SyncRequestDto(cursor, batch))
                 local.markSynced(batch)
+                // The server kept its newer copy of these (sent back with the pulled changes).
+                stale += response.results.count { it.status == STALE }
                 pulled += response.changes
                 cursor = response.cursor
                 hasMore = response.hasMore
@@ -51,11 +55,14 @@ class SyncEngine(
         }
         local.applyRemote(pulled)
         local.saveCursor(userId, checkNotNull(cursor), clock())
-        return SyncOutcome.Synced(pushed = pending.size, pulled = pulled.size)
+        return SyncOutcome.Synced(pushed = pending.size, pulled = pulled.size, replaced = stale)
     }
 
     companion object {
         /** The server accepts at most 500 changes per request. */
         const val MAX_CHANGES = 500
+
+        /** A pushed change the server didn't take because its own copy is newer. */
+        const val STALE = "stale"
     }
 }

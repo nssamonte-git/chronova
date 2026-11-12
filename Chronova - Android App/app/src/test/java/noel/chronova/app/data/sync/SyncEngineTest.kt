@@ -40,7 +40,8 @@ class SyncEngineTest {
     fun aNewerServerEditWinsAndReplacesTheLocalOne() = runTest {
         server.put(task("t1", 100, "Server"))
         local.edit(task("t1", 50, "Older local edit"))
-        engine.sync("alice")
+        val outcome = engine.sync("alice") as SyncOutcome.Synced
+        assertEquals(1, outcome.replaced) // the notifications page says the newer copy was kept
         assertEquals("Server", local.row("task", "t1")!!.change.data.toString().substringAfter(":").trim('"', '}'))
         assertFalse(local.row("task", "t1")!!.dirty)
     }

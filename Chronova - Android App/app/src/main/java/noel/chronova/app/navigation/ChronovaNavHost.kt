@@ -6,10 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,6 +19,8 @@ import kotlinx.serialization.Serializable
 import noel.chronova.app.AppContainer
 import noel.chronova.app.presentation.account.AccountScreen
 import noel.chronova.app.presentation.account.AccountViewModel
+import noel.chronova.app.presentation.notifications.NotificationsScreen
+import noel.chronova.app.presentation.notifications.NotificationsViewModel
 import noel.chronova.app.presentation.projects.ProjectListScreen
 import noel.chronova.app.presentation.projects.ProjectListViewModel
 import noel.chronova.app.presentation.sync.SyncPromptDialog
@@ -35,8 +38,17 @@ data class ProjectTimelineRoute(val projectId: String)
 @Serializable
 data object AccountRoute
 
+@Serializable
+data object NotificationsRoute
+
+/** [openNotifications]: a tapped system notification asked for the notifications page; [onOpened] once shown. */
 @Composable
-fun ChronovaNavHost(container: AppContainer, modifier: Modifier = Modifier) {
+fun ChronovaNavHost(
+    container: AppContainer,
+    modifier: Modifier = Modifier,
+    openNotifications: Boolean = false,
+    onOpened: () -> Unit = {},
+) {
     val auth by container.authRepository.state.collectAsStateWithLifecycle()
     when (AppGate.of(auth)) {
         AppGate.Loading -> Box(
@@ -50,13 +62,20 @@ fun ChronovaNavHost(container: AppContainer, modifier: Modifier = Modifier) {
             viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.authRepository, container.syncCoordinator)),
             onBack = null,
         )
-        AppGate.App -> ChronovaScreens(container, modifier)
+        AppGate.App -> ChronovaScreens(container, modifier, openNotifications, onOpened)
     }
 }
 
 @Composable
-private fun ChronovaScreens(container: AppContainer, modifier: Modifier) {
+private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNotifications: Boolean, onOpened: () -> Unit) {
     val navController = rememberNavController()
+    val unread by container.notificationRepository.unreadCount().collectAsStateWithLifecycle(initialValue = 0)
+    LaunchedEffect(openNotifications) {
+        if (openNotifications) {
+            navController.navigate(NotificationsRoute) { launchSingleTop = true }
+            onOpened()
+        }
+    }
     // Activity-scoped: the reconnect prompt can appear over any screen.
     val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container.syncCoordinator, container.authRepository))
     val syncUi by sync.ui.collectAsStateWithLifecycle()
@@ -80,6 +99,15 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier) {
                 onOpenAccount = { navController.navigate(AccountRoute) },
                 syncUi = syncUi,
                 onSync = sync::syncNow,
+                unreadNotifications = unread,
+                onOpenNotifications = { navController.navigate(NotificationsRoute) },
+            )
+        }
+        composable<NotificationsRoute> {
+            NotificationsScreen(
+                viewModel = viewModel(factory = NotificationsViewModel.factory(container.notificationRepository, container.projectRepository)),
+                onBack = { navController.popBackStack() },
+                onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
             )
         }
         composable<AccountRoute> {
@@ -92,7 +120,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier) {
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(container.projectRepository)),
                 assistant = viewModel(
-                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.assistantSettings, container.assistantPhrases),
+                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.assistantSettings, container.assistantPhrases, container.notificationRepository),
                 ),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
             )

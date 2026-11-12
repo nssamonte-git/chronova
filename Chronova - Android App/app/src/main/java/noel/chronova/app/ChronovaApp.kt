@@ -15,25 +15,29 @@ import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.auth.KeystoreTokenStore
 import noel.chronova.app.data.local.ChronovaDatabase
+import noel.chronova.app.data.local.RoomNotificationRepository
 import noel.chronova.app.data.remote.OkHttpSyncApi
 import noel.chronova.app.data.remote.OkHttpVoiceApi
 import noel.chronova.app.data.remote.VoiceApi
-import noel.chronova.app.data.sync.RoomLocalSyncStore
-import noel.chronova.app.data.sync.keepOnlyFor
-import noel.chronova.app.data.sync.SyncCoordinator
-import noel.chronova.app.data.sync.SyncEngine
-import noel.chronova.app.data.sync.onlineFlow
-import noel.chronova.app.voice.AndroidSpeechPlayer
-import noel.chronova.app.voice.AndroidVoiceRecorder
-import noel.chronova.app.voice.PreferencesAssistantSettings
-import noel.chronova.app.presentation.voice.AssistantPhrases
-import noel.chronova.app.presentation.voice.ResourcePhrases
-import noel.chronova.app.voice.SpeechPlayer
-import noel.chronova.app.voice.AssistantSettings
-import noel.chronova.app.voice.VoiceRecorder
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
+import noel.chronova.app.data.sync.RoomLocalSyncStore
+import noel.chronova.app.data.sync.SyncCoordinator
+import noel.chronova.app.data.sync.SyncEngine
+import noel.chronova.app.data.sync.keepOnlyFor
+import noel.chronova.app.data.sync.onlineFlow
+import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.notifications.SystemNotifications
+import noel.chronova.app.presentation.voice.AssistantPhrases
+import noel.chronova.app.presentation.voice.ResourcePhrases
+import noel.chronova.app.voice.AndroidSpeechPlayer
+import noel.chronova.app.voice.AndroidVoiceRecorder
+import noel.chronova.app.voice.AssistantSettings
+import noel.chronova.app.voice.PreferencesAssistantSettings
+import noel.chronova.app.voice.SpeechPlayer
+import noel.chronova.app.voice.VoiceRecorder
 import okhttp3.OkHttpClient
 
 class ChronovaApp : Application() {
@@ -68,6 +72,12 @@ class AppContainer(private val context: Context) {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    /** What happened (sync, assistant, account), for the notifications page; important ones also reach the shade. */
+    val notificationRepository: NotificationRepository =
+        RoomNotificationRepository(database.notificationDao(), poster = SystemNotifications(context))
+
+    private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { kind, args -> notificationRepository.add(kind, args) }
+
     /** Server sign-in when this build has a server configured; otherwise offline-only. */
     val authRepository: AuthRepository =
         if (backendConfig.isComplete) {
@@ -77,6 +87,7 @@ class AppContainer(private val context: Context) {
                 store = KeystoreTokenStore(context.getSharedPreferences("chronova_auth", Context.MODE_PRIVATE)),
                 // Another account's data, left when its session ended, never shows to the next one.
                 beforeSignIn = { userId -> syncStore.keepOnlyFor(userId) },
+                notify = notify,
             )
         } else {
             DisabledAuthRepository()
@@ -116,6 +127,7 @@ class AppContainer(private val context: Context) {
         api = syncApi,
         online = online,
         runSync = syncEngine::sync,
+        notify = notify,
     )
 
     private companion object {

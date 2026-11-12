@@ -1,6 +1,7 @@
 package noel.chronova.app.auth
 
 import java.io.IOException
+import noel.chronova.app.domain.notifications.NotificationKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,8 @@ class ApiAuthRepository(
      * place to make sure the device's data belongs to that account.
      */
     private val beforeSignIn: suspend (userId: String) -> Unit = {},
+    /** Records account events for the notifications page (after [beforeSignIn], which may clear them). */
+    private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { _, _ -> },
 ) : AuthRepository {
     private val base = baseUrl.trimEnd('/')
 
@@ -50,6 +53,7 @@ class ApiAuthRepository(
         withContext(Dispatchers.IO) { store.clear() }
         _sessionEnded.value = true
         _state.value = AuthState.SignedOut
+        notify(NotificationKind.SESSION_ENDED, emptyMap())
     }
 
     override suspend fun signUp(email: String, password: String): AuthOutcome =
@@ -59,7 +63,7 @@ class ApiAuthRepository(
         }
 
     override suspend fun confirmSignUp(email: String, code: String): AuthOutcome =
-        signedIn(post("auth/verify", body(email) { put("code", code); put("device_name", DEVICE) }))
+        signedIn(post("auth/verify", body(email) { put("code", code); put("device_name", DEVICE) }), NotificationKind.SIGNED_IN)
 
     override suspend fun resendCode(email: String): AuthOutcome =
         when (val r = post("auth/resend", body(email))) {
@@ -68,7 +72,7 @@ class ApiAuthRepository(
         }
 
     override suspend fun signIn(email: String, password: String): AuthOutcome =
-        signedIn(post("auth/login", body(email) { put("password", password); put("device_name", DEVICE) }))
+        signedIn(post("auth/login", body(email) { put("password", password); put("device_name", DEVICE) }), NotificationKind.SIGNED_IN)
 
     override suspend fun requestPasswordReset(email: String): AuthOutcome =
         when (val r = post("auth/forgot", body(email))) {
@@ -77,7 +81,7 @@ class ApiAuthRepository(
         }
 
     override suspend fun resetPassword(email: String, code: String, newPassword: String): AuthOutcome =
-        signedIn(post("auth/reset", body(email) { put("code", code); put("password", newPassword); put("device_name", DEVICE) }))
+        signedIn(post("auth/reset", body(email) { put("code", code); put("password", newPassword); put("device_name", DEVICE) }), NotificationKind.PASSWORD_CHANGED)
 
     override suspend fun signOut() {
         val token = withContext(Dispatchers.IO) { store.read()?.token }
@@ -89,7 +93,7 @@ class ApiAuthRepository(
 
     override suspend fun accessToken(): String? = withContext(Dispatchers.IO) { store.read()?.token }
 
-    private suspend fun signedIn(reply: Reply): AuthOutcome = when (reply) {
+    private suspend fun signedIn(reply: Reply, event: NotificationKind): AuthOutcome = when (reply) {
         is Reply.Error -> failure(reply)
         is Reply.Ok -> {
             val json = reply.json ?: return AuthOutcome.Failed(AuthProblem.UNKNOWN)
@@ -103,6 +107,7 @@ class ApiAuthRepository(
             withContext(Dispatchers.IO) { store.write(session) }
             _sessionEnded.value = false
             _state.value = AuthState.SignedIn(session.userId, session.email)
+            notify(event, mapOf("email" to session.email))
             AuthOutcome.Done
         }
     }

@@ -1,12 +1,13 @@
 package noel.chronova.app.auth
 
-import org.junit.Assert.assertFalse
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import noel.chronova.app.domain.notifications.NotificationKind
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -142,5 +143,24 @@ class ApiAuthRepositoryTest {
         checked.refresh()
         assertEquals(listOf("u-1", "u-1"), seen.map { it.first })
         assertFalse("checked before it is signed in", seen.first().second is AuthState.SignedIn)
+    }
+
+    @Test
+    fun recordsSigningInAPasswordChangeAndAnEndedSession() = runTest {
+        val recorded = mutableListOf<Pair<NotificationKind, Map<String, String>>>()
+        val noted = ApiAuthRepository(server.url("/").toString(), OkHttpClient(), store, notify = { kind, args -> recorded += kind to args })
+        reply(200, signedInBody)
+        noted.signIn("ana@example.com", "pw")
+        reply(200, signedInBody)
+        noted.resetPassword("ana@example.com", "123456", "New-pass-1")
+        noted.endSession()
+        assertEquals(
+            listOf(
+                NotificationKind.SIGNED_IN to mapOf("email" to "ana@example.com"),
+                NotificationKind.PASSWORD_CHANGED to mapOf("email" to "ana@example.com"),
+                NotificationKind.SESSION_ENDED to emptyMap(),
+            ),
+            recorded,
+        )
     }
 }
