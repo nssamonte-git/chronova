@@ -40,6 +40,7 @@ import noel.chronova.app.domain.voice.AICommandHandler
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.HandledProposal
 import noel.chronova.app.domain.voice.PreviewItem
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.navigation.ProjectTimelineRoute
 import noel.chronova.app.voice.AssistantSettings
@@ -69,6 +70,8 @@ data class AssistantUiState(
     val saying: String? = null,
     /** The changes it is asking about, shown under the orb while it waits for yes or no. */
     val proposal: List<PreviewItem> = emptyList(),
+    /** Clashes the proposal would cause, shown under its lines; the assistant names them before asking. */
+    val warnings: List<ScheduleWarning> = emptyList(),
     /** The one-time notice (what goes to ElevenLabs and OpenAI) has been accepted. */
     val noticeAccepted: Boolean = false,
 )
@@ -160,14 +163,14 @@ class AssistantViewModel(
             else -> return run { _message.value = AssistantMessage.NeedsSignIn }
         }
         stopAfterword()
-        ui.update { it.copy(open = true, mode = OrbMode.Listening, heard = null, saying = null, proposal = emptyList()) }
+        ui.update { it.copy(open = true, mode = OrbMode.Listening, heard = null, saying = null, proposal = emptyList(), warnings = emptyList()) }
         conversation = viewModelScope.launch {
             try {
                 converse()
             } finally {
                 recorder.cancel()
                 _level.value = 0f
-                ui.update { it.copy(open = false, proposal = emptyList()) }
+                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
             }
         }
     }
@@ -177,7 +180,7 @@ class AssistantViewModel(
         conversation?.cancel()
         recorder.cancel()
         player.stop()
-        ui.update { it.copy(open = false, proposal = emptyList()) }
+        ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
     }
 
     fun onMicrophoneDenied() {
@@ -204,7 +207,11 @@ class AssistantViewModel(
     }
 
     private sealed interface Outcome {
-        data class Proposal(val items: List<PreviewItem>, val changes: List<ScheduleChange>) : Outcome
+        data class Proposal(
+            val items: List<PreviewItem>,
+            val changes: List<ScheduleChange>,
+            val warnings: List<ScheduleWarning> = emptyList(),
+        ) : Outcome
         data class Question(val text: String) : Outcome
 
         /** [final]: nothing more can be done in this conversation. */
@@ -305,7 +312,11 @@ class AssistantViewModel(
         val proposal = voiceApi.interpret(token(), text, context)
         val now = repository.schedule(projectId) ?: return Outcome.Problem(phrases.scheduleChanged(), final = true)
         return when (val handled = handler.handle(context, now, proposal)) {
-            is HandledProposal.Preview -> Outcome.Proposal(PreviewItem.from(handled.changes, now), handled.changes)
+            is HandledProposal.Preview -> Outcome.Proposal(
+                PreviewItem.from(handled.changes, now),
+                handled.changes,
+                ScheduleWarning.from(handled.changes, now),
+            )
             is HandledProposal.Clarify -> Outcome.Question(handled.question)
             is HandledProposal.Unsupported -> Outcome.Problem(phrases.unsupported(handled.reason))
             is HandledProposal.CannotDo -> Outcome.Problem(
@@ -319,8 +330,9 @@ class AssistantViewModel(
 
     /** Says what will change and asks; the spoken answer, or null if none came. */
     private suspend fun propose(proposal: Outcome.Proposal): String? {
-        ui.update { it.copy(proposal = proposal.items) }
-        speak(explain(proposal.items, ExplainStage.Proposal))
+        ui.update { it.copy(proposal = proposal.items, warnings = proposal.warnings) }
+        // Any clash is named before the question, which then asks whether to apply it anyway.
+        speak(explain(proposal.items, ExplainStage.Proposal, proposal.warnings))
         return listen()
     }
 
@@ -330,7 +342,7 @@ class AssistantViewModel(
             is ApplyResult.Applied -> {
                 _message.value = AssistantMessage.Applied(taskCount(proposal.changes), result.undo)
                 // The orb goes first, so the user sees the timeline while hearing what changed.
-                ui.update { it.copy(open = false, proposal = emptyList()) }
+                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
                 val changed = changedTaskIds(proposal.changes)
                 afterword = viewModelScope.launch {
                     _highlight.value = changed
@@ -345,7 +357,7 @@ class AssistantViewModel(
     }
 
     /** The server's words (and audio) for [items]; null if it couldn't be reached. */
-    private suspend fun explain(items: List<PreviewItem>, stage: ExplainStage): Spoken? = try {
+    private suspend fun explain(items: List<PreviewItem>, stage: ExplainStage, warnings: List<ScheduleWarning> = emptyList()): Spoken? = try {
         val answer = voiceApi.explain(
             token(),
             ExplainRequest.Changes(
@@ -353,6 +365,7 @@ class AssistantViewModel(
                 changes = ExplainedChange.from(items, zone),
                 language = heardLanguage,
                 stage = stage,
+                warnings = warnings,
             ),
         )
         Spoken(answer.text, answer.audio)
@@ -364,7 +377,7 @@ class AssistantViewModel(
 
     /** The proposal was turned down (or not answered): its lines go, so nothing looks applied. */
     private suspend fun declined() {
-        ui.update { it.copy(proposal = emptyList()) }
+        ui.update { it.copy(proposal = emptyList(), warnings = emptyList()) }
         say(phrases.nothingChanged())
     }
 

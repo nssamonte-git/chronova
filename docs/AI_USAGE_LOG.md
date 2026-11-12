@@ -647,3 +647,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - You asked for a greeting: "Hi! How can I help you?" is said when the orb opens, fetched once and then replayed from memory.
 - Multiple tasks: creating two tasks, swapping two tasks (each keeps its length), moving a task onto another and adding a dependency against the current times all worked; overlaps and the broken link were applied without a warning (the link turned red), which led to your next request.
 - Checks: app **199** tests, server **247**.
+
+### Warnings before approval
+
+- You asked for a warning about overlapping schedules before the assistant asks for approval. The app now works out, before asking, which clashes the change would cause (`ScheduleWarning`): a moved or new task overlapping another, and a dependency the change would break (the clash I had pointed out in the multi-task run). Only new clashes count, and a broken link isn't also reported as an overlap of the same tasks. They are shown as amber lines under the change and sent to `/explain` as `warnings`; the spoken proposal names them and asks "Shall I apply it anyway?". A yes still applies (overlaps are allowed), a no changes nothing.
+- **AI mistakes caught by the tests:** the first version reported a link-breaking move twice (as a link and as an overlap), and one of my own test cases used two tasks that already overlapped, so it rightly stayed silent.
+- On the phone with the real providers, predicted first, all as predicted: adding Build (no warning); adding Test 3–5 p.m. over Build → "Note that Test would overlap Build. Shall I apply it anyway?" with the amber line, a spoken no changed nothing, a yes added it; "Test has to finish before Build starts" → "Note that build would start before Test ends. Shall I apply it anyway?", yes → the link drawn red. 21 provider calls, about $0.04. Phone data restored, test account deleted, offline build reinstalled.
+- Checks: app **210** tests, lint 0 errors / 17 warnings; server **261**, Pint clean.

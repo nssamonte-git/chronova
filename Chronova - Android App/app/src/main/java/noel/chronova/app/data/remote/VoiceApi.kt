@@ -14,6 +14,7 @@ import kotlinx.serialization.SerializationException
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -50,6 +51,8 @@ sealed interface ExplainRequest {
         val changes: List<ExplainedChange>,
         override val language: String?,
         val stage: ExplainStage = ExplainStage.Proposal,
+        /** Clashes the proposal would cause; the words name them and ask whether to apply it anyway. */
+        val warnings: List<ScheduleWarning> = emptyList(),
     ) : ExplainRequest
 
     /** A clarifying question, spoken as it is. */
@@ -125,6 +128,7 @@ class OkHttpVoiceApi(
                 changes = request.changes.map { it.toDto() },
                 language = request.language,
                 stage = request.stage.wire,
+                warnings = request.warnings.map { it.toDto() }.ifEmpty { null },
             )
             is ExplainRequest.Question -> ExplainRequestDto(question = request.text, language = request.language)
         }
@@ -193,7 +197,23 @@ internal data class ExplainRequestDto(
     val question: String? = null,
     val language: String? = null,
     val stage: String? = null,
+    val warnings: List<ExplainWarningDto>? = null,
 )
+
+/** Exactly the fields of each kind, like [ExplainChangeDto]. */
+@Serializable
+internal data class ExplainWarningDto(
+    val kind: String,
+    val task: String? = null,
+    val other: String? = null,
+    val predecessor: String? = null,
+    val successor: String? = null,
+)
+
+internal fun ScheduleWarning.toDto() = when (this) {
+    is ScheduleWarning.Overlap -> ExplainWarningDto("overlap", task = task, other = other)
+    is ScheduleWarning.BrokenLink -> ExplainWarningDto("dependency", predecessor = predecessor, successor = successor)
+}
 
 /** Null fields are left out (`explicitNulls = false`): the server wants exactly the fields of each kind. */
 @Serializable

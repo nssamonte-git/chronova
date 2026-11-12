@@ -7,6 +7,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.schedule.ScheduleState
 import noel.chronova.app.domain.voice.ExplainedChange
@@ -138,6 +139,26 @@ class OkHttpVoiceApiTest {
         val body = server.takeRequest().body!!.utf8()
         assertTrue(body, !body.contains("name=\"language\""))
         audio.delete()
+    }
+
+    @Test
+    fun explainSendsTheProposalsClashesWithExactlyTheirFields() = runTest {
+        reply(200, """{"text":"Test will move to 4 p.m. Note that Test would overlap Build. Shall I apply it anyway?"}""")
+        api.explain(
+            "token-1",
+            ExplainRequest.Changes(
+                LocalDate.of(2026, 11, 12),
+                listOf(ExplainedChange("removed", task = "QA")),
+                null,
+                warnings = listOf(ScheduleWarning.Overlap("Test", "Build"), ScheduleWarning.BrokenLink("Design", "Test")),
+            ),
+        )
+
+        assertEquals(
+            """{"today":"2026-11-12","changes":[{"change":"removed","task":"QA"}],"stage":"proposal",""" +
+                """"warnings":[{"kind":"overlap","task":"Test","other":"Build"},{"kind":"dependency","predecessor":"Design","successor":"Test"}]}""",
+            server.takeRequest().body!!.utf8(),
+        )
     }
 
     @Test

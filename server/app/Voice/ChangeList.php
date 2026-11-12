@@ -9,6 +9,9 @@ use Carbon\CarbonImmutable;
  * (docs/voice-api.md), and a plain English summary used when the explainer
  * is unavailable or answers with something unusable: a proposal (what will
  * change, then a question) or what has been applied (past tense, no question).
+ *
+ * A proposal can carry warnings: clashes the change would cause, which the
+ * words name before asking whether to apply it anyway.
  */
 final class ChangeList
 {
@@ -31,6 +34,12 @@ final class ChangeList
 
     public const DATE_TIME_FIELDS = ['fromStart', 'fromEnd', 'toStart', 'toEnd'];
 
+    /** Required fields per kind of warning: a task would overlap another, or a task would start before one it waits for ends. */
+    public const WARNING_FIELDS = [
+        'overlap' => ['task', 'other'],
+        'dependency' => ['predecessor', 'successor'],
+    ];
+
     /** Null when $change has exactly the fields its kind needs, else why not. */
     public static function problem(mixed $change): ?string
     {
@@ -45,7 +54,22 @@ final class ChangeList
         return $keys === $expected ? null : 'wrong fields for '.$change['change'];
     }
 
-    public static function summary(array $changes, string $stage = self::PROPOSAL): string
+    /** Null when $warning has exactly the fields its kind needs, else why not. */
+    public static function warningProblem(mixed $warning): ?string
+    {
+        if (! is_array($warning) || ! isset(self::WARNING_FIELDS[$warning['kind'] ?? null])) {
+            return 'unknown warning';
+        }
+        $keys = array_keys($warning);
+        $expected = ['kind', ...self::WARNING_FIELDS[$warning['kind']]];
+        sort($keys);
+        sort($expected);
+
+        return $keys === $expected ? null : 'wrong fields for '.$warning['kind'];
+    }
+
+    /** @param  array  $warnings  validated warnings; only a proposal mentions them */
+    public static function summary(array $changes, string $stage = self::PROPOSAL, array $warnings = []): string
     {
         $applied = $stage === self::APPLIED;
         $first = $applied ? self::doneSentence($changes[0]) : self::sentence($changes[0]);
@@ -56,7 +80,28 @@ final class ChangeList
             default => " And {$others} other changes.",
         };
 
-        return $applied ? 'Done. '.$first.$rest : $first.$rest.' Shall I apply it?';
+        if ($applied) {
+            return 'Done. '.$first.$rest;
+        }
+        if ($warnings === []) {
+            return $first.$rest.' Shall I apply it?';
+        }
+        $more = count($warnings) - 1;
+        $clash = self::warningSentence($warnings[0]).match (true) {
+            $more === 0 => '',
+            $more === 1 => ' And one other clash.',
+            default => " And {$more} other clashes.",
+        };
+
+        return $first.$rest.' '.$clash.' Shall I apply it anyway?';
+    }
+
+    private static function warningSentence(array $warning): string
+    {
+        return match ($warning['kind']) {
+            'overlap' => "Note that {$warning['task']} would overlap {$warning['other']}.",
+            'dependency' => "Note that {$warning['successor']} would start before {$warning['predecessor']} ends.",
+        };
     }
 
     private static function sentence(array $change): string

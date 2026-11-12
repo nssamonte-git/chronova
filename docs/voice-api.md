@@ -120,9 +120,21 @@ Titles ≤ 200 characters, ≤ 100 changes, local date-times as in `/interpret`.
 
 Clients that send no `stage` get `proposal`. A `question` is spoken as it is and ignores `stage`.
 
+`warnings` (optional, with `changes` only, ≤ 20) are clashes the proposal would cause, worked out by the app against its current data: only new ones, so an overlap or broken link that is already there isn't repeated, and a broken link isn't also listed as an overlap of the same two tasks. With warnings, a proposal names them before asking "Shall I apply it anyway?"; an `applied` explanation ignores them.
+
+| `kind` | Fields (exactly these) | Meaning |
+|---|---|---|
+| `overlap` | `task`, `other` | `task` (moved or added by the change) would overlap `other` in time |
+| `dependency` | `predecessor`, `successor` | `successor` would start before `predecessor`, which it waits for, ends |
+
+```json
+"warnings": [{ "kind": "overlap", "task": "Test", "other": "Build" }]
+```
+→ `Test will be added today from 3 to 5 p.m. Note that Test would overlap Build. Shall I apply it anyway?` (fallback: `… Note that Test would overlap Build. Shall I apply it anyway?`, and "And one other clash." / "And N other clashes." for more).
+
 Response (200): `{"text": "Build will move to 11 a.m. today. Shall I apply it?", "audio": "<base64>", "audioType": "audio/mpeg"}`.
 
-- The words are written by the explainer (at most two sentences, plus the question or "Done.", ≤ 400 characters, checked); if it fails, a plain English summary for the stage is used instead (`Build will move to Thursday 12 November, 11:00 to 12:00. Shall I apply it?` / `Done. Build moved to Thursday 12 November, 11:00 to 12:00.`). The stage's wording is in the explainer's instructions; the changes, titles included, are sent as data. A question is spoken as it is.
+- The words are written by the explainer (at most two sentences, three with warnings, plus the question or "Done.", ≤ 400 characters, checked); if it fails, a plain English summary for the stage is used instead (`Build will move to Thursday 12 November, 11:00 to 12:00. Shall I apply it?` / `Done. Build moved to Thursday 12 November, 11:00 to 12:00.`). The stage's wording is in the explainer's instructions; the changes, titles included, are sent as data. A question is spoken as it is.
 - `audio` and `audioType` are null when speech failed; the text is still returned. The endpoint never fails because a provider did — only for the kill switch, validation, auth and rate limits.
 
 ## Privacy

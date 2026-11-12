@@ -66,6 +66,7 @@ return [
         'tasks' => 300,
         'operations' => 20,
         'explained_changes' => 100,
+        'explained_warnings' => 20,
         'question_chars' => 300,
     ],
 ];

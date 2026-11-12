@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import noel.chronova.app.voice.orb.OrbMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
@@ -41,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import noel.chronova.app.R
 import noel.chronova.app.domain.voice.PreviewItem
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.presentation.TimeFormat
+import noel.chronova.app.voice.orb.OrbMode
 
 /**
  * The voice assistant in the middle of the screen: the large orb over a dimmed
@@ -143,7 +144,22 @@ private fun Captions(state: AssistantUiState, zone: ZoneId) {
                 textAlign = TextAlign.Center,
             )
         }
+        state.warnings.forEach { warning ->
+            Text(
+                warningText(warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFFFC56B),
+                textAlign = TextAlign.Center,
+            )
+        }
     }
+}
+
+/** One clash a proposal would cause, as a caption line. */
+@Composable
+private fun warningText(warning: ScheduleWarning): String = when (warning) {
+    is ScheduleWarning.Overlap -> stringResource(R.string.assistant_warning_overlap, warning.task, warning.other)
+    is ScheduleWarning.BrokenLink -> stringResource(R.string.assistant_warning_link, warning.successor, warning.predecessor)
 }
 
 /** The one-time notice before the first conversation: what goes to ElevenLabs and OpenAI. */

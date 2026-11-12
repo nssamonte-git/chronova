@@ -170,9 +170,23 @@ class VoiceController extends Controller
             'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
             // What the words are for; a question ignores it.
             'stage' => ['nullable', 'string', Rule::in(ChangeList::STAGES)],
+            // Clashes a proposal would cause, named before the question; only with changes.
+            'warnings' => ['nullable', 'prohibits:question', 'array', 'list', 'max:'.$limits['explained_warnings']],
+            'warnings.*' => ['array', function (string $attribute, mixed $value, Closure $fail) {
+                if ($problem = ChangeList::warningProblem($value)) {
+                    $fail($problem);
+                }
+            }],
+            'warnings.*.kind' => ['string'],
+            'warnings.*.task' => $text,
+            'warnings.*.other' => $text,
+            'warnings.*.predecessor' => $text,
+            'warnings.*.successor' => $text,
         ]);
         $language = $data['language'] ?? null;
         $stage = $data['stage'] ?? ChangeList::PROPOSAL;
+        // Once applied there is nothing left to warn about.
+        $warnings = $stage === ChangeList::PROPOSAL ? ($data['warnings'] ?? []) : [];
 
         $kind = 'speak';
         $fallback = false;
@@ -182,11 +196,11 @@ class VoiceController extends Controller
         } else {
             $kind = 'explain';
             try {
-                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage);
+                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage, $warnings);
                 $words = $explanation->text;
                 $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
             } catch (ProviderUnavailable) {
-                $words = ChangeList::summary($data['changes'], $stage);
+                $words = ChangeList::summary($data['changes'], $stage, $warnings);
                 $fallback = true;
             }
         }

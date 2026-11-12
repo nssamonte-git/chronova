@@ -27,6 +27,7 @@ import noel.chronova.app.data.remote.SpokenAnswer
 import noel.chronova.app.data.remote.Transcript
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.schedule.CommandProblem
 import noel.chronova.app.domain.voice.Proposal
@@ -235,6 +236,35 @@ class AssistantViewModelTest {
         viewModel.undo()
         advanceUntilIdle()
         assertEquals(originalReview, review)
+    }
+
+    @Test
+    fun aClashIsShownAndNamedBeforeAskingAndOnlyAYesAppliesIt() = runTest(dispatcher) {
+        api.answer = shift(-1) // Review 15:00–16:00 runs into QA Testing (13:30–16:00)
+        player.holdIn = this
+        val shownWhileAsking = mutableListOf<List<ScheduleWarning>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.state.collect { if (it.proposal.isNotEmpty()) shownWhileAsking += it.warnings }
+        }
+        says("move review an hour earlier", "yes")
+        talk()
+
+        val overlap = listOf(ScheduleWarning.Overlap("Review", "QA Testing"))
+        val sent = api.explained.filterIsInstance<ExplainRequest.Changes>()
+        assertEquals(listOf(ExplainStage.Proposal, ExplainStage.Applied), sent.map { it.stage })
+        assertEquals(overlap, sent[0].warnings)
+        assertEquals(emptyList<ScheduleWarning>(), sent[1].warnings) // once applied, nothing to warn about
+        assertTrue(shownWhileAsking.isNotEmpty() && shownWhileAsking.all { it == overlap })
+        assertEquals(originalReview.startMillis - 3_600_000L, review.startMillis)
+        assertEquals(emptyList<ScheduleWarning>(), viewModel.state.value.warnings)
+    }
+
+    @Test
+    fun aChangeWithoutClashesSendsNoWarnings() = runTest(dispatcher) {
+        api.answer = shift(1) // Review 17:00–18:00, after everything else
+        says("push review by an hour", "no")
+        talk()
+        assertEquals(listOf(emptyList<ScheduleWarning>()), api.explained.filterIsInstance<ExplainRequest.Changes>().map { it.warnings })
     }
 
     @Test

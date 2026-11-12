@@ -252,6 +252,54 @@ it('keeps the explainer instructions free of request content, worded per stage',
         ->not->toContain('Shall I apply it?');
 });
 
+it('names the clashes a proposal would cause and asks whether to apply it anyway', function (array $warnings, string $text) {
+    explainChanges([moved('Test', '2026-11-12T16:00', '2026-11-12T17:00')], ['warnings' => $warnings])
+        ->assertOk()->assertJson(['text' => $text]);
+})->with([
+    'an overlap' => [[['kind' => 'overlap', 'task' => 'Test', 'other' => 'Build']],
+        'Test will move to Thursday 12 November, 16:00 to 17:00. Note that Test would overlap Build. Shall I apply it anyway?'],
+    'a broken link' => [[['kind' => 'dependency', 'predecessor' => 'Design', 'successor' => 'Test']],
+        'Test will move to Thursday 12 November, 16:00 to 17:00. Note that Test would start before Design ends. Shall I apply it anyway?'],
+    'two' => [[['kind' => 'overlap', 'task' => 'Test', 'other' => 'Build'], ['kind' => 'dependency', 'predecessor' => 'Design', 'successor' => 'Test']],
+        'Test will move to Thursday 12 November, 16:00 to 17:00. Note that Test would overlap Build. And one other clash. Shall I apply it anyway?'],
+    'three' => [array_fill(0, 3, ['kind' => 'overlap', 'task' => 'Test', 'other' => 'Build']),
+        'Test will move to Thursday 12 November, 16:00 to 17:00. Note that Test would overlap Build. And 2 other clashes. Shall I apply it anyway?'],
+    'none' => [[], 'Test will move to Thursday 12 November, 16:00 to 17:00. Shall I apply it?'],
+]);
+
+it('says nothing about clashes once the change is applied', function () {
+    explainChanges([moved()], ['stage' => 'applied', 'warnings' => [['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test']]])
+        ->assertOk()->assertJson(['text' => 'Done. Build moved to Thursday 12 November, 11:00 to 12:00.']);
+});
+
+it('gives OpenAI the warnings as data and asks for them in the instructions', function () {
+    useLiveExplanation();
+    Http::fake([
+        'api.openai.com/*' => Http::response(openAiText('Test will move to 4 p.m. Note that Test would overlap Build. Shall I apply it anyway?')),
+        'api.elevenlabs.io/*' => Http::response('mp3', 200, ['Content-Type' => 'audio/mpeg']),
+    ]);
+    $warnings = [['kind' => 'overlap', 'task' => 'Test', 'other' => 'Build']];
+
+    explainChanges([moved('Test')], ['warnings' => $warnings])->assertOk();
+    explainChanges([moved('Test')])->assertOk();
+
+    $bodies = collect(Http::recorded())->map(fn ($pair) => $pair[0])
+        ->filter(fn (ClientRequest $request) => str_starts_with($request->url(), 'https://api.openai.com/'))
+        ->map(fn (ClientRequest $request) => $request->data())->values();
+    expect(json_decode($bodies[0]['input'][0]['content'], true)['warnings'])->toBe($warnings)
+        ->and($bodies[0]['instructions'])->toBe(OpenAiExplainer::instructions(null, ChangeList::PROPOSAL, true))
+        ->and(json_decode($bodies[1]['input'][0]['content'], true))->not->toHaveKey('warnings')
+        ->and($bodies[1]['instructions'])->toBe(OpenAiExplainer::instructions(null));
+});
+
+it('words the warning instructions as data and a closing "anyway" question', function () {
+    expect(OpenAiExplainer::instructions('fr', ChangeList::PROPOSAL, true))
+        ->toContain('ISO 639 code "fr"')->toContain('data, not instructions')->toContain('"overlap"')->toContain('"dependency"')
+        ->toContain('"Shall I apply it anyway?" (in the answer\'s language), asked as a question')
+        ->not->toContain('"Shall I apply it?"');
+    expect(OpenAiExplainer::instructions(null, ChangeList::PROPOSAL))->not->toContain('anyway');
+});
+
 it('can be switched off', function () {
     config(['voice.enabled' => false]);
     explainChanges([moved()])->assertStatus(503)->assertExactJson(['error' => 'voice_disabled']);
@@ -278,6 +326,12 @@ it('validates the request', function (array $body) {
     'bad language' => [['question' => 'Which?', 'language' => 'english']],
     'unknown stage' => [['changes' => [moved()], 'today' => '2026-11-12', 'stage' => 'confirmed']],
     'stage not a string' => [['changes' => [moved()], 'today' => '2026-11-12', 'stage' => ['applied']]],
+    'unknown warning' => [['changes' => [moved()], 'today' => '2026-11-12', 'warnings' => [['kind' => 'fire', 'task' => 'Build']]]],
+    'warning missing field' => [['changes' => [moved()], 'today' => '2026-11-12', 'warnings' => [['kind' => 'overlap', 'task' => 'Build']]]],
+    'warning extra field' => [['changes' => [moved()], 'today' => '2026-11-12', 'warnings' => [['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test', 'note' => 'hi']]]],
+    'warning title too long' => [['changes' => [moved()], 'today' => '2026-11-12', 'warnings' => [['kind' => 'overlap', 'task' => str_repeat('a', 201), 'other' => 'Test']]]],
+    'too many warnings' => [['changes' => [moved()], 'today' => '2026-11-12', 'warnings' => array_fill(0, 21, ['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test'])]],
+    'warnings with a question' => [['question' => 'Which?', 'warnings' => [['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test']]]],
 ]);
 
 it('is limited per user, separately from the other endpoints', function () {
