@@ -11,7 +11,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import noel.chronova.core.domain.SampleTasks
-import noel.chronova.core.domain.TaskProblem
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
@@ -109,7 +108,7 @@ class ProjectTimelineViewModelTest {
         val edited = before[1].copy(startMillis = at(10), endMillis = at(13))
         viewModel.commitEdit(before[1], edited)
 
-        assertEquals(listOf(edited), repository.updates)
+        assertEquals(listOf(edited), repository.updates.map { it.toUi() })
         val after = state().tasks
         assertEquals(before.map { it.id }, after.map { it.id })
         assertEquals(edited, after[1])
@@ -120,25 +119,24 @@ class ProjectTimelineViewModelTest {
         val state = timeline()
         val shown = state().tasks[1]
         // A sync changes the task in the repository; the screen hasn't caught up yet.
-        val synced = shown.copy(title = "Changed by sync")
+        val synced = repository.tasks.value.single { it.id == shown.id }.copy(title = "Changed by sync")
         repository.tasks.value = repository.tasks.value.map { if (it.id == shown.id) synced else it }
         val fresh = state().tasks[1]
-        assertEquals(synced, fresh)
+        assertEquals(synced.toUi(), fresh)
         // The edit was worked out from the copy the user saw before the sync.
         viewModel.commitEdit(shown, shown.copy(startMillis = at(10), endMillis = at(13)))
 
         assertEquals(TimelineNotice.EditNotSaved, viewModel.notice.value)
-        assertEquals(synced, state().tasks[1])
+        assertEquals(synced.toUi(), state().tasks[1])
         viewModel.dismissNotice()
         assertNull(viewModel.notice.value)
     }
 
     @Test
-    fun commitEdit_ignoresUnknownTaskOrOtherProject() = runTest {
+    fun commitEdit_ignoresUnknownTask() = runTest {
         val state = timeline()
         val task = state().tasks[0]
         viewModel.commitEdit(task, task.copy(id = "missing"))
-        viewModel.commitEdit(task, task.copy(projectId = "other"))
         assertTrue(repository.updates.isEmpty())
     }
 
@@ -195,7 +193,7 @@ class ProjectTimelineViewModelTest {
         val added = state().tasks.last()
         assertEquals("Launch", added.title)
         assertEquals(TaskColor.GREEN, added.color)
-        assertEquals(4, added.sortOrder)
+        assertEquals(4, repository.tasks.value.single { it.id == added.id }.sortOrder) // the stored row order
         assertEquals(added.id, state().selectedTaskId)
         assertNull(viewModel.taskEditor.value)
     }
@@ -214,12 +212,12 @@ class ProjectTimelineViewModelTest {
         viewModel.startEditTask("review")
         viewModel.onTaskEndChange(at(16, 10))
         viewModel.saveTask()
-        assertEquals(TaskProblem.TooShort(15), viewModel.taskEditor.value?.problem)
+        assertEquals(TaskProblemUi.TooShort(15), viewModel.taskEditor.value?.problem)
         assertTrue(repository.updates.isEmpty())
 
         viewModel.onTaskEndChange(at(0) + 4 * 24 * 60 * 60_000L) // past the project end
         viewModel.saveTask()
-        assertEquals(TaskProblem.OutsideProject, viewModel.taskEditor.value?.problem)
+        assertEquals(TaskProblemUi.OutsideProject, viewModel.taskEditor.value?.problem)
     }
 
     @Test
@@ -235,7 +233,7 @@ class ProjectTimelineViewModelTest {
         assertEquals(at(16), review.startMillis)
         assertEquals(at(18), review.endMillis)
         assertEquals(TaskColor.PURPLE, review.color)
-        assertEquals(3, review.sortOrder)
+        assertEquals(3, repository.tasks.value.single { it.id == "review" }.sortOrder) // the stored row order
     }
 
     @Test

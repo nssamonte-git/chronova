@@ -58,7 +58,7 @@ class SnapGridTest {
     fun moveWithDayGridKeepsDurationAndLandsOnMidnight() {
         val window = noel.chronova.core.model.TimelineWindow(0L, 30 * 24 * HOUR)
         val grid = SnapGrid.of(24 * 60, 0L, ZoneOffset.UTC)
-        val task = noel.chronova.core.model.SchedulerTask("t", "p", "T", 2 * 24 * HOUR, 4 * 24 * HOUR)
+        val task = TimeSpan(2 * 24 * HOUR, 4 * 24 * HOUR)
         val moved = TaskEdits.move(task, 30 * HOUR, grid, window) // +1.25 days -> +1 day
         assertEquals(3 * 24 * HOUR, moved.startMillis)
         assertEquals(task.durationMillis, moved.durationMillis)

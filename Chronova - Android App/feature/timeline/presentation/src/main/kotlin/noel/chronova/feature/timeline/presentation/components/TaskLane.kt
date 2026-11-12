@@ -25,16 +25,16 @@ import java.time.ZoneId
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import noel.chronova.core.designsystem.toColor
+import noel.chronova.core.model.TimelineWindow
 import noel.chronova.core.timeline.GestureMode
 import noel.chronova.core.timeline.HandleHitTest
 import noel.chronova.core.timeline.SnapGrid
 import noel.chronova.core.timeline.TaskEdits
 import noel.chronova.core.timeline.TimelineMath
 import noel.chronova.core.timeline.ViewportMath
-import noel.chronova.core.model.SchedulerTask
-import noel.chronova.core.model.TimelineWindow
 import noel.chronova.core.ui.TimeFormat
-import noel.chronova.core.designsystem.toColor
+import noel.chronova.feature.timeline.presentation.TaskUi
 
 private val MinBarWidth = 4.dp
 
@@ -56,7 +56,7 @@ private val HandleInset = 20.dp
  */
 @Composable
 fun TaskLane(
-    task: SchedulerTask,
+    task: TaskUi,
     selected: Boolean,
     window: TimelineWindow,
     zone: ZoneId,
@@ -65,12 +65,12 @@ fun TaskLane(
     viewport: TimelineViewportState,
     onSelect: (String) -> Unit,
     /** A finished drag: the task as it was when the drag started, and as edited. */
-    onCommit: (original: SchedulerTask, edited: SchedulerTask) -> Unit,
+    onCommit: (original: TaskUi, edited: TaskUi) -> Unit,
     modifier: Modifier = Modifier,
     /** Just changed by the assistant. */
     highlighted: Boolean = false,
 ) {
-    var preview by remember { mutableStateOf<SchedulerTask?>(null) }
+    var preview by remember { mutableStateOf<TaskUi?>(null) }
     var dragging by remember { mutableStateOf(false) }
     val shown = preview ?: task
 
@@ -148,12 +148,14 @@ fun TaskLane(
                             currentOnSelect(original.id)
                         },
                         onDrag = { totalDx ->
-                            val next = TaskEdits.apply(
-                                mode = mode,
-                                original = original,
-                                deltaMillis = TimelineMath.pxToMillis(totalDx, currentPxPerMinute),
-                                grid = currentGrid,
-                                window = currentWindow,
+                            val next = original.withSpan(
+                                TaskEdits.apply(
+                                    mode = mode,
+                                    original = original.span,
+                                    deltaMillis = TimelineMath.pxToMillis(totalDx, currentPxPerMinute),
+                                    grid = currentGrid,
+                                    window = currentWindow,
+                                ),
                             )
                             val previous = preview ?: original
                             if (next.startMillis != previous.startMillis || next.endMillis != previous.endMillis) {

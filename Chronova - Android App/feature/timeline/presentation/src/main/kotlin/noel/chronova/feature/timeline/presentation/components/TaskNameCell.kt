@@ -20,15 +20,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
-import noel.chronova.feature.timeline.presentation.R
-import noel.chronova.core.model.SchedulerTask
-import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.designsystem.toColor
+import noel.chronova.core.ui.TimeFormat
+import noel.chronova.feature.timeline.presentation.R
+import noel.chronova.feature.timeline.presentation.TaskUi
 
 /** The fixed left cell of a timeline row: colour dot, title and time range. Tapping it edits the task. */
 @Composable
 fun TaskNameCell(
-    task: SchedulerTask,
+    task: TaskUi,
     zone: ZoneId,
     rowHeight: Dp,
     onClick: () -> Unit,

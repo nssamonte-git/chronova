@@ -1,6 +1,5 @@
 package noel.chronova.feature.timeline.presentation.components
 
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -23,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -44,11 +44,11 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.max
-import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.core.timeline.TaskVisibility
 import noel.chronova.core.timeline.TimelineMath
-import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.ui.TimeFormat
+import noel.chronova.feature.timeline.presentation.R
+import noel.chronova.feature.timeline.presentation.TaskUi
 import noel.chronova.feature.timeline.presentation.TimelineUiState
 
 private val NameColumnWidth = 128.dp
@@ -69,7 +69,7 @@ private val HeaderHeight = 44.dp
 fun SchedulerTimeline(
     state: TimelineUiState,
     onSelectTask: (String?) -> Unit,
-    onCommitEdit: (original: SchedulerTask, edited: SchedulerTask) -> Unit,
+    onCommitEdit: (original: TaskUi, edited: TaskUi) -> Unit,
     onEditTask: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -114,7 +114,7 @@ fun SchedulerTimeline(
             val shownTasks by remember(state.tasks, keep, pxPerMinute, window.startMillis, viewportWidthPx) {
                 derivedStateOf {
                     val visible = TaskVisibility.visibleSpan(viewport.scrollX, viewportWidthPx, window.startMillis, pxPerMinute)
-                    TaskVisibility.onScreen(state.tasks, visible, keep)
+                    TaskVisibility.onScreen(state.tasks, visible, keep, id = { it.id }, start = { it.startMillis }, end = { it.endMillis })
                 }
             }
 

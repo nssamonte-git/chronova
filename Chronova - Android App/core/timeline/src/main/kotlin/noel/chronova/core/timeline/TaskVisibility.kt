@@ -1,10 +1,5 @@
 package noel.chronova.core.timeline
 
-import noel.chronova.core.model.SchedulerTask
-
-/** A span of time, [startMillis] inclusive to [endMillis] exclusive. */
-data class TimeSpan(val startMillis: Long, val endMillis: Long)
-
 /**
  * Which tasks the timeline lists: only those whose time overlaps what is on screen,
  * so scrolling to another day doesn't leave rows for tasks that aren't there.
@@ -20,11 +15,19 @@ object TaskVisibility {
     }
 
     /**
-     * The [tasks] that overlap [visible] (a task that only touches its edge doesn't), plus the
+     * The [items] that overlap [visible] (one that only touches its edge doesn't), plus the
      * ones in [keep] wherever they are, in their original order. Everything while [visible] is null.
+     * [id], [start] and [end] read an item's id and times, so any task type can be filtered.
      */
-    fun onScreen(tasks: List<SchedulerTask>, visible: TimeSpan?, keep: Set<String> = emptySet()): List<SchedulerTask> {
-        if (visible == null) return tasks
-        return tasks.filter { it.id in keep || (it.startMillis < visible.endMillis && it.endMillis > visible.startMillis) }
+    fun <T> onScreen(
+        items: List<T>,
+        visible: TimeSpan?,
+        keep: Set<String> = emptySet(),
+        id: (T) -> String,
+        start: (T) -> Long,
+        end: (T) -> Long,
+    ): List<T> {
+        if (visible == null) return items
+        return items.filter { id(it) in keep || (start(it) < visible.endMillis && end(it) > visible.startMillis) }
     }
 }

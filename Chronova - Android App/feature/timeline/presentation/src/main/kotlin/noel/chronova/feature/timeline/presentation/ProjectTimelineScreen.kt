@@ -46,7 +46,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.ZoneOffset
-import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.ui.assistant.AssistantSlot
 import noel.chronova.core.model.TimeScale
 import noel.chronova.feature.timeline.presentation.components.SchedulerTimeline
@@ -124,7 +123,7 @@ fun ProjectTimelineScreen(
 data class TimelineActions(
     val onBack: () -> Unit = {},
     val onSelectTask: (String?) -> Unit = {},
-    val onCommitEdit: (original: SchedulerTask, edited: SchedulerTask) -> Unit = { _, _ -> },
+    val onCommitEdit: (original: TaskUi, edited: TaskUi) -> Unit = { _, _ -> },
     val onTimeScale: (TimeScale) -> Unit = {},
     val onZoomIn: () -> Unit = {},
     val onZoomOut: () -> Unit = {},

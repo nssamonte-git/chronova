@@ -15,6 +15,9 @@ internal object Fixtures {
     fun at(hour: Int, minute: Int = 0): Long =
         day.atTime(LocalTime.of(hour, minute)).toInstant(ZoneOffset.UTC).toEpochMilli()
 
+    /** A task's time span, as the gesture engine edits it. */
+    fun span(startH: Int, startM: Int, endH: Int, endM: Int) = TimeSpan(at(startH, startM), at(endH, endM))
+
     fun task(startH: Int, startM: Int, endH: Int, endM: Int) =
         SchedulerTask("t", "p", "Task", at(startH, startM), at(endH, endM))
 }

@@ -16,11 +16,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import noel.chronova.core.model.SchedulerTask
+import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
 import noel.chronova.core.domain.schedule.ApplyResult
+import noel.chronova.feature.timeline.domain.ProjectSchedule
 import noel.chronova.feature.timeline.domain.TimelineUseCases
 
 /**
@@ -54,6 +55,13 @@ class ProjectTimelineViewModel(
     /** The last change set that can be undone, offered until [dismissUndo]. */
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
 
+    /** What undoing the offered change applies. */
+    private var undoChanges: List<ScheduleChange> = emptyList()
+    private var undoOffers = 0L
+
+    /** The schedule as the domain has it, behind what the screen shows; edits are made against it. */
+    private var schedule: ProjectSchedule? = null
+
     val state: StateFlow<TimelineScreenState> = combine(
         useCases.observeSchedule(projectId),
         config,
@@ -65,17 +73,18 @@ class ProjectTimelineViewModel(
             // Waiting for saved settings, so the first frame is already at the right scale and zoom.
             TimelineScreenState.Loading
         } else {
+            this.schedule = schedule
             val (project, tasks, dependencies) = schedule
             TimelineScreenState.Ready(
                 TimelineUiState(
                     projectName = project.name,
-                    tasks = tasks,
+                    tasks = tasks.map { it.toUi() },
                     window = project.window(zone),
                     zone = zone,
                     config = config,
                     // A selection whose task disappeared is dropped.
                     selectedTaskId = selected?.takeIf { id -> tasks.any { it.id == id } },
-                    dependencies = dependencies,
+                    dependencies = tasks.associateBy { it.id }.let { byId -> dependencies.map { it.toUi(byId) } },
                 ),
             )
         }
@@ -92,13 +101,15 @@ class ProjectTimelineViewModel(
      * sync), the edit is refused and the user told. Tasks that aren't in this
      * project are ignored.
      */
-    fun commitEdit(original: SchedulerTask, updated: SchedulerTask) {
-        val ready = state.value as? TimelineScreenState.Ready ?: return
-        if (ready.timeline.tasks.none { it.id == updated.id }) return
-        if (updated.projectId != projectId || original.id != updated.id || original.projectId != projectId) return
-        if (original == updated) return
+    fun commitEdit(original: TaskUi, updated: TaskUi) {
+        if (state.value !is TimelineScreenState.Ready) return
+        if (original.id != updated.id || original == updated) return
+        val current = schedule?.tasks?.firstOrNull { it.id == updated.id } ?: return
+        // The domain task as the drag started from: what the screen showed then, the rest as stored.
+        val from = current.copy(title = original.title, startMillis = original.startMillis, endMillis = original.endMillis, color = original.color)
+        val to = from.copy(startMillis = updated.startMillis, endMillis = updated.endMillis)
         viewModelScope.launch {
-            val result = useCases.commitEdit(projectId, original, updated)
+            val result = useCases.commitEdit(projectId, from, to)
             if (result is ApplyResult.Rejected) _notice.value = TimelineNotice.EditNotSaved
         }
     }
@@ -139,7 +150,7 @@ class ProjectTimelineViewModel(
             endMillis = task.endMillis,
             color = task.color,
             predecessorIds = timeline.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
-            forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, timeline.dependencies),
+            forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, schedule?.dependencies.orEmpty()),
         )
     }
 
@@ -172,7 +183,7 @@ class ProjectTimelineViewModel(
         val timeline = readyTimeline() ?: return
         val problem = useCases.validateTask(entered.title, entered.startMillis, entered.endMillis, timeline.window)
         if (problem != null) {
-            _taskEditor.value = entered.copy(problem = problem)
+            _taskEditor.value = entered.copy(problem = problem.toUi())
             return
         }
         _taskEditor.value = entered.copy(saving = true)
@@ -180,7 +191,7 @@ class ProjectTimelineViewModel(
             val taskId = useCases.saveTask(
                 projectId = projectId,
                 taskId = entered.taskId,
-                existing = entered.taskId?.let { id -> timeline.tasks.firstOrNull { it.id == id } },
+                existing = entered.taskId?.let { id -> schedule?.tasks?.firstOrNull { it.id == id } },
                 title = entered.title,
                 startMillis = entered.startMillis,
                 endMillis = entered.endMillis,
@@ -195,13 +206,16 @@ class ProjectTimelineViewModel(
     /** Deletes the task being edited, with its links, and offers undo. */
     fun deleteEditingTask() {
         val taskId = _taskEditor.value?.taskId ?: return
-        val timeline = readyTimeline() ?: return
-        val task = timeline.tasks.firstOrNull { it.id == taskId } ?: return
+        val current = schedule ?: return
+        val task = current.tasks.firstOrNull { it.id == taskId } ?: return
         _taskEditor.value = null
         // Saved through the shared apply path; a refusal (the schedule changed meanwhile) is reported.
         viewModelScope.launch {
-            when (val result = useCases.deleteTask(projectId, task, timeline.dependencies)) {
-                is ApplyResult.Applied -> _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, result.undo)
+            when (val result = useCases.deleteTask(projectId, task, current.dependencies)) {
+                is ApplyResult.Applied -> {
+                    undoChanges = result.undo
+                    _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, id = ++undoOffers)
+                }
                 is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
             }
         }
@@ -209,10 +223,12 @@ class ProjectTimelineViewModel(
 
     /** Reverses the offered change set, unless those tasks were edited again since. */
     fun undo() {
-        val offer = _undoOffer.value ?: return
+        if (_undoOffer.value == null) return
+        val changes = undoChanges
         _undoOffer.value = null
+        undoChanges = emptyList()
         viewModelScope.launch {
-            if (useCases.undo(projectId, offer.changes) is ApplyResult.Rejected) _notice.value = TimelineNotice.UndoNotPossible
+            if (useCases.undo(projectId, changes) is ApplyResult.Rejected) _notice.value = TimelineNotice.UndoNotPossible
         }
     }
 

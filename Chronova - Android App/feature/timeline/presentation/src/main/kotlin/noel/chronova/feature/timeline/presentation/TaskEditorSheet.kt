@@ -62,8 +62,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import noel.chronova.core.domain.TaskProblem
-import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimelineWindow
 import noel.chronova.core.ui.TimeFormat
@@ -77,7 +75,7 @@ private enum class Picking { START_DATE, START_TIME, END_DATE, END_TIME }
 @Composable
 fun TaskEditorSheet(
     editor: TaskEditorState,
-    otherTasks: List<SchedulerTask>,
+    otherTasks: List<TaskUi>,
     window: TimelineWindow,
     zone: ZoneId,
     onTogglePredecessor: (String) -> Unit,
@@ -118,7 +116,7 @@ fun TaskEditorSheet(
                 onValueChange = onTitleChange,
                 label = { Text(stringResource(R.string.task_title)) },
                 singleLine = true,
-                isError = editor.problem == TaskProblem.BlankTitle,
+                isError = editor.problem == TaskProblemUi.BlankTitle,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -199,7 +197,7 @@ private fun DateTimeRow(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PredecessorChoice(
-    tasks: List<SchedulerTask>,
+    tasks: List<TaskUi>,
     selected: Set<String>,
     forbidden: Set<String>,
     onToggle: (String) -> Unit,
@@ -317,11 +315,11 @@ private fun TimeDialog(
 }
 
 @Composable
-private fun problemText(problem: TaskProblem): String = when (problem) {
-    TaskProblem.BlankTitle -> stringResource(R.string.task_problem_blank_title)
-    TaskProblem.EndNotAfterStart -> stringResource(R.string.task_problem_end_not_after_start)
-    is TaskProblem.TooShort -> pluralStringResource(R.plurals.task_problem_too_short, problem.minMinutes, problem.minMinutes)
-    TaskProblem.OutsideProject -> stringResource(R.string.task_problem_outside_project)
+private fun problemText(problem: TaskProblemUi): String = when (problem) {
+    TaskProblemUi.BlankTitle -> stringResource(R.string.task_problem_blank_title)
+    TaskProblemUi.EndNotAfterStart -> stringResource(R.string.task_problem_end_not_after_start)
+    is TaskProblemUi.TooShort -> pluralStringResource(R.plurals.task_problem_too_short, problem.minMinutes, problem.minMinutes)
+    TaskProblemUi.OutsideProject -> stringResource(R.string.task_problem_outside_project)
 }
 
 private fun LocalDate.toPickerMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

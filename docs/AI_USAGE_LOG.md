@@ -876,3 +876,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Tests changed only where they build or read the screen state directly: `AccountViewModelTest`, `ProjectListViewModelTest`, `SyncViewModelTest`, one `AssistantViewModelTest` case (warning type), `SyncStatusUiTest` and `RotationStateTest`.
   - AI mistake: a test-rewrite check was stricter than the change (it matched the class name `SyncStatusUiTest`) and stopped the script once; rerun without it.
   - Checks: 326 unit tests (from 314), lint 0 errors / 21 warnings, module graph OK; on the phone the screen tests passed unchanged (projects 6, notifications 8, account 10, sync 5) and `:core:ui` 9/9.
+- Timeline on UI models (batch D):
+  - `:core:timeline` now works on time spans instead of tasks: `TaskEdits` takes and returns a `TimeSpan` (moved to its own file, with `durationMillis`), and `TaskVisibility.onScreen` is generic with id and time selectors. Same 51 tests, rewritten onto spans.
+  - New `TaskUi` (with `span`/`withSpan` for the gesture engine), `DependencyUi` (whether a link is broken is worked out by the domain rule in the mapper) and `TaskProblemUi`. `TimelineUiState`, `TaskLane`, `SchedulerTimeline`, `TaskNameCell`, `DependencyArrows`, the screen and the editor render only these.
+  - The ViewModel keeps the domain schedule privately. A finished drag goes back to domain terms by id, as the times the screen showed when the drag started plus the stored fields, so the "changed meanwhile" refusal still works. The undo offer keeps its changes in the ViewModel and gets a sequence id, so two deletes in a row each show their snackbar.
+  - `TimelineUiState.sample` builds from the mapper, so the state file no longer imports the domain.
+  - ViewModel tests changed only where they compared screen state with domain tasks; one case was dropped because a screen task can no longer name another project.
+  - Checks: 330 unit tests, lint 0 errors / 21 warnings, module graph OK. On the phone the 16 timeline screen tests (drag/resize included) passed unchanged, and the app's 11 device tests passed (pinch, rotation, Room) with the server-URL build; data restored.

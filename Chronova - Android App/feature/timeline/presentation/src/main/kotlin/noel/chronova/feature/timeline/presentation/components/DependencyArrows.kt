@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import noel.chronova.core.timeline.TimelineMath
-import noel.chronova.core.model.SchedulerTask
-import noel.chronova.core.model.TaskDependency
+import noel.chronova.feature.timeline.presentation.DependencyUi
+import noel.chronova.feature.timeline.presentation.TaskUi
 
 /**
  * Finish-to-start arrows over the bar lanes, from each predecessor's end to its
@@ -28,8 +28,8 @@ import noel.chronova.core.model.TaskDependency
  */
 @Composable
 fun DependencyArrows(
-    tasks: List<SchedulerTask>,
-    dependencies: List<TaskDependency>,
+    tasks: List<TaskUi>,
+    dependencies: List<DependencyUi>,
     originMillis: Long,
     pxPerMinute: Float,
     rowHeight: Dp,
@@ -78,7 +78,7 @@ fun DependencyArrows(
                 }
                 lineTo(endX, endY)
             }
-            val color = if (link.isViolated(from, to)) violated else normal
+            val color = if (link.violated) violated else normal
             drawPath(path, color, style = stroke)
             // Arrowhead pointing right, into the successor's start.
             val arrow = Path().apply {

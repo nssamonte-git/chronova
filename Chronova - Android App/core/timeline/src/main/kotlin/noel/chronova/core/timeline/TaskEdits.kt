@@ -1,12 +1,11 @@
 package noel.chronova.core.timeline
 
-import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TimelineWindow
 
 /**
- * Pure task transformations for drag and resize.
+ * Pure time-span transformations for dragging and resizing a task.
  *
- * Every function takes the task as it was at **gesture start** plus the **total**
+ * Every function takes the task's time span as it was at **gesture start** plus the **total**
  * delta since then. Recomputing from the original on every pointer event (instead of
  * applying small snapped increments) avoids cumulative rounding: a slow drag of
  * less than half a snap interval per event would otherwise never move at all.
@@ -23,11 +22,11 @@ object TaskEdits {
      * end the start stops at the last grid line that still fits the whole task.
      */
     fun move(
-        original: SchedulerTask,
+        original: TimeSpan,
         deltaMillis: Long,
         grid: SnapGrid,
         window: TimelineWindow,
-    ): SchedulerTask {
+    ): TimeSpan {
         val duration = original.durationMillis
         val start = grid.nearest(original.startMillis + deltaMillis)
             .coerceAtMost(grid.floor(window.endMillis - duration))
@@ -40,11 +39,11 @@ object TaskEdits {
      * The start stops at the last grid line that leaves at least the minimum duration.
      */
     fun resizeStart(
-        original: SchedulerTask,
+        original: TimeSpan,
         deltaMillis: Long,
         grid: SnapGrid,
         window: TimelineWindow,
-    ): SchedulerTask {
+    ): TimeSpan {
         val start = grid.nearest(original.startMillis + deltaMillis)
             .coerceAtLeast(window.startMillis)
             .coerceAtMost(grid.floor(original.endMillis - MIN_DURATION_MILLIS))
@@ -56,11 +55,11 @@ object TaskEdits {
      * The end stops at the first grid line that leaves at least the minimum duration.
      */
     fun resizeEnd(
-        original: SchedulerTask,
+        original: TimeSpan,
         deltaMillis: Long,
         grid: SnapGrid,
         window: TimelineWindow,
-    ): SchedulerTask {
+    ): TimeSpan {
         val end = grid.nearest(original.endMillis + deltaMillis)
             .coerceAtMost(window.endMillis)
             .coerceAtLeast(grid.ceil(original.startMillis + MIN_DURATION_MILLIS))
@@ -70,11 +69,11 @@ object TaskEdits {
     /** Dispatches on [mode] so the gesture layer has a single entry point. */
     fun apply(
         mode: GestureMode,
-        original: SchedulerTask,
+        original: TimeSpan,
         deltaMillis: Long,
         grid: SnapGrid,
         window: TimelineWindow,
-    ): SchedulerTask = when (mode) {
+    ): TimeSpan = when (mode) {
         GestureMode.MOVE -> move(original, deltaMillis, grid, window)
         GestureMode.RESIZE_START -> resizeStart(original, deltaMillis, grid, window)
         GestureMode.RESIZE_END -> resizeEnd(original, deltaMillis, grid, window)
