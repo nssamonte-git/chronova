@@ -15,6 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import android.text.format.DateUtils
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentType
@@ -53,7 +58,8 @@ import noel.chronova.app.presentation.sync.syncStatusText
 /** Sign up, confirm, sign in and sign out for sync. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
+/** [onBack] null: the sign-in page that opens the app (no way back, the app's name and logo). */
+fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
     val dialog by viewModel.dialog.collectAsStateWithLifecycle()
@@ -61,10 +67,12 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.account_title)) },
+                title = { Text(stringResource(if (onBack == null) R.string.app_name else R.string.account_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
             )
@@ -86,11 +94,21 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                if (onBack == null) {
+                    Image(
+                        painterResource(R.drawable.brand_splash_logo),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .align(Alignment.CenterHorizontally),
+                    )
+                }
                 when (val state = authState) {
                     AuthState.NotConfigured -> Explanation(stringResource(R.string.account_not_configured))
                     AuthState.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
                     is AuthState.SignedIn -> SignedIn(state.email, viewModel)
-                    AuthState.SignedOut -> SignInForm(form, viewModel)
+                    AuthState.SignedOut -> SignInForm(form, viewModel, required = onBack == null)
                 }
             }
         }
@@ -173,7 +191,7 @@ private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, o
 }
 
 @Composable
-private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
+private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required: Boolean) {
     val title = when (form.mode) {
         AccountMode.SIGN_IN -> R.string.account_sign_in
         AccountMode.SIGN_UP -> R.string.account_create
@@ -188,7 +206,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel) {
                 AccountMode.CONFIRM -> R.string.account_confirm_body
                 AccountMode.FORGOT -> R.string.account_forgot_body
                 AccountMode.RESET -> R.string.account_reset_body
-                else -> R.string.account_why
+                else -> if (required) R.string.account_required else R.string.account_why
             },
         ),
     )

@@ -1,6 +1,12 @@
 package noel.chronova.app.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
@@ -31,6 +37,25 @@ data object AccountRoute
 
 @Composable
 fun ChronovaNavHost(container: AppContainer, modifier: Modifier = Modifier) {
+    val auth by container.authRepository.state.collectAsStateWithLifecycle()
+    when (AppGate.of(auth)) {
+        AppGate.Loading -> Box(
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center,
+        ) { CircularProgressIndicator() }
+        // Signing out (or a session the server ended) lands here, and the app's screens start afresh after signing in.
+        AppGate.SignIn -> AccountScreen(
+            viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.authRepository, container.syncCoordinator)),
+            onBack = null,
+        )
+        AppGate.App -> ChronovaScreens(container, modifier)
+    }
+}
+
+@Composable
+private fun ChronovaScreens(container: AppContainer, modifier: Modifier) {
     val navController = rememberNavController()
     // Activity-scoped: the reconnect prompt can appear over any screen.
     val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container.syncCoordinator, container.authRepository))
