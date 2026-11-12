@@ -11,6 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,66 +62,93 @@ fun AssistantOverlay(
 ) {
     BackHandler(enabled = state.open, onBack = onClose)
     AnimatedVisibility(visible = state.open, enter = fadeIn(), exit = fadeOut()) {
-        Box(
+        BoxWithConstraints(
             Modifier
                 .fillMaxSize()
                 .background(Color(0xCC060B24))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClose),
             contentAlignment = Alignment.Center,
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp)
-                    .navigationBarsPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                AnimatedVisibility(visible = state.open, enter = scaleIn(initialScale = 0.4f) + fadeIn(), exit = scaleOut() + fadeOut()) {
-                    val orbLabel = stringResource(
-                        when (state.mode) {
-                            OrbMode.Listening -> R.string.assistant_state_listening
-                            OrbMode.Thinking -> R.string.assistant_state_thinking
-                            OrbMode.Speaking -> R.string.assistant_state_speaking
-                            OrbMode.Idle -> R.string.assistant_open
-                        },
+            // Landscape (wider than tall): the orb beside the captions, so everything fits the short screen.
+            val wide = maxWidth > maxHeight
+            val captionsHeight = if (wide) (maxHeight - 96.dp).coerceAtLeast(120.dp) else 260.dp
+            val words: @Composable (Modifier) -> Unit = { modifier ->
+                Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Captions(state, zone, maxHeight = captionsHeight)
+                    Text(
+                        stringResource(R.string.assistant_tap_to_close),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.55f),
                     )
-                    AssistantOrb(
-                        mode = state.mode,
-                        level = level,
-                        modifier = Modifier
-                            .size(180.dp)
-                            .semantics { contentDescription = orbLabel },
-                    ) {
-                        // Without 3D: a plain glowing circle in the orb's colours.
-                        Box(
-                            Modifier
-                                .size(150.dp)
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.radialGradient(
-                                        listOf(Color(0xFFBFE9FF), Color(0xFF5E7BFF), Color(0xFF8A3CF0), Color(0x00000000)),
-                                    ),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                ),
-                        )
-                    }
                 }
-                Captions(state, zone)
-                Text(
-                    stringResource(R.string.assistant_tap_to_close),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
-                )
+            }
+            if (wide) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                ) {
+                    Orb(state, level, size = 140.dp)
+                    words(Modifier.weight(1f))
+                }
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp)
+                        .navigationBarsPadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Orb(state, level, size = 180.dp)
+                    words(Modifier)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Captions(state: AssistantUiState, zone: ZoneId) {
+private fun Orb(state: AssistantUiState, level: () -> Float, size: Dp) {
+    AnimatedVisibility(visible = state.open, enter = scaleIn(initialScale = 0.4f) + fadeIn(), exit = scaleOut() + fadeOut()) {
+        val orbLabel = stringResource(
+            when (state.mode) {
+                OrbMode.Listening -> R.string.assistant_state_listening
+                OrbMode.Thinking -> R.string.assistant_state_thinking
+                OrbMode.Speaking -> R.string.assistant_state_speaking
+                OrbMode.Idle -> R.string.assistant_open
+            },
+        )
+        AssistantOrb(
+            mode = state.mode,
+            level = level,
+            modifier = Modifier
+                .size(size)
+                .semantics { contentDescription = orbLabel },
+        ) {
+            // Without 3D: a plain glowing circle in the orb's colours.
+            Box(
+                Modifier
+                    .size(size * 5 / 6)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.radialGradient(
+                            listOf(Color(0xFFBFE9FF), Color(0xFF5E7BFF), Color(0xFF8A3CF0), Color(0x00000000)),
+                        ),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun Captions(state: AssistantUiState, zone: ZoneId, maxHeight: Dp) {
     Column(
         Modifier
-            .heightIn(max = 260.dp)
+            .heightIn(max = maxHeight)
             .verticalScroll(rememberScrollState())
             .semantics { liveRegion = LiveRegionMode.Polite },
         horizontalAlignment = Alignment.CenterHorizontally,

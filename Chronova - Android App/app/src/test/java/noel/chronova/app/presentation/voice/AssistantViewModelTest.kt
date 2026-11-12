@@ -301,6 +301,24 @@ class AssistantViewModelTest {
     }
 
     @Test
+    fun leavingTheAppMidIntroductionPlaysItAgainNextTime() = runTest(dispatcher) {
+        player.untilStopped = true
+        runCurrent()
+        viewModel.introduceIfFirstVisit()
+        runCurrent()
+        viewModel.onLeftApp() // the app went to the background (not a rotation: the screen skips those)
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.open)
+        assertFalse(settings.introduced(SampleTasks.PROJECT_ID))
+
+        player.untilStopped = false
+        viewModel.introduceIfFirstVisit()
+        advanceUntilIdle()
+        assertEquals(listOf("intro", "intro"), api.said)
+        assertTrue(settings.introduced(SampleTasks.PROJECT_ID))
+    }
+
+    @Test
     fun theIntroductionCanBeCutShort() = runTest(dispatcher) {
         player.untilStopped = true
         runCurrent()
@@ -355,6 +373,44 @@ class AssistantViewModelTest {
         viewModel.undo()
         advanceUntilIdle()
         assertEquals(originalReview, review)
+    }
+
+    @Test
+    fun itStaysBusyFromOpeningUntilItHasSaidWhatChanged() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "yes")
+        val seen = mutableListOf<Boolean>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.busy.collect { seen += it } }
+        // The explanation of what changed keeps playing until the test lets it finish.
+        api.onExplain = { if (it is ExplainRequest.Changes && it.stage == ExplainStage.Applied) player.untilStopped = true }
+        talk()
+
+        assertFalse(viewModel.state.value.open) // the orb has gone...
+        assertEquals(setOf("review"), viewModel.highlight.value) // ...and it is saying what changed
+        assertTrue(viewModel.busy.value)
+
+        player.stop() // it finishes
+        advanceUntilIdle()
+        assertFalse(viewModel.busy.value)
+        assertEquals(listOf(false, true, false), seen) // one unbroken busy stretch, then free again
+    }
+
+    @Test
+    fun closingTheOrbOrLeavingTheAppEndsBusy() = runTest(dispatcher) {
+        says(null)
+        runCurrent()
+        viewModel.open()
+        runCurrent()
+        assertTrue(viewModel.busy.value)
+        viewModel.close()
+        runCurrent()
+        assertFalse(viewModel.busy.value)
+
+        viewModel.open()
+        runCurrent()
+        viewModel.onLeftApp()
+        runCurrent()
+        assertFalse(viewModel.busy.value)
     }
 
     @Test

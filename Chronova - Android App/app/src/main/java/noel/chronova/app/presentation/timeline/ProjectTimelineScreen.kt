@@ -2,13 +2,17 @@ package noel.chronova.app.presentation.timeline
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.activity.compose.LocalActivity
 import androidx.lifecycle.Lifecycle
 import androidx.core.content.ContextCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import android.provider.Settings
 import android.net.Uri
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import androidx.compose.runtime.DisposableEffect
 import android.content.Intent
 import android.Manifest
 import androidx.compose.foundation.layout.size
@@ -89,7 +93,7 @@ fun ProjectTimelineScreen(
     val highlighted by assistant.highlight.collectAsStateWithLifecycle()
     val micLevel = assistant.level
     val context = LocalContext.current
-    var showNotice by remember { mutableStateOf(false) }
+    var showNotice by rememberSaveable { mutableStateOf(false) }
     val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) assistant.open() else assistant.onMicrophoneDenied()
     }
@@ -102,7 +106,14 @@ fun ProjectTimelineScreen(
         }
     }
     val onOrbTap = { if (assistantState.noticeAccepted) startAssistant() else showNotice = true }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { assistant.onLeftApp() }
+    // Leaving the app stops the assistant; turning the phone (the activity is only recreated) doesn't.
+    val activity = LocalActivity.current
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        if (activity?.isChangingConfigurations != true) assistant.onLeftApp()
+    }
+    // While the assistant listens, talks or applies changes, turning the phone doesn't turn the screen.
+    val assistantBusy by assistant.busy.collectAsStateWithLifecycle()
+    HoldOrientation(activity, hold = assistantBusy)
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
@@ -183,6 +194,20 @@ fun ProjectTimelineScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * Keeps [activity] in the orientation it is in now while [hold] is true, and gives back what it asked
+ * for before once [hold] is false (the screen then follows the phone again).
+ */
+@Composable
+private fun HoldOrientation(activity: Activity?, hold: Boolean) {
+    DisposableEffect(activity, hold) {
+        if (activity == null || !hold) return@DisposableEffect onDispose {}
+        val before = activity.requestedOrientation
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        onDispose { activity.requestedOrientation = before }
     }
 }
 

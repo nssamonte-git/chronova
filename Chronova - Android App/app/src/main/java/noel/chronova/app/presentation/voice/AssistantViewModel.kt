@@ -162,6 +162,15 @@ class AssistantViewModel(
     /** Tasks just changed by the assistant, highlighted while it says what changed. */
     val highlight: StateFlow<Set<String>> = _highlight.asStateFlow()
 
+    private val explaining = MutableStateFlow(false)
+
+    /**
+     * The assistant is at work: the orb is open (listening, thinking, talking, applying) or, once it
+     * has closed, it is still saying what it changed. The screen keeps its orientation meanwhile.
+     */
+    val busy: StateFlow<Boolean> = combine(ui, explaining) { ui, explaining -> ui.open || explaining }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     fun acceptNotice() {
         settings.noticeAccepted = true
         ui.update { it.copy(noticeAccepted = true) }
@@ -195,20 +204,31 @@ class AssistantViewModel(
      */
     fun introduceIfFirstVisit() {
         if (ui.value.open || state.value.availability != AssistantAvailability.READY || settings.introduced(projectId)) return
-        settings.markIntroduced(projectId)
         stopAfterword()
+        introducing = true
         ui.update { it.copy(open = true, mode = OrbMode.Speaking, heard = null, saying = null, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
         conversation = viewModelScope.launch {
             try {
                 say(phrases.introduction())
+                // Heard to the end: not again for this project.
+                settings.markIntroduced(projectId)
             } finally {
+                introducing = false
                 ui.update { it.copy(open = false) }
             }
         }
     }
 
+    /** The first-open introduction is playing; closing it on purpose counts as heard, leaving the app doesn't. */
+    private var introducing = false
+
     /** Stops listening and speaking and closes the orb; nothing is applied. */
     fun close() {
+        if (introducing) settings.markIntroduced(projectId) // skipped on purpose
+        stop()
+    }
+
+    private fun stop() {
         conversation?.cancel()
         recorder.cancel()
         player.stop()
@@ -221,7 +241,8 @@ class AssistantViewModel(
 
     /** The app went to the background: stop listening and talking. */
     fun onLeftApp() {
-        close()
+        // Not a choice to skip the introduction: it plays again on the next visit.
+        stop()
         stopAfterword()
     }
 
@@ -520,6 +541,8 @@ class AssistantViewModel(
             is ApplyResult.Applied -> {
                 _message.value = AssistantMessage.Applied(taskCount(proposal.changes), result.undo)
                 record(proposal, result.undo)
+                // Still busy while the orb gives way to the explanation: no gap in between.
+                explaining.value = true
                 // The orb goes first, so the user sees the timeline while hearing what changed.
                 ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
                 val changed = changedTaskIds(proposal.changes)
@@ -529,6 +552,7 @@ class AssistantViewModel(
                         speak(explain(proposal.items, ExplainStage.Applied), captioned = false)
                     } finally {
                         _highlight.value = emptySet()
+                        explaining.value = false
                     }
                 }
             }
@@ -621,6 +645,7 @@ class AssistantViewModel(
         afterword = null
         player.stop()
         _highlight.value = emptySet()
+        explaining.value = false
     }
 
     private suspend fun token(): String = auth.accessToken() ?: throw VoiceApiException(VoiceApiException.Kind.UNAUTHORIZED)
