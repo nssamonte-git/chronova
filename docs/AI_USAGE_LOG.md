@@ -610,3 +610,8 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - `POST /v1/voice/explain` takes `stage`: `proposal` (default; what will change, ending "Shall I apply it?") or `applied` (past tense, starting "Done."); other values are refused (422). The explainer's instructions and the plain fallback summaries cover both stages; questions are unchanged.
 - `VOICE_FAKE_TRANSCRIPT` can hold several `|`-separated phrases, heard in turn per user (`push build by 2 hours|yes`), so the whole spoken loop can be tried on the phone without keys.
 - This step ran in a separate Claude Code session on the same folder (server files and `docs/voice-api.md` only, nothing committed there). Checked here before committing: `composer test` **247 passed** (20 new), Pint clean, and the controller, fallback wording and fake transcriber read as described.
+
+### The assistant's voice
+
+- You gave the ElevenLabs voice to use for spoken answers: `OYTbf65OHHFELVut7v2H` is now the default `VOICE_ELEVENLABS_VOICE_ID` (`server/config/voice.php`); the variable can still override it. The explain test's request URL, the `docs/voice-api.md` config table and release checklist ("choose the voice" is ticked; listening to it with the real provider is still open) and `server/infra/DEPLOY.md` say so.
+- Not heard yet: the local server uses the fake speaker, so the new voice plays only once real providers run (O5, with your go-ahead). `composer test` **247 passed**, Pint clean.

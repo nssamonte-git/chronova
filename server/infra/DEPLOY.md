@@ -75,7 +75,7 @@ The app's assistant (`../../docs/voice-api.md`) uses OpenAI and ElevenLabs. It i
 
    Use keys limited to what this needs (an OpenAI project key; an ElevenLabs key with speech-to-text and text-to-speech only) and set spending limits at both providers.
 2. **Deploy with voice on**: add `-c voice=on` to the `cdk deploy` command (and keep it on later deploys). The web container then gets `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` from the secret; no other container does.
-3. **Before real users**: update the privacy policy and the Play Data safety form (recordings go to ElevenLabs; words and task names/times go to OpenAI), and pick the ElevenLabs voice (`VOICE_ELEVENLABS_VOICE_ID`).
+3. **Before real users**: update the privacy policy and the Play Data safety form (recordings go to ElevenLabs; words and task names/times go to OpenAI). The ElevenLabs voice is set (`VOICE_ELEVENLABS_VOICE_ID`, default `OYTbf65OHHFELVut7v2H`); override it only to change the voice.
 
 **Kill switch**: deploy again with `-c voice=off` (a few minutes, while tasks roll). Faster stopgaps: revoke the key at the provider, or lower the per-user limit (`VOICE_REQUESTS_PER_MINUTE`). **Rotating a key**: put the new value in the secret, then force a new deployment of the web service (`aws ecs update-service --force-new-deployment …`) — tasks read secrets only when they start.
 

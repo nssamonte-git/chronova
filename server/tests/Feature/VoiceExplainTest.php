@@ -120,7 +120,7 @@ it('has OpenAI write the words and ElevenLabs say them, keys only in headers', f
             && str_contains($body['instructions'], 'ISO 639 code "en"')
             && str_contains($body['instructions'], '"Shall I apply it?"');
     });
-    Http::assertSent(fn (ClientRequest $request) => $request->url() === 'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb?output_format=mp3_22050_32'
+    Http::assertSent(fn (ClientRequest $request) => $request->url() === 'https://api.elevenlabs.io/v1/text-to-speech/OYTbf65OHHFELVut7v2H?output_format=mp3_22050_32'
         && $request->hasHeader('xi-api-key', 'test-elevenlabs-key')
         && $request->data() === ['text' => 'Build will move to 11 a.m. today. Shall I apply it?', 'model_id' => 'eleven_flash_v2_5', 'language_code' => 'en']);
 

@@ -156,7 +156,7 @@ Sample set (`interpret`): 15 of 15 as expected — shifts, moves to a weekday or
 - [ ] Privacy policy: recordings and the project's task names go to ElevenLabs (speech to text); the words, the project's task names and times go to OpenAI; spoken answers are written by OpenAI and voiced by ElevenLabs; neither the audio nor the words are stored by Chronova; retention at each provider.
 - [ ] Play Console Data safety: audio (voice recordings) and app content (task names, to both providers) shared with service providers, for app functionality; not stored; RECORD_AUDIO asked on first use.
 - [ ] Provider settings: an OpenAI project key with a budget; an ElevenLabs key limited to speech to text and text to speech, with a credit limit; consider ElevenLabs zero retention (enterprise).
-- [ ] Choose the ElevenLabs voice (`VOICE_ELEVENLABS_VOICE_ID`) and listen to a few answers.
+- [x] Choose the ElevenLabs voice: `OYTbf65OHHFELVut7v2H` (the default). Listen to a few answers with the real provider.
 - [ ] Set `VOICE_PRICE_*` for the dashboard's cost estimate; deploy with `-c voice=on` (DEPLOY.md).
 
 ## Configuration
@@ -171,7 +171,7 @@ Sample set (`interpret`): 15 of 15 as expected — shifts, moves to a weekday or
 | `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
 | `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |
 | `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_flash_v2_5` | |
-| `VOICE_ELEVENLABS_VOICE_ID` | `JBFqnCBsd6RMkjVDRZzb` | A premade voice; pick one in V9 |
+| `VOICE_ELEVENLABS_VOICE_ID` | `OYTbf65OHHFELVut7v2H` | The assistant's voice (chosen 12 Nov 2026) |
 | `VOICE_ELEVENLABS_OUTPUT_FORMAT` | `mp3_22050_32` | |
 | `OPENAI_API_KEY` | — | Secret |
 | `ELEVENLABS_API_KEY` | — | Secret |
