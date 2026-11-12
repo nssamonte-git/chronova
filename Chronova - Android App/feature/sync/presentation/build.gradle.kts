@@ -15,4 +15,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     testImplementation(projects.core.testing)
+
+    // On-device Compose tests: this module's own test app (see HANDOFF), never the app's data.
+    androidTestImplementation(projects.core.testing)
+    androidTestImplementation(projects.core.designsystem)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.manifest)
 }
