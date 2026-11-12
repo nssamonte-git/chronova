@@ -375,9 +375,9 @@ class AssistantViewModel(
     }
 
     /**
-     * A clash-free version of [planned]: the model's suggestion if it is valid and
-     * clash-free here, else the app's own (push what waits for a task just enough),
-     * if that is; null when there is neither.
+     * A clash-free version of [planned]: the model's, if it is valid and clash-free
+     * here (the one that came with the proposal, else one asked for now), else the
+     * app's own (push what waits for a task just enough), if that is; null when there is none.
      */
     private suspend fun alternative(
         text: String,
@@ -394,6 +394,10 @@ class AssistantViewModel(
             if (ExplainedChange.from(items, zone) == ExplainedChange.from(planned.items, zone)) return null
             return Outcome.Proposal(items, handled.changes)
         }
+        // Usually the interpreter saw the clash and answered with an alternative already: no extra round trip.
+        proposal.alternative?.takeIf { it.isNotEmpty() }
+            ?.let { usable(proposal.copy(operations = it, alternative = null)) }
+            ?.let { return it }
         val suggested = try {
             voiceApi.resolve(token(), text, context, proposal.operations, planned.warnings)
         } catch (error: CancellationException) {

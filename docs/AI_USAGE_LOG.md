@@ -670,3 +670,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - The "Or:" lines repeated unchanged items.
 - Seen, not changed: with the extra call, a clashing request takes 14–16 s from the end of speech to the spoken proposal (interpret ~2.8 s, resolve ~3.9 s, explain ~3 s), and a three-move alternative is spoken in about 20 s. "Sync" was heard as "Sink". The session's 85 calls came to about $0.20 (OpenAI $0.061 with the cache, $0.087 without).
 - Checks: server **285** tests, Pint clean; app **221** tests, lint 0 errors / 17 warnings.
+
+### Faster clash answers
+
+- You asked to cut the 14–16 s wait before a clash proposal. Measured each step on the real APIs first: interpret ~3 s, the separate resolve call ~5.5 s, explain ~2.5 s (reasoning `none` no faster), speech ~0.8 s; the three-move offer was 253 characters (~16 s spoken).
+- `/interpret` now answers the clash-free `alternative` itself when it sees its plan would clash (strict schema field; checked like the operations, a broken one is dropped), so `/resolve` is only a fallback; the rules for choosing it moved into the shared, cached rules. Clash proposals are told to stay under 35 words. Real API: one call 4.4–6.9 s instead of ~8.5 s for two; the offer 167 characters.
+- On the phone with the real providers, predicted first and as predicted: end of speech → spoken proposal 9.2 s (was 11.6) and 7.7 s (was 10.3) for clashes, 9.0 s without; "Review would be added at 4 p.m. today, but would clash with test. Shall I move test to 2 p.m.?"; no `/resolve` calls. 16 provider calls, about $0.03. Phone data restored, test account deleted.
+- Checks: server **287** tests, Pint clean; app **224** tests.

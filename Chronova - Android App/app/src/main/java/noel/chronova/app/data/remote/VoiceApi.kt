@@ -401,6 +401,7 @@ internal data class InterpretResponseDto(
     val operations: List<OperationDto> = emptyList(),
     val question: String? = null,
     val reason: String? = null,
+    val alternative: List<OperationDto>? = null,
 )
 
 @Serializable
@@ -438,22 +439,23 @@ internal fun VoiceContext.toDto() = VoiceContextDto(
 internal fun InterpretResponseDto.toDomain() = Proposal(
     revision = revision,
     result = result,
-    operations = operations.map {
-        ProposedOperation(
-            type = it.type,
-            taskId = it.taskId,
-            date = it.date,
-            time = it.time,
-            amount = it.amount,
-            unit = it.unit,
-            start = it.start,
-            end = it.end,
-            title = it.title,
-            predecessorIds = it.predecessorIds,
-            predecessorId = it.predecessorId,
-            successorId = it.successorId,
-        )
-    },
+    operations = operations.map { it.toDomain() },
     question = question,
     reason = reason,
+    alternative = alternative?.map { it.toDomain() },
+)
+
+internal fun OperationDto.toDomain() = ProposedOperation(
+    type = type,
+    taskId = taskId,
+    date = date,
+    time = time,
+    amount = amount,
+    unit = unit,
+    start = start,
+    end = end,
+    title = title,
+    predecessorIds = predecessorIds,
+    predecessorId = predecessorId,
+    successorId = successorId,
 )

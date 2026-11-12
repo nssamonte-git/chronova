@@ -315,6 +315,29 @@ class AssistantViewModelTest {
     }
 
     @Test
+    fun theAlternativeThatCameWithTheProposalIsUsedWithoutAnotherRequest() = runTest(dispatcher) {
+        val later = ProposedOperation("shift_task", taskId = "review", amount = 1, unit = "hours")
+        api.answer = { text, c -> shift(-1)(text, c).copy(alternative = listOf(later)) }
+        says("move review an hour earlier", "yes")
+        talk()
+        assertTrue(api.resolved.isEmpty()) // no second model call
+        assertEquals("Review", api.explained.filterIsInstance<ExplainRequest.Changes>().first().offer.single().task)
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+        assertEquals(listOf(DecisionAnswer.AcceptedFix), api.decisions.map { it.answer })
+    }
+
+    @Test
+    fun anAlternativeThatStillClashesIsReplacedByAskingForAnother() = runTest(dispatcher) {
+        val stillInQa = ProposedOperation("shift_task", taskId = "review", amount = -2, unit = "hours")
+        api.answer = { text, c -> shift(-1)(text, c).copy(alternative = listOf(stillInQa)) }
+        api.suggest = { c -> shift(1)("", c) }
+        says("move review an hour earlier", "yes")
+        talk()
+        assertEquals(1, api.resolved.size)
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+    }
+
+    @Test
     fun aSuggestionThatStillClashesOrFailsIsNotOffered() = runTest(dispatcher) {
         api.answer = shift(-1)
         api.suggest = { c -> shift(-2)("", c) } // Review 14:00–15:00: still inside QA Testing

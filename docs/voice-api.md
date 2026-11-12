@@ -60,9 +60,12 @@ Response (200):
     { "type": "reschedule_dependents", "taskId": "t1" }
   ],
   "question": null,
-  "reason": null
+  "reason": null,
+  "alternative": null
 }
 ```
+
+`alternative` is null unless the operations would cause a clash the schedule doesn't already have (an overlap, or a task starting before one it waits for ends): then it holds the complete operations of the most sensible clash-free version, chosen by the same rules as `/resolve`, and checked the same way as `operations` (a broken alternative becomes null; the operations still stand). Answering it in the same call saves `/resolve`'s round trip (about 3–4 s); the app still re-plans and re-checks it.
 
 `result` is one of:
 - `operations` — one to 20 operations, in order;
@@ -94,7 +97,7 @@ The server checks that every id is in the request's `tasks`, dates are real, amo
 
 ## `POST /v1/voice/resolve`
 
-A clash-free alternative, asked for by the app when the proposal it planned would clash (see `warnings` under `/explain`). Same body as `/interpret` plus:
+A clash-free alternative, asked for by the app when the proposal it planned would clash (see `warnings` under `/explain`) and `/interpret` gave no usable `alternative` (it saw no clash, or its alternative failed the app's checks). Same body as `/interpret` plus:
 
 ```json
 {
@@ -105,7 +108,7 @@ A clash-free alternative, asked for by the app when the proposal it planned woul
 
 `planned` (1–20) are the operations `/interpret` proposed, every field written out, and must be valid for the schedule; `clashes` (1–20) are in the `warnings` form. The answer has `/interpret`'s shape: the complete operations of the alternative (the user's own change and anything extra), or `unsupported` when there is no sensible one. The model is told to keep what the user's words fix (a stated time, a requested link) and move the other tasks, to change the user's own task when the words leave room, to keep lengths and the project's dates, and to follow the history. The fake interpreter always answers `unsupported`.
 
-The app re-plans the answer against its own data and offers it only if it is valid, has no clashes of its own and differs from the plan; otherwise it falls back to its own fix for broken links (push what waits for each task just enough, `reschedule_dependents`), offered under the same conditions. With no alternative it asks "Shall I apply it anyway?".
+The app re-plans the alternative (from `/interpret`, else from here) against its own data and offers it only if it is valid, has no clashes of its own and differs from the plan; otherwise it falls back to its own fix for broken links (push what waits for each task just enough, `reschedule_dependents`), offered under the same conditions. With no alternative it asks "Shall I apply it anyway?".
 
 ## `POST /v1/voice/decision`
 
@@ -211,6 +214,8 @@ Found and fixed:
 - "Move build to 3:00 PM" sometimes became a new start time with the old end, which the app rightly refused ("Build would end before it starts"). The rules now say moving to a time keeps the task's length, and only "starts at / ends at / from … to" set times.
 - "Add a task called Design from nine to ten" asked for the date. A time with no day now means the task's own date, or today for a new task.
 - Checked on the real model after both changes: 24 of 24 and 14 of 14 phrasings gave the expected operation.
+
+Speed with clashes (later on 12 Nov): asking for the alternative in a second call made a clashing request take 10–16 s from the end of speech to the spoken proposal, and a three-move offer took 16 s to say. Measured per step on the real APIs: interpret 2.6–3.3 s, resolve 5.4–5.6 s, explain 2.2–3.0 s (reasoning `none` was no faster), speech 0.8 s. Now `/interpret` returns the alternative itself (one call: 4.4–6.9 s for a clashing request, unchanged 2.9 s for others) and clash proposals are kept under 35 words (167 characters instead of 253). On the phone: Test over Build 11.6 → 9.2 s, Review over Test 10.3 → 7.7 s, about the same as a request with no clash (9.0 s); spoken proposals 7.5 → 6.2 s and 8.0 → 5.6 s; no `/resolve` calls.
 
 Seen but not changed: a recording picks up anyone talking nearby (twice another conversation was transcribed with or instead of the request; it was then refused or asked about, nothing applied). Task names are written as heard ("called test" makes "test").
 

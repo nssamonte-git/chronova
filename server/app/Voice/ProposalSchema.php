@@ -4,7 +4,8 @@ namespace App\Voice;
 
 /**
  * The only shape an interpreter may answer with: a list of scheduling
- * operations, a clarifying question, or "unsupported". Used as the strict
+ * operations, a clarifying question, or "unsupported", plus, when the
+ * operations would cause a clash, a clash-free "alternative". Used as the strict
  * structured-output schema for the model and mirrored by ProposalValidator.
  *
  * Dates are local to the project ("2026-11-13"), date-times are local without
@@ -67,8 +68,9 @@ final class ProposalSchema
                 'operations' => ['type' => 'array', 'items' => ['anyOf' => $variants]],
                 'question' => ['type' => ['string', 'null']],
                 'reason' => ['type' => ['string', 'null']],
+                'alternative' => ['type' => ['array', 'null'], 'items' => ['anyOf' => $variants]],
             ],
-            'required' => ['result', 'operations', 'question', 'reason'],
+            'required' => ['result', 'operations', 'question', 'reason', 'alternative'],
             'additionalProperties' => false,
         ];
     }

@@ -20,7 +20,8 @@ final class ProposalValidator
 
     public function validate(mixed $proposal, array $context, int $maxOperations): ?array
     {
-        if (! is_array($proposal) || array_keys($proposal) != ['result', 'operations', 'question', 'reason']) {
+        $keys = is_array($proposal) ? array_keys($proposal) : null;
+        if ($keys != ['result', 'operations', 'question', 'reason'] && $keys != ['result', 'operations', 'question', 'reason', 'alternative']) {
             return null;
         }
         $result = $proposal['result'];
@@ -42,6 +43,22 @@ final class ProposalValidator
         }
 
         $taskIds = array_column($context['tasks'], 'id');
+        $clean = $this->operations($operations, $taskIds, $maxOperations);
+        if ($clean === null) {
+            return null;
+        }
+        // A broken alternative only loses the alternative (the app can still ask for one).
+        $alternative = is_array($proposal['alternative'] ?? null) ? $this->operations($proposal['alternative'], $taskIds, $maxOperations) : null;
+
+        return $this->answer($result, $clean, null, null, $alternative);
+    }
+
+    /** The checked list, or null if it is empty, too long or has a bad operation. */
+    private function operations(mixed $operations, array $taskIds, int $maxOperations): ?array
+    {
+        if (! is_array($operations) || ! array_is_list($operations) || $operations === [] || count($operations) > $maxOperations) {
+            return null;
+        }
         $clean = [];
         foreach ($operations as $operation) {
             $checked = $this->operation($operation, $taskIds);
@@ -51,12 +68,12 @@ final class ProposalValidator
             $clean[] = $checked;
         }
 
-        return $this->answer($result, $clean, null, null);
+        return $clean;
     }
 
-    private function answer(string $result, array $operations, ?string $question, ?string $reason): array
+    private function answer(string $result, array $operations, ?string $question, ?string $reason, ?array $alternative = null): array
     {
-        return ['result' => $result, 'operations' => $operations, 'question' => $question, 'reason' => $reason];
+        return ['result' => $result, 'operations' => $operations, 'question' => $question, 'reason' => $reason, 'alternative' => $alternative];
     }
 
     private function operation(mixed $operation, array $taskIds): ?array

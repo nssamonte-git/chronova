@@ -96,7 +96,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (285 tests)
+composer test                 # Pest (287 tests)
 ```
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
@@ -149,9 +149,9 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 221 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 224 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 285 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 287 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
 
@@ -166,7 +166,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - **Fixed 15-minute minimum duration** across all snap intervals; the dragged edge snaps to the nearest allowed grid line.
 - **Pinned dependency versions**, each at least two weeks old when chosen; lint and npm report newer ones.
 - **Voice proposes, the user decides — by voice.** The assistant is voice-only: it says every change before making it and applies it only on a spoken yes; Undo follows. Silence, a no or tapping away changes nothing. Voice is on for every signed-in user, so cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
-- **The assistant learns per user, the model only proposes.** Each user's requests and answers are kept 90 days and sent back with their own next requests as history (deleted with the account, never shown to staff). Clash-free alternatives come from the model but are re-planned and re-checked by the app, with its own fix as the fallback. The interpreter's fixed rules are laid out for OpenAI's prompt cache (about 88% of its input read at 5% of the price); no user content is cached.
+- **The assistant learns per user, the model only proposes.** Each user's requests and answers are kept 90 days and sent back with their own next requests as history (deleted with the account, never shown to staff). Clash-free alternatives come from the model but are re-planned and re-checked by the app, with its own fix as the fallback. The interpreter's fixed rules are laid out for OpenAI's prompt cache (most of its input read at 5% of the price); no user content is cached.
 
 ## Known limitations
 

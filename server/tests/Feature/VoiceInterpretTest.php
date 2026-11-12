@@ -54,6 +54,7 @@ it('returns validated operations with the revision echoed', function () {
             ],
             'question' => null,
             'reason' => null,
+            'alternative' => null,
         ]);
 
     $event = VoiceEvent::sole();
@@ -104,6 +105,29 @@ it('sends a strict schema, the fixed rules for the cache and the words as data, 
             && ! array_key_exists('history', $input);
     });
     expect(VoiceEvent::sole()->only(['input_tokens', 'output_tokens']))->toBe(['input_tokens' => 812, 'output_tokens' => 64]);
+});
+
+it('passes on the model\'s clash-free alternative, checked like the operations', function () {
+    useOpenAi();
+    $move = ['type' => 'move_task', 'taskId' => 't1', 'date' => '2026-11-12', 'time' => '15:00'];
+    $alternative = [$move, ['type' => 'reschedule_dependents', 'taskId' => 't1']];
+    $answer = fn (mixed $alt) => openAiAnswer(['result' => 'operations', 'operations' => [$move], 'question' => null, 'reason' => null, 'alternative' => $alt]);
+    Http::fake(['api.openai.com/*' => Http::sequence()
+        ->push($answer($alternative))
+        ->push($answer([['type' => 'delete_task', 'taskId' => 'nope']]))
+        ->push($answer([]))]);
+
+    interpret('move design to 3 pm')->assertOk()->assertJson(['operations' => [$move], 'alternative' => $alternative]);
+    // A broken or empty alternative is dropped; the operations still stand.
+    interpret('move design to 3 pm')->assertOk()->assertJson(['operations' => [$move], 'alternative' => null]);
+    interpret('move design to 3 pm')->assertOk()->assertJson(['operations' => [$move], 'alternative' => null]);
+});
+
+it('asks for the alternative in the schema and the rules', function () {
+    expect(ProposalSchema::jsonSchema()['required'])->toContain('alternative')
+        ->and(ProposalSchema::jsonSchema()['properties']['alternative']['type'])->toBe(['array', 'null'])
+        ->and(OpenAiInterpreter::instructions())->toContain('"alternative"')->toContain('Keep what the user\'s words fix')
+        ->and(OpenAiInterpreter::resolveInstructions())->toContain('"alternative" null');
 });
 
 it('keeps the rules free of anything that changes between requests', function () {

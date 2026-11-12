@@ -20,6 +20,8 @@ data class Proposal(
     val operations: List<ProposedOperation>,
     val question: String?,
     val reason: String?,
+    /** The model's clash-free version of [operations], when it saw they would clash; checked by the app like any proposal. */
+    val alternative: List<ProposedOperation>? = null,
 )
 
 /** One proposed operation; which fields are set depends on [type]. */

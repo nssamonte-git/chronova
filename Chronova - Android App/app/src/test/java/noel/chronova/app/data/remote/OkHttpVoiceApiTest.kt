@@ -162,6 +162,20 @@ class OkHttpVoiceApiTest {
     }
 
     @Test
+    fun interpretReadsTheModelsAlternative() = runTest {
+        reply(
+            200,
+            """{"revision":"r1","result":"operations","operations":[{"type":"shift_task","taskId":"t1","amount":2,"unit":"hours"}],""" +
+                """"question":null,"reason":null,"alternative":[{"type":"move_task","taskId":"t1","date":"2026-11-13","time":null}]}""",
+        )
+        val proposal = api.interpret("token-1", "push design by two hours", context)
+        assertEquals(listOf(ProposedOperation("move_task", taskId = "t1", date = "2026-11-13")), proposal.alternative)
+
+        reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
+        assertEquals(null, api.interpret("token-1", "delete design", context).alternative)
+    }
+
+    @Test
     fun resolveSendsThePlanWithEveryFieldAndTheClashes() = runTest {
         reply(200, """{"revision":"r1","result":"unsupported","operations":[],"question":null,"reason":"none"}""")
         val context = VoiceContext("p1", "Launch", LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 18), "UTC", LocalDate.of(2026, 11, 12), LocalDateTime.of(2026, 11, 12, 9, 0), "r1", emptyList())

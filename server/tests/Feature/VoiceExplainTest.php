@@ -307,7 +307,8 @@ it('gives OpenAI the offer as data and asks it to offer the alternative', functi
 
         return json_decode($body['input'][0]['content'], true)['offer'] === $offer
             && $body['instructions'] === OpenAiExplainer::instructions(null, ChangeList::PROPOSAL, true, true)
-            && str_contains($body['instructions'], 'only what it does differently');
+            && str_contains($body['instructions'], 'offering only what the alternative does differently')
+            && str_contains($body['instructions'], 'under 35 words');
     });
 });
 
