@@ -23,4 +23,6 @@
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="ok">OK</string>
+    <string name="undo">Undo</string>
+    <string name="undo_not_possible">Can’t undo: those tasks were changed again since.</string>
 </resources>

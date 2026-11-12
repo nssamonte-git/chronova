@@ -1,20 +1,4 @@
 <resources>
-    <string name="task_new">New task</string>
-    <string name="task_edit">Edit task</string>
-    <string name="task_add">Add task</string>
-    <string name="task_title">Task title</string>
-    <string name="task_starts">Starts</string>
-    <string name="task_ends">Ends</string>
-    <string name="task_deleted">Task deleted</string>
-    <string name="task_edit_selected">Edit selected task</string>
-    <string name="tasks_empty">No tasks yet. Tap Add task to schedule one.</string>
-    <string name="task_problem_blank_title">Give the task a title.</string>
-    <string name="task_problem_end_not_after_start">The task must end after it starts.</string>
-    <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>
-    <string name="task_depends_on">Depends on (must finish first)</string>
-    <string name="undo">Undo</string>
-    <string name="undo_not_possible">Can’t undo: those tasks were changed again since.</string>
-    <string name="edit_not_saved">This task changed meanwhile, so the edit wasn’t saved. Try again.</string>
     <string name="sync_later">Later</string>
     <string name="sync_sign_in">Sign in to sync</string>
     <string name="sync_prompt_title">You’re back online</string>
@@ -67,11 +51,6 @@
     <string name="auth_too_many">Too many attempts. Wait a few minutes and try again.</string>
     <string name="auth_network">Can’t reach the server. Check your connection.</string>
     <string name="auth_unknown">Something went wrong. Please try again.</string>
-    <string name="add">Add</string>
-    <plurals name="task_problem_too_short">
-        <item quantity="one">A task must last at least %d minute.</item>
-        <item quantity="other">A task must last at least %d minutes.</item>
-    </plurals>
     <plurals name="account_password_rules">
         <item quantity="one">At least %d character, with upper- and lower-case letters and a number.</item>
         <item quantity="other">At least %d characters, with upper- and lower-case letters and a number.</item>

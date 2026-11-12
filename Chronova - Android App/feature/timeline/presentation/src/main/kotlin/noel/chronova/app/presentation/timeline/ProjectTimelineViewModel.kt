@@ -2,11 +2,9 @@ package noel.chronova.app.presentation.timeline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation.toRoute
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -18,17 +16,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import noel.chronova.app.domain.DependencyRules
-import noel.chronova.app.domain.TaskRules
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.domain.model.TimelineConfig
-import noel.chronova.app.domain.repository.ProjectRepository
 import noel.chronova.app.domain.schedule.ApplyResult
-import noel.chronova.app.domain.schedule.ApplyScheduleChanges
-import noel.chronova.app.domain.schedule.ScheduleChange
-import noel.chronova.app.navigation.ProjectTimelineRoute
+import noel.chronova.app.domain.timeline.TimelineUseCases
 
 /**
  * One project's timeline. Tasks come from the repository (the source of truth);
@@ -37,12 +30,10 @@ import noel.chronova.app.navigation.ProjectTimelineRoute
  */
 class ProjectTimelineViewModel(
     private val projectId: String,
-    private val repository: ProjectRepository,
+    private val useCases: TimelineUseCases,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val today: () -> LocalDate = { LocalDate.now(zone) },
 ) : ViewModel() {
-
-    private val applyChanges = ApplyScheduleChanges(repository, zone)
 
     private val _notice = MutableStateFlow<TimelineNotice?>(null)
 
@@ -64,18 +55,17 @@ class ProjectTimelineViewModel(
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
 
     val state: StateFlow<TimelineScreenState> = combine(
-        repository.observeProject(projectId),
-        repository.observeTasks(projectId),
-        repository.observeDependencies(projectId),
+        useCases.observeSchedule(projectId),
         config,
         selectedTaskId,
-    ) { project, tasks, dependencies, config, selected ->
-        if (project == null) {
+    ) { schedule, config, selected ->
+        if (schedule == null) {
             TimelineScreenState.NotFound
         } else if (config == null) {
             // Waiting for saved settings, so the first frame is already at the right scale and zoom.
             TimelineScreenState.Loading
         } else {
+            val (project, tasks, dependencies) = schedule
             TimelineScreenState.Ready(
                 TimelineUiState(
                     projectName = project.name,
@@ -108,7 +98,7 @@ class ProjectTimelineViewModel(
         if (updated.projectId != projectId || original.id != updated.id || original.projectId != projectId) return
         if (original == updated) return
         viewModelScope.launch {
-            val result = applyChanges(projectId, listOf(ScheduleChange.UpdateTask(original, updated)))
+            val result = useCases.commitEdit(projectId, original, updated)
             if (result is ApplyResult.Rejected) _notice.value = TimelineNotice.EditNotSaved
         }
     }
@@ -149,7 +139,7 @@ class ProjectTimelineViewModel(
             endMillis = task.endMillis,
             color = task.color,
             predecessorIds = timeline.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
-            forbiddenPredecessorIds = DependencyRules.forbiddenPredecessors(taskId, timeline.dependencies),
+            forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, timeline.dependencies),
         )
     }
 
@@ -180,35 +170,24 @@ class ProjectTimelineViewModel(
     fun saveTask() {
         val entered = _taskEditor.value?.takeUnless { it.saving } ?: return
         val timeline = readyTimeline() ?: return
-        val problem = TaskRules.validate(entered.title, entered.startMillis, entered.endMillis, timeline.window)
+        val problem = useCases.validateTask(entered.title, entered.startMillis, entered.endMillis, timeline.window)
         if (problem != null) {
             _taskEditor.value = entered.copy(problem = problem)
             return
         }
         _taskEditor.value = entered.copy(saving = true)
         viewModelScope.launch {
-            val taskId = if (entered.taskId == null) {
-                repository.createTask(projectId, entered.title, entered.startMillis, entered.endMillis, entered.color)
-                    .also { selectedTaskId.value = it }
-            } else {
-                val existing = timeline.tasks.firstOrNull { it.id == entered.taskId }
-                if (existing != null) {
-                    repository.updateTask(
-                        existing.copy(
-                            title = entered.title,
-                            startMillis = entered.startMillis,
-                            endMillis = entered.endMillis,
-                            color = entered.color,
-                        ),
-                    )
-                }
-                entered.taskId
-            }
-            // Re-check against the links as they are now: only existing tasks, no cycles.
-            val latest = readyTimeline()
-            val validIds = latest?.tasks?.map { it.id }?.toSet().orEmpty()
-            val forbidden = DependencyRules.forbiddenPredecessors(taskId, latest?.dependencies.orEmpty())
-            repository.setPredecessors(projectId, taskId, entered.predecessorIds.filter { it in validIds && it !in forbidden }.toSet())
+            val taskId = useCases.saveTask(
+                projectId = projectId,
+                taskId = entered.taskId,
+                existing = entered.taskId?.let { id -> timeline.tasks.firstOrNull { it.id == id } },
+                title = entered.title,
+                startMillis = entered.startMillis,
+                endMillis = entered.endMillis,
+                color = entered.color,
+                predecessorIds = entered.predecessorIds,
+            )
+            if (entered.taskId == null) selectedTaskId.value = taskId
             _taskEditor.value = null
         }
     }
@@ -219,18 +198,10 @@ class ProjectTimelineViewModel(
         val timeline = readyTimeline() ?: return
         val task = timeline.tasks.firstOrNull { it.id == taskId } ?: return
         _taskEditor.value = null
-        val links = timeline.dependencies.filter { it.predecessorId == taskId || it.successorId == taskId }
-        applyWithUndo(links.map { ScheduleChange.RemoveLink(it) } + ScheduleChange.DeleteTask(task), UndoKind.TaskDeleted)
-    }
-
-    /**
-     * Applies [changes] through the shared apply path and, if they were saved,
-     * offers to undo them. A refusal (the schedule changed meanwhile) is reported.
-     */
-    private fun applyWithUndo(changes: List<ScheduleChange>, kind: UndoKind) {
+        // Saved through the shared apply path; a refusal (the schedule changed meanwhile) is reported.
         viewModelScope.launch {
-            when (val result = applyChanges(projectId, changes)) {
-                is ApplyResult.Applied -> _undoOffer.value = UndoOffer(kind, result.undo)
+            when (val result = useCases.deleteTask(projectId, task, timeline.dependencies)) {
+                is ApplyResult.Applied -> _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, result.undo)
                 is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
             }
         }
@@ -241,7 +212,7 @@ class ProjectTimelineViewModel(
         val offer = _undoOffer.value ?: return
         _undoOffer.value = null
         viewModelScope.launch {
-            if (applyChanges(projectId, offer.changes) is ApplyResult.Rejected) _notice.value = TimelineNotice.UndoNotPossible
+            if (useCases.undo(projectId, offer.changes) is ApplyResult.Rejected) _notice.value = TimelineNotice.UndoNotPossible
         }
     }
 
@@ -272,11 +243,11 @@ class ProjectTimelineViewModel(
         val next = transform(current)
         if (next == current) return
         config.value = next
-        viewModelScope.launch { repository.saveViewSettings(projectId, next) }
+        viewModelScope.launch { useCases.saveViewSettings(projectId, next) }
     }
 
     init {
-        viewModelScope.launch { config.value = repository.viewSettings(projectId) ?: TimelineConfig() }
+        viewModelScope.launch { config.value = useCases.loadViewSettings(projectId) }
     }
 
     companion object {
@@ -284,11 +255,9 @@ class ProjectTimelineViewModel(
         private const val DEFAULT_START_HOUR = 9
         private const val DEFAULT_DURATION_MILLIS = 60 * 60_000L
 
-        fun factory(repository: ProjectRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val route = createSavedStateHandle().toRoute<ProjectTimelineRoute>()
-                ProjectTimelineViewModel(route.projectId, repository)
-            }
+        /** [projectId] comes from the timeline's navigation argument (the shell reads it). */
+        fun factory(projectId: String, useCases: () -> TimelineUseCases): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ProjectTimelineViewModel(projectId, useCases()) }
         }
     }
 }

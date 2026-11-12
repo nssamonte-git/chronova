@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import noel.chronova.app.AppContainer
@@ -28,6 +29,7 @@ import noel.chronova.app.presentation.sync.SyncViewModel
 import noel.chronova.app.presentation.timeline.ProjectTimelineScreen
 import noel.chronova.app.presentation.timeline.ProjectTimelineViewModel
 import noel.chronova.app.presentation.voice.AssistantViewModel
+import noel.chronova.app.presentation.voice.rememberAssistantSlot
 
 @Serializable
 data object ProjectListRoute
@@ -116,12 +118,15 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<ProjectTimelineRoute> {
+        composable<ProjectTimelineRoute> { entry ->
+            val route = entry.toRoute<ProjectTimelineRoute>()
+            val assistant: AssistantViewModel = viewModel(
+                factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.assistantSettings, container.assistantPhrases, container.notificationRepository),
+            )
             ProjectTimelineScreen(
-                viewModel = viewModel(factory = ProjectTimelineViewModel.factory(container.projectRepository)),
-                assistant = viewModel(
-                    factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.assistantSettings, container.assistantPhrases, container.notificationRepository),
-                ),
+                viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container::timelineUseCases)),
+                // The timeline knows the assistant only through this slot.
+                assistant = rememberAssistantSlot(assistant),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
             )
         }

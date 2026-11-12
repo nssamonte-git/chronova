@@ -21,6 +21,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.timeline.TimelineUseCases
 import noel.chronova.app.testing.FakeProjectRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -40,7 +41,7 @@ class ProjectTimelineViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone, today = { today })
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, TimelineUseCases.create(repository, zone), zone, today = { today })
     }
 
     @After
@@ -249,7 +250,7 @@ class ProjectTimelineViewModelTest {
         assertEquals(state().config, saved)
 
         // A new screen for the same project starts from the saved settings.
-        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, repository, zone, today = { today })
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, TimelineUseCases.create(repository, zone), zone, today = { today })
         assertEquals(saved, timeline()().config)
     }
 

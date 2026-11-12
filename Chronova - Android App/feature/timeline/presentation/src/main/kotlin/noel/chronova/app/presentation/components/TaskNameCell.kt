@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
-import noel.chronova.app.R
+import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.ui.theme.toColor

@@ -62,7 +62,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import noel.chronova.app.R
+import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.app.domain.TaskProblem
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.domain.model.TaskColor

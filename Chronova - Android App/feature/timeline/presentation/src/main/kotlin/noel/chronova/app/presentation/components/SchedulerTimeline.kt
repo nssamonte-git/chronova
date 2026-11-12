@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.max
-import noel.chronova.app.R
+import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.TimeFormat

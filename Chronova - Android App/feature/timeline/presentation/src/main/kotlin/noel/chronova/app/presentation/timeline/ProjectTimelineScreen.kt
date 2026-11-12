@@ -1,30 +1,9 @@
 package noel.chronova.app.presentation.timeline
 
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.activity.compose.LocalActivity
-import androidx.lifecycle.Lifecycle
-import androidx.core.content.ContextCompat
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
-import android.provider.Settings
-import android.net.Uri
-import android.app.Activity
-import android.content.pm.ActivityInfo
-import android.content.pm.PackageManager
-import androidx.compose.runtime.DisposableEffect
-import android.content.Intent
-import android.Manifest
 import androidx.compose.foundation.layout.size
-import noel.chronova.app.voice.orb.OrbMode
-import noel.chronova.app.presentation.voice.AssistantOrb
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -55,12 +34,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,53 +46,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.ZoneOffset
-import noel.chronova.app.R
+import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.app.domain.model.SchedulerTask
+import noel.chronova.app.presentation.assistant.AssistantSlot
 import noel.chronova.app.domain.model.TimeScale
 import noel.chronova.app.presentation.components.SchedulerTimeline
 import noel.chronova.app.presentation.components.TimelineControls
 import noel.chronova.app.presentation.TimeFormat
-import noel.chronova.app.presentation.voice.AssistantAvailability
-import noel.chronova.app.presentation.voice.AssistantMessage
-import noel.chronova.app.presentation.voice.AssistantOverlay
-import noel.chronova.app.presentation.voice.AssistantNotice
-import noel.chronova.app.presentation.voice.AssistantViewModel
 import noel.chronova.app.ui.theme.ChronovaTheme
-import noel.chronova.core.designsystem.R as DesignR
+import noel.chronova.core.ui.R as CoreUiR
 
 @Composable
 fun ProjectTimelineScreen(
     viewModel: ProjectTimelineViewModel,
-    assistant: AssistantViewModel,
+    assistant: AssistantSlot,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val assistantState by assistant.state.collectAsStateWithLifecycle()
-    val assistantMessage by assistant.message.collectAsStateWithLifecycle()
-    val highlighted by assistant.highlight.collectAsStateWithLifecycle()
-    val micLevel = assistant.level
-    val context = LocalContext.current
-    var showNotice by rememberSaveable { mutableStateOf(false) }
-    val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) assistant.open() else assistant.onMicrophoneDenied()
-    }
-    // Tap the orb: the one-time notice, then the microphone permission, then the orb opens and listens.
-    val startAssistant = {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            assistant.open()
-        } else {
-            askForMicrophone.launch(Manifest.permission.RECORD_AUDIO)
-        }
-    }
-    val onOrbTap = { if (assistantState.noticeAccepted) startAssistant() else showNotice = true }
-    // Leaving the app stops the assistant; turning the phone (the activity is only recreated) doesn't.
-    val activity = LocalActivity.current
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        if (activity?.isChangingConfigurations != true) assistant.onLeftApp()
-    }
-    // While the assistant listens, talks or applies changes, turning the phone doesn't turn the screen.
-    val assistantBusy by assistant.busy.collectAsStateWithLifecycle()
-    HoldOrientation(activity, hold = assistantBusy)
+    assistant.screenEffects()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
@@ -126,10 +75,6 @@ fun ProjectTimelineScreen(
         // The project was deleted (e.g. by a sync) while open: leave the screen.
         TimelineScreenState.NotFound -> LaunchedEffect(Unit) { onBack() }
         is TimelineScreenState.Ready -> {
-            // First open of this project: the assistant introduces itself (once it can be heard).
-            LaunchedEffect(assistantState.availability) {
-                if (assistantState.availability == AssistantAvailability.READY) assistant.introduceIfFirstVisit()
-            }
             TimelineContent(
                 state = current.timeline,
                 actions = TimelineActions(
@@ -147,37 +92,13 @@ fun ProjectTimelineScreen(
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
-                    onOpenAssistant = onOrbTap,
-                    onAssistantUndo = assistant::undo,
-                    onAssistantMessageShown = assistant::dismissMessage,
-                    onOpenAppSettings = {
-                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
-                    },
                 ),
-                assistantAvailable = assistantState.availability != AssistantAvailability.NOT_CONFIGURED,
-                assistantOpen = assistantState.open,
-                assistantMessage = assistantMessage,
-                highlighted = highlighted,
+                assistant = assistant,
                 undoOffer = undoOffer,
                 notice = notice,
                 modifier = modifier,
             )
-            AssistantOverlay(
-                state = assistantState,
-                zone = current.timeline.zone,
-                level = { micLevel.value },
-                onClose = assistant::close,
-            )
-            if (showNotice) {
-                AssistantNotice(
-                    onContinue = {
-                        showNotice = false
-                        assistant.acceptNotice()
-                        startAssistant()
-                    },
-                    onDismiss = { showNotice = false },
-                )
-            }
+            assistant.overlay(current.timeline.zone)
             taskEditor?.let { editor ->
                 TaskEditorSheet(
                     editor = editor,
@@ -198,20 +119,6 @@ fun ProjectTimelineScreen(
     }
 }
 
-/**
- * Keeps [activity] in the orientation it is in now while [hold] is true, and gives back what it asked
- * for before once [hold] is false (the screen then follows the phone again).
- */
-@Composable
-private fun HoldOrientation(activity: Activity?, hold: Boolean) {
-    DisposableEffect(activity, hold) {
-        if (activity == null || !hold) return@DisposableEffect onDispose {}
-        val before = activity.requestedOrientation
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
-        onDispose { activity.requestedOrientation = before }
-    }
-}
-
 /** UI intents, grouped to keep composable signatures short. */
 data class TimelineActions(
     val onBack: () -> Unit = {},
@@ -228,10 +135,6 @@ data class TimelineActions(
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
-    val onOpenAssistant: () -> Unit = {},
-    val onAssistantUndo: () -> Unit = {},
-    val onAssistantMessageShown: () -> Unit = {},
-    val onOpenAppSettings: () -> Unit = {},
 )
 
 @Composable
@@ -241,15 +144,12 @@ private fun TimelineContent(
     modifier: Modifier = Modifier,
     undoOffer: UndoOffer? = null,
     notice: TimelineNotice? = null,
-    assistantAvailable: Boolean = false,
-    assistantOpen: Boolean = false,
-    assistantMessage: AssistantMessage? = null,
-    highlighted: Set<String> = emptySet(),
+    assistant: AssistantSlot = AssistantSlot.None,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
     val deletedMessage = stringResource(R.string.task_deleted)
-    val undoLabel = stringResource(R.string.undo)
+    val undoLabel = stringResource(CoreUiR.string.undo)
     LaunchedEffect(undoOffer) {
         val offer = undoOffer ?: return@LaunchedEffect
         val message = when (offer.kind) {
@@ -258,39 +158,18 @@ private fun TimelineContent(
         val result = snackbarHost.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
         if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoShown()
     }
-    val resources = LocalResources.current
-    LaunchedEffect(assistantMessage) {
-        when (val shown = assistantMessage ?: return@LaunchedEffect) {
-            is AssistantMessage.Applied -> {
-                val text = resources.getQuantityString(R.plurals.assistant_applied, shown.taskCount, shown.taskCount)
-                val result = snackbarHost.showSnackbar(text, actionLabel = undoLabel, duration = SnackbarDuration.Long)
-                if (result == SnackbarResult.ActionPerformed) actions.onAssistantUndo() else actions.onAssistantMessageShown()
-            }
-            AssistantMessage.UndoNotPossible -> {
-                snackbarHost.showSnackbar(resources.getString(R.string.undo_not_possible), duration = SnackbarDuration.Short)
-                actions.onAssistantMessageShown()
-            }
-            AssistantMessage.NeedsConnection -> {
-                snackbarHost.showSnackbar(resources.getString(R.string.assistant_needs_connection), duration = SnackbarDuration.Short)
-                actions.onAssistantMessageShown()
-            }
-            AssistantMessage.NeedsSignIn -> {
-                snackbarHost.showSnackbar(resources.getString(R.string.assistant_needs_sign_in), duration = SnackbarDuration.Short)
-                actions.onAssistantMessageShown()
-            }
-            AssistantMessage.MicrophoneDenied -> {
-                val result = snackbarHost.showSnackbar(
-                    resources.getString(R.string.assistant_mic_denied),
-                    actionLabel = resources.getString(R.string.assistant_open_settings),
-                    duration = SnackbarDuration.Long,
-                )
-                if (result == SnackbarResult.ActionPerformed) actions.onOpenAppSettings()
-                actions.onAssistantMessageShown()
-            }
-        }
+    val assistantSnackbar by rememberUpdatedState(assistant.snackbar)
+    LaunchedEffect(assistant.snackbar?.key) {
+        val shown = assistantSnackbar ?: return@LaunchedEffect
+        val result = snackbarHost.showSnackbar(
+            shown.text,
+            actionLabel = shown.actionLabel,
+            duration = if (shown.long) SnackbarDuration.Long else SnackbarDuration.Short,
+        )
+        shown.onResult(result == SnackbarResult.ActionPerformed)
     }
     val editNotSavedMessage = stringResource(R.string.edit_not_saved)
-    val undoNotPossibleMessage = stringResource(R.string.undo_not_possible)
+    val undoNotPossibleMessage = stringResource(CoreUiR.string.undo_not_possible)
     LaunchedEffect(notice) {
         val shown = notice ?: return@LaunchedEffect
         val message = when (shown) {
@@ -314,23 +193,8 @@ private fun TimelineContent(
         },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (assistantAvailable) {
-                    val assistantLabel = stringResource(R.string.assistant_open)
-                    // The assistant's orb, just above "Add task" where it's easy to find. The live 3D orb;
-                    // the plain mic icon if this device can't render it. Paused while the big orb is open.
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = actions.onOpenAssistant)
-                            .semantics(mergeDescendants = true) { contentDescription = assistantLabel },
-                    ) {
-                        AssistantOrb(mode = OrbMode.Idle, active = !assistantOpen, modifier = Modifier.size(60.dp)) {
-                            Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, modifier = Modifier.size(32.dp))
-                        }
-                    }
-                }
+                // The assistant's orb, just above "Add task" where it's easy to find.
+                if (assistant.available) assistant.orbButton(Modifier)
                 ExtendedFloatingActionButton(
                     onClick = actions.onAddTask,
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
@@ -365,7 +229,7 @@ private fun TimelineContent(
                 onSelectTask = actions.onSelectTask,
                 onCommitEdit = actions.onCommitEdit,
                 onEditTask = actions.onEditTask,
-                highlighted = highlighted,
+                highlighted = assistant.highlighted,
                 modifier = Modifier.weight(1f),
                 // Lets the last rows scroll clear of the FAB.
                 contentPadding = PaddingValues(bottom = 88.dp),
