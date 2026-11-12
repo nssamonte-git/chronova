@@ -81,6 +81,15 @@ private class FakeVoiceApi : VoiceApi {
     var onExplain: (ExplainRequest) -> Unit = {}
     var transcribeFailure: VoiceApiException.Kind? = null
 
+    /** Whether the server's health check answers. */
+    var reachable = true
+    var reachabilityChecks = 0
+
+    override suspend fun reachable(): Boolean {
+        reachabilityChecks++
+        return reachable
+    }
+
     val keyterms = mutableListOf<List<String>>()
 
     override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?, keyterms: List<String>): Transcript {
@@ -769,6 +778,30 @@ class AssistantViewModelTest {
         assertTrue(api.requests.isEmpty())
         assertTrue(repository.applied.isEmpty())
         assertFalse(viewModel.state.value.open)
+    }
+
+    @Test
+    fun aTapTheServerDoesntAnswerSaysSoAndTheOrbStaysClosed() = runTest(dispatcher) {
+        runCurrent() // availability is worked out
+        api.reachable = false
+        viewModel.open()
+        runCurrent()
+
+        assertEquals(AssistantMessage.ServerUnreachable, viewModel.message.value)
+        assertFalse(viewModel.state.value.open)
+        assertFalse(viewModel.busy.value)
+        assertEquals(1, api.reachabilityChecks)
+        assertEquals(0, recorder.starts)
+        assertTrue(api.explained.isEmpty()) // not even a greeting
+
+        // Once it answers again, a tap opens the orb as usual.
+        viewModel.dismissMessage()
+        api.reachable = true
+        viewModel.open()
+        runCurrent()
+        assertTrue(viewModel.state.value.open)
+        assertEquals(null, viewModel.message.value)
+        viewModel.close()
     }
 
     @Test

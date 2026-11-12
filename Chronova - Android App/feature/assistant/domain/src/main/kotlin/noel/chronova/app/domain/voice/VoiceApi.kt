@@ -31,6 +31,9 @@ interface VoiceApi {
 
     /** Tells the server how the user answered, so the interpreter can adapt to them. */
     suspend fun decide(accessToken: String, decision: VoiceDecision)
+
+    /** Whether the server answers at all (its health check; no account data is sent). */
+    suspend fun reachable(): Boolean = true
 }
 
 /** How the user answered a proposal (`POST /v1/voice/decision`). */

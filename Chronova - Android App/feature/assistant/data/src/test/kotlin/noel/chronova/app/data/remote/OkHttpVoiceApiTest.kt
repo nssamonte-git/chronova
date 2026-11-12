@@ -16,6 +16,7 @@ import noel.chronova.app.domain.voice.VoiceContext
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -46,6 +47,28 @@ class OkHttpVoiceApiTest {
     fun tearDown() = server.close()
 
     private fun reply(code: Int, body: String = "") = server.enqueue(MockResponse.Builder().code(code).body(body).build())
+
+    @Test
+    fun theHealthCheckAsksUpWithoutAccountData() = runTest {
+        reply(200)
+        assertTrue(api.reachable())
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/up", request.url.encodedPath)
+        assertEquals(null, request.headers["Authorization"])
+    }
+
+    @Test
+    fun anErrorFromTheHealthCheckCountsAsUnreachable() = runTest {
+        reply(503)
+        assertFalse(api.reachable())
+    }
+
+    @Test
+    fun aServerThatIsGoneIsUnreachable() = runTest {
+        server.close()
+        assertFalse(api.reachable())
+    }
 
     @Test
     fun sendsLocalTimesAndReadsTheProposal() = runTest {

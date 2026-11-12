@@ -39,6 +39,17 @@ class ObserveVoiceAvailability(private val auth: AuthRepository, private val onl
     }
 }
 
+/** Whether the server can be reached right now; any failure counts as no. */
+class CheckVoiceServer(private val voiceApi: VoiceApi) {
+    suspend operator fun invoke(): Boolean = try {
+        voiceApi.reachable()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        false
+    }
+}
+
 /** The voice endpoints' access token; no session counts as the server refusing it. */
 class VoiceAccessToken(private val auth: AuthRepository) {
     suspend operator fun invoke(): String = auth.accessToken() ?: throw VoiceApiException(VoiceApiException.Kind.UNAUTHORIZED)
@@ -358,6 +369,7 @@ fun List<ScheduleChange>.taskCount(): Int = mapNotNull {
 /** Everything the assistant does, for one assistant (it owns one recorder and one player). */
 class AssistantUseCases(
     val observeAvailability: ObserveVoiceAvailability,
+    val checkServer: CheckVoiceServer,
     val notice: VoiceNotice,
     val introduction: ProjectIntroduction,
     val listen: ListenForSpeech,
@@ -390,6 +402,7 @@ class AssistantUseCases(
             val applyChanges = ApplyScheduleChanges(repository, zone)
             return AssistantUseCases(
                 observeAvailability = ObserveVoiceAvailability(auth, online),
+                checkServer = CheckVoiceServer(voiceApi),
                 notice = VoiceNotice(settings),
                 introduction = ProjectIntroduction(settings),
                 listen = ListenForSpeech(recorder),

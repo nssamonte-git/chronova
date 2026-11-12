@@ -56,4 +56,5 @@
         <item quantity="one">%d task changed</item>
         <item quantity="other">%d tasks changed</item>
     </plurals>
+    <string name="assistant_cant_reach_server">Can’t reach the server</string>
 </resources>

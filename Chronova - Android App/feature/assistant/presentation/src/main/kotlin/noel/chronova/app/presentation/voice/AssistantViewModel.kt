@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +76,9 @@ sealed interface AssistantMessage {
     data object NeedsConnection : AssistantMessage
     data object NeedsSignIn : AssistantMessage
     data object MicrophoneDenied : AssistantMessage
+
+    /** The orb was tapped but the server didn't answer: it stays closed. */
+    data object ServerUnreachable : AssistantMessage
 }
 
 /**
@@ -148,14 +152,31 @@ class AssistantViewModel(
         ui.update { it.copy(noticeAccepted = true) }
     }
 
-    /** Opens the orb and starts listening (the screen has the microphone permission by now). */
+    /** Checking the server after a tap, before the orb opens. */
+    private var connecting: Job? = null
+
+    /**
+     * Opens the orb and starts listening (the screen has the microphone permission by now),
+     * once the server answers; if it doesn't, the orb stays closed and the user is told.
+     */
     fun open() {
-        if (ui.value.open) return
+        if (ui.value.open || connecting?.isActive == true) return
         when (state.value.availability) {
             AssistantAvailability.READY -> Unit
             AssistantAvailability.OFFLINE -> return run { _message.value = AssistantMessage.NeedsConnection }
             else -> return run { _message.value = AssistantMessage.NeedsSignIn }
         }
+        // Undispatched: when the check answers at once (a fake, a cached connection) the orb opens in this call.
+        connecting = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            if (!useCases.checkServer()) {
+                _message.value = AssistantMessage.ServerUnreachable
+                return@launch
+            }
+            if (!ui.value.open) startConversation()
+        }
+    }
+
+    private fun startConversation() {
         stopAfterword()
         ui.update { it.copy(open = true, mode = OrbMode.Listening, heard = null, saying = null, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
         conversation = viewModelScope.launch {
@@ -201,6 +222,7 @@ class AssistantViewModel(
     }
 
     private fun stop() {
+        connecting?.cancel()
         conversation?.cancel()
         useCases.listen.cancel()
         useCases.play.stop()

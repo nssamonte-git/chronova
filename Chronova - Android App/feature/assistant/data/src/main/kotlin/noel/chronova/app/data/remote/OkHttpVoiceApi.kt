@@ -5,6 +5,7 @@ import java.io.IOException
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -117,6 +118,20 @@ class OkHttpVoiceApi(
         send("decision", ApiJson.json.encodeToString(DecisionRequestDto.serializer(), dto).toRequestBody(JSON), accessToken)
     }
 
+    /** The server's health check (`GET /up`), answered within [REACHABLE_TIMEOUT_SECONDS] or counted as unreachable. */
+    override suspend fun reachable(): Boolean = withContext(io) {
+        val request = Request.Builder().url("$base/up").get().build()
+        try {
+            healthClient.newCall(request).await().use { it.isSuccessful }
+        } catch (_: IOException) {
+            false
+        }
+    }
+
+    private val healthClient: OkHttpClient by lazy {
+        client.newBuilder().callTimeout(REACHABLE_TIMEOUT_SECONDS, TimeUnit.SECONDS).build()
+    }
+
     // Callers are often on the main thread (ViewModels): the whole call, body reading included, runs on [io].
     private suspend fun <T> call(
         endpoint: String,
@@ -159,6 +174,7 @@ class OkHttpVoiceApi(
         val JSON = "application/json; charset=utf-8".toMediaType()
         val M4A = "audio/mp4".toMediaType()
         const val TOO_LONG = "transcript_too_long"
+        const val REACHABLE_TIMEOUT_SECONDS = 5L
     }
 }
 

@@ -7,6 +7,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -71,6 +72,13 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
     val openAppSettings = {
         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
     }
+    // A tap the server didn't answer: a toast, and the orb stays closed.
+    LaunchedEffect(message) {
+        if (message == AssistantMessage.ServerUnreachable) {
+            Toast.makeText(context, R.string.assistant_cant_reach_server, Toast.LENGTH_SHORT).show()
+            assistant.dismissMessage()
+        }
+    }
     val undoLabel = stringResource(CoreUiR.string.undo)
     val snackbar = message?.let { shown ->
         val done: (Boolean) -> Unit = { assistant.dismissMessage() }
@@ -95,6 +103,7 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
                     assistant.dismissMessage()
                 },
             )
+            AssistantMessage.ServerUnreachable -> null // shown as a toast
         }
     }
     return AssistantSlot(
