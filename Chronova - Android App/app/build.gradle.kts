@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     id("chronova.android.application")
     id("chronova.android.compose")
-    id("chronova.android.room")
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -49,6 +48,7 @@ dependencies {
     implementation(projects.core.model)
     implementation(projects.core.timeline)
     implementation(projects.core.domain)
+    implementation(projects.core.database)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
