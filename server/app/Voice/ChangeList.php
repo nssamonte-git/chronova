@@ -11,7 +11,10 @@ use Carbon\CarbonImmutable;
  * change, then a question) or what has been applied (past tense, no question).
  *
  * A proposal can carry warnings: clashes the change would cause, which the
- * words name before asking whether to apply it anyway.
+ * words name before asking whether to apply it anyway. It can also carry an
+ * offer: a clash-free alternative (the whole set of changes), which the words
+ * then ask about instead ("Shall I also move Build to …?", "Shall I add Test
+ * at … instead?").
  */
 final class ChangeList
 {
@@ -68,8 +71,11 @@ final class ChangeList
         return $keys === $expected ? null : 'wrong fields for '.$warning['kind'];
     }
 
-    /** @param  array  $warnings  validated warnings; only a proposal mentions them */
-    public static function summary(array $changes, string $stage = self::PROPOSAL, array $warnings = []): string
+    /**
+     * @param  array  $warnings  validated warnings; only a proposal mentions them
+     * @param  array  $offer  validated changes of a clash-free alternative; only a proposal asks about it
+     */
+    public static function summary(array $changes, string $stage = self::PROPOSAL, array $warnings = [], array $offer = []): string
     {
         $applied = $stage === self::APPLIED;
         $first = $applied ? self::doneSentence($changes[0]) : self::sentence($changes[0]);
@@ -93,7 +99,39 @@ final class ChangeList
             default => " And {$more} other clashes.",
         };
 
-        return $first.$rest.' '.$clash.' Shall I apply it anyway?';
+        if ($offer === []) {
+            return $first.$rest.' '.$clash.' Shall I apply it anyway?';
+        }
+        // Say only what the alternative does differently: extra changes ("also") or different ones ("instead").
+        $different = array_values(array_filter($offer, fn (array $change) => ! in_array($change, $changes, true)));
+        if ($different === []) {
+            return $first.$rest.' '.$clash.' Shall I apply it anyway?';
+        }
+        $keepsAll = array_filter($changes, fn (array $change) => ! in_array($change, $offer, true)) === [];
+        $others = count($different) - 1;
+        $more = match (true) {
+            $others === 0 => '',
+            $others === 1 => ' and one other change',
+            default => " and {$others} other changes",
+        };
+        $question = $keepsAll
+            ? 'Shall I also '.self::offerPhrase($different[0]).$more.'?'
+            : 'Shall I '.self::offerPhrase($different[0]).$more.' instead?';
+
+        return $first.$rest.' '.$clash.' '.$question;
+    }
+
+    /** "move Build to Thursday 12 November, 17:00 to 19:00", for "Shall I also …?". */
+    private static function offerPhrase(array $change): string
+    {
+        return match ($change['change']) {
+            'moved' => "move {$change['task']} to ".self::when($change['toStart'], $change['toEnd']),
+            'renamed' => "rename {$change['task']} to {$change['title']}",
+            'added' => "add {$change['task']}, ".self::when($change['toStart'], $change['toEnd']),
+            'removed' => "delete {$change['task']}",
+            'linked' => "make {$change['successor']} wait for {$change['predecessor']}",
+            'unlinked' => "stop {$change['successor']} waiting for {$change['predecessor']}",
+        };
     }
 
     private static function warningSentence(array $warning): string

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\VoiceDecision;
 use App\Models\VoiceEvent;
 use App\Voice\ChangeList;
 use App\Voice\Explainer;
@@ -17,6 +18,7 @@ use DateTimeZone;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 /**
@@ -81,7 +83,128 @@ class VoiceController extends Controller
         }
 
         $limits = config('voice.limits');
+        $data = $request->validate($this->interpretRules($limits));
+        $context = $this->context($data['context']);
+
+        return $this->propose($request, 'interpret', $started, $context, $validator,
+            fn () => $interpreter->interpret($data['transcript'], $context, $this->history($request)));
+    }
+
+    /**
+     * A clash-free alternative to a proposal the app found would clash (docs/voice-api.md):
+     * the same words and schedule, the operations that were proposed and the clashes
+     * they would cause. Answers like /interpret; "unsupported" when there is none.
+     */
+    public function resolve(Request $request, Interpreter $interpreter, ProposalValidator $validator): JsonResponse
+    {
+        $started = hrtime(true);
+        if (! config('voice.enabled')) {
+            $this->record($request, 'resolve', 503, 'disabled', $started);
+
+            return response()->json(['error' => 'voice_disabled'], 503);
+        }
+
+        $limits = config('voice.limits');
+        $data = $request->validate($this->interpretRules($limits) + [
+            'planned' => ['required', 'array', 'list', 'min:1', 'max:'.$limits['operations']],
+            'planned.*' => ['array'],
+            'clashes' => ['required', 'array', 'list', 'min:1', 'max:'.$limits['explained_warnings']],
+            'clashes.*' => ['array', function (string $attribute, mixed $value, Closure $fail) {
+                if ($problem = ChangeList::warningProblem($value)) {
+                    $fail($problem);
+                }
+            }],
+            'clashes.*.kind' => ['string'],
+            'clashes.*.task' => ['string', 'max:200'],
+            'clashes.*.other' => ['string', 'max:200'],
+            'clashes.*.predecessor' => ['string', 'max:200'],
+            'clashes.*.successor' => ['string', 'max:200'],
+        ]);
+        $context = $this->context($data['context']);
+        // What was planned must itself be a valid proposal for this schedule.
+        $planned = $validator->validate(
+            ['result' => 'operations', 'operations' => $data['planned'], 'question' => null, 'reason' => null],
+            $context,
+            $limits['operations'],
+        );
+        if ($planned === null) {
+            return response()->json(['message' => 'The planned operations are not valid.', 'errors' => ['planned' => ['invalid']]], 422);
+        }
+
+        return $this->propose($request, 'resolve', $started, $context, $validator,
+            fn () => $interpreter->resolve($data['transcript'], $context, $planned['operations'], $data['clashes'], $this->history($request)));
+    }
+
+    /**
+     * How the user answered a proposal, kept so the interpreter can adapt to them
+     * (their "history"); 204 whether or not it is kept (VOICE_LEARN_DECISIONS).
+     */
+    public function decision(Request $request): Response
+    {
+        $limits = config('voice.limits');
         $data = $request->validate([
+            'said' => ['required', 'string', 'max:'.$limits['transcript_chars']],
+            ...$this->changeRules('proposed', $limits, required: true),
+            ...$this->changeRules('offered', $limits, required: false),
+            'answer' => ['required', 'string', Rule::in(VoiceDecision::ANSWERS)],
+            'reply' => ['nullable', 'string', 'max:'.$limits['transcript_chars']],
+        ]);
+        if (config('voice.decisions.enabled')) {
+            $decision = new VoiceDecision([
+                'said' => $data['said'],
+                'proposed' => $data['proposed'],
+                'offered' => $data['offered'] ?? null,
+                'answer' => $data['answer'],
+                'reply' => $data['reply'] ?? null,
+            ]);
+            $decision->user_id = $request->user()->getKey();
+            $decision->save();
+        }
+
+        return response()->noContent();
+    }
+
+    /** Asks the interpreter, validates its answer and records the call. */
+    private function propose(Request $request, string $kind, int $started, array $context, ProposalValidator $validator, Closure $ask): JsonResponse
+    {
+        try {
+            $interpretation = $ask();
+        } catch (ProviderUnavailable) {
+            $this->record($request, $kind, 502, 'provider_error', $started);
+
+            return response()->json(['error' => 'provider_unavailable'], 502);
+        }
+
+        $proposal = $validator->validate($interpretation->proposal, $context, config('voice.limits.operations'));
+        $tokens = [
+            'input_tokens' => $interpretation->inputTokens,
+            'output_tokens' => $interpretation->outputTokens,
+            'cached_tokens' => $interpretation->cachedTokens,
+            'cache_write_tokens' => $interpretation->cacheWriteTokens,
+        ];
+        if ($proposal === null) {
+            $this->record($request, $kind, 502, 'invalid', $started, $tokens);
+
+            return response()->json(['error' => 'invalid_proposal'], 502);
+        }
+
+        $this->record($request, $kind, 200, $proposal['result'], $started, $tokens);
+
+        return response()->json(['revision' => $context['revision']] + $proposal);
+    }
+
+    /** The user's recent decisions for the interpreter, when they are kept. */
+    private function history(Request $request): array
+    {
+        return config('voice.decisions.enabled')
+            ? VoiceDecision::history($request->user(), config('voice.decisions.history'))
+            : [];
+    }
+
+    /** The words and the schedule, as /interpret and /resolve take them. */
+    private function interpretRules(array $limits): array
+    {
+        return [
             'transcript' => ['required', 'string', 'max:'.$limits['transcript_chars']],
             'context' => ['required', 'array'],
             'context.projectId' => ['required', 'string', 'max:100'],
@@ -106,28 +229,32 @@ class VoiceController extends Controller
             'context.tasks.*.end' => ['required', 'date_format:Y-m-d\TH:i'],
             'context.tasks.*.predecessorIds' => ['present', 'array', 'list', 'max:'.$limits['tasks']],
             'context.tasks.*.predecessorIds.*' => ['string', 'max:100'],
-        ]);
-        $context = $this->context($data['context']);
+        ];
+    }
 
-        try {
-            $interpretation = $interpreter->interpret($data['transcript'], $context);
-        } catch (ProviderUnavailable) {
-            $this->record($request, 'interpret', 502, 'provider_error', $started);
+    /** Rules for a list of changes in the /explain form (ChangeList), under $field. */
+    private function changeRules(string $field, array $limits, bool $required): array
+    {
+        $text = ['string', 'max:200'];
+        $time = ['date_format:Y-m-d\TH:i'];
 
-            return response()->json(['error' => 'provider_unavailable'], 502);
-        }
-
-        $proposal = $validator->validate($interpretation->proposal, $context, $limits['operations']);
-        $tokens = ['input_tokens' => $interpretation->inputTokens, 'output_tokens' => $interpretation->outputTokens];
-        if ($proposal === null) {
-            $this->record($request, 'interpret', 502, 'invalid', $started, $tokens);
-
-            return response()->json(['error' => 'invalid_proposal'], 502);
-        }
-
-        $this->record($request, 'interpret', 200, $proposal['result'], $started, $tokens);
-
-        return response()->json(['revision' => $context['revision']] + $proposal);
+        return [
+            $field => [$required ? 'required' : 'nullable', 'array', 'list', $required ? 'min:1' : 'min:0', 'max:'.$limits['explained_changes']],
+            "$field.*" => ['array', function (string $attribute, mixed $value, Closure $fail) {
+                if ($problem = ChangeList::problem($value)) {
+                    $fail($problem);
+                }
+            }],
+            "$field.*.change" => ['string'],
+            "$field.*.task" => $text,
+            "$field.*.title" => $text,
+            "$field.*.predecessor" => $text,
+            "$field.*.successor" => $text,
+            "$field.*.fromStart" => $time,
+            "$field.*.fromEnd" => $time,
+            "$field.*.toStart" => $time,
+            "$field.*.toEnd" => $time,
+        ];
     }
 
     /**
@@ -148,30 +275,16 @@ class VoiceController extends Controller
 
         $limits = config('voice.limits');
         $text = ['string', 'max:200'];
-        $time = ['date_format:Y-m-d\TH:i'];
         $data = $request->validate([
             'question' => ['required_without:changes', 'prohibits:changes', 'string', 'max:'.$limits['question_chars']],
+            ...$this->changeRules('changes', $limits, required: false),
             'changes' => ['required_without:question', 'array', 'list', 'min:1', 'max:'.$limits['explained_changes']],
-            'changes.*' => ['array', function (string $attribute, mixed $value, Closure $fail) {
-                if ($problem = ChangeList::problem($value)) {
-                    $fail($problem);
-                }
-            }],
-            'changes.*.change' => ['string'],
-            'changes.*.task' => $text,
-            'changes.*.title' => $text,
-            'changes.*.predecessor' => $text,
-            'changes.*.successor' => $text,
-            'changes.*.fromStart' => $time,
-            'changes.*.fromEnd' => $time,
-            'changes.*.toStart' => $time,
-            'changes.*.toEnd' => $time,
             'today' => ['required_with:changes', 'date_format:Y-m-d'],
             'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
             // What the words are for; a question ignores it.
             'stage' => ['nullable', 'string', Rule::in(ChangeList::STAGES)],
             // Clashes a proposal would cause, named before the question; only with changes.
-            'warnings' => ['nullable', 'prohibits:question', 'array', 'list', 'max:'.$limits['explained_warnings']],
+            'warnings' => ['nullable', 'prohibits:question', 'required_with:offer', 'array', 'list', 'max:'.$limits['explained_warnings']],
             'warnings.*' => ['array', function (string $attribute, mixed $value, Closure $fail) {
                 if ($problem = ChangeList::warningProblem($value)) {
                     $fail($problem);
@@ -182,11 +295,15 @@ class VoiceController extends Controller
             'warnings.*.other' => $text,
             'warnings.*.predecessor' => $text,
             'warnings.*.successor' => $text,
+            // A clash-free alternative, offered in the closing question; only with warnings.
+            ...$this->changeRules('offer', $limits, required: false),
+            'offer' => ['nullable', 'prohibits:question', 'array', 'list', 'max:'.$limits['explained_changes']],
         ]);
         $language = $data['language'] ?? null;
         $stage = $data['stage'] ?? ChangeList::PROPOSAL;
         // Once applied there is nothing left to warn about.
         $warnings = $stage === ChangeList::PROPOSAL ? ($data['warnings'] ?? []) : [];
+        $offer = $warnings !== [] ? ($data['offer'] ?? []) : [];
 
         $kind = 'speak';
         $fallback = false;
@@ -196,11 +313,11 @@ class VoiceController extends Controller
         } else {
             $kind = 'explain';
             try {
-                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage, $warnings);
+                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage, $warnings, $offer);
                 $words = $explanation->text;
                 $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
             } catch (ProviderUnavailable) {
-                $words = ChangeList::summary($data['changes'], $stage, $warnings);
+                $words = ChangeList::summary($data['changes'], $stage, $warnings, $offer);
                 $fallback = true;
             }
         }

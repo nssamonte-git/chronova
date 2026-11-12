@@ -26,10 +26,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.remote.DecisionAnswer
 import noel.chronova.app.data.remote.ExplainRequest
 import noel.chronova.app.data.remote.ExplainStage
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
+import noel.chronova.app.data.remote.VoiceDecision
 import noel.chronova.app.domain.repository.ProjectRepository
 import noel.chronova.app.domain.schedule.ApplyResult
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
@@ -40,6 +42,8 @@ import noel.chronova.app.domain.voice.AICommandHandler
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.HandledProposal
 import noel.chronova.app.domain.voice.PreviewItem
+import noel.chronova.app.domain.voice.Proposal
+import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.navigation.ProjectTimelineRoute
@@ -72,6 +76,8 @@ data class AssistantUiState(
     val proposal: List<PreviewItem> = emptyList(),
     /** Clashes the proposal would cause, shown under its lines; the assistant names them before asking. */
     val warnings: List<ScheduleWarning> = emptyList(),
+    /** A clash-free alternative the assistant is offering instead, shown under the warnings. */
+    val offer: List<PreviewItem> = emptyList(),
     /** The one-time notice (what goes to ElevenLabs and OpenAI) has been accepted. */
     val noticeAccepted: Boolean = false,
 )
@@ -163,14 +169,14 @@ class AssistantViewModel(
             else -> return run { _message.value = AssistantMessage.NeedsSignIn }
         }
         stopAfterword()
-        ui.update { it.copy(open = true, mode = OrbMode.Listening, heard = null, saying = null, proposal = emptyList(), warnings = emptyList()) }
+        ui.update { it.copy(open = true, mode = OrbMode.Listening, heard = null, saying = null, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
         conversation = viewModelScope.launch {
             try {
                 converse()
             } finally {
                 recorder.cancel()
                 _level.value = 0f
-                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
+                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
             }
         }
     }
@@ -180,7 +186,7 @@ class AssistantViewModel(
         conversation?.cancel()
         recorder.cancel()
         player.stop()
-        ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
+        ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
     }
 
     fun onMicrophoneDenied() {
@@ -211,6 +217,8 @@ class AssistantViewModel(
             val items: List<PreviewItem>,
             val changes: List<ScheduleChange>,
             val warnings: List<ScheduleWarning> = emptyList(),
+            /** A clash-free version to offer instead, when [warnings] has clashes and one was found. */
+            val alternative: Proposal? = null,
         ) : Outcome
         data class Question(val text: String) : Outcome
 
@@ -236,17 +244,30 @@ class AssistantViewModel(
                 context = null
                 when (val outcome = interpret(request)) {
                     is Outcome.Proposal -> {
+                        val alternative = outcome.alternative
                         val reply = propose(outcome) ?: return declined()
-                        when (ConfirmationReply.of(reply)) {
-                            ConfirmationReply.Yes -> return applyAndExplain(outcome)
-                            ConfirmationReply.No -> return declined()
-                            ConfirmationReply.Other -> {
-                                // A corrected request: worked out again with the first one as context.
-                                context = "$request. Change of plan:"
-                                pendingWords = reply
-                                strikes = 0
+                        val decided = when (ConfirmationReply.of(reply)) {
+                            ConfirmationReply.Yes -> if (alternative != null) {
+                                report(request, outcome, DecisionAnswer.AcceptedFix)
+                                return applyAndExplain(alternative)
+                            } else {
+                                report(request, outcome, DecisionAnswer.Accepted)
+                                return applyAndExplain(outcome)
                             }
+                            ConfirmationReply.No -> if (alternative == null) {
+                                report(request, outcome, DecisionAnswer.Declined)
+                                return declined()
+                            } else {
+                                // They turned the alternative down: their own version is still open.
+                                keepAsAsked(request, outcome) ?: return
+                            }
+                            ConfirmationReply.Other -> reply
                         }
+                        // A corrected request: worked out again with the first one as context.
+                        report(request, outcome, DecisionAnswer.Corrected, reply = decided)
+                        context = "$request. Change of plan:"
+                        pendingWords = decided
+                        strikes = 0
                     }
                     is Outcome.Question -> {
                         say(outcome.text)
@@ -268,8 +289,33 @@ class AssistantViewModel(
         }
     }
 
-    /** Listens until the user stops speaking; their words, or null if nothing was heard. */
-    private suspend fun listen(): String? {
+    /**
+     * Listens until the user stops speaking; their words, or null if nothing was heard.
+     * [answering]: a yes or no is expected, so the transcriber listens for those words too,
+     * and a sound that turns out to hold no words (a cough, a door) gets one more listen
+     * instead of counting as no answer.
+     */
+    private suspend fun listen(answering: Boolean = false): String? {
+        repeat(if (answering) 2 else 1) {
+            when (val heard = hear(answering)) {
+                Heard.Silence -> return null
+                Heard.NoWords -> Unit
+                is Heard.Words -> return heard.text
+            }
+        }
+        return null
+    }
+
+    private sealed interface Heard {
+        /** Nobody spoke before the no-speech limit. */
+        data object Silence : Heard
+
+        /** Something was loud enough to record but held no words. */
+        data object NoWords : Heard
+        data class Words(val text: String) : Heard
+    }
+
+    private suspend fun hear(answering: Boolean): Heard {
         ui.update { it.copy(mode = OrbMode.Listening, saying = null) }
         recorder.start()
         val detector = EndpointDetector()
@@ -288,21 +334,22 @@ class AssistantViewModel(
         }
         if (decision == EndpointDetector.Decision.NothingHeard) {
             recorder.cancel()
-            return null
+            return Heard.Silence
         }
-        val recording = recorder.stop() ?: return null
+        val recording = recorder.stop() ?: return Heard.Silence
         ui.update { it.copy(mode = OrbMode.Thinking) }
         val heard = try {
             val titles = repository.schedule(projectId)?.tasks?.map { it.title }.orEmpty()
-            voiceApi.transcribe(token(), recording.file, recording.durationMs, language(), titles)
+            val keyterms = if (answering) ConfirmationReply.KEYTERMS + titles else titles
+            voiceApi.transcribe(token(), recording.file, recording.durationMs, language(), keyterms)
         } finally {
             recording.file.delete()
         }
         heardLanguage = heard.language ?: language()
         val text = heard.text.trim()
-        if (text.isEmpty()) return null
+        if (text.isEmpty()) return Heard.NoWords
         ui.update { it.copy(heard = text) }
-        return text
+        return Heard.Words(text)
     }
 
     private suspend fun interpret(text: String): Outcome {
@@ -312,11 +359,10 @@ class AssistantViewModel(
         val proposal = voiceApi.interpret(token(), text, context)
         val now = repository.schedule(projectId) ?: return Outcome.Problem(phrases.scheduleChanged(), final = true)
         return when (val handled = handler.handle(context, now, proposal)) {
-            is HandledProposal.Preview -> Outcome.Proposal(
-                PreviewItem.from(handled.changes, now),
-                handled.changes,
-                ScheduleWarning.from(handled.changes, now),
-            )
+            is HandledProposal.Preview -> {
+                val planned = Outcome.Proposal(PreviewItem.from(handled.changes, now), handled.changes, ScheduleWarning.from(handled.changes, now))
+                if (planned.warnings.isEmpty()) planned else planned.copy(alternative = alternative(text, context, now, proposal, planned))
+            }
             is HandledProposal.Clarify -> Outcome.Question(handled.question)
             is HandledProposal.Unsupported -> Outcome.Problem(phrases.unsupported(handled.reason))
             is HandledProposal.CannotDo -> Outcome.Problem(
@@ -328,12 +374,93 @@ class AssistantViewModel(
         }
     }
 
+    /**
+     * A clash-free version of [planned]: the model's suggestion if it is valid and
+     * clash-free here, else the app's own (push what waits for a task just enough),
+     * if that is; null when there is neither.
+     */
+    private suspend fun alternative(
+        text: String,
+        context: VoiceContext,
+        state: ScheduleState,
+        proposal: Proposal,
+        planned: Outcome.Proposal,
+    ): Outcome.Proposal? {
+        fun usable(candidate: Proposal): Outcome.Proposal? {
+            val handled = handler.handle(context, state, candidate) as? HandledProposal.Preview ?: return null
+            if (ScheduleWarning.from(handled.changes, state).isNotEmpty()) return null
+            val items = PreviewItem.from(handled.changes, state)
+            // The same change in other words is no alternative.
+            if (ExplainedChange.from(items, zone) == ExplainedChange.from(planned.items, zone)) return null
+            return Outcome.Proposal(items, handled.changes)
+        }
+        val suggested = try {
+            voiceApi.resolve(token(), text, context, proposal.operations, planned.warnings)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: VoiceApiException) {
+            null
+        }
+        suggested?.takeIf { it.result == "operations" }?.let(::usable)?.let { return it }
+        val waitedFor = ScheduleWarning.waitedFor(planned.changes, state)
+        if (waitedFor.isEmpty()) return null
+        return usable(proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }))
+    }
+
     /** Says what will change and asks; the spoken answer, or null if none came. */
     private suspend fun propose(proposal: Outcome.Proposal): String? {
-        ui.update { it.copy(proposal = proposal.items, warnings = proposal.warnings) }
-        // Any clash is named before the question, which then asks whether to apply it anyway.
-        speak(explain(proposal.items, ExplainStage.Proposal, proposal.warnings))
-        return listen()
+        val offer = proposal.alternative?.items.orEmpty()
+        // On screen, only what the alternative does differently (it says the same).
+        val asked = ExplainedChange.from(proposal.items, zone)
+        val different = offer.filter { item -> ExplainedChange.from(listOf(item), zone).any { it !in asked } }
+        ui.update { it.copy(proposal = proposal.items, warnings = proposal.warnings, offer = different) }
+        // A clash is named before the question, which offers the alternative or asks whether to apply it anyway.
+        speak(explain(proposal.items, ExplainStage.Proposal, proposal.warnings, offer))
+        return listen(answering = true)
+    }
+
+    /**
+     * After the alternative was turned down: asks whether to apply [proposal] as
+     * asked. Applies it on yes; null when the conversation is over, or the words
+     * of a corrected request.
+     */
+    private suspend fun keepAsAsked(request: String, proposal: Outcome.Proposal): String? {
+        ui.update { it.copy(offer = emptyList()) }
+        say(phrases.applyAsAsked())
+        val reply = listen(answering = true) ?: return run {
+            report(request, proposal, DecisionAnswer.Declined)
+            declined()
+            null
+        }
+        return when (ConfirmationReply.of(reply)) {
+            ConfirmationReply.Yes -> {
+                report(request, proposal, DecisionAnswer.KeptAsIs)
+                applyAndExplain(proposal)
+                null
+            }
+            ConfirmationReply.No -> {
+                report(request, proposal, DecisionAnswer.Declined)
+                declined()
+                null
+            }
+            ConfirmationReply.Other -> reply
+        }
+    }
+
+    /** Tells the server how the user answered (best effort: nothing waits for it, failures are ignored). */
+    private fun report(request: String, proposal: Outcome.Proposal, answer: DecisionAnswer, reply: String? = null) {
+        val proposed = ExplainedChange.from(proposal.items, zone)
+        if (proposed.isEmpty()) return
+        val offered = proposal.alternative?.let { ExplainedChange.from(it.items, zone) }.orEmpty()
+        viewModelScope.launch {
+            try {
+                voiceApi.decide(token(), VoiceDecision(request, proposed, answer, offered, reply))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: VoiceApiException) {
+                // Learning is a nicety; the conversation never depends on it.
+            }
+        }
     }
 
     private suspend fun applyAndExplain(proposal: Outcome.Proposal) {
@@ -342,7 +469,7 @@ class AssistantViewModel(
             is ApplyResult.Applied -> {
                 _message.value = AssistantMessage.Applied(taskCount(proposal.changes), result.undo)
                 // The orb goes first, so the user sees the timeline while hearing what changed.
-                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList()) }
+                ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
                 val changed = changedTaskIds(proposal.changes)
                 afterword = viewModelScope.launch {
                     _highlight.value = changed
@@ -357,7 +484,12 @@ class AssistantViewModel(
     }
 
     /** The server's words (and audio) for [items]; null if it couldn't be reached. */
-    private suspend fun explain(items: List<PreviewItem>, stage: ExplainStage, warnings: List<ScheduleWarning> = emptyList()): Spoken? = try {
+    private suspend fun explain(
+        items: List<PreviewItem>,
+        stage: ExplainStage,
+        warnings: List<ScheduleWarning> = emptyList(),
+        offer: List<PreviewItem> = emptyList(),
+    ): Spoken? = try {
         val answer = voiceApi.explain(
             token(),
             ExplainRequest.Changes(
@@ -366,6 +498,7 @@ class AssistantViewModel(
                 language = heardLanguage,
                 stage = stage,
                 warnings = warnings,
+                offer = ExplainedChange.from(offer, zone),
             ),
         )
         Spoken(answer.text, answer.audio)
@@ -377,7 +510,7 @@ class AssistantViewModel(
 
     /** The proposal was turned down (or not answered): its lines go, so nothing looks applied. */
     private suspend fun declined() {
-        ui.update { it.copy(proposal = emptyList(), warnings = emptyList()) }
+        ui.update { it.copy(proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
         say(phrases.nothingChanged())
     }
 

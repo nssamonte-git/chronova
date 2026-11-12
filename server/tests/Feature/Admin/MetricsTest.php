@@ -114,6 +114,8 @@ it('sums 24-hour voice use without an estimate until prices are set', function (
         'audio_minutes' => 2.0,         // 90 s + 30 s, both sent to the provider
         'speech_characters' => 100,     // spoken answers only, not transcript lengths
         'input_tokens' => 1200,
+        'cached_tokens' => 0,
+        'cache_write_tokens' => 0,
         'output_tokens' => 150,
         'estimated_cost' => null,
     ]);
@@ -127,6 +129,19 @@ it('sums 24-hour voice use without an estimate until prices are set', function (
     ]]);
     // 1200/1e6*1 + 150/1e6*10 + 2/60*0.6 + 100/1000*50 = 0.0012 + 0.0015 + 0.02 + 5
     expect(app(Metrics::class)->voiceUsage()['estimated_cost'])->toBe(5.02);
+});
+
+it('prices prompt-cache reads and writes at their own multiples of the input price', function () {
+    config(['voice.prices' => [
+        'openai_input_per_million_tokens' => 100.0,
+        'openai_output_per_million_tokens' => 0.0,
+        'transcription_per_hour' => 0.0,
+        'speech_per_thousand_characters' => 0.0,
+    ], 'voice.cache_prices' => ['read_factor' => 0.05, 'write_factor' => 1.25]]);
+    voiceEvent('interpret', 200, 'operations', now()->toDateTimeString(), ['input_tokens' => 30_000, 'cached_tokens' => 10_000, 'cache_write_tokens' => 10_000]);
+
+    // (10k plain + 10k × 0.05 + 10k × 1.25) / 1e6 × 100 = (10 000 + 500 + 12 500) / 1e4 = 2.30
+    expect(app(Metrics::class)->voiceUsage())->toMatchArray(['cached_tokens' => 10_000, 'cache_write_tokens' => 10_000, 'estimated_cost' => 2.3]);
 });
 
 it('counts voice requests per day by endpoint', function () {

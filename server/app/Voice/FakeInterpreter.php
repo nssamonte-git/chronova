@@ -13,9 +13,15 @@ use DateTimeImmutable;
  */
 final class FakeInterpreter implements Interpreter
 {
-    public function interpret(string $transcript, array $context): Interpretation
+    public function interpret(string $transcript, array $context, array $history = []): Interpretation
     {
         return new Interpretation($this->proposal(mb_strtolower(trim($transcript)), $context));
+    }
+
+    /** No suggestions without a model: the app falls back to its own fix. */
+    public function resolve(string $transcript, array $context, array $planned, array $clashes, array $history = []): Interpretation
+    {
+        return new Interpretation(['result' => 'unsupported', 'operations' => [], 'question' => null, 'reason' => 'The test interpreter has no suggestion.']);
     }
 
     private function proposal(string $text, array $context): array

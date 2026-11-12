@@ -31,6 +31,8 @@ return [
         'model' => env('VOICE_OPENAI_MODEL', 'gpt-6.1-terra'),
         // Short, schema-bound answers; raise only if interpretations are poor.
         'reasoning_effort' => env('VOICE_OPENAI_REASONING_EFFORT', 'low'),
+        // Cache the interpreter's fixed rules at OpenAI for 30 minutes (only the rules, never user content).
+        'prompt_cache' => (bool) env('VOICE_OPENAI_PROMPT_CACHE', true),
         'timeout' => (int) env('VOICE_OPENAI_TIMEOUT', 20),
     ],
 
@@ -54,6 +56,19 @@ return [
         'openai_output_per_million_tokens' => is_numeric(env('VOICE_PRICE_OPENAI_OUTPUT')) ? (float) env('VOICE_PRICE_OPENAI_OUTPUT') : null,
         'transcription_per_hour' => is_numeric(env('VOICE_PRICE_TRANSCRIPTION_HOUR')) ? (float) env('VOICE_PRICE_TRANSCRIPTION_HOUR') : null,
         'speech_per_thousand_characters' => is_numeric(env('VOICE_PRICE_SPEECH_1K_CHARS')) ? (float) env('VOICE_PRICE_SPEECH_1K_CHARS') : null,
+    ],
+
+    // Prompt-cache pricing as multiples of the input price (GPT-6.1 Terra: reads 0.05×, 30-minute writes 1.25×).
+    'cache_prices' => [
+        'read_factor' => (float) env('VOICE_PRICE_OPENAI_CACHE_READ_FACTOR', 0.05),
+        'write_factor' => (float) env('VOICE_PRICE_OPENAI_CACHE_WRITE_FACTOR', 1.25),
+    ],
+
+    // Each user's requests and answers, kept to adapt the interpreter to them (sent back as "history").
+    'decisions' => [
+        'enabled' => (bool) env('VOICE_LEARN_DECISIONS', true),
+        'retention_days' => (int) env('VOICE_DECISION_RETENTION_DAYS', 90),
+        'history' => (int) env('VOICE_DECISION_HISTORY', 10),
     ],
 
     'limits' => [

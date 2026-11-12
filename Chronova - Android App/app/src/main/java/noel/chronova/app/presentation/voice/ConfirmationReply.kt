@@ -21,6 +21,16 @@ enum class ConfirmationReply {
             "forget it", "not now", "no thanks", "no thank you",
         )
 
+        /** Words the transcriber hears for a lone "no" (seen on the phone: "No." came back as "Now"). */
+        private val HEARD_AS_NO = setOf("now", "know", "nah")
+
+        /**
+         * Passed to the transcriber while it waits for an answer, so a short "no" isn't heard as "now".
+         * Never "yes": on the phone, background noise primed with it came back as "Yes" and applied a
+         * change. A word misheard as no only means nothing changes.
+         */
+        val KEYTERMS = listOf("no")
+
         /** Longer answers than this are requests, not a plain yes or no. */
         private const val MAX_WORDS = 4
 
@@ -29,6 +39,8 @@ enum class ConfirmationReply {
             if (clean.isEmpty()) return Other
             val words = clean.split(' ')
             if (words.size > MAX_WORDS) return Other
+            // A lone word that sounds like "no" is read as no: the safe side, nothing changes.
+            if (words.size == 1 && words[0] in HEARD_AS_NO) return No
             val padded = " $clean "
             val yes = YES.any { " $it " in padded }
             val no = NO.any { " $it " in padded }

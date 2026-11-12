@@ -11,6 +11,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
@@ -37,6 +43,45 @@ interface VoiceApi {
 
     /** Asks the server to interpret [transcript]; cancelling the coroutine cancels the request. */
     suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal
+
+    /**
+     * Asks for a clash-free alternative to [planned], the operations proposed for
+     * [transcript], which would cause [clashes]; "unsupported" when there is none.
+     */
+    suspend fun resolve(
+        accessToken: String,
+        transcript: String,
+        context: VoiceContext,
+        planned: List<ProposedOperation>,
+        clashes: List<ScheduleWarning>,
+    ): Proposal
+
+    /** Tells the server how the user answered, so the interpreter can adapt to them. */
+    suspend fun decide(accessToken: String, decision: VoiceDecision)
+}
+
+/** How the user answered a proposal (`POST /v1/voice/decision`). */
+data class VoiceDecision(
+    /** The request as interpreted (with earlier words when it was a correction or an answer). */
+    val said: String,
+    val proposed: List<ExplainedChange>,
+    val answer: DecisionAnswer,
+    /** The clash-free alternative they were offered, if any. */
+    val offered: List<ExplainedChange> = emptyList(),
+    /** Their words, when they asked for something else instead. */
+    val reply: String? = null,
+)
+
+enum class DecisionAnswer(val wire: String) {
+    Accepted("accepted"),
+    Declined("declined"),
+    Corrected("corrected"),
+
+    /** Took the clash-free alternative. */
+    AcceptedFix("accepted_fix"),
+
+    /** Turned the alternative down and kept their own version. */
+    KeptAsIs("kept_as_is"),
 }
 
 /** What was heard, and the language it was heard in (null if the server didn't say). */
@@ -53,6 +98,8 @@ sealed interface ExplainRequest {
         val stage: ExplainStage = ExplainStage.Proposal,
         /** Clashes the proposal would cause; the words name them and ask whether to apply it anyway. */
         val warnings: List<ScheduleWarning> = emptyList(),
+        /** A clash-free alternative (all its changes); the question then offers it instead. */
+        val offer: List<ExplainedChange> = emptyList(),
     ) : ExplainRequest
 
     /** A clarifying question, spoken as it is. */
@@ -129,6 +176,7 @@ class OkHttpVoiceApi(
                 language = request.language,
                 stage = request.stage.wire,
                 warnings = request.warnings.map { it.toDto() }.ifEmpty { null },
+                offer = request.offer.map { it.toDto() }.ifEmpty { null },
             )
             is ExplainRequest.Question -> ExplainRequestDto(question = request.text, language = request.language)
         }
@@ -147,6 +195,33 @@ class OkHttpVoiceApi(
         return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
     }
 
+    override suspend fun resolve(
+        accessToken: String,
+        transcript: String,
+        context: VoiceContext,
+        planned: List<ProposedOperation>,
+        clashes: List<ScheduleWarning>,
+    ): Proposal {
+        val body = buildJsonObject {
+            put("transcript", transcript)
+            put("context", SyncJson.json.encodeToJsonElement(VoiceContextDto.serializer(), context.toDto()))
+            put("planned", JsonArray(planned.map { it.toWire() }))
+            put("clashes", SyncJson.json.encodeToJsonElement(ListSerializer(ExplainWarningDto.serializer()), clashes.map { it.toDto() }))
+        }
+        return call("resolve", body.toString().toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
+    }
+
+    override suspend fun decide(accessToken: String, decision: VoiceDecision) {
+        val dto = DecisionRequestDto(
+            said = decision.said,
+            proposed = decision.proposed.map { it.toDto() },
+            offered = decision.offered.map { it.toDto() }.ifEmpty { null },
+            answer = decision.answer.wire,
+            reply = decision.reply,
+        )
+        send("decision", SyncJson.json.encodeToString(DecisionRequestDto.serializer(), dto).toRequestBody(JSON), accessToken)
+    }
+
     // Callers are often on the main thread (ViewModels): the whole call, body reading included, runs on [io].
     private suspend fun <T> call(
         endpoint: String,
@@ -154,13 +229,25 @@ class OkHttpVoiceApi(
         reply: KSerializer<T>,
         accessToken: String,
     ): T = withContext(io) {
+        val text = send(endpoint, body, accessToken)
+        try {
+            SyncJson.json.decodeFromString(reply, text)
+        } catch (error: SerializationException) {
+            throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
+        } catch (error: IllegalArgumentException) {
+            throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
+        }
+    }
+
+    /** Posts [body] and returns the reply's text (empty for 204). */
+    private suspend fun send(endpoint: String, body: RequestBody, accessToken: String): String = withContext(io) {
         val request = Request.Builder()
             .url("$base/v1/voice/$endpoint")
             .post(body)
             .header("Authorization", "Bearer $accessToken")
             .header("Accept", "application/json")
             .build()
-        val text = try {
+        try {
             client.newCall(request).await().use { response ->
                 if (!response.isSuccessful) {
                     val tooLong = response.code == 422 && TOO_LONG in response.body.string()
@@ -170,13 +257,6 @@ class OkHttpVoiceApi(
             }
         } catch (error: IOException) {
             throw VoiceApiException(VoiceApiException.Kind.NETWORK, error)
-        }
-        try {
-            SyncJson.json.decodeFromString(reply, text)
-        } catch (error: SerializationException) {
-            throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
-        } catch (error: IllegalArgumentException) {
-            throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
         }
     }
 
@@ -198,6 +278,7 @@ internal data class ExplainRequestDto(
     val language: String? = null,
     val stage: String? = null,
     val warnings: List<ExplainWarningDto>? = null,
+    val offer: List<ExplainChangeDto>? = null,
 )
 
 /** Exactly the fields of each kind, like [ExplainChangeDto]. */
@@ -268,6 +349,50 @@ internal data class VoiceTaskDto(
     val end: String,
     val predecessorIds: List<String>,
 )
+
+@Serializable
+internal data class DecisionRequestDto(
+    val said: String,
+    val proposed: List<ExplainChangeDto>,
+    val offered: List<ExplainChangeDto>? = null,
+    val answer: String,
+    val reply: String? = null,
+)
+
+/** The fields each operation type always has, nullable ones included (the server checks the exact shape). */
+private val OPERATION_FIELDS = mapOf(
+    "move_task" to listOf("taskId", "date", "time"),
+    "shift_task" to listOf("taskId", "amount", "unit"),
+    "set_times" to listOf("taskId", "start", "end"),
+    "change_duration" to listOf("taskId", "amount", "unit"),
+    "set_duration" to listOf("taskId", "amount", "unit"),
+    "rename_task" to listOf("taskId", "title"),
+    "create_task" to listOf("title", "start", "end", "predecessorIds"),
+    "delete_task" to listOf("taskId"),
+    "add_dependency" to listOf("predecessorId", "successorId"),
+    "remove_dependency" to listOf("predecessorId", "successorId"),
+    "reschedule_dependents" to listOf("taskId"),
+)
+
+/** An operation as the server sent it: its type's fields, nulls written out. */
+internal fun ProposedOperation.toWire(): JsonObject = buildJsonObject {
+    put("type", type)
+    OPERATION_FIELDS[type].orEmpty().forEach { field ->
+        when (field) {
+            "taskId" -> put(field, taskId)
+            "date" -> put(field, date)
+            "time" -> put(field, time)
+            "amount" -> put(field, amount)
+            "unit" -> put(field, unit)
+            "start" -> put(field, start)
+            "end" -> put(field, end)
+            "title" -> put(field, title)
+            "predecessorIds" -> put(field, JsonArray(predecessorIds.orEmpty().map(::JsonPrimitive)))
+            "predecessorId" -> put(field, predecessorId)
+            "successorId" -> put(field, successorId)
+        }
+    }
+}
 
 @Serializable
 internal data class InterpretResponseDto(

@@ -7,11 +7,11 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
-import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.schedule.ScheduleState
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.ProposedOperation
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import okhttp3.OkHttpClient
 import org.junit.After
@@ -159,6 +159,40 @@ class OkHttpVoiceApiTest {
                 """"warnings":[{"kind":"overlap","task":"Test","other":"Build"},{"kind":"dependency","predecessor":"Design","successor":"Test"}]}""",
             server.takeRequest().body!!.utf8(),
         )
+    }
+
+    @Test
+    fun resolveSendsThePlanWithEveryFieldAndTheClashes() = runTest {
+        reply(200, """{"revision":"r1","result":"unsupported","operations":[],"question":null,"reason":"none"}""")
+        val context = VoiceContext("p1", "Launch", LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 18), "UTC", LocalDate.of(2026, 11, 12), LocalDateTime.of(2026, 11, 12, 9, 0), "r1", emptyList())
+        val answer = api.resolve(
+            "token-1",
+            "move build to friday",
+            context,
+            listOf(ProposedOperation("move_task", taskId = "t1", date = "2026-11-13"), ProposedOperation("create_task", title = "QA", start = "2026-11-13T09:00", end = "2026-11-13T10:00")),
+            listOf(ScheduleWarning.Overlap("Build", "QA")),
+        )
+
+        val request = server.takeRequest()
+        assertEquals("/v1/voice/resolve", request.url.encodedPath)
+        val body = request.body!!.utf8()
+        assertTrue(body, body.contains(""""planned":[{"type":"move_task","taskId":"t1","date":"2026-11-13","time":null},""" +
+            """{"type":"create_task","title":"QA","start":"2026-11-13T09:00","end":"2026-11-13T10:00","predecessorIds":[]}]"""))
+        assertTrue(body, body.contains(""""clashes":[{"kind":"overlap","task":"Build","other":"QA"}]"""))
+        assertTrue(body, body.startsWith("""{"transcript":"move build to friday","context":{"projectId":"p1""""))
+        assertEquals("unsupported", answer.result)
+    }
+
+    @Test
+    fun decideSendsTheAnswerAndAcceptsAnEmptyReply() = runTest {
+        reply(204, "")
+        api.decide(
+            "token-1",
+            VoiceDecision("drop qa", listOf(ExplainedChange("removed", task = "QA")), DecisionAnswer.Corrected, reply = "keep it"),
+        )
+        val request = server.takeRequest()
+        assertEquals("/v1/voice/decision", request.url.encodedPath)
+        assertEquals("""{"said":"drop qa","proposed":[{"change":"removed","task":"QA"}],"answer":"corrected","reply":"keep it"}""", request.body!!.utf8())
     }
 
     @Test

@@ -2,36 +2,39 @@ package noel.chronova.app.presentation.voice
 
 import java.io.File
 import java.time.ZoneOffset
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.yield
 import noel.chronova.app.auth.AuthOutcome
 import noel.chronova.app.auth.AuthRepository
 import noel.chronova.app.auth.AuthState
+import noel.chronova.app.data.remote.DecisionAnswer
 import noel.chronova.app.data.remote.ExplainRequest
 import noel.chronova.app.data.remote.ExplainStage
 import noel.chronova.app.data.remote.SpokenAnswer
 import noel.chronova.app.data.remote.Transcript
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.remote.VoiceApiException
-import noel.chronova.app.domain.voice.ScheduleWarning
+import noel.chronova.app.data.remote.VoiceDecision
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.schedule.CommandProblem
+import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
+import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.presentation.timeline.FakeProjectRepository
 import noel.chronova.app.voice.AssistantSettings
@@ -70,7 +73,10 @@ private class FakeVoiceApi : VoiceApi {
     var onExplain: (ExplainRequest) -> Unit = {}
     var transcribeFailure: VoiceApiException.Kind? = null
 
+    val keyterms = mutableListOf<List<String>>()
+
     override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?, keyterms: List<String>): Transcript {
+        this.keyterms += keyterms
         onTranscribe()
         transcribeFailure?.let { throw VoiceApiException(it) }
         return Transcript(heard.removeFirstOrNull() ?: "", "en")
@@ -79,6 +85,31 @@ private class FakeVoiceApi : VoiceApi {
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
         requests += transcript
         return answer(transcript, context)
+    }
+
+    /** What /resolve was asked: the operations planned and the clashes. */
+    val resolved = mutableListOf<Pair<List<ProposedOperation>, List<ScheduleWarning>>>()
+    var suggest: (VoiceContext) -> Proposal = { c -> Proposal(c.revision, "unsupported", emptyList(), null, "none") }
+    var resolveFailure: VoiceApiException.Kind? = null
+
+    override suspend fun resolve(
+        accessToken: String,
+        transcript: String,
+        context: VoiceContext,
+        planned: List<ProposedOperation>,
+        clashes: List<ScheduleWarning>,
+    ): Proposal {
+        resolved += planned to clashes
+        resolveFailure?.let { throw VoiceApiException(it) }
+        return suggest(context)
+    }
+
+    val decisions = mutableListOf<VoiceDecision>()
+    var decideFailure: VoiceApiException.Kind? = null
+
+    override suspend fun decide(accessToken: String, decision: VoiceDecision) {
+        decideFailure?.let { throw VoiceApiException(it) }
+        decisions += decision
     }
 
     override suspend fun explain(accessToken: String, request: ExplainRequest): SpokenAnswer {
@@ -155,6 +186,7 @@ private class FakeSettings : AssistantSettings {
 
 private object FakePhrases : AssistantPhrases {
     override fun greeting() = "hello"
+    override fun applyAsAsked() = "as asked?"
     override fun nothingHeard() = "say again"
     override fun goodbye() = "goodbye"
     override fun nothingChanged() = "nothing changed"
@@ -260,6 +292,106 @@ class AssistantViewModelTest {
     }
 
     @Test
+    fun theModelsClashFreeAlternativeIsOfferedAndAYesAppliesIt() = runTest(dispatcher) {
+        api.answer = shift(-1) // Review 15:00–16:00 runs into QA Testing
+        api.suggest = { c -> shift(1)("", c) } // Review 17:00–18:00 is free
+        player.holdIn = this
+        val offered = mutableListOf<Int>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.state.collect { if (it.proposal.isNotEmpty()) offered += it.offer.size }
+        }
+        says("move review an hour earlier", "yes")
+        talk()
+
+        assertEquals(listOf(ProposedOperation("shift_task", taskId = "review", amount = -1, unit = "hours")), api.resolved.single().first)
+        assertEquals(listOf(ScheduleWarning.Overlap("Review", "QA Testing")), api.resolved.single().second)
+        val proposal = api.explained.filterIsInstance<ExplainRequest.Changes>().first()
+        assertEquals(1, proposal.offer.size)
+        assertEquals("Review", proposal.offer.single().task)
+        assertTrue(offered.isNotEmpty() && offered.all { it == 1 }) // the offer is shown while asking
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis) // the alternative, not the clash
+        assertEquals(listOf(DecisionAnswer.AcceptedFix), api.decisions.map { it.answer })
+        assertEquals(1, api.decisions.single().offered.size)
+    }
+
+    @Test
+    fun aSuggestionThatStillClashesOrFailsIsNotOffered() = runTest(dispatcher) {
+        api.answer = shift(-1)
+        api.suggest = { c -> shift(-2)("", c) } // Review 14:00–15:00: still inside QA Testing
+        says("move review an hour earlier", "yes")
+        talk()
+        assertEquals(emptyList<ExplainedChange>(), api.explained.filterIsInstance<ExplainRequest.Changes>().first().offer)
+        assertEquals(originalReview.startMillis - 3_600_000L, review.startMillis) // applied as asked
+        assertEquals(listOf(DecisionAnswer.Accepted), api.decisions.map { it.answer })
+    }
+
+    @Test
+    fun withoutASuggestionABrokenLinkIsFixedByPushingWhatWaits() = runTest(dispatcher) {
+        // QA Testing (13:30–16:00) is to wait for Review (16:00–17:00).
+        api.answer = { _, c -> Proposal(c.revision, "operations", listOf(ProposedOperation("add_dependency", predecessorId = "review", successorId = "qa-testing")), null, null) }
+        api.resolveFailure = VoiceApiException.Kind.UNAVAILABLE
+        player.holdIn = this
+        val shown = mutableListOf<Int>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.state.collect { if (it.proposal.isNotEmpty()) shown += it.offer.size }
+        }
+        says("qa testing waits for review", "yes")
+        talk()
+
+        // The link is in both versions: only the move is shown as the alternative.
+        assertTrue(shown.isNotEmpty() && shown.all { it == 1 })
+
+        val offer = api.explained.filterIsInstance<ExplainRequest.Changes>().first().offer
+        assertEquals(listOf("linked", "moved"), offer.map { it.change })
+        val qa = repository.tasks.value.first { it.id == "qa-testing" }
+        assertEquals(review.endMillis, qa.startMillis) // starts right when Review ends
+        assertEquals(listOf(DecisionAnswer.AcceptedFix), api.decisions.map { it.answer })
+    }
+
+    @Test
+    fun turningTheAlternativeDownAsksOnceMoreAndKeepsTheirOwnVersion() = runTest(dispatcher) {
+        api.answer = shift(-1)
+        api.suggest = { c -> shift(1)("", c) }
+        says("move review an hour earlier", "no", "yes")
+        talk()
+        assertEquals(listOf("hello", "as asked?"), api.said)
+        assertEquals(originalReview.startMillis - 3_600_000L, review.startMillis) // their version, clash and all
+        // The request is heard with the task names; both answers also with "no", never "yes" (noise was heard as yes).
+        assertEquals(listOf(false, true, true), api.keyterms.map { "no" in it })
+        assertTrue(api.keyterms.none { "yes" in it })
+        assertTrue(api.keyterms.all { "Review" in it })
+        assertEquals(listOf(DecisionAnswer.KeptAsIs), api.decisions.map { it.answer })
+    }
+
+    @Test
+    fun noToBothChangesNothing() = runTest(dispatcher) {
+        api.answer = shift(-1)
+        api.suggest = { c -> shift(1)("", c) }
+        says("move review an hour earlier", "no", "no")
+        talk()
+        assertEquals(originalReview, review)
+        assertTrue(repository.applied.isEmpty())
+        assertEquals(listOf(DecisionAnswer.Declined), api.decisions.map { it.answer })
+    }
+
+    @Test
+    fun everyAnswerIsReportedButAFailedReportChangesNothing() = runTest(dispatcher) {
+        api.answer = { text, c -> shift(if ("two hours" in text) 2 else 1)(text, c) }
+        says("push review by an hour", "make it two hours instead", "yes")
+        talk()
+        assertEquals(listOf(DecisionAnswer.Corrected, DecisionAnswer.Accepted), api.decisions.map { it.answer })
+        assertEquals("make it two hours instead", api.decisions[0].reply)
+        assertEquals("push review by an hour", api.decisions[0].said)
+        assertEquals("Review", api.decisions[0].proposed.single().task)
+
+        api.decideFailure = VoiceApiException.Kind.NETWORK
+        says("push review by an hour", "no")
+        talk()
+        assertEquals(originalReview.startMillis + 2 * 3_600_000L, review.startMillis) // the second "no" changed nothing, failure or not
+        assertFalse(viewModel.state.value.open)
+    }
+
+    @Test
     fun aChangeWithoutClashesSendsNoWarnings() = runTest(dispatcher) {
         api.answer = shift(1) // Review 17:00–18:00, after everything else
         says("push review by an hour", "no")
@@ -333,6 +465,24 @@ class AssistantViewModelTest {
         talk()
         assertEquals(listOf("hello", "Only schedules.", "goodbye"), api.said)
         assertTrue(repository.applied.isEmpty())
+    }
+
+    @Test
+    fun aSoundWithNoWordsGetsOneMoreListenBeforeTheAnswer() = runTest(dispatcher) {
+        // Seen on the phone: a noise ended the turn and came back as no words; it isn't a "no".
+        api.answer = shift(1)
+        says("push review by an hour", "", "yes")
+        talk()
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+    }
+
+    @Test
+    fun twoSoundsWithNoWordsAreNoAnswer() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "", "", "yes")
+        talk()
+        assertEquals(originalReview, review)
+        assertEquals(listOf("hello", "nothing changed"), api.said)
     }
 
     @Test

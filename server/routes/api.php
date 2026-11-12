@@ -25,4 +25,6 @@ Route::middleware(['auth:sanctum', 'abilities:sync', 'active'])->group(function 
     Route::post('voice/transcribe', [VoiceController::class, 'transcribe'])->middleware('throttle:voice');
     Route::post('voice/interpret', [VoiceController::class, 'interpret'])->middleware('throttle:voice');
     Route::post('voice/explain', [VoiceController::class, 'explain'])->middleware('throttle:voice');
+    Route::post('voice/resolve', [VoiceController::class, 'resolve'])->middleware('throttle:voice');
+    Route::post('voice/decision', [VoiceController::class, 'decision'])->middleware('throttle:voice');
 });

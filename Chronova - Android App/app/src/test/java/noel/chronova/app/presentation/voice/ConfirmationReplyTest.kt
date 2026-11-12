@@ -15,6 +15,13 @@ class ConfirmationReplyTest {
     }
 
     @Test
+    fun aLoneWordThatSoundsLikeNoIsNo() {
+        // On the phone, "No." came back from the transcriber as "Now".
+        listOf("Now", "now.", "Know", "Nah").forEach { assertEquals(it, ConfirmationReply.No, ConfirmationReply.of(it)) }
+        assertEquals(ConfirmationReply.Other, ConfirmationReply.of("now move it to Friday"))
+    }
+
+    @Test
     fun anythingLongerOrMixedIsARequest() {
         listOf(
             "No, make it three hours",

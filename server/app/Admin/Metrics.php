@@ -94,6 +94,8 @@ class Metrics
                 ->selectRaw("coalesce(sum(audio_ms) filter (where kind = 'transcribe' and status in (200, 422)), 0) as audio_ms")
                 ->selectRaw("coalesce(sum(characters) filter (where kind in ('explain', 'speak')), 0) as speech_characters")
                 ->selectRaw('coalesce(sum(input_tokens), 0) as input_tokens')
+                ->selectRaw('coalesce(sum(cached_tokens), 0) as cached_tokens')
+                ->selectRaw('coalesce(sum(cache_write_tokens), 0) as cache_write_tokens')
                 ->selectRaw('coalesce(sum(output_tokens), 0) as output_tokens')
                 ->first();
             $requests = (int) $row->requests;
@@ -105,6 +107,8 @@ class Metrics
                 'audio_minutes' => round($row->audio_ms / 60000, 1),
                 'speech_characters' => (int) $row->speech_characters,
                 'input_tokens' => (int) $row->input_tokens,
+                'cached_tokens' => (int) $row->cached_tokens,
+                'cache_write_tokens' => (int) $row->cache_write_tokens,
                 'output_tokens' => (int) $row->output_tokens,
             ];
 
@@ -133,8 +137,13 @@ class Metrics
             return null;
         }
 
+        // Input tokens include cache reads and writes, which are billed at their own multiples.
+        $cache = config('voice.cache_prices');
+        $plainInput = $usage['input_tokens'] - $usage['cached_tokens'] - $usage['cache_write_tokens'];
+        $input = $plainInput + $usage['cached_tokens'] * $cache['read_factor'] + $usage['cache_write_tokens'] * $cache['write_factor'];
+
         return round(
-            $usage['input_tokens'] / 1e6 * $prices['openai_input_per_million_tokens']
+            $input / 1e6 * $prices['openai_input_per_million_tokens']
             + $usage['output_tokens'] / 1e6 * $prices['openai_output_per_million_tokens']
             + $audioMs / 3_600_000 * $prices['transcription_per_hour']
             + $usage['speech_characters'] / 1000 * $prices['speech_per_thousand_characters'],

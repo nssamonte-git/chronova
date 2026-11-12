@@ -152,6 +152,14 @@ private fun Captions(state: AssistantUiState, zone: ZoneId) {
                 textAlign = TextAlign.Center,
             )
         }
+        state.offer.forEach { item ->
+            Text(
+                stringResource(R.string.assistant_offer_line, previewText(item, zone)),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8EF0C4),
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

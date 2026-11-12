@@ -154,6 +154,8 @@
     <string name="assistant_mic_unavailable">The microphone isn’t available right now. Another app may be using it.</string>
     <string name="assistant_warning_overlap">⚠ “%1$s” would overlap “%2$s”</string>
     <string name="assistant_warning_link">⚠ “%1$s” would start before “%2$s” ends</string>
+    <string name="assistant_apply_as_asked">Okay. Shall I apply it as you asked, even with the clash?</string>
+    <string name="assistant_offer_line">Or: %1$s</string>
     <string name="assistant_greeting">Hi! How can I help you?</string>
     <string name="assistant_say_again">I didn\u2019t catch that. Please say it again.</string>
     <string name="assistant_goodbye">I\u2019ll stop listening now. Tap the orb when you need me.</string>
@@ -161,7 +163,7 @@
     <string name="assistant_needs_connection">The assistant needs an internet connection.</string>
     <string name="assistant_needs_sign_in">Sign in (Account) to use the assistant.</string>
     <string name="assistant_notice_title">Talk to Chronova</string>
-    <string name="assistant_notice_body">Say what to change, like \u201cpush build by two hours\u201d. Chronova reads back what it will do and asks before changing anything. Recordings and this project\u2019s task names go to ElevenLabs to write down what you said; your words and the task names and times go to OpenAI to work out and explain the changes.</string>
+    <string name="assistant_notice_body">Say what to change, like \u201cpush build by two hours\u201d. Chronova reads back what it will do and asks before changing anything. Recordings and this project\u2019s task names go to ElevenLabs to write down what you said; your words and the task names and times go to OpenAI to work out and explain the changes. Your requests and answers are kept for 90 days so Chronova can learn what you prefer; they are deleted with your account.</string>
     <string name="assistant_notice_continue">Continue</string>
     <string name="assistant_state_listening">Chronova assistant, listening</string>
     <string name="assistant_state_thinking">Chronova assistant, thinking</string>

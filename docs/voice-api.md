@@ -86,6 +86,37 @@ Operations (every field is always present):
 
 The server checks that every id is in the request's `tasks`, dates are real, amounts are sane and the shape is exact; otherwise the whole proposal is rejected. The app then plans the operations against its current data (`CommandPlanner`) and rejects anything stale or invalid before showing the preview.
 
+### History and prompt caching
+
+- **History.** When decisions are kept (`VOICE_LEARN_DECISIONS`, see `/decision`), the user's latest `VOICE_DECISION_HISTORY` (10) decisions of the last 90 days go to the interpreter as `history`, oldest first: `said`, `proposed` (changes in the `/explain` form), `offered`, `answer`, `reply`, `when`. The rules tell the model to lean towards what this user accepted and away from what they declined or corrected; the current instruction always wins.
+- **Clash-free times.** When the words leave the time open ("this afternoon"), the interpreter picks a time that overlaps nothing and starts after the task's predecessors; a time the user stated is never changed to avoid a clash (the app warns instead, below).
+- **Prompt caching.** The request is laid out for OpenAI's prompt cache: the fixed rules come first, in their own developer message with an explicit cache breakpoint (`prompt_cache_options: {mode: explicit, ttl: 30m}`, one shared `prompt_cache_key`), and everything that changes (the `/resolve` rules, the history, the schedule, the time and the words) follows as uncached data. Only the rules are ever cached, so no user's content is. Measured: 1,231 of ~1,400 input tokens read from the cache on every request after the first in 30 minutes (reads cost 0.05× input on GPT-6.1 Terra, the first write 1.25×); `/resolve` shares the cache. `voice_events` records `cached_tokens` and `cache_write_tokens`, and the dashboard prices them (`VOICE_PRICE_OPENAI_CACHE_READ_FACTOR`, `…_WRITE_FACTOR`). `VOICE_OPENAI_PROMPT_CACHE=false` leaves the cache settings out.
+
+## `POST /v1/voice/resolve`
+
+A clash-free alternative, asked for by the app when the proposal it planned would clash (see `warnings` under `/explain`). Same body as `/interpret` plus:
+
+```json
+{
+  "planned": [{ "type": "create_task", "title": "Test", "start": "2026-11-12T15:00", "end": "2026-11-12T17:00", "predecessorIds": [] }],
+  "clashes": [{ "kind": "overlap", "task": "Test", "other": "Build" }]
+}
+```
+
+`planned` (1–20) are the operations `/interpret` proposed, every field written out, and must be valid for the schedule; `clashes` (1–20) are in the `warnings` form. The answer has `/interpret`'s shape: the complete operations of the alternative (the user's own change and anything extra), or `unsupported` when there is no sensible one. The model is told to keep what the user's words fix (a stated time, a requested link) and move the other tasks, to change the user's own task when the words leave room, to keep lengths and the project's dates, and to follow the history. The fake interpreter always answers `unsupported`.
+
+The app re-plans the answer against its own data and offers it only if it is valid, has no clashes of its own and differs from the plan; otherwise it falls back to its own fix for broken links (push what waits for each task just enough, `reschedule_dependents`), offered under the same conditions. With no alternative it asks "Shall I apply it anyway?".
+
+## `POST /v1/voice/decision`
+
+How the user answered a proposal, kept so the interpreter can adapt to them. Answers 204, kept or not.
+
+```json
+{ "said": "move build to three p m", "proposed": [ …changes in the /explain form… ], "offered": [ … ], "answer": "corrected", "reply": "make it four" }
+```
+
+`answer` is `accepted`, `declined`, `corrected` (with the new words in `reply`), `accepted_fix` (took the alternative in `offered`) or `kept_as_is` (turned the alternative down and kept their own version). Silence is not reported. Rows live in `voice_decisions`, are deleted with the account and after `VOICE_DECISION_RETENTION_DAYS` (90; daily `model:prune`), are never shown to staff and are not counted in `voice_events`. `VOICE_LEARN_DECISIONS=false` stops keeping them and sending history.
+
 ## `POST /v1/voice/explain`
 
 Says what a preview will change and asks whether to apply it, so the user can answer yes or no by voice; says what has changed once it is applied; or speaks a clarifying question. Send either `changes` (with `today`, and optionally `stage`) or `question`:
@@ -140,7 +171,7 @@ Response (200): `{"text": "Build will move to 11 a.m. today. Shall I apply it?",
 ## Privacy
 
 - The recording, and the project's task titles as words to listen for, go to the transcriber (ElevenLabs Scribe); neither is stored by the server. ElevenLabs keeps request logs unless `VOICE_ELEVENLABS_ZERO_RETENTION=true` (`enable_logging=false`), which needs an enterprise plan.
-- The words and the schedule context are sent to the interpreter (OpenAI, `store: false`) and are never stored or logged by the server.
+- The words and the schedule context are sent to the interpreter (OpenAI, `store: false`). The server keeps no logs of them; what it does keep is each user's decisions (`/decision`: their words, the changes proposed and their answer) for 90 days, deleted with the account, sent back only with that user's own requests, and never shown to staff. Only the fixed rules are written to OpenAI's prompt cache.
 - For explanations, the changed tasks' titles and times go to OpenAI (`store: false`) and the resulting sentence to ElevenLabs text to speech.
 - `voice_events` keeps only kind, status, outcome, duration, audio length, transcript length and token counts, for the admin dashboard.
 
@@ -185,8 +216,8 @@ Seen but not changed: a recording picks up anyone talking nearby (twice another 
 
 ## Before release
 
-- [ ] Privacy policy: recordings and the project's task names go to ElevenLabs (speech to text); the words, the project's task names and times go to OpenAI; spoken answers are written by OpenAI and voiced by ElevenLabs; neither the audio nor the words are stored by Chronova; retention at each provider.
-- [ ] Play Console Data safety: audio (voice recordings) and app content (task names, to both providers) shared with service providers, for app functionality; not stored; RECORD_AUDIO asked on first use.
+- [ ] Privacy policy: recordings and the project's task names go to ElevenLabs (speech to text); the words, the project's task names and times go to OpenAI; spoken answers are written by OpenAI and voiced by ElevenLabs; the audio is not stored by Chronova; each user's requests and answers are kept for 90 days to adapt the assistant to them (deleted with the account); retention at each provider.
+- [ ] Play Console Data safety: audio (voice recordings) and app content (task names, to both providers) shared with service providers, for app functionality; recordings not stored; the user's spoken requests and answers collected and kept 90 days for personalisation, deletable by deleting the account; RECORD_AUDIO asked on first use.
 - [ ] Provider settings: an OpenAI project key with a budget; an ElevenLabs key limited to speech to text and text to speech, with a credit limit; consider ElevenLabs zero retention (enterprise).
 - [x] Choose the ElevenLabs voice: `OYTbf65OHHFELVut7v2H` (the default), heard on the phone with the real provider.
 - [ ] Set `VOICE_PRICE_*` for the dashboard's cost estimate; deploy with `-c voice=on` (DEPLOY.md).
@@ -212,6 +243,11 @@ Seen but not changed: a recording picks up anyone talking nearby (twice another 
 | `VOICE_OPENAI_MODEL` | `gpt-6.1-terra` | |
 | `VOICE_OPENAI_REASONING_EFFORT` | `low` | |
 | `VOICE_REQUESTS_PER_MINUTE` | `10` | Per user and endpoint |
+| `VOICE_OPENAI_PROMPT_CACHE` | `true` | Cache the interpreter's fixed rules at OpenAI for 30 minutes |
+| `VOICE_LEARN_DECISIONS` | `true` | Keep each user's decisions and send them back as history |
+| `VOICE_DECISION_RETENTION_DAYS` | `90` | How long decisions are kept |
+| `VOICE_DECISION_HISTORY` | `10` | How many go with each request |
+| `VOICE_PRICE_OPENAI_CACHE_READ_FACTOR`, `…_WRITE_FACTOR` | `0.05`, `1.25` | Cache reads and 30-minute writes as multiples of the input price |
 | `VOICE_PRICE_OPENAI_INPUT`, `VOICE_PRICE_OPENAI_OUTPUT` | — | Dollars per million tokens, for the admin cost estimate |
 | `VOICE_PRICE_TRANSCRIPTION_HOUR`, `VOICE_PRICE_SPEECH_1K_CHARS` | — | Dollars per audio hour / per 1,000 spoken characters |
 

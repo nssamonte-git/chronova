@@ -267,6 +267,50 @@ it('names the clashes a proposal would cause and asks whether to apply it anyway
     'none' => [[], 'Test will move to Thursday 12 November, 16:00 to 17:00. Shall I apply it?'],
 ]);
 
+it('offers a clash-free alternative, saying only what it does differently', function (array $changes, array $warnings, array $offer, string $text) {
+    explainChanges($changes, ['warnings' => $warnings, 'offer' => $offer])->assertOk()->assertJson(['text' => $text]);
+})->with([
+    'extra changes' => [
+        [['change' => 'linked', 'predecessor' => 'Test', 'successor' => 'Build']],
+        [['kind' => 'dependency', 'predecessor' => 'Test', 'successor' => 'Build']],
+        [['change' => 'linked', 'predecessor' => 'Test', 'successor' => 'Build'], moved('Build', '2026-11-12T17:00', '2026-11-12T19:00')],
+        'Build will wait for Test. Note that Build would start before Test ends. Shall I also move Build to Thursday 12 November, 17:00 to 19:00?',
+    ],
+    'different changes' => [
+        [['change' => 'added', 'task' => 'Test', 'toStart' => '2026-11-12T15:00', 'toEnd' => '2026-11-12T17:00']],
+        [['kind' => 'overlap', 'task' => 'Test', 'other' => 'Build']],
+        [['change' => 'added', 'task' => 'Test', 'toStart' => '2026-11-12T13:00', 'toEnd' => '2026-11-12T15:00']],
+        'New task Test, Thursday 12 November, 15:00 to 17:00. Note that Test would overlap Build. Shall I add Test, Thursday 12 November, 13:00 to 15:00 instead?',
+    ],
+]);
+
+it('needs warnings for an offer, and leaves the offer out once applied', function () {
+    explainChanges([moved()], ['offer' => [moved('Build', '2026-11-12T12:00', '2026-11-12T13:00')]])->assertUnprocessable();
+    explainChanges([moved()], ['stage' => 'applied', 'warnings' => [['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test']], 'offer' => [moved('Build', '2026-11-12T12:00', '2026-11-12T13:00')]])
+        ->assertOk()->assertJson(['text' => 'Done. Build moved to Thursday 12 November, 11:00 to 12:00.']);
+});
+
+it('gives OpenAI the offer as data and asks it to offer the alternative', function () {
+    useLiveExplanation();
+    Http::fake([
+        'api.openai.com/*' => Http::response(openAiText('Build would start before Test ends. Shall I also move Build to 5 to 7 p.m.?')),
+        'api.elevenlabs.io/*' => Http::response('mp3', 200, ['Content-Type' => 'audio/mpeg']),
+    ]);
+    $offer = [moved('Build', '2026-11-12T17:00', '2026-11-12T19:00')];
+    explainChanges([moved()], ['warnings' => [['kind' => 'dependency', 'predecessor' => 'Test', 'successor' => 'Build']], 'offer' => $offer])->assertOk();
+
+    Http::assertSent(function (ClientRequest $request) use ($offer) {
+        if (! str_starts_with($request->url(), 'https://api.openai.com/')) {
+            return false;
+        }
+        $body = $request->data();
+
+        return json_decode($body['input'][0]['content'], true)['offer'] === $offer
+            && $body['instructions'] === OpenAiExplainer::instructions(null, ChangeList::PROPOSAL, true, true)
+            && str_contains($body['instructions'], 'only what it does differently');
+    });
+});
+
 it('says nothing about clashes once the change is applied', function () {
     explainChanges([moved()], ['stage' => 'applied', 'warnings' => [['kind' => 'overlap', 'task' => 'Build', 'other' => 'Test']]])
         ->assertOk()->assertJson(['text' => 'Done. Build moved to Thursday 12 November, 11:00 to 12:00.']);

@@ -11,6 +11,9 @@ import noel.chronova.app.presentation.TimeFormat
 /** What the assistant says (and captions) in its own words, outside the server's explanations. */
 interface AssistantPhrases {
     fun greeting(): String
+
+    /** After the clash-free alternative was turned down: whether to apply the change as asked. */
+    fun applyAsAsked(): String
     fun nothingHeard(): String
     fun goodbye(): String
     fun nothingChanged(): String
@@ -26,6 +29,7 @@ interface AssistantPhrases {
 /** [AssistantPhrases] from the app's string resources. */
 class ResourcePhrases(private val resources: Resources, private val zone: ZoneId = ZoneId.systemDefault()) : AssistantPhrases {
     override fun greeting() = resources.getString(R.string.assistant_greeting)
+    override fun applyAsAsked() = resources.getString(R.string.assistant_apply_as_asked)
     override fun nothingHeard() = resources.getString(R.string.assistant_say_again)
     override fun goodbye() = resources.getString(R.string.assistant_goodbye)
     override fun nothingChanged() = resources.getString(R.string.assistant_nothing_changed)
