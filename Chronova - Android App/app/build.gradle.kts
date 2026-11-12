@@ -1,10 +1,10 @@
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
+    id("chronova.android.application")
+    id("chronova.android.compose")
+    id("chronova.android.room")
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
 }
 
 /**
@@ -23,18 +23,11 @@ fun backendSetting(key: String): String {
 
 android {
     namespace = "noel.chronova.app"
-    compileSdk {
-        version = release(37)
-    }
 
     defaultConfig {
         applicationId = "noel.chronova.app"
-        // 26+: java.time is used for timeline labels without core-library desugaring.
-        minSdk = 26
-        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SYNC_API_URL", backendSetting("apiUrl"))
     }
@@ -47,27 +40,12 @@ android {
             }
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 }
 
-ksp {
-    // Exported schemas are committed so future migrations can be tested against them.
-    arg("room.schemaLocation", "$projectDir/schemas")
-}
-
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
@@ -78,17 +56,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
-    debugImplementation(libs.androidx.compose.ui.tooling)
     // Hosts composables in instrumented tests (createComposeRule); debug builds only.
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.androidx.test.runner)
