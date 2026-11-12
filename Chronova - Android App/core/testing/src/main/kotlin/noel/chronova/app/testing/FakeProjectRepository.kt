@@ -118,7 +118,11 @@ class FakeProjectRepository(
 
     override suspend fun viewSettings(projectId: String): TimelineConfig? = viewSettings[projectId]
 
+    /** How many times view settings were saved. */
+    var viewSettingsSaves = 0
+
     override suspend fun saveViewSettings(projectId: String, config: TimelineConfig) {
+        viewSettingsSaves++
         viewSettings[projectId] = config
     }
 

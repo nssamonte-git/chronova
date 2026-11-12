@@ -16,9 +16,16 @@ object ViewportMath {
      * Scroll position that keeps the time at the viewport centre in place when the
      * scale changes from [oldPxPerMinute] to [newPxPerMinute] (zoom or time scale).
      */
-    fun rescale(scrollX: Float, viewportWidth: Float, oldPxPerMinute: Float, newPxPerMinute: Float): Float {
-        val centerMinutes = (scrollX + viewportWidth / 2f) / oldPxPerMinute
-        return centerMinutes * newPxPerMinute - viewportWidth / 2f
+    fun rescale(scrollX: Float, viewportWidth: Float, oldPxPerMinute: Float, newPxPerMinute: Float): Float =
+        rescaleAround(scrollX, viewportWidth / 2f, oldPxPerMinute, newPxPerMinute)
+
+    /**
+     * Scroll position that keeps the time at [anchorX] (px from the viewport's left edge,
+     * e.g. between the fingers of a pinch) in place when the scale changes.
+     */
+    fun rescaleAround(scrollX: Float, anchorX: Float, oldPxPerMinute: Float, newPxPerMinute: Float): Float {
+        val anchorMinutes = (scrollX + anchorX) / oldPxPerMinute
+        return anchorMinutes * newPxPerMinute - anchorX
     }
 
     /**

@@ -267,6 +267,26 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun aPinchZoomsLiveAndIsSavedOnceWhenItEnds() = runTest {
+        val state = timeline()
+        val start = state().config.unitWidthDp
+        val savesBefore = repository.viewSettingsSaves
+
+        viewModel.zoomBy(1.2f)
+        viewModel.zoomBy(1.25f)
+        assertEquals(start * 1.5f, state().config.unitWidthDp, 0.01f) // live, as the fingers move
+        assertEquals(savesBefore, repository.viewSettingsSaves) // nothing written mid-pinch
+
+        viewModel.finishZoom()
+        assertEquals(savesBefore + 1, repository.viewSettingsSaves)
+        assertEquals(state().config, repository.viewSettings[SampleTasks.PROJECT_ID])
+
+        viewModel.finishZoom() // a second end with no zoom writes nothing
+        viewModel.zoomBy(100f)
+        assertEquals(TimeScale.HOURS.maxUnitWidthDp, state().config.unitWidthDp) // within the scale's limits
+    }
+
+    @Test
     fun predecessorsAreSavedAndCyclesAreForbidden() = runTest {
         val state = timeline()
         // Implementation depends on UI Design.

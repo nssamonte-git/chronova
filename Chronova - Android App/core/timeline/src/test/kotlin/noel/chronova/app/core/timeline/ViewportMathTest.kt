@@ -21,6 +21,19 @@ class ViewportMathTest {
     }
 
     @Test
+    fun rescaleAround_keepsTheTimeUnderTheFingers() {
+        // Fingers 100 px into the lane, scrolled to 300 px at 2 px/min: 200 min sit under them.
+        val scroll = ViewportMath.rescaleAround(scrollX = 300f, anchorX = 100f, oldPxPerMinute = 2f, newPxPerMinute = 3f)
+        assertEquals(200f, (scroll + 100f) / 3f, 0.001f)
+        // The centre-anchored rescale is the same thing with the anchor at half the width.
+        assertEquals(
+            ViewportMath.rescaleAround(300f, 200f, 2f, 2.5f),
+            ViewportMath.rescale(scrollX = 300f, viewportWidth = 400f, oldPxPerMinute = 2f, newPxPerMinute = 2.5f),
+            0.001f,
+        )
+    }
+
+    @Test
     fun composeSpan_alwaysContainsTheVisibleSpan() {
         val viewport = 720f
         listOf(0f, 1f, 719f, 720f, 5_000f, 1_234_567f).forEach { scroll ->

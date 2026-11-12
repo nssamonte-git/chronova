@@ -85,6 +85,8 @@ fun ProjectTimelineScreen(
                     onZoomIn = viewModel::zoomIn,
                     onZoomOut = viewModel::zoomOut,
                     onZoomReset = viewModel::resetZoom,
+                    onPinchZoom = viewModel::zoomBy,
+                    onPinchEnd = viewModel::finishZoom,
                     onSnap = viewModel::setSnapMinutes,
                     onRowHeightStep = viewModel::changeRowHeight,
                     onAddTask = viewModel::startAddTask,
@@ -128,6 +130,9 @@ data class TimelineActions(
     val onZoomIn: () -> Unit = {},
     val onZoomOut: () -> Unit = {},
     val onZoomReset: () -> Unit = {},
+    /** A pinch step on the grid (above 1 zooms in) and the end of the pinch. */
+    val onPinchZoom: (Float) -> Unit = {},
+    val onPinchEnd: () -> Unit = {},
     val onSnap: (Int) -> Unit = {},
     val onRowHeightStep: (Int) -> Unit = {},
     val onAddTask: () -> Unit = {},
@@ -230,6 +235,8 @@ private fun TimelineContent(
                 onCommitEdit = actions.onCommitEdit,
                 onEditTask = actions.onEditTask,
                 highlighted = assistant.highlighted,
+                onZoomBy = actions.onPinchZoom,
+                onZoomEnd = actions.onPinchEnd,
                 modifier = Modifier.weight(1f),
                 // Lets the last rows scroll clear of the FAB.
                 contentPadding = PaddingValues(bottom = 88.dp),

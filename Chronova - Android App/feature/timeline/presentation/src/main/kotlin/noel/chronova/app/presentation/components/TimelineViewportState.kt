@@ -28,6 +28,12 @@ class TimelineViewportState(initialScrollX: Float = 0f) {
     var viewportWidth by mutableFloatStateOf(0f)
         private set
 
+    /**
+     * Where a zoom keeps the time fixed, in px from the visible lane's left edge: set between the
+     * fingers during a pinch, null otherwise (the centre, as the zoom buttons do).
+     */
+    var zoomAnchor: Float? = null
+
     private var maxScrollX = Float.POSITIVE_INFINITY
     private var lastPxPerMinute = Float.NaN
 
@@ -39,15 +45,20 @@ class TimelineViewportState(initialScrollX: Float = 0f) {
 
     /**
      * Called after every composition with the current geometry. When the scale
-     * changed, the scroll is moved so the time at the viewport centre stays put;
-     * it is then clamped to the new content width. Running before layout and draw
+     * changed, the scroll is moved so the time at the viewport centre (or at
+     * [zoomAnchor], during a pinch) stays put; it is then clamped to the new content width. Running before layout and draw
      * of the same frame means no frame is ever shown at the stale position.
      */
     fun onGeometry(contentWidth: Float, viewportWidth: Float, pxPerMinute: Float) {
         this.viewportWidth = viewportWidth
         var target = scrollX
         if (!lastPxPerMinute.isNaN() && lastPxPerMinute != pxPerMinute && viewportWidth > 0f) {
-            target = ViewportMath.rescale(scrollX, viewportWidth, lastPxPerMinute, pxPerMinute)
+            val anchor = zoomAnchor
+            target = if (anchor != null) {
+                ViewportMath.rescaleAround(scrollX, anchor.coerceIn(0f, viewportWidth), lastPxPerMinute, pxPerMinute)
+            } else {
+                ViewportMath.rescale(scrollX, viewportWidth, lastPxPerMinute, pxPerMinute)
+            }
         }
         lastPxPerMinute = pxPerMinute
         maxScrollX = ViewportMath.maxScroll(contentWidth, viewportWidth)

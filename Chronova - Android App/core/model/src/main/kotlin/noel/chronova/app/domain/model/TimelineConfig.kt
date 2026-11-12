@@ -83,6 +83,10 @@ data class TimelineConfig(
 
     fun zoomedOut(): TimelineConfig = withUnitWidth(unitWidthDp / ZOOM_STEP)
 
+    /** Zoom by any [factor] (a pinch: above 1 spreads, below 1 squeezes), within the scale's limits. */
+    fun zoomedBy(factor: Float): TimelineConfig =
+        if (factor.isNaN() || factor <= 0f) this else withUnitWidth(unitWidthDp * factor)
+
     fun zoomReset(): TimelineConfig = copy(unitWidthDp = timeScale.defaultUnitWidthDp)
 
     fun withSnap(minutes: Int): TimelineConfig {

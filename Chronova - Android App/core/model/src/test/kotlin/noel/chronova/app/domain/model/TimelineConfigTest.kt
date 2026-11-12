@@ -38,6 +38,17 @@ class TimelineConfigTest {
     }
 
     @Test
+    fun aPinchZoomsByItsFactorWithinTheScaleLimits() {
+        val config = TimelineConfig()
+        assertEquals(144f, config.zoomedBy(1.5f).unitWidthDp, 0.001f)
+        assertEquals(64f, config.zoomedBy(2f / 3f).unitWidthDp, 0.001f)
+        assertEquals(TimeScale.HOURS.maxUnitWidthDp, config.zoomedBy(10f).unitWidthDp)
+        assertEquals(TimeScale.HOURS.minUnitWidthDp, config.zoomedBy(0.1f).unitWidthDp)
+        assertSame(config, config.zoomedBy(Float.NaN))
+        assertSame(config, config.zoomedBy(0f))
+    }
+
+    @Test
     fun switchingScaleUsesThatScalesDefaultZoom() {
         val days = TimelineConfig().zoomedIn().withTimeScale(TimeScale.DAYS)
         assertEquals(TimeScale.DAYS, days.timeScale)

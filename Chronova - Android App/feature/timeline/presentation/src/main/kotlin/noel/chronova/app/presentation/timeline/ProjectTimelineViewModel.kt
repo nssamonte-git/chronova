@@ -246,6 +246,26 @@ class ProjectTimelineViewModel(
         viewModelScope.launch { useCases.saveViewSettings(projectId, next) }
     }
 
+    /** A pinch zoomed without saving yet (see [finishZoom]). */
+    private var zoomUnsaved = false
+
+    /** One pinch step: zooms at once, without saving every step of the gesture. */
+    fun zoomBy(factor: Float) {
+        val current = config.value ?: return
+        val next = current.zoomedBy(factor)
+        if (next == current) return
+        config.value = next
+        zoomUnsaved = true
+    }
+
+    /** The pinch ended: remember the zoom it settled on, once. */
+    fun finishZoom() {
+        if (!zoomUnsaved) return
+        zoomUnsaved = false
+        val settled = config.value ?: return
+        viewModelScope.launch { useCases.saveViewSettings(projectId, settled) }
+    }
+
     init {
         viewModelScope.launch { config.value = useCases.loadViewSettings(projectId) }
     }

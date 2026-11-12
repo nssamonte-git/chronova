@@ -27,6 +27,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +75,10 @@ fun SchedulerTimeline(
     contentPadding: PaddingValues = PaddingValues(),
     /** Tasks the assistant just changed: outlined, and the first one scrolled into view. */
     highlighted: Set<String> = emptySet(),
+    /** A pinch step on the grid: above 1 zooms in (fingers spreading), below 1 zooms out. */
+    onZoomBy: (factor: Float) -> Unit = {},
+    /** The fingers of a pinch lifted. */
+    onZoomEnd: () -> Unit = {},
 ) {
     val config = state.config
     val window = state.window
@@ -91,6 +96,8 @@ fun SchedulerTimeline(
         TimelineViewportState(initialScrollX(state, pxPerMinute))
     }
     val listState = rememberLazyListState()
+    val currentOnZoomBy by rememberUpdatedState(onZoomBy)
+    val currentOnZoomEnd by rememberUpdatedState(onZoomEnd)
 
     val colors = MaterialTheme.colorScheme
     // Time always flows left-to-right, even in RTL locales.
@@ -152,10 +159,25 @@ fun SchedulerTimeline(
                     )
                 }
 
+                val nameColumnPx = with(density) { NameColumnWidth.toPx() }
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        // Pinch to zoom, keeping the time between the fingers where it is. Before
+                        // the scroll so its Initial-pass listener sees two-finger moves first.
+                        .pointerInput(nameColumnPx) {
+                            detectPinch(
+                                onZoom = { factor, focusX ->
+                                    viewport.zoomAnchor = (focusX - nameColumnPx).coerceAtLeast(0f)
+                                    currentOnZoomBy(factor)
+                                },
+                                onEnd = {
+                                    viewport.zoomAnchor = null
+                                    currentOnZoomEnd()
+                                },
+                            )
+                        }
                         .scrollable(viewport.scrollableState, Orientation.Horizontal, reverseDirection = true)
                         // Taps on empty timeline space clear the selection; bars consume their own taps.
                         .pointerInput(Unit) { detectTapGestures { onSelectTask(null) } },
