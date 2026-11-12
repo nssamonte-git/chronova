@@ -45,6 +45,14 @@ class EndpointDetector(
     /** True once something above the noise floor has been heard. */
     val speechStarted: Boolean get() = heardSpeech
 
+    /**
+     * The loudest level held for [minSpeechMs] (the lowest sample of the loudest such stretch).
+     * Someone talking to the phone reaches several thousand; a voice across the room stays lower.
+     */
+    var loudestSpeech: Int = 0
+        private set
+    private val run = ArrayDeque<Int>()
+
     /** Feeds one sample: the maximum amplitude (0..32767) since the last one, at [elapsedMs] into the turn. */
     fun sample(amplitude: Int, elapsedMs: Long): Decision {
         if (elapsedMs < calibrationMs) {
@@ -53,6 +61,9 @@ class EndpointDetector(
             floor = floorSum / floorCount.toFloat()
             return Decision.Continue
         }
+        run.addLast(amplitude)
+        if (run.size > (minSpeechMs / sampleMs).coerceAtLeast(1)) run.removeFirst()
+        if (run.size.toLong() * sampleMs >= minSpeechMs) loudestSpeech = maxOf(loudestSpeech, run.min())
         recent.addLast(amplitude)
         if (recent.size > (calibrationMs / sampleMs).coerceAtLeast(1)) recent.removeFirst()
         if (recent.size.toLong() * sampleMs >= calibrationMs) floor = minOf(floor, recent.average().toFloat())

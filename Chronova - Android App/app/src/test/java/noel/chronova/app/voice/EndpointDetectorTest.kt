@@ -100,4 +100,12 @@ class EndpointDetectorTest {
         levels.forEachIndexed { i, level -> if (decision == EndpointDetector.Decision.Continue) decision = detector.sample(level, (i + 1) * 100L) }
         assertEquals(EndpointDetector.Decision.Done, decision)
     }
+
+    @Test
+    fun theLoudestSustainedLevelIgnoresShortPeaks() {
+        val detector = EndpointDetector()
+        // A 100 ms click at 12,000, then speech holding 5,000–7,000 for 400 ms.
+        listOf(300, 300, 300, 12_000, 300, 300, 7_000, 5_000, 6_000, 7_000, 300).forEachIndexed { i, level -> detector.sample(level, (i + 1) * 100L) }
+        assertEquals(5_000, detector.loudestSpeech)
+    }
 }

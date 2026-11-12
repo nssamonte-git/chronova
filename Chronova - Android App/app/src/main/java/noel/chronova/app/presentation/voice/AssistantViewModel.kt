@@ -128,6 +128,9 @@ class AssistantViewModel(
     private var afterword: Job? = null
     private var greeting: Spoken? = null
 
+    /** How loud the last words heard were ([EndpointDetector.loudestSpeech]). */
+    private var lastLoudness = 0
+
     /** The language the user was last heard in, for what the assistant says back. */
     private var heardLanguage: String? = null
 
@@ -245,8 +248,9 @@ class AssistantViewModel(
                 when (val outcome = interpret(request)) {
                     is Outcome.Proposal -> {
                         val alternative = outcome.alternative
-                        val reply = propose(outcome) ?: return declined()
-                        val decided = when (ConfirmationReply.of(reply)) {
+                        val heard = propose(outcome) ?: return declined()
+                        val (kind, reply) = answer(heard) ?: return declined()
+                        val decided = when (kind) {
                             ConfirmationReply.Yes -> if (alternative != null) {
                                 report(request, outcome, DecisionAnswer.AcceptedFix)
                                 return applyAndExplain(alternative)
@@ -348,6 +352,7 @@ class AssistantViewModel(
         heardLanguage = heard.language ?: language()
         val text = heard.text.trim()
         if (text.isEmpty()) return Heard.NoWords
+        lastLoudness = detector.loudestSpeech
         ui.update { it.copy(heard = text) }
         return Heard.Words(text)
     }
@@ -428,15 +433,32 @@ class AssistantViewModel(
      * asked. Applies it on yes; null when the conversation is over, or the words
      * of a corrected request.
      */
+    /**
+     * Reads an answer to a yes/no question. A yes quieter than someone talking to the phone
+     * ([NEAR_SPEECH_LEVEL]) may be a voice across the room (seen on the phone: a "yes" nobody
+     * there meant applied a change), so it is asked about once more; null when there is
+     * still no clear answer.
+     */
+    private suspend fun answer(heard: String): Pair<ConfirmationReply, String>? {
+        val kind = ConfirmationReply.of(heard)
+        if (kind != ConfirmationReply.Yes || lastLoudness >= NEAR_SPEECH_LEVEL) return kind to heard
+        say(phrases.wasThatAYes())
+        val again = listen(answering = true) ?: return null
+        val second = ConfirmationReply.of(again)
+        if (second == ConfirmationReply.Yes && lastLoudness < NEAR_SPEECH_LEVEL) return null
+        return second to again
+    }
+
     private suspend fun keepAsAsked(request: String, proposal: Outcome.Proposal): String? {
         ui.update { it.copy(offer = emptyList()) }
         say(phrases.applyAsAsked())
-        val reply = listen(answering = true) ?: return run {
+        val heard = listen(answering = true)
+        val (kind, reply) = heard?.let { answer(it) } ?: return run {
             report(request, proposal, DecisionAnswer.Declined)
             declined()
             null
         }
-        return when (ConfirmationReply.of(reply)) {
+        return when (kind) {
             ConfirmationReply.Yes -> {
                 report(request, proposal, DecisionAnswer.KeptAsIs)
                 applyAndExplain(proposal)
@@ -593,6 +615,13 @@ class AssistantViewModel(
 
         /** Two misses (nothing heard, couldn't do it) in a row end the conversation. */
         const val MAX_STRIKES = 2
+
+        /**
+         * How loud (the [EndpointDetector.loudestSpeech] of the answer) a "yes" must be to count at
+         * once. Measured on the test phone (Android 10): requests said to the phone 8,900–10,200, a
+         * one-word "yes" ~4,700, a "yes" at the volume of a voice across the room 1,400–1,600.
+         */
+        const val NEAR_SPEECH_LEVEL = 3_000
 
         /** How long a caption stays when there's no audio: about 15 characters a second, at least 2 s. */
         fun readingTimeMs(text: String): Long = (text.length * 65L).coerceIn(2_000L, 8_000L)

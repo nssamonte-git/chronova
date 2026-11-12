@@ -127,24 +127,25 @@ private class FakeVoiceApi : VoiceApi {
 
 /** Each start() either "speaks" (loud, then quiet) or stays silent, from [turns]; silent once they run out. */
 private class FakeRecorder : VoiceRecorder {
-    val turns = ArrayDeque<Boolean>()
+    /** Each turn's speaking level: 0 is silence; 8,000 is someone talking to the phone. */
+    val turns = ArrayDeque<Int>()
     var unavailable = false
     var recording = false
     var starts = 0
-    private var speaking = false
+    private var level = 0
     private var samples = 0
 
     override fun start() {
         if (unavailable) throw RecorderUnavailable(IllegalStateException("busy"))
         starts++
         recording = true
-        speaking = turns.removeFirstOrNull() ?: false
+        level = turns.removeFirstOrNull() ?: 0
         samples = 0
     }
 
     override fun amplitude(): Int {
         samples++
-        return if (speaking && samples in 4..12) 8_000 else 300
+        return if (level > 0 && samples in 4..12) level else 300
     }
 
     override fun stop(): Recording? {
@@ -187,6 +188,7 @@ private class FakeSettings : AssistantSettings {
 private object FakePhrases : AssistantPhrases {
     override fun greeting() = "hello"
     override fun applyAsAsked() = "as asked?"
+    override fun wasThatAYes() = "was that a yes?"
     override fun nothingHeard() = "say again"
     override fun goodbye() = "goodbye"
     override fun nothingChanged() = "nothing changed"
@@ -232,11 +234,17 @@ class AssistantViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    /** The user will say [words] (one per turn; null = silence). */
+    /** The user will say [words] (one per turn; null = silence; a leading "~" = said faintly, from across the room). */
     private fun says(vararg words: String?) {
         words.forEach { word ->
-            recorder.turns.addLast(word != null)
-            if (word != null) api.heard.addLast(word)
+            recorder.turns.addLast(
+                when {
+                    word == null -> 0
+                    word.startsWith("~") -> 2_500
+                    else -> 8_000
+                },
+            )
+            if (word != null) api.heard.addLast(word.removePrefix("~"))
         }
     }
 
@@ -506,6 +514,45 @@ class AssistantViewModelTest {
         talk()
         assertEquals(originalReview, review)
         assertEquals(listOf("hello", "nothing changed"), api.said)
+    }
+
+    @Test
+    fun aFaintYesIsAskedAboutOnceAndAClearYesThenApplies() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "~yes", "yes")
+        talk()
+        assertEquals(listOf("hello", "was that a yes?"), api.said)
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+    }
+
+    @Test
+    fun aFaintYesTwiceChangesNothing() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "~yes", "~yes")
+        talk()
+        assertEquals(originalReview, review)
+        assertTrue(repository.applied.isEmpty())
+        assertEquals(listOf("hello", "was that a yes?", "nothing changed"), api.said)
+        assertTrue(api.decisions.isEmpty()) // not a decision
+    }
+
+    @Test
+    fun aFaintNoOrAFaintRequestNeedsNoSecondQuestion() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "~no")
+        talk()
+        assertEquals(listOf("hello", "nothing changed"), api.said) // a faint no is safe as it is
+        assertEquals(originalReview, review)
+    }
+
+    @Test
+    fun aFaintYesToTheAlternativeIsAskedAboutToo() = runTest(dispatcher) {
+        api.answer = shift(-1)
+        api.suggest = { c -> shift(1)("", c) }
+        says("move review an hour earlier", "~yes", "~yes")
+        talk()
+        assertEquals(originalReview, review)
+        assertEquals(listOf("hello", "was that a yes?", "nothing changed"), api.said)
     }
 
     @Test

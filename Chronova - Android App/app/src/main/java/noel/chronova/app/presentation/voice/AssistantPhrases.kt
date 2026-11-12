@@ -14,6 +14,9 @@ interface AssistantPhrases {
 
     /** After the clash-free alternative was turned down: whether to apply the change as asked. */
     fun applyAsAsked(): String
+
+    /** A yes was heard but only faintly, maybe from across the room. */
+    fun wasThatAYes(): String
     fun nothingHeard(): String
     fun goodbye(): String
     fun nothingChanged(): String
@@ -30,6 +33,7 @@ interface AssistantPhrases {
 class ResourcePhrases(private val resources: Resources, private val zone: ZoneId = ZoneId.systemDefault()) : AssistantPhrases {
     override fun greeting() = resources.getString(R.string.assistant_greeting)
     override fun applyAsAsked() = resources.getString(R.string.assistant_apply_as_asked)
+    override fun wasThatAYes() = resources.getString(R.string.assistant_was_that_a_yes)
     override fun nothingHeard() = resources.getString(R.string.assistant_say_again)
     override fun goodbye() = resources.getString(R.string.assistant_goodbye)
     override fun nothingChanged() = resources.getString(R.string.assistant_nothing_changed)

@@ -154,6 +154,7 @@
     <string name="assistant_mic_unavailable">The microphone isn’t available right now. Another app may be using it.</string>
     <string name="assistant_warning_overlap">⚠ “%1$s” would overlap “%2$s”</string>
     <string name="assistant_warning_link">⚠ “%1$s” would start before “%2$s” ends</string>
+    <string name="assistant_was_that_a_yes">Sorry, was that a yes?</string>
     <string name="assistant_apply_as_asked">Okay. Shall I apply it as you asked, even with the clash?</string>
     <string name="assistant_offer_line">Or: %1$s</string>
     <string name="assistant_greeting">Hi! How can I help you?</string>

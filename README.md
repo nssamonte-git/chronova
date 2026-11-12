@@ -149,7 +149,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 225 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 230 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
 | Server (Pest, real Postgres) | `cd server && composer test` | 287 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
@@ -178,7 +178,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
 - The app is light-themed (the admin panel is dark-only). Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
-- The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes).
+- The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes). A yes quieter than someone talking to the phone gets "Sorry, was that a yes?" first; the level is tuned on one phone.
 - The 3D orb (Filament 1.79) adds native libraries: the debug APK is about 40 MB (15 MB before); Play's per-device delivery ships one CPU type, about 6 MB more. It needs OpenGL ES 3.0, and falls back to the mic icon otherwise or after the 3D view has failed once.
 - Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
 
