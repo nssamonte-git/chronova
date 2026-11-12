@@ -13,9 +13,9 @@ import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.ZoneOffset
-import noel.chronova.app.presentation.components.SchedulerTimeline
-import noel.chronova.app.presentation.timeline.TimelineUiState
-import noel.chronova.app.ui.theme.ChronovaTheme
+import noel.chronova.feature.timeline.presentation.components.SchedulerTimeline
+import noel.chronova.feature.timeline.presentation.TimelineUiState
+import noel.chronova.core.designsystem.ChronovaTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before

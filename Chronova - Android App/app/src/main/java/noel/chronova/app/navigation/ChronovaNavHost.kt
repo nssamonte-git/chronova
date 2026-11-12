@@ -18,18 +18,18 @@ import androidx.navigation.toRoute
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import noel.chronova.app.AppContainer
-import noel.chronova.app.presentation.account.AccountScreen
-import noel.chronova.app.presentation.account.AccountViewModel
-import noel.chronova.app.presentation.notifications.NotificationsScreen
-import noel.chronova.app.presentation.notifications.NotificationsViewModel
-import noel.chronova.app.presentation.projects.ProjectListScreen
-import noel.chronova.app.presentation.projects.ProjectListViewModel
-import noel.chronova.app.presentation.sync.SyncPromptDialog
-import noel.chronova.app.presentation.sync.SyncViewModel
-import noel.chronova.app.presentation.timeline.ProjectTimelineScreen
-import noel.chronova.app.presentation.timeline.ProjectTimelineViewModel
-import noel.chronova.app.presentation.voice.AssistantViewModel
-import noel.chronova.app.presentation.voice.rememberAssistantSlot
+import noel.chronova.feature.account.presentation.AccountScreen
+import noel.chronova.feature.account.presentation.AccountViewModel
+import noel.chronova.feature.notifications.presentation.NotificationsScreen
+import noel.chronova.feature.notifications.presentation.NotificationsViewModel
+import noel.chronova.feature.projects.presentation.ProjectListScreen
+import noel.chronova.feature.projects.presentation.ProjectListViewModel
+import noel.chronova.feature.sync.presentation.SyncPromptDialog
+import noel.chronova.feature.sync.presentation.SyncViewModel
+import noel.chronova.feature.timeline.presentation.ProjectTimelineScreen
+import noel.chronova.feature.timeline.presentation.ProjectTimelineViewModel
+import noel.chronova.feature.assistant.presentation.AssistantViewModel
+import noel.chronova.feature.assistant.presentation.rememberAssistantSlot
 
 @Serializable
 data object ProjectListRoute

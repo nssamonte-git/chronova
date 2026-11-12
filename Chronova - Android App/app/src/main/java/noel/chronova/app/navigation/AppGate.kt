@@ -1,6 +1,6 @@
 package noel.chronova.app.navigation
 
-import noel.chronova.app.domain.auth.AuthState
+import noel.chronova.core.domain.auth.AuthState
 
 /**
  * What the app shows at its root. Using Chronova always needs an account: signed out, only

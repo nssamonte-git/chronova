@@ -5,14 +5,14 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
-import noel.chronova.app.data.local.ChronovaDatabase
-import noel.chronova.app.domain.SampleTasks
-import noel.chronova.app.domain.model.SchedulerTask
-import noel.chronova.app.domain.model.TaskDependency
-import noel.chronova.app.domain.schedule.ApplyResult
-import noel.chronova.app.domain.schedule.ApplyScheduleChanges
-import noel.chronova.app.domain.schedule.ChangeProblem
-import noel.chronova.app.domain.schedule.ScheduleChange
+import noel.chronova.core.database.ChronovaDatabase
+import noel.chronova.core.domain.SampleTasks
+import noel.chronova.core.model.SchedulerTask
+import noel.chronova.core.model.TaskDependency
+import noel.chronova.core.domain.schedule.ApplyResult
+import noel.chronova.core.domain.schedule.ApplyScheduleChanges
+import noel.chronova.core.domain.schedule.ChangeProblem
+import noel.chronova.core.domain.schedule.ScheduleChange
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +20,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import noel.chronova.core.data.repository.FirstLaunchFlag
+import noel.chronova.core.data.repository.RoomProjectRepository
 
 /** [RoomProjectRepository.applyChanges] against a real (in-memory) Room database. */
 @RunWith(AndroidJUnit4::class)

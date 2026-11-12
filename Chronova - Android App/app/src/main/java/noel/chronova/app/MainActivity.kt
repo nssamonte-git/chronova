@@ -5,13 +5,13 @@ import android.os.Bundle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import noel.chronova.app.notifications.SystemNotifications
+import noel.chronova.feature.notifications.presentation.SystemNotifications
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import noel.chronova.app.navigation.ChronovaNavHost
-import noel.chronova.app.ui.theme.ChronovaTheme
+import noel.chronova.core.designsystem.ChronovaTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
