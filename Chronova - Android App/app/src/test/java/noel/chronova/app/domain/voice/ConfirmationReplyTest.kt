@@ -1,4 +1,4 @@
-package noel.chronova.app.presentation.voice
+package noel.chronova.app.domain.voice
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -21,18 +21,19 @@ import kotlinx.coroutines.yield
 import noel.chronova.app.domain.auth.AuthOutcome
 import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.domain.auth.AuthState
-import noel.chronova.app.data.remote.DecisionAnswer
-import noel.chronova.app.data.remote.ExplainRequest
-import noel.chronova.app.data.remote.ExplainStage
-import noel.chronova.app.data.remote.SpokenAnswer
-import noel.chronova.app.data.remote.Transcript
-import noel.chronova.app.data.remote.VoiceApi
-import noel.chronova.app.data.remote.VoiceApiException
-import noel.chronova.app.data.remote.VoiceDecision
+import noel.chronova.app.domain.voice.DecisionAnswer
+import noel.chronova.app.domain.voice.ExplainRequest
+import noel.chronova.app.domain.voice.ExplainStage
+import noel.chronova.app.domain.voice.SpokenAnswer
+import noel.chronova.app.domain.voice.Transcript
+import noel.chronova.app.domain.voice.VoiceApi
+import noel.chronova.app.domain.voice.VoiceApiException
+import noel.chronova.app.domain.voice.VoiceDecision
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.schedule.CommandProblem
 import noel.chronova.app.domain.schedule.ScheduleChange
+import noel.chronova.app.domain.voice.AssistantUseCases
 import noel.chronova.app.domain.voice.ExplainedChange
 import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
@@ -40,11 +41,11 @@ import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
 import noel.chronova.app.testing.FakeNotificationRepository
 import noel.chronova.app.testing.FakeProjectRepository
-import noel.chronova.app.voice.AssistantSettings
-import noel.chronova.app.voice.RecorderUnavailable
-import noel.chronova.app.voice.Recording
-import noel.chronova.app.voice.SpeechPlayer
-import noel.chronova.app.voice.VoiceRecorder
+import noel.chronova.app.domain.voice.AssistantSettings
+import noel.chronova.app.domain.voice.RecorderUnavailable
+import noel.chronova.app.domain.voice.Recording
+import noel.chronova.app.domain.voice.SpeechPlayer
+import noel.chronova.app.domain.voice.VoiceRecorder
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -248,20 +249,19 @@ class AssistantViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        viewModel = AssistantViewModel(
-            SampleTasks.PROJECT_ID, repository, api, auth, online, recorder, player, settings, FakePhrases, zone,
-            clock = { 0L }, newId = { "new" }, language = { "en" },
-            notifications = notifications,
-        )
+        viewModel = viewModelFor(SampleTasks.PROJECT_ID)
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModelFor(projectId: String) = AssistantViewModel(
-        projectId, repository, api, auth, online, recorder, player, settings, FakePhrases, zone,
-        clock = { 0L }, newId = { "new" }, language = { "en" },
-        notifications = notifications,
+        projectId,
+        AssistantUseCases.create(
+            repository, api, auth, online, recorder, player, settings, notifications, zone,
+            clock = { 0L }, newId = { "new" },
+        ),
+        FakePhrases, zone, language = { "en" },
     )
 
     @Test

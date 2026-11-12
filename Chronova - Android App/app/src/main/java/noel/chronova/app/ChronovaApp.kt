@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import java.time.ZoneId
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,7 @@ import noel.chronova.app.data.local.ChronovaDatabase
 import noel.chronova.app.data.local.RoomNotificationRepository
 import noel.chronova.app.data.remote.OkHttpSyncApi
 import noel.chronova.app.data.remote.OkHttpVoiceApi
-import noel.chronova.app.data.remote.VoiceApi
+import noel.chronova.app.domain.voice.VoiceApi
 import noel.chronova.app.data.repository.PreferencesFirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
 import noel.chronova.app.data.sync.RoomLocalSyncStore
@@ -35,6 +36,7 @@ import noel.chronova.app.domain.notifications.NotificationUseCases
 import noel.chronova.app.domain.notifications.ObserveUnreadNotificationCount
 import noel.chronova.app.domain.projects.ProjectUseCases
 import noel.chronova.app.domain.sync.SyncUseCases
+import noel.chronova.app.domain.voice.AssistantUseCases
 import noel.chronova.app.domain.timeline.TimelineUseCases
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -43,10 +45,8 @@ import noel.chronova.app.presentation.voice.AssistantPhrases
 import noel.chronova.app.presentation.voice.ResourcePhrases
 import noel.chronova.app.voice.AndroidSpeechPlayer
 import noel.chronova.app.voice.AndroidVoiceRecorder
-import noel.chronova.app.voice.AssistantSettings
+import noel.chronova.app.domain.voice.AssistantSettings
 import noel.chronova.app.voice.PreferencesAssistantSettings
-import noel.chronova.app.voice.SpeechPlayer
-import noel.chronova.app.voice.VoiceRecorder
 
 class ChronovaApp : Application() {
     val container: AppContainer by lazy { AppContainer(this) }
@@ -121,13 +121,7 @@ class AppContainer(private val context: Context) {
         httpClient.newBuilder().readTimeout(45, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS).build(),
     )
 
-    /** A microphone recorder for one assistant (one recording at a time). */
-    fun newVoiceRecorder(): VoiceRecorder = AndroidVoiceRecorder(context)
-
-    /** A player for one assistant's spoken answers. */
-    fun newSpeechPlayer(): SpeechPlayer = AndroidSpeechPlayer(context)
-
-    val assistantSettings: AssistantSettings = PreferencesAssistantSettings(context.getSharedPreferences("chronova_voice", Context.MODE_PRIVATE))
+    private val assistantSettings: AssistantSettings = PreferencesAssistantSettings(context.getSharedPreferences("chronova_voice", Context.MODE_PRIVATE))
 
     /** The assistant's own words (spoken problems, goodbyes), from string resources. */
     val assistantPhrases: AssistantPhrases = ResourcePhrases(context.resources)
@@ -152,4 +146,22 @@ class AppContainer(private val context: Context) {
 
     /** The sign-in pages' and account page's use cases. */
     fun accountUseCases(): AccountUseCases = AccountUseCases.create(authRepository, syncCoordinator)
+
+    /**
+     * One assistant's use cases, with its own microphone recorder and answer player (one
+     * recording and one answer at a time). The time zone is read when the timeline opens.
+     */
+    fun assistantUseCases(): AssistantUseCases = AssistantUseCases.create(
+        repository = projectRepository,
+        voiceApi = voiceApi,
+        auth = authRepository,
+        online = online,
+        recorder = AndroidVoiceRecorder(context),
+        player = AndroidSpeechPlayer(context),
+        settings = assistantSettings,
+        notifications = notificationRepository,
+        zone = ZoneId.systemDefault(),
+        clock = System::currentTimeMillis,
+        newId = { UUID.randomUUID().toString() },
+    )
 }

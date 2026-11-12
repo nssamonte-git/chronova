@@ -1,4 +1,4 @@
-package noel.chronova.app.voice
+package noel.chronova.app.domain.voice
 
 /**
  * Decides, from microphone levels sampled about every 100 ms, when the user has

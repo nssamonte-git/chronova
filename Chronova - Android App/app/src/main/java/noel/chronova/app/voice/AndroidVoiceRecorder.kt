@@ -7,6 +7,9 @@ import android.os.SystemClock
 import android.util.Log
 import java.io.File
 import java.io.IOException
+import noel.chronova.app.domain.voice.VoiceRecorder
+import noel.chronova.app.domain.voice.Recording
+import noel.chronova.app.domain.voice.RecorderUnavailable
 
 /**
  * [VoiceRecorder] on [MediaRecorder]: 16 kHz mono AAC in MPEG-4, ~32 kbit/s,

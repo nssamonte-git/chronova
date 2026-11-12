@@ -121,7 +121,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         composable<ProjectTimelineRoute> { entry ->
             val route = entry.toRoute<ProjectTimelineRoute>()
             val assistant: AssistantViewModel = viewModel(
-                factory = AssistantViewModel.factory(container.projectRepository, container.voiceApi, container.authRepository, container.online, container::newVoiceRecorder, container::newSpeechPlayer, container.assistantSettings, container.assistantPhrases, container.notificationRepository),
+                factory = AssistantViewModel.factory(route.projectId, container::assistantUseCases, container.assistantPhrases),
             )
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container::timelineUseCases)),

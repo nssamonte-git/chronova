@@ -1,4 +1,4 @@
-package noel.chronova.app.voice
+package noel.chronova.app.domain.voice
 
 import java.io.File
 

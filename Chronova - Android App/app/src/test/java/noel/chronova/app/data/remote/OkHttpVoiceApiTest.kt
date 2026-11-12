@@ -20,6 +20,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.voice.VoiceDecision
+import noel.chronova.app.domain.voice.DecisionAnswer
+import noel.chronova.app.domain.voice.Transcript
+import noel.chronova.app.domain.voice.ExplainRequest
+import noel.chronova.app.domain.voice.VoiceApiException
 
 class OkHttpVoiceApiTest {
     private val server = MockWebServer()

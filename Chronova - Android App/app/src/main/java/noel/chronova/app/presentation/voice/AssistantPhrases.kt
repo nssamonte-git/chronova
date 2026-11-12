@@ -3,7 +3,7 @@ package noel.chronova.app.presentation.voice
 import android.content.res.Resources
 import java.time.ZoneId
 import noel.chronova.app.R
-import noel.chronova.app.data.remote.VoiceApiException
+import noel.chronova.app.domain.voice.VoiceApiException
 import noel.chronova.app.domain.TaskProblem
 import noel.chronova.app.domain.schedule.CommandProblem
 import noel.chronova.app.presentation.TimeFormat

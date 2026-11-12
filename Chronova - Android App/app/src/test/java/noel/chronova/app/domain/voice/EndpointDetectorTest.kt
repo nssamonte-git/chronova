@@ -1,6 +1,6 @@
-package noel.chronova.app.voice
+package noel.chronova.app.domain.voice
 
-import noel.chronova.app.voice.EndpointDetector.Decision
+import noel.chronova.app.domain.voice.EndpointDetector.Decision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

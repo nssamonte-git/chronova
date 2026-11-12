@@ -1,4 +1,4 @@
-package noel.chronova.app.presentation.voice
+package noel.chronova.app.domain.voice
 
 /**
  * How a spoken answer to "Shall I apply it?" is read: a short yes or no, or
