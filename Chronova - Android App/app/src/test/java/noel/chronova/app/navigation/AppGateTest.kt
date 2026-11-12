@@ -11,9 +11,13 @@ class AppGateTest {
     }
 
     @Test
-    fun theAppOpensWhenSignedInOrWhenThisBuildHasNoServer() {
+    fun aBuildWithNoServerNeverGetsPastTheSignInPage() {
+        assertEquals(AppGate.SignIn, AppGate.of(AuthState.NotConfigured))
+    }
+
+    @Test
+    fun theAppOpensOnlyWhenSignedIn() {
         assertEquals(AppGate.App, AppGate.of(AuthState.SignedIn("u1", "ana@example.com")))
-        assertEquals(AppGate.App, AppGate.of(AuthState.NotConfigured))
     }
 
     @Test

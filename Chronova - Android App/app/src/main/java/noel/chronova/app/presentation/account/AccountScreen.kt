@@ -105,7 +105,9 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                     )
                 }
                 when (val state = authState) {
-                    AuthState.NotConfigured -> Explanation(stringResource(R.string.account_not_configured))
+                    AuthState.NotConfigured -> Explanation(
+                        stringResource(if (onBack == null) R.string.account_no_server else R.string.account_not_configured),
+                    )
                     AuthState.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
                     is AuthState.SignedIn -> SignedIn(state.email, viewModel)
                     AuthState.SignedOut -> SignInForm(form, viewModel, required = onBack == null)

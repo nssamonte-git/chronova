@@ -76,7 +76,7 @@ cd "Chronova - Android App"
 ./gradlew :app:testDebugUnitTest :app:lintDebug
 ```
 
-A build without a server URL can't sign in, so it skips the sign-in page and works fully offline (the account screen says sync isn't set up); with one, the app opens on the sign-in page. To sync, set the server URL in the uncommitted `Chronova - Android App/local.properties`:
+The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties`: For local development, point it at the server from `server/` (`php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
 
 ```properties
 chronova.apiUrl=https://<your server>          # release builds need https
@@ -149,7 +149,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 233 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 234 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
 | Server (Pest, real Postgres) | `cd server && composer test` | 287 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |

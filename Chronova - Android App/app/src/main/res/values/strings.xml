@@ -56,6 +56,7 @@
     <string name="account_sign_in">Sign in</string>
     <string name="account_create">Create account</string>
     <string name="account_confirm">Confirm your email</string>
+    <string name="account_no_server">This version of Chronova isn’t connected to a server, so you can’t sign in. Install a version that is.</string>
     <string name="account_required">Sign in to use Chronova. Your projects are kept in your account and still work on this phone without a connection.</string>
     <string name="account_why">Sign in to sync your projects between devices. Without an account everything stays on this device.</string>
     <string name="account_confirm_body">Enter the code we emailed you.</string>
