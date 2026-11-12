@@ -91,3 +91,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.uiautomator)
 }
+
+// Mobile build validator: stop the build on unfixed security findings
+apply(from = "$rootDir/build-validator/build-validator.gradle")

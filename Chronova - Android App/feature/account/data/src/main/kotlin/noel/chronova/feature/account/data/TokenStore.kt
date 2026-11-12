@@ -40,6 +40,7 @@ class KeystoreTokenStore(private val prefs: SharedPreferences) : TokenStore {
     // right after signing in or out can't leave a stale session behind.
     override fun write(session: Session) {
         prefs.edit(commit = true) {
+            // build-validator:ignore AND-ST-001 reason: false positive, the token is AES-GCM encrypted with a non-exportable Android Keystore key (encrypt() below) before it is stored
             putString(KEY_TOKEN, encrypt(session.token))
             putString(KEY_USER_ID, session.userId)
             putString(KEY_EMAIL, session.email)

@@ -1,0 +1,5 @@
+# Accepted findings for the mobile build validator. One per line, tab-separated:
+#   RULE_ID<TAB>path glob (relative to the project root, * = any characters)<TAB>reason
+# A reason is mandatory; lines without one are ignored and the finding stays active.
+# Example:
+#   AND-WV-001	app/src/main/java/com/example/help/*	bridge only serves bundled offline help pages (SEC-123)
