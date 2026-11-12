@@ -127,6 +127,36 @@ describe('login', function () {
             ->and($token->expires_at->diffInDays(now()->addDays(60)))->toBeLessThan(1);
     });
 
+    it('keeps a device signed in while it is used, renewing at most once a day', function () {
+        $user = User::factory()->create();
+        $plain = $user->createToken('phone', ['sync'], now()->addDays(60))->plainTextToken;
+        $token = fn () => $user->tokens()->sole()->fresh();
+        $me = fn () => $this->withToken($plain)->getJson('/v1/me');
+
+        $this->travel(30)->days();
+        $me()->assertOk();
+        expect($token()->expires_at->diffInMinutes(now()->addDays(60)))->toBeLessThan(1);
+
+        $renewed = $token()->expires_at;
+        $this->travel(3)->hours();
+        $me()->assertOk();
+        expect($token()->expires_at->equalTo($renewed))->toBeTrue(); // not rewritten within the day
+
+        // Used now and then, it outlives 60 days from sign-in.
+        foreach ([50, 50, 50] as $days) {
+            $this->travel($days)->days();
+            $me()->assertOk();
+        }
+    });
+
+    it('signs out a device left unused for 60 days', function () {
+        $user = User::factory()->create();
+        $plain = $user->createToken('phone', ['sync'], now()->addDays(60))->plainTextToken;
+        $this->travel(61)->days();
+        $this->withToken($plain)->getJson('/v1/me')->assertUnauthorized();
+        expect($user->tokens()->sole()->expires_at->isPast())->toBeTrue(); // not renewed
+    });
+
     it('answers the same for a wrong password and an unknown email', function () {
         User::factory()->create(['email' => 'ana@example.com']);
         $this->postJson('/v1/auth/login', ['email' => 'ana@example.com', 'password' => 'Wrong-pass-1'])

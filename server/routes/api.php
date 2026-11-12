@@ -17,7 +17,7 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function () {
     Route::post('reset', [AuthController::class, 'reset']);
 });
 
-Route::middleware(['auth:sanctum', 'abilities:sync', 'active'])->group(function () {
+Route::middleware(['auth:sanctum', 'abilities:sync', 'active', 'keep-signed-in'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('account', [AccountController::class, 'destroy']);

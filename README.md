@@ -31,7 +31,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Scales**: Hours, Days, Weeks, Months; ticks follow the real calendar (DST days, month lengths) and whole-day snapping follows local midnights.
 - **Dependencies**: finish-to-start links chosen in the task editor (cycles are blocked); arrows on the timeline turn red when violated.
 - **Offline-first sync**: local Room database; a reconnect prompt ("You're back online — sync now?"), a sync button with the number of unsynced changes, last-write-wins conflict handling, sign-out/delete account clear the device.
-- **Accounts**: the app opens on a sign-in page and needs an account to be used (sign up with an emailed 6-digit code, sign in, forgot/reset password); signing out or deleting the account returns there. Once signed in it works offline as before. The token is encrypted with an Android Keystore key.
+- **Accounts**: the app opens on a sign-in page and needs an account to be used (sign up with an emailed 6-digit code, sign in, forgot/reset password); signing out or deleting the account returns there. The session is kept (token encrypted with a Keystore key), so later launches open straight into the app, offline too; each use moves the token's expiry 60 days ahead, so only a device unused for 60 days has to sign in again. Once signed in it works offline as before. The token is encrypted with an Android Keystore key.
 - **Voice assistant** (signed in, online): tap the orb in the timeline's top bar and it comes to the centre of the screen and listens; it says hello, and you say what to change ("push build by two hours and everything after it"). It ends your turn by itself after a short silence. The server transcribes (ElevenLabs Scribe) and interprets (OpenAI, strict schema) the request; the app checks the proposal against its own data, the orb says what will change and asks "Shall I apply it?" — or, when the change would overlap another task or start a task before one it waits for ends, names the clash and offers a clash-free alternative that OpenAI suggests and the app re-checks ("Shall I also move Build to 5 to 7 p.m.?"; no → "Shall I apply it as you asked, even with the clash?") — and you answer by voice: yes applies, no leaves everything as it was, anything else is taken as a corrected request. It asks out loud when the request is unclear. Once applied the orb hides and says what changed while the changed task is highlighted on the timeline, and **Undo** follows. There is no text field; tapping outside the orb or Back stops it. "…and everything after it" pushes dependent tasks just enough; dragging never moves other tasks. See [`docs/voice-api.md`](docs/voice-api.md).
 
 ## Branding
@@ -76,7 +76,7 @@ cd "Chronova - Android App"
 ./gradlew :app:testDebugUnitTest :app:lintDebug
 ```
 
-The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties`: For local development, point it at the server from `server/` (`php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
+The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties` (for local development, the server from `server/` with `php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
 
 ```properties
 chronova.apiUrl=https://<your server>          # release builds need https
@@ -96,7 +96,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (287 tests)
+composer test                 # Pest (289 tests)
 ```
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
@@ -151,7 +151,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 |---|---|---|
 | Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 234 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 287 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 289 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
 

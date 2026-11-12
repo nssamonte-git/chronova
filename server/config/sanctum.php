@@ -51,8 +51,9 @@ return [
     |
     */
 
-    // App tokens live 60 days (each token also carries its own expires_at).
-    'expiration' => 60 * 24 * 60,
+    // No fixed lifetime from creation: each app token carries its own expires_at, which
+    // KeepTokenAlive moves to 60 days ahead while the device is used.
+    'expiration' => null,
 
     /*
     |--------------------------------------------------------------------------

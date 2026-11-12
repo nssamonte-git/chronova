@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\KeepTokenAlive;
 use App\Http\Middleware\UseCloudFrontViewerAddress;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'active' => EnsureUserIsActive::class,
+            'keep-signed-in' => KeepTokenAlive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
