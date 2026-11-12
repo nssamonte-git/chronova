@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import noel.chronova.app.domain.account.AccountUseCases
 import noel.chronova.app.domain.auth.AuthOutcome
 import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.domain.auth.AuthState
@@ -94,7 +95,7 @@ class RotationStateTest {
 
     @Test
     fun theSignInFormKeepsWhatWasTypedAndChosenAcrossARotation() {
-        val viewModel = AccountViewModel(SignedOutAuth(), IdleSync())
+        val viewModel = AccountViewModel(AccountUseCases.create(SignedOutAuth(), IdleSync()))
         val restorer = StateRestorationTester(compose)
         restorer.setContent { AccountScreen(viewModel = viewModel, onBack = null) }
 

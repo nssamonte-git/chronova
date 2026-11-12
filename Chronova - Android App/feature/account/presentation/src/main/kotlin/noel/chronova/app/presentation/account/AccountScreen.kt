@@ -57,7 +57,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.app.R
+import noel.chronova.feature.account.presentation.R
 import noel.chronova.app.domain.auth.AuthProblem
 import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.domain.sync.SyncStatus

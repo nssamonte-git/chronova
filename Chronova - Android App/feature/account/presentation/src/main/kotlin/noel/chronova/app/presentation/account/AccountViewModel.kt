@@ -10,11 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import noel.chronova.app.domain.account.AccountUseCases
 import noel.chronova.app.domain.auth.AuthOutcome
 import noel.chronova.app.domain.auth.AuthProblem
-import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.domain.auth.AuthState
-import noel.chronova.app.domain.sync.AccountSync
 import noel.chronova.app.domain.sync.SyncFailure
 import noel.chronova.app.domain.sync.SyncStatus
 
@@ -51,15 +50,15 @@ sealed interface AccountDialog {
     data object DeleteAccount : AccountDialog
 }
 
-class AccountViewModel(private val auth: AuthRepository, private val sync: AccountSync) : ViewModel() {
+class AccountViewModel(private val useCases: AccountUseCases) : ViewModel() {
 
-    val authState: StateFlow<AuthState> = auth.state
+    val authState: StateFlow<AuthState> = useCases.observeAuthState()
 
     /** The server ended the last session; the sign-in page says so. */
 
-    val sessionEnded: StateFlow<Boolean> = auth.sessionEnded
-    val pendingCount: StateFlow<Int> = sync.pendingCount
-    val syncStatus: StateFlow<SyncStatus> = sync.status
+    val sessionEnded: StateFlow<Boolean> = useCases.observeSessionEnded()
+    val pendingCount: StateFlow<Int> = useCases.observePendingChanges()
+    val syncStatus: StateFlow<SyncStatus> = useCases.observeSyncStatus()
 
     private val _dialog = MutableStateFlow<AccountDialog?>(null)
     val dialog: StateFlow<AccountDialog?> = _dialog.asStateFlow()
@@ -68,9 +67,9 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
     private val _deleteFailure = MutableStateFlow<SyncFailure?>(null)
     val deleteFailure: StateFlow<SyncFailure?> = _deleteFailure.asStateFlow()
 
-    fun lastSyncedAt(): Long? = sync.lastSyncedAt()
+    fun lastSyncedAt(): Long? = useCases.lastSyncedAt()
 
-    fun syncNow() = sync.syncNow()
+    fun syncNow() = useCases.syncNow()
 
     private val _form = MutableStateFlow(AccountForm())
     val form: StateFlow<AccountForm> = _form.asStateFlow()
@@ -95,11 +94,11 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
         _form.value = form.copy(busy = true, notice = null)
         viewModelScope.launch {
             val outcome = when (form.mode) {
-                AccountMode.SIGN_IN -> auth.signIn(form.email, form.password, form.remember)
-                AccountMode.SIGN_UP -> auth.signUp(form.email, form.password)
-                AccountMode.CONFIRM -> auth.confirmSignUp(form.email, form.code)
-                AccountMode.FORGOT -> auth.requestPasswordReset(form.email)
-                AccountMode.RESET -> auth.resetPassword(form.email, form.code, form.password)
+                AccountMode.SIGN_IN -> useCases.signIn(form.email, form.password, form.remember)
+                AccountMode.SIGN_UP -> useCases.signUp(form.email, form.password)
+                AccountMode.CONFIRM -> useCases.confirmSignUp(form.email, form.code)
+                AccountMode.FORGOT -> useCases.requestPasswordReset(form.email)
+                AccountMode.RESET -> useCases.resetPassword(form.email, form.code, form.password)
             }
             _form.value = next(form, outcome)
         }
@@ -109,7 +108,7 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
         val form = _form.value.takeUnless { it.busy || it.mode != AccountMode.CONFIRM } ?: return
         _form.value = form.copy(busy = true)
         viewModelScope.launch {
-            val outcome = auth.resendCode(form.email)
+            val outcome = useCases.resendCode(form.email)
             _form.update {
                 it.copy(
                     busy = false,
@@ -122,7 +121,7 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
 
     /** Always confirms: signing out also removes this device's copy of the data. */
     fun requestSignOut() {
-        _dialog.value = AccountDialog.SignOut(sync.pendingCount.value)
+        _dialog.value = AccountDialog.SignOut(pendingCount.value)
     }
 
     fun requestDeleteAccount() {
@@ -139,8 +138,8 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
         _dialog.value = null
         viewModelScope.launch {
             when (dialog) {
-                is AccountDialog.SignOut -> sync.signOutAndClear()
-                AccountDialog.DeleteAccount -> _deleteFailure.value = sync.deleteAccount()
+                is AccountDialog.SignOut -> useCases.signOutAndClear()
+                AccountDialog.DeleteAccount -> _deleteFailure.value = useCases.deleteAccount()
             }
             _form.value = AccountForm()
         }
@@ -180,8 +179,8 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
         const val CODE_LENGTH = 6
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
-        fun factory(auth: AuthRepository, sync: AccountSync): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountViewModel(auth, sync) }
+        fun factory(useCases: () -> AccountUseCases): ViewModelProvider.Factory = viewModelFactory {
+            initializer { AccountViewModel(useCases()) }
         }
     }
 }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import noel.chronova.app.auth.ApiAuthRepository
+import noel.chronova.app.domain.account.AccountUseCases
 import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
@@ -148,4 +149,7 @@ class AppContainer(private val context: Context) {
 
     /** The app-wide sync UI's use cases. */
     fun syncUseCases(): SyncUseCases = SyncUseCases.create(authRepository, syncCoordinator)
+
+    /** The sign-in pages' and account page's use cases. */
+    fun accountUseCases(): AccountUseCases = AccountUseCases.create(authRepository, syncCoordinator)
 }

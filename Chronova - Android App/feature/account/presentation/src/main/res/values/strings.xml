@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_never">Not synced yet on this device</string>
+    <string name="sync_last">Last synced %1$s</string>
+    <string name="account_sign_out_title">Sign out?</string>
+    <string name="account_sign_out_body">Your projects stay in your account and are removed from this device.</string>
+    <string name="account_delete">Delete account</string>
+    <string name="account_delete_title">Delete your account?</string>
+    <string name="account_delete_body">Your account and all synced projects are deleted from the server, and this device’s copy is removed. This can’t be undone.</string>
+    <string name="account_delete_confirm">Delete everything</string>
+    <string name="account_delete_failed">Couldn’t delete the account. %1$s</string>
+    <string name="account_title">Account &amp; sync</string>
+    <string name="account_not_configured">Sync isn’t set up in this build. Your projects are saved on this device and work fully offline.</string>
+    <string name="account_signed_in_as">Signed in as %1$s</string>
+    <string name="account_signed_in_body">When you reconnect to the internet, Chronova asks before syncing your changes.</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_sign_in">Sign in</string>
+    <string name="account_create">Create account</string>
+    <string name="account_confirm">Confirm your email</string>
+    <string name="account_no_server">This version of Chronova isn’t connected to a server, so you can’t sign in. Install a version that is.</string>
+    <string name="account_required">Sign in to use Chronova. Your projects are kept in your account and still work on this phone without a connection.</string>
+    <string name="account_why">Sign in to sync your projects between devices. Without an account everything stays on this device.</string>
+    <string name="account_confirm_body">Enter the code we emailed you.</string>
+    <string name="account_email">Email</string>
+    <string name="account_remember_me">Remember me</string>
+    <string name="account_show_password">Show password</string>
+    <string name="account_hide_password">Hide password</string>
+    <string name="account_password">Password</string>
+    <string name="account_code">Confirmation code</string>
+    <string name="account_code_sent">A confirmation code is on its way to your email.</string>
+    <string name="account_no_account">No account? Create one</string>
+    <string name="account_have_account">Already have an account? Sign in</string>
+    <string name="account_resend">Send a new code</string>
+    <string name="account_forgot">Forgot password?</string>
+    <string name="account_forgot_title">Reset your password</string>
+    <string name="account_forgot_body">Enter your email and we’ll send a code to set a new password.</string>
+    <string name="account_reset_title">Choose a new password</string>
+    <string name="account_reset_body">Enter the code from the email and your new password. Other devices will be signed out.</string>
+    <string name="account_reset_code_sent">If an account exists for this email, a reset code is on its way.</string>
+    <string name="account_new_password">New password</string>
+    <string name="account_back_to_sign_in">Back to sign in</string>
+    <string name="account_problem_email">Enter a valid email address.</string>
+    <string name="auth_wrong_credentials">Incorrect email or password.</string>
+    <string name="auth_account_exists">An account with this email already exists. Sign in instead.</string>
+    <string name="auth_weak_password">Use upper- and lower-case letters and a number.</string>
+    <string name="auth_wrong_code">That code isn’t right or has expired. Check the email or send a new one.</string>
+    <string name="auth_account_disabled">This account has been disabled. Contact support.</string>
+    <string name="auth_code_expired">That code has expired. Send a new one.</string>
+    <string name="auth_too_many">Too many attempts. Wait a few minutes and try again.</string>
+    <string name="auth_network">Can’t reach the server. Check your connection.</string>
+    <string name="auth_unknown">Something went wrong. Please try again.</string>
+    <plurals name="account_password_rules">
+        <item quantity="one">At least %d character, with upper- and lower-case letters and a number.</item>
+        <item quantity="other">At least %d characters, with upper- and lower-case letters and a number.</item>
+    </plurals>
+    <plurals name="account_problem_password">
+        <item quantity="one">Enter a password of at least %d character.</item>
+        <item quantity="other">Enter a password of at least %d characters.</item>
+    </plurals>
+    <plurals name="account_problem_code">
+        <item quantity="one">Enter the %d-digit code.</item>
+        <item quantity="other">Enter the %d-digit code.</item>
+    </plurals>
+    <plurals name="account_sign_out_unsynced">
+        <item quantity="one">%d change hasn’t synced and will be lost. Your synced projects stay in your account.</item>
+        <item quantity="other">%d changes haven’t synced and will be lost. Your synced projects stay in your account.</item>
+    </plurals>
+</resources>

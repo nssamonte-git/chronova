@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import noel.chronova.app.domain.account.AccountUseCases
 import noel.chronova.app.domain.auth.AuthOutcome
 import noel.chronova.app.domain.auth.AuthProblem
 import noel.chronova.app.domain.auth.AuthRepository
@@ -78,7 +79,7 @@ class AccountViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         auth = FakeAuth()
         sync = FakeAccountSync()
-        viewModel = AccountViewModel(auth, sync)
+        viewModel = AccountViewModel(AccountUseCases.create(auth, sync))
     }
 
     @After
