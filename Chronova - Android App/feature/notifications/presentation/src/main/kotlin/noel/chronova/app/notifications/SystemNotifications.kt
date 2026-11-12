@@ -11,18 +11,21 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import noel.chronova.app.MainActivity
-import noel.chronova.app.R
-import noel.chronova.app.data.local.NotificationPoster
+import noel.chronova.feature.notifications.presentation.R
 import noel.chronova.app.domain.notifications.AppNotification
+import noel.chronova.app.domain.notifications.NotificationPoster
 import noel.chronova.app.presentation.notifications.notificationText
 
 /**
  * Posts important notifications (a failed sync, an ended session) to the phone's
  * notification shade; tapping one opens the notifications page. Without the
  * notification permission (Android 13+) nothing is posted; the page still has them.
+ * [openApp] is the intent that opens the app (the shell's activity); [EXTRA_OPEN] is added to it.
  */
-class SystemNotifications(private val context: Context) : NotificationPoster {
+class SystemNotifications(
+    private val context: Context,
+    private val openApp: (Context) -> Intent,
+) : NotificationPoster {
     override fun post(notification: AppNotification) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
@@ -39,7 +42,7 @@ class SystemNotifications(private val context: Context) : NotificationPoster {
         val open = PendingIntent.getActivity(
             context,
             0,
-            Intent(context, MainActivity::class.java)
+            openApp(context)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .putExtra(EXTRA_OPEN, OPEN_NOTIFICATIONS),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

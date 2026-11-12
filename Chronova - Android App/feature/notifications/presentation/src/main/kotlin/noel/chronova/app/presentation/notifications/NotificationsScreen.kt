@@ -62,11 +62,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.app.R
+import noel.chronova.feature.notifications.presentation.R
 import noel.chronova.app.domain.notifications.AppNotification
 import noel.chronova.app.domain.notifications.NotificationCategory
 import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.core.designsystem.R as DesignR
+import noel.chronova.core.ui.R as CoreUiR
 
 /** Everything that happened (sync, assistant, account), with filters and sorting. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,7 +106,7 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, o
                 title = { Text(stringResource(R.string.notifications_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreUiR.string.back))
                     }
                 },
                 actions = {

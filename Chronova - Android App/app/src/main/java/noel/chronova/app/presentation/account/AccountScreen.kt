@@ -83,7 +83,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreUiR.string.back))
                         }
                     }
                 },
@@ -216,7 +216,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
     Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
     val sessionEnded by viewModel.sessionEnded.collectAsStateWithLifecycle()
     if (required && sessionEnded && form.mode == AccountMode.SIGN_IN) {
-        Text(stringResource(R.string.account_session_ended), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+        Text(stringResource(CoreUiR.string.account_session_ended), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
     }
     Explanation(
         stringResource(

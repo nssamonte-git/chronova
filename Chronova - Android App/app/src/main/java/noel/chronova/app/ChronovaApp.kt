@@ -2,6 +2,8 @@ package noel.chronova.app
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,9 @@ import noel.chronova.app.data.sync.keepOnlyFor
 import noel.chronova.app.data.connectivity.onlineFlow
 import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.notifications.NotificationRepository
+import noel.chronova.app.domain.notifications.NotificationUseCases
+import noel.chronova.app.domain.notifications.ObserveUnreadNotificationCount
+import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.repository.ProjectRepository
 import noel.chronova.app.notifications.SystemNotifications
 import noel.chronova.app.presentation.voice.AssistantPhrases
@@ -66,8 +71,17 @@ class AppContainer(private val context: Context) {
     private val httpClient = defaultHttpClient()
 
     /** What happened (sync, assistant, account), for the notifications page; important ones also reach the shade. */
-    val notificationRepository: NotificationRepository =
-        RoomNotificationRepository(database.notificationDao(), poster = SystemNotifications(context))
+    val notificationRepository: NotificationRepository = RoomNotificationRepository(
+        database.notificationDao(),
+        poster = SystemNotifications(context, openApp = { Intent(it, MainActivity::class.java) }),
+    )
+
+    /** The bell's unread count. */
+    val observeUnreadNotificationCount = ObserveUnreadNotificationCount(notificationRepository)
+
+    /** The notifications page's use cases (the time zone is read when the page opens). */
+    fun notificationUseCases(): NotificationUseCases =
+        NotificationUseCases.create(notificationRepository, projectRepository, ApplyScheduleChanges(projectRepository, ZoneId.systemDefault()))
 
     private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { kind, args -> notificationRepository.add(kind, args) }
 

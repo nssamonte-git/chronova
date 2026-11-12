@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notifications -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_all">All</string>
+    <string name="notifications_sync">Sync</string>
+    <string name="notifications_assistant">Assistant</string>
+    <string name="notifications_account">Account</string>
+    <string name="notifications_unread_only">Unread only</string>
+    <string name="notifications_all_projects">All projects</string>
+    <string name="notifications_newest_first">Newest first</string>
+    <string name="notifications_oldest_first">Oldest first</string>
+    <string name="notifications_mark_all_read">Mark all as read</string>
+    <string name="notifications_clear">Clear all</string>
+    <string name="notifications_more">More actions</string>
+    <string name="notifications_empty">No notifications yet. Syncs, the assistant’s changes and account events show up here.</string>
+    <string name="notifications_empty_filtered">Nothing matches these filters.</string>
+    <string name="notifications_undo">Undo</string>
+    <string name="notifications_open_project">Open project</string>
+    <string name="notifications_undone">Change undone</string>
+    <string name="notifications_cannot_undo">Can’t undo: the tasks have changed since.</string>
+    <string name="notifications_unread">Unread</string>
+    <string name="notifications_just_now">Just now</string>
+    <string name="notifications_channel">Important updates</string>
+    <string name="notifications_channel_body">Failed syncs and ended sessions</string>
+    <string name="notif_synced">Synced</string>
+    <plurals name="notif_sent">
+        <item quantity="one">%d change sent</item>
+        <item quantity="other">%d changes sent</item>
+    </plurals>
+    <plurals name="notif_received">
+        <item quantity="one">%d received</item>
+        <item quantity="other">%d received</item>
+    </plurals>
+    <string name="notif_sync_failed">Sync didn’t finish</string>
+    <string name="notif_sync_failed_offline">You were offline. Your changes are safe on this phone.</string>
+    <string name="notif_sync_failed_busy">Another of your devices was syncing. Try again in a moment.</string>
+    <string name="notif_sync_failed_sign_in">Sign in again to sync.</string>
+    <string name="notif_sync_failed_server">The server had a problem. Try again later.</string>
+    <string name="notif_waiting">Changes waiting to sync</string>
+    <plurals name="notif_waiting_body">
+        <item quantity="one">%d change on this phone hasn’t synced yet.</item>
+        <item quantity="other">%d changes on this phone haven’t synced yet.</item>
+    </plurals>
+    <string name="notif_conflict">Newer copies kept</string>
+    <plurals name="notif_conflict_body">
+        <item quantity="one">%d change from this phone was replaced by a newer edit from another device.</item>
+        <item quantity="other">%d changes from this phone were replaced by newer edits from another device.</item>
+    </plurals>
+    <string name="notif_assistant">Assistant changed %1$s</string>
+    <string name="notif_assistant_any">Assistant changed your schedule</string>
+    <plurals name="notif_assistant_body">
+        <item quantity="one">%1$d task: %2$s</item>
+        <item quantity="other">%1$d tasks: %2$s</item>
+    </plurals>
+    <string name="notif_clash">Applied with a clash</string>
+    <string name="notif_clash_overlap">“%1$s” overlaps “%2$s”</string>
+    <string name="notif_clash_link">“%1$s” starts before “%2$s” ends</string>
+    <string name="notif_signed_in">Signed in</string>
+    <string name="notif_signed_in_body">As %1$s on this phone</string>
+    <string name="notif_session_ended">Session ended</string>
+    <string name="notif_password_changed">Password changed</string>
+    <string name="notif_password_changed_body">Your other devices were signed out.</string>
+</resources>

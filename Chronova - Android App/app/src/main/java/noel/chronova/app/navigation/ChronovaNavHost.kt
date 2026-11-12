@@ -69,7 +69,7 @@ fun ChronovaNavHost(
 @Composable
 private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNotifications: Boolean, onOpened: () -> Unit) {
     val navController = rememberNavController()
-    val unread by container.notificationRepository.unreadCount().collectAsStateWithLifecycle(initialValue = 0)
+    val unread by container.observeUnreadNotificationCount().collectAsStateWithLifecycle(initialValue = 0)
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
             navController.navigate(NotificationsRoute) { launchSingleTop = true }
@@ -105,7 +105,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         }
         composable<NotificationsRoute> {
             NotificationsScreen(
-                viewModel = viewModel(factory = NotificationsViewModel.factory(container.notificationRepository, container.projectRepository)),
+                viewModel = viewModel(factory = NotificationsViewModel.factory(container::notificationUseCases)),
                 onBack = { navController.popBackStack() },
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
             )

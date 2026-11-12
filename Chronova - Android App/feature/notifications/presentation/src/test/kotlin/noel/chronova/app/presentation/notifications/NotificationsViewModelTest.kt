@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.setMain
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.notifications.NotificationCategory
 import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.app.domain.notifications.NotificationUseCases
+import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.schedule.ScheduleChange
 import noel.chronova.app.testing.FakeProjectRepository
 import org.junit.After
@@ -34,7 +36,7 @@ class NotificationsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        viewModel = NotificationsViewModel(notifications, projects, zone)
+        viewModel = NotificationsViewModel(NotificationUseCases.create(notifications, projects, ApplyScheduleChanges(projects, zone)))
     }
 
     @After

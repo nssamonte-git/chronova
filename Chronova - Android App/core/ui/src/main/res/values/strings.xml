@@ -16,4 +16,6 @@
         <item quantity="one">%d change on this device only. Sign in to sync.</item>
         <item quantity="other">%d changes on this device only. Sign in to sync.</item>
     </plurals>
+    <string name="back">Back</string>
+    <string name="account_session_ended">Your session has ended. Sign in again to carry on; your projects on this phone are still here.</string>
 </resources>

@@ -13,13 +13,9 @@ import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TaskDependency
 import noel.chronova.app.domain.notifications.AppNotification
 import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.app.domain.notifications.NotificationPoster
 import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.schedule.ScheduleChange
-
-/** Shows important notifications outside the app (the phone's notification shade). */
-fun interface NotificationPoster {
-    fun post(notification: AppNotification)
-}
 
 class RoomNotificationRepository(
     private val dao: NotificationDao,

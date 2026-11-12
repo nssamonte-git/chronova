@@ -1,10 +1,11 @@
 package noel.chronova.app.presentation.notifications
 
 import android.content.res.Resources
-import noel.chronova.app.R
+import noel.chronova.feature.notifications.presentation.R
 import noel.chronova.app.domain.sync.SyncFailure
 import noel.chronova.app.domain.notifications.AppNotification
 import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.core.ui.R as CoreUiR
 
 data class NotificationText(val title: String, val body: String)
 
@@ -56,7 +57,7 @@ fun notificationText(notification: AppNotification, resources: Resources): Notif
         )
         NotificationKind.SESSION_ENDED -> NotificationText(
             resources.getString(R.string.notif_session_ended),
-            resources.getString(R.string.account_session_ended),
+            resources.getString(CoreUiR.string.account_session_ended),
         )
         NotificationKind.PASSWORD_CHANGED -> NotificationText(
             resources.getString(R.string.notif_password_changed),
