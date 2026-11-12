@@ -10,7 +10,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import noel.chronova.app.domain.ProjectProblem
 import noel.chronova.app.domain.SampleTasks
-import noel.chronova.app.presentation.timeline.FakeProjectRepository
+import noel.chronova.app.testing.FakeProjectRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

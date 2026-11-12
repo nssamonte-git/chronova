@@ -24,8 +24,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.data.remote.DecisionAnswer
 import noel.chronova.app.data.remote.ExplainRequest
 import noel.chronova.app.data.remote.ExplainStage

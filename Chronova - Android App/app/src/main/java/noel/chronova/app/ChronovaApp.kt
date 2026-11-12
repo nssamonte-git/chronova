@@ -10,7 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import noel.chronova.app.auth.ApiAuthRepository
-import noel.chronova.app.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.auth.KeystoreTokenStore

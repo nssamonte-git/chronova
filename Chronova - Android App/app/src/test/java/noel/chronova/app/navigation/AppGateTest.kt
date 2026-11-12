@@ -1,6 +1,6 @@
 package noel.chronova.app.navigation
 
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

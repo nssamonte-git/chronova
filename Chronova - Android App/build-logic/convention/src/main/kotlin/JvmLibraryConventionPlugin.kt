@@ -11,13 +11,15 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
  */
 class JvmLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
+        pluginManager.apply("java-library")
         pluginManager.apply("org.jetbrains.kotlin.jvm")
         extensions.getByType(JavaPluginExtension::class.java).apply {
             sourceCompatibility = JavaVersion.VERSION_11
             targetCompatibility = JavaVersion.VERSION_11
         }
         extensions.getByType(KotlinJvmProjectExtension::class.java).compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
-        addDependency("implementation", "kotlinx-coroutines-core")
+        // Domain signatures expose Flow and suspend functions.
+        addDependency("api", "kotlinx-coroutines-core")
         addUnitTestDependencies()
     }
 }

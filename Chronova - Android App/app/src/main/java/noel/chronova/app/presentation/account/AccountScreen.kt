@@ -58,9 +58,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import noel.chronova.app.R
-import noel.chronova.app.auth.AuthProblem
-import noel.chronova.app.auth.AuthState
-import noel.chronova.app.data.sync.SyncStatus
+import noel.chronova.app.domain.auth.AuthProblem
+import noel.chronova.app.domain.auth.AuthState
+import noel.chronova.app.domain.sync.SyncStatus
 import noel.chronova.app.presentation.sync.SyncUi
 import noel.chronova.app.presentation.sync.syncFailureText
 import noel.chronova.app.presentation.sync.syncStatusText

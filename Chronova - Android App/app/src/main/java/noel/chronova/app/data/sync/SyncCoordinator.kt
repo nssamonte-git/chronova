@@ -11,33 +11,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.data.remote.SyncApi
 import noel.chronova.app.data.remote.SyncApiException
 import noel.chronova.app.domain.notifications.NotificationKind
-
-sealed interface SyncStatus {
-    data object Idle : SyncStatus
-    data object Syncing : SyncStatus
-    data class Synced(val at: Long, val pushed: Int, val pulled: Int) : SyncStatus
-    data class Failed(val reason: SyncFailure) : SyncStatus
-}
-
-enum class SyncFailure { NOT_SIGNED_IN, SIGN_IN_AGAIN, OFFLINE, SERVER, BUSY }
-
-/** "You're back online with unsynced changes — sync now?" */
-data class SyncPrompt(val pendingChanges: Int, val signedIn: Boolean)
-
-/** What the account screen needs from sync; implemented by [SyncCoordinator], faked in tests. */
-interface AccountSync {
-    val pendingCount: StateFlow<Int>
-    val status: StateFlow<SyncStatus>
-    fun lastSyncedAt(): Long?
-    fun syncNow()
-    suspend fun signOutAndClear()
-    suspend fun deleteAccount(): SyncFailure?
-}
+import noel.chronova.app.domain.sync.SyncStatus
+import noel.chronova.app.domain.sync.SyncFailure
+import noel.chronova.app.domain.sync.SyncPrompt
+import noel.chronova.app.domain.sync.AccountSync
 
 /**
  * App-wide sync state. Sync never starts on its own: when the device comes back

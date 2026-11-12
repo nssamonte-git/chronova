@@ -18,9 +18,9 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.yield
-import noel.chronova.app.auth.AuthOutcome
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthOutcome
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.data.remote.DecisionAnswer
 import noel.chronova.app.data.remote.ExplainRequest
 import noel.chronova.app.data.remote.ExplainStage
@@ -38,8 +38,8 @@ import noel.chronova.app.domain.voice.Proposal
 import noel.chronova.app.domain.voice.ProposedOperation
 import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.domain.voice.VoiceContext
-import noel.chronova.app.presentation.notifications.FakeNotificationRepository
-import noel.chronova.app.presentation.timeline.FakeProjectRepository
+import noel.chronova.app.testing.FakeNotificationRepository
+import noel.chronova.app.testing.FakeProjectRepository
 import noel.chronova.app.voice.AssistantSettings
 import noel.chronova.app.voice.RecorderUnavailable
 import noel.chronova.app.voice.Recording

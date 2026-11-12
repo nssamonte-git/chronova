@@ -7,9 +7,9 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import noel.chronova.app.auth.AuthOutcome
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthOutcome
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.data.remote.SyncApiException
 import noel.chronova.app.domain.notifications.NotificationKind
 import org.junit.Assert.assertEquals
@@ -17,6 +17,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import noel.chronova.app.domain.sync.SyncStatus
+import noel.chronova.app.domain.sync.SyncFailure
+import noel.chronova.app.domain.sync.SyncPrompt
 
 private class StubAuth(initial: AuthState) : AuthRepository {
     override val state = MutableStateFlow(initial)

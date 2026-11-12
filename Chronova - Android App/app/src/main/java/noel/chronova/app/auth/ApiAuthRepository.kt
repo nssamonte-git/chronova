@@ -17,6 +17,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import noel.chronova.app.domain.auth.AuthState
+import noel.chronova.app.domain.auth.AuthOutcome
+import noel.chronova.app.domain.auth.AuthProblem
+import noel.chronova.app.domain.auth.AuthRepository
 
 /**
  * Sign-in against the Chronova server's `/v1/auth` endpoints (Sanctum tokens).

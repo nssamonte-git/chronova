@@ -2,7 +2,7 @@ package noel.chronova.app.presentation.notifications
 
 import android.content.res.Resources
 import noel.chronova.app.R
-import noel.chronova.app.data.sync.SyncFailure
+import noel.chronova.app.domain.sync.SyncFailure
 import noel.chronova.app.domain.notifications.AppNotification
 import noel.chronova.app.domain.notifications.NotificationKind
 

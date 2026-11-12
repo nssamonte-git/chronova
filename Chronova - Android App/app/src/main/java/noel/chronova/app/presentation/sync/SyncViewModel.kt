@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
 import noel.chronova.app.data.sync.SyncCoordinator
-import noel.chronova.app.data.sync.SyncPrompt
-import noel.chronova.app.data.sync.SyncStatus
+import noel.chronova.app.domain.sync.SyncPrompt
+import noel.chronova.app.domain.sync.SyncStatus
 
 /** What the project list shows about sync. */
 data class SyncUi(

@@ -27,3 +27,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "Chronova"
 include(":app")
+include(":core:model")
+include(":core:timeline")
+include(":core:domain")
+include(":core:testing")

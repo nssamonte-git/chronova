@@ -1,4 +1,4 @@
-package noel.chronova.app.auth
+package noel.chronova.app.domain.auth
 
 import kotlinx.coroutines.flow.StateFlow
 
@@ -61,7 +61,7 @@ interface AuthRepository {
      * The server no longer accepts this device's token (it expired after 60 unused days,
      * staff signed the user out everywhere, or the account was disabled): forget it and
      * return to the sign-in page. Unlike [signOut], the device's data stays, for the same
-     * account to find again ([ApiAuthRepository]'s `beforeSignIn` clears it for another).
+     * account to find again (the auth implementation's `beforeSignIn` clears it for another).
      */
     suspend fun endSession() {}
 
@@ -74,18 +74,4 @@ interface AuthRepository {
     private companion object {
         val NEVER_ENDED: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
     }
-}
-
-/** For builds without a backend: always [AuthState.NotConfigured]. */
-class DisabledAuthRepository : AuthRepository {
-    override val state: StateFlow<AuthState> = kotlinx.coroutines.flow.MutableStateFlow(AuthState.NotConfigured)
-    override suspend fun refresh() = Unit
-    override suspend fun signUp(email: String, password: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun confirmSignUp(email: String, code: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun resendCode(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun signIn(email: String, password: String, remember: Boolean) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun requestPasswordReset(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun resetPassword(email: String, code: String, newPassword: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun signOut() = Unit
-    override suspend fun accessToken(): String? = null
 }

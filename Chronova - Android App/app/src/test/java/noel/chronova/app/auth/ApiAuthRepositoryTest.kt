@@ -12,6 +12,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.auth.AuthState
+import noel.chronova.app.domain.auth.AuthOutcome
+import noel.chronova.app.domain.auth.AuthProblem
 
 private class MemoryTokenStore : TokenStore {
     var session: Session? = null

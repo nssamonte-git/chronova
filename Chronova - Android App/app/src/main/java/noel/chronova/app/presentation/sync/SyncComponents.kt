@@ -23,9 +23,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import noel.chronova.app.R
-import noel.chronova.app.data.sync.SyncFailure
-import noel.chronova.app.data.sync.SyncPrompt
-import noel.chronova.app.data.sync.SyncStatus
+import noel.chronova.app.domain.sync.SyncFailure
+import noel.chronova.app.domain.sync.SyncPrompt
+import noel.chronova.app.domain.sync.SyncStatus
 
 /** "You're back online" — asks before syncing, as the user requires. */
 @Composable

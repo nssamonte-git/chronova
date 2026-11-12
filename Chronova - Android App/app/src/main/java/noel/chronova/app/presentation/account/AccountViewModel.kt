@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import noel.chronova.app.auth.AuthOutcome
-import noel.chronova.app.auth.AuthProblem
-import noel.chronova.app.auth.AuthRepository
-import noel.chronova.app.auth.AuthState
-import noel.chronova.app.data.sync.AccountSync
-import noel.chronova.app.data.sync.SyncFailure
-import noel.chronova.app.data.sync.SyncStatus
+import noel.chronova.app.domain.auth.AuthOutcome
+import noel.chronova.app.domain.auth.AuthProblem
+import noel.chronova.app.domain.auth.AuthRepository
+import noel.chronova.app.domain.auth.AuthState
+import noel.chronova.app.domain.sync.AccountSync
+import noel.chronova.app.domain.sync.SyncFailure
+import noel.chronova.app.domain.sync.SyncStatus
 
 /** SIGN_IN/SIGN_UP → CONFIRM (code) for new accounts; FORGOT (email) → RESET (code + new password). */
 enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM, FORGOT, RESET }

@@ -46,6 +46,9 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.model)
+    implementation(projects.core.timeline)
+    implementation(projects.core.domain)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
@@ -61,6 +64,7 @@ dependencies {
     // Hosts composables in instrumented tests (createComposeRule); debug builds only.
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    testImplementation(projects.core.testing)
     testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.androidx.test.runner)

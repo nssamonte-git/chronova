@@ -12,13 +12,14 @@ import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.notifications.NotificationCategory
 import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.schedule.ScheduleChange
-import noel.chronova.app.presentation.timeline.FakeProjectRepository
+import noel.chronova.app.testing.FakeProjectRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.testing.FakeNotificationRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotificationsViewModelTest {

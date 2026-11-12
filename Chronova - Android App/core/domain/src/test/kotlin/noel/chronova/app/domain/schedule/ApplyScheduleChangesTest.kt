@@ -3,7 +3,7 @@ package noel.chronova.app.domain.schedule
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import noel.chronova.app.domain.SampleTasks
-import noel.chronova.app.presentation.timeline.FakeProjectRepository
+import noel.chronova.app.testing.FakeProjectRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
