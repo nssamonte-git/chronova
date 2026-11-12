@@ -37,9 +37,9 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 
 ## Branding
 
-The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers and the launch-screen logo (`Chronova - Android App/app/src/main/res/drawable-nodpi/brand_*`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
+The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers (`Chronova - Android App/app/src/main/res/drawable-nodpi/brand_icon_*`) and the launch-screen logo, also shown on the sign-in page (`Chronova - Android App/core/designsystem/src/main/res/drawable-nodpi/brand_splash_logo.png`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
 
-The assistant orb is the supplied 3D model (`docs/brand/assistant-orb.glb`) in the colours of its reference image (`docs/brand/assistant-orb-reference.webp`). `cd tools/brand/orb && npm ci && node convert.mjs` (glTF-Transform, Draco, sharp) writes the copy the app renders, `Chronova - Android App/app/src/main/assets/orb/assistant_orb.glb` (880 KB, byte-identical on every run): Draco decoded, textures as JPEG/PNG, a glossy material with an inner glow. The app draws it live with Filament, lit by blue, violet and magenta lights and a reflection map in the same colours, with a halo and sparkle drawn by Compose; it falls back to the mic icon if the 3D view can't start.
+The assistant orb is the supplied 3D model (`docs/brand/assistant-orb.glb`) in the colours of its reference image (`docs/brand/assistant-orb-reference.webp`). `cd tools/brand/orb && npm ci && node convert.mjs` (glTF-Transform, Draco, sharp) writes the copy the app renders, `Chronova - Android App/feature/assistant/presentation/src/main/assets/orb/assistant_orb.glb` (880 KB, byte-identical on every run): Draco decoded, textures as JPEG/PNG, a glossy material with an inner glow. The app draws it live with Filament, lit by blue, violet and magenta lights and a reflection map in the same colours, with a halo and sparkle drawn by Compose; it falls back to the mic icon if the 3D view can't start.
 
 ## Repository layout
 
@@ -48,9 +48,10 @@ One git repository; this folder is its root. The Android app is a self-contained
 ```
 .
 ├── Chronova - Android App/          the Android app — open this folder (not the repository root) in Android Studio
-│   ├── app/src/main/             app code (package noel.chronova.app) and resources
-│   ├── app/src/test/             JVM unit tests
-│   ├── app/src/androidTest/      instrumented tests (Room, rotation)
+│   ├── app/                      the shell: application, navigation, manifest, launcher icons; instrumented tests (Room, rotation)
+│   ├── core/                     shared modules: model, timeline, domain, database, network, data, designsystem, ui, testing
+│   ├── feature/                  projects, timeline, notifications, sync, account, assistant — each split into domain / data / presentation
+│   ├── build-logic/              Gradle convention plugins and the module-graph check
 │   ├── gradle/  build.gradle.kts  settings.gradle.kts  gradlew
 │   └── local.properties          uncommitted: SDK path and the server URL
 ├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
@@ -74,7 +75,7 @@ Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `min
 ```bash
 cd "Chronova - Android App"
 ./gradlew :app:installDebug
-./gradlew :app:testDebugUnitTest :app:lintDebug
+./gradlew test :app:lintDebug verifyModuleGraph
 ```
 
 The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties` (for local development, the server from `server/` with `php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
@@ -106,24 +107,22 @@ Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-bas
 
 ### App
 
-In `Chronova - Android App/app/src/main/java/`: a single module with package boundaries and manual dependency injection (`ChronovaApp` / `AppContainer`):
+Gradle modules in three layers, with manual dependency injection in the shell (`ChronovaApp` / `AppContainer`). Dependencies point inward — `presentation → domain ← data` — features never depend on each other, and core never depends on features; `./gradlew verifyModuleGraph` checks this. Domain modules are plain Kotlin (no Android plugin), and every ViewModel action goes through a use case.
 
 ```
-noel.chronova.app
-├── core/timeline     pure Kotlin: time ↔ pixels, calendar ticks, snap grids, edits, hit testing, viewport math
-├── domain            models (Project, SchedulerTask, TaskDependency, TimelineConfig), rules (projects, tasks, dependencies)
-├── data/local        Room: projects, tasks, dependencies, view_settings, notifications (schema v4, with migrations)
-├── data/repository   RoomProjectRepository (every write stamps updatedAt and marks the row dirty)
-├── data/remote       OkHttp sync and voice clients + DTOs
-├── data/sync         SyncEngine, RoomLocalSyncStore, SyncCoordinator (reconnect prompt), connectivity
-├── domain/schedule   ScheduleChange, ApplyScheduleChanges (one transaction, stale-checked, undoable), CommandPlanner, DependentsRescheduler
-├── domain/voice      VoiceContext, AICommandHandler (proposal → commands → plan), PreviewItem
-├── domain/notifications  AppNotification, kinds, NotificationFilter (filter and sort)
-├── notifications     SystemNotifications (the notification shade)
-├── voice             microphone recorder, end-of-speech detection, speech player, 3D orb (Filament)
-├── auth              ApiAuthRepository, Keystore token store, backend config
-├── navigation        sign-in gate, project list → timeline, account, notifications
-└── presentation      projects, timeline (+ task editor), account, notifications, sync UI, components
+:app                          shell: application + AppContainer, activity, navigation (sign-in gate, routes), backend config
+:core:model                   Project, SchedulerTask, TaskDependency, TimelineConfig            (pure Kotlin)
+:core:timeline                time ↔ pixels, calendar ticks, snap grids, edits, hit testing, viewport math   (pure Kotlin)
+:core:domain                  repository and auth/sync contracts, rules, ScheduleChange, ApplyScheduleChanges (one transaction, stale-checked, undoable)   (pure Kotlin)
+:core:database                Room: projects, tasks, dependencies, view_settings, notifications (schema v4, with migrations)
+:core:data / :core:network    RoomProjectRepository (every write stamps updatedAt and marks the row dirty), connectivity; HTTP client and JSON
+:core:designsystem / :core:ui theme and shared images; time formatting, sync status UI, the assistant slot the timeline hosts
+:feature:projects             domain (list/save/delete use cases), presentation (project list and editor)
+:feature:timeline             domain (schedule, edit, task editor, undo, view settings), presentation (timeline screen, task editor, components)
+:feature:notifications        domain, data (Room), presentation (page, wording, the notification shade)
+:feature:sync                 domain, data (SyncEngine, RoomLocalSyncStore, SyncCoordinator with the reconnect prompt, sync client), presentation
+:feature:account              domain, data (ApiAuthRepository, Keystore token store), presentation (sign-in and account pages)
+:feature:assistant            domain (AICommandHandler, CommandPlanner, clashes, use cases), data (voice client, microphone, player), presentation (ViewModel, 3D orb with Filament)
 ```
 
 - **Local first.** Screens read Room through repository `Flow`s; edits are written locally and marked dirty. Deletes are tombstones until synced.
@@ -152,7 +151,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 267 |
+| Android JVM unit tests (every module) | `cd "Chronova - Android App" && ./gradlew test` | 274 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w -e class noel.chronova.app.data.repository.ApplyChangesRoomTest noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
 | Android instrumented (rotation: the assistant's layout in landscape and portrait, the sign-in form across a rotation, 50 real rotations) | build both APKs as above, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it) | 4 |
 | Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations (sheets, dialogs, a drag, the assistant listening, talking and introducing itself, a 200-turn memory soak) and checks for crashes, leaked activities, memory growth and lost state. Backs the app's data up and restores it, and the phone's rotation setting; `restore` puts back a backup an interrupted run left | 16 scenarios |

@@ -7,4 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
+    // verifyModuleGraph: fails on a dependency the three-layer architecture forbids.
+    id("chronova.module.graph")
 }

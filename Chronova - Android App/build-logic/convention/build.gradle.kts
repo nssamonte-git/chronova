@@ -42,6 +42,10 @@ gradlePlugin {
             id = "chronova.android.room"
             implementationClass = "AndroidRoomConventionPlugin"
         }
+        register("moduleGraph") {
+            id = "chronova.module.graph"
+            implementationClass = "ModuleGraphConventionPlugin"
+        }
         register("jvmLibrary") {
             id = "chronova.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"

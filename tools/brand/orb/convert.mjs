@@ -2,7 +2,7 @@
  * Builds the app's assistant orb from the supplied model, as is apart from what
  * Filament needs and the look tuned against docs/brand/assistant-orb-reference.webp:
  *
- *   docs/brand/assistant-orb.glb  →  Chronova - Android App/app/src/main/assets/orb/assistant_orb.glb
+ *   docs/brand/assistant-orb.glb  →  Chronova - Android App/feature/assistant/presentation/src/main/assets/orb/assistant_orb.glb
  *
  * - Draco geometry is decoded (Filament's Android loader doesn't promise Draco).
  * - WebP textures become JPEG/PNG at app size (Filament reads PNG, JPEG, KTX2 only):
@@ -23,7 +23,7 @@ import sharp from 'sharp';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const source = path.join(root, 'docs', 'brand', 'assistant-orb.glb');
-const target = path.join(root, 'Chronova - Android App', 'app', 'src', 'main', 'assets', 'orb', 'assistant_orb.glb');
+const target = path.join(root, 'Chronova - Android App', 'feature', 'assistant', 'presentation', 'src', 'main', 'assets', 'orb', 'assistant_orb.glb');
 
 // sRGB #d8e4ff in linear terms: a light blue tint that lifts the baked violet toward the reference.
 const srgbToLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
