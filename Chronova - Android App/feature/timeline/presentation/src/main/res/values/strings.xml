@@ -19,4 +19,5 @@
         <item quantity="one">A task must last at least %d minute.</item>
         <item quantity="other">A task must last at least %d minutes.</item>
     </plurals>
+    <string name="tasks_none_here">No tasks here. Scroll, or tap Add task.</string>
 </resources>

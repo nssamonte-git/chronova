@@ -44,6 +44,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.max
 import noel.chronova.feature.timeline.presentation.R
+import noel.chronova.app.core.timeline.TaskVisibility
 import noel.chronova.app.core.timeline.TimelineMath
 import noel.chronova.app.domain.model.SchedulerTask
 import noel.chronova.app.presentation.TimeFormat
@@ -90,22 +91,6 @@ fun SchedulerTimeline(
         TimelineViewportState(initialScrollX(state, pxPerMinute))
     }
     val listState = rememberLazyListState()
-    // Bring the first task the assistant changed into view (row, then time) while it says what changed.
-    // Keyed on its times too: the highlight can arrive before the moved task does, and the scroll
-    // must follow the task to where it now is.
-    val highlightIndex = state.tasks.indexOfFirst { it.id in highlighted }
-    val highlightTask = state.tasks.getOrNull(highlightIndex)
-    LaunchedEffect(highlighted, highlightTask?.startMillis, highlightTask?.endMillis) {
-        val task = highlightTask ?: return@LaunchedEffect
-        val visible = listState.layoutInfo.visibleItemsInfo.map { it.index }
-        if (highlightIndex !in visible) listState.animateScrollToItem(highlightIndex)
-        val startX = (task.startMillis - window.startMillis) / 60_000f * pxPerMinute
-        val endX = (task.endMillis - window.startMillis) / 60_000f * pxPerMinute
-        val width = viewport.viewportWidth
-        if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
-            viewport.animateScrollTo(startX - width * 0.2f)
-        }
-    }
 
     val colors = MaterialTheme.colorScheme
     // Time always flows left-to-right, even in RTL locales.
@@ -114,6 +99,35 @@ fun SchedulerTimeline(
             val viewportWidthPx = max(0, constraints.maxWidth - with(density) { NameColumnWidth.roundToPx() }).toFloat()
             // Keeps the centre time fixed across zoom/scale changes and clamps the scroll.
             SideEffect { viewport.onGeometry(contentWidthPx, viewportWidthPx, pxPerMinute) }
+
+            // Rows list only the tasks on screen, plus the selected one (a drag selects its bar, so a
+            // dragged task never loses its row) and any the assistant just changed. derivedStateOf
+            // recomposes the rows only when that list changes, not on every scroll frame.
+            val keep = remember(state.selectedTaskId, highlighted) { highlighted + listOfNotNull(state.selectedTaskId) }
+            val shownTasks by remember(state.tasks, keep, pxPerMinute, window.startMillis, viewportWidthPx) {
+                derivedStateOf {
+                    val visible = TaskVisibility.visibleSpan(viewport.scrollX, viewportWidthPx, window.startMillis, pxPerMinute)
+                    TaskVisibility.onScreen(state.tasks, visible, keep)
+                }
+            }
+
+            // Bring the first task the assistant changed into view (row, then time) while it says what changed.
+            // Keyed on its times too: the highlight can arrive before the moved task does, and the scroll
+            // must follow the task to where it now is.
+            val highlightTask = state.tasks.firstOrNull { it.id in highlighted }
+            LaunchedEffect(highlighted, highlightTask?.startMillis, highlightTask?.endMillis) {
+                val task = highlightTask ?: return@LaunchedEffect
+                // The highlighted task is always listed (it is kept), so its row exists.
+                val row = shownTasks.indexOfFirst { it.id == task.id }
+                val visibleRows = listState.layoutInfo.visibleItemsInfo.map { it.index }
+                if (row >= 0 && row !in visibleRows) listState.animateScrollToItem(row)
+                val startX = (task.startMillis - window.startMillis) / 60_000f * pxPerMinute
+                val endX = (task.endMillis - window.startMillis) / 60_000f * pxPerMinute
+                val width = viewport.viewportWidth
+                if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
+                    viewport.animateScrollTo(startX - width * 0.2f)
+                }
+            }
 
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(HeaderHeight)) {
@@ -161,9 +175,9 @@ fun SchedulerTimeline(
                             .fillMaxHeight()
                             .columnDivider(colors.outlineVariant),
                     )
-                    if (state.tasks.isEmpty()) {
+                    if (shownTasks.isEmpty()) {
                         Text(
-                            text = stringResource(R.string.tasks_empty),
+                            text = stringResource(if (state.tasks.isEmpty()) R.string.tasks_empty else R.string.tasks_none_here),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -173,7 +187,7 @@ fun SchedulerTimeline(
                         )
                     }
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-                        items(state.tasks, key = { it.id }) { task ->
+                        items(shownTasks, key = { it.id }) { task ->
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -208,7 +222,7 @@ fun SchedulerTimeline(
                         }
                     }
                     DependencyArrows(
-                        tasks = state.tasks,
+                        tasks = shownTasks,
                         dependencies = state.dependencies,
                         originMillis = window.startMillis,
                         pxPerMinute = pxPerMinute,
