@@ -64,6 +64,8 @@ import noel.chronova.app.domain.sync.SyncStatus
 import noel.chronova.app.presentation.sync.SyncUi
 import noel.chronova.app.presentation.sync.syncFailureText
 import noel.chronova.app.presentation.sync.syncStatusText
+import noel.chronova.core.designsystem.R as DesignR
+import noel.chronova.core.ui.R as CoreUiR
 
 /** Sign up, confirm, sign in and sign out for sync. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +108,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
             ) {
                 if (onBack == null) {
                     Image(
-                        painterResource(R.drawable.brand_splash_logo),
+                        painterResource(DesignR.drawable.brand_splash_logo),
                         contentDescription = null,
                         modifier = Modifier
                             .size(96.dp)
@@ -147,7 +149,7 @@ private fun SignedIn(email: String, viewModel: AccountViewModel) {
         color = if (status is SyncStatus.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Button(onClick = viewModel::syncNow, enabled = status != SyncStatus.Syncing, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.sync_now))
+        Text(stringResource(CoreUiR.string.sync_now))
     }
     OutlinedButton(onClick = viewModel::requestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
@@ -279,7 +281,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
             trailingIcon = {
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
-                        painterResource(if (showPassword) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
+                        painterResource(if (showPassword) DesignR.drawable.ic_visibility_off else DesignR.drawable.ic_visibility),
                         contentDescription = stringResource(if (showPassword) R.string.account_hide_password else R.string.account_show_password),
                     )
                 }

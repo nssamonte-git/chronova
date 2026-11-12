@@ -80,6 +80,7 @@ import noel.chronova.app.presentation.voice.AssistantOverlay
 import noel.chronova.app.presentation.voice.AssistantNotice
 import noel.chronova.app.presentation.voice.AssistantViewModel
 import noel.chronova.app.ui.theme.ChronovaTheme
+import noel.chronova.core.designsystem.R as DesignR
 
 @Composable
 fun ProjectTimelineScreen(
@@ -326,7 +327,7 @@ private fun TimelineContent(
                             .semantics(mergeDescendants = true) { contentDescription = assistantLabel },
                     ) {
                         AssistantOrb(mode = OrbMode.Idle, active = !assistantOpen, modifier = Modifier.size(60.dp)) {
-                            Icon(painterResource(R.drawable.ic_mic), contentDescription = null, modifier = Modifier.size(32.dp))
+                            Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, modifier = Modifier.size(32.dp))
                         }
                     }
                 }

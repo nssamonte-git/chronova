@@ -6,7 +6,7 @@ the source:  python3 tools/brand/generate.py   (needs Pillow)
 Outputs
   Chronova - Android App/app/src/main/res/drawable-nodpi/brand_icon_art.png    adaptive icon layer (108 dp, logo art scaled into the safe zone)
   Chronova - Android App/app/src/main/res/drawable-nodpi/brand_icon_mono.png   themed-icon mask (Android 13+)
-  Chronova - Android App/app/src/main/res/drawable-nodpi/brand_splash_logo.png launch-screen icon
+  Chronova - Android App/core/designsystem/src/main/res/drawable-nodpi/brand_splash_logo.png launch-screen icon (also on the sign-in page)
   (minSdk 26: launchers always use mipmap-anydpi/ic_launcher*.xml, so no per-density bitmaps)
   server/public/images/brand/*.png, server/public/favicon.ico   admin logo, favicons
 """
@@ -19,6 +19,8 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SOURCE = os.path.join(ROOT, "docs", "brand", "chronova-logo.webp")
 RES = os.path.join(ROOT, "Chronova - Android App", "app", "src", "main", "res")
+# The launch-screen logo is also shown on the sign-in page, so it lives in the shared design system.
+DESIGN_RES = os.path.join(ROOT, "Chronova - Android App", "core", "designsystem", "src", "main", "res")
 PUBLIC = os.path.join(ROOT, "server", "public")
 
 
@@ -187,7 +189,7 @@ def main():
     save(monochrome(art, 432, ART_FRACTION), RES, "drawable-nodpi", "brand_icon_mono.png", optimize=True)
 
     # Launch screen: icon area 288 dp, content inside a 192 dp circle (xxhdpi, 864 px).
-    save(composed(art, fill, 864, ART_FRACTION, feather=0.05), RES, "drawable-nodpi", "brand_splash_logo.png", optimize=True)
+    save(composed(art, fill, 864, ART_FRACTION, feather=0.05), DESIGN_RES, "drawable-nodpi", "brand_splash_logo.png", optimize=True)
 
     # Admin panel and browser icons.
     save(logo.resize((256, 256), Image.LANCZOS), PUBLIC, "images", "brand", "chronova-logo.png", optimize=True)

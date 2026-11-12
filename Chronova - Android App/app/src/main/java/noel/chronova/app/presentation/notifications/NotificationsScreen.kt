@@ -66,6 +66,7 @@ import noel.chronova.app.R
 import noel.chronova.app.domain.notifications.AppNotification
 import noel.chronova.app.domain.notifications.NotificationCategory
 import noel.chronova.app.domain.notifications.NotificationKind
+import noel.chronova.core.designsystem.R as DesignR
 
 /** Everything that happened (sync, assistant, account), with filters and sorting. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -282,7 +283,7 @@ private fun CategoryIcon(kind: NotificationKind) {
     Box(Modifier.padding(top = 2.dp).size(24.dp), contentAlignment = Alignment.Center) {
         when (kind.category) {
             NotificationCategory.SYNC -> Icon(Icons.Filled.Refresh, contentDescription = null, tint = tint)
-            NotificationCategory.ASSISTANT -> Icon(painterResource(R.drawable.ic_mic), contentDescription = null, tint = tint)
+            NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint)
             NotificationCategory.ACCOUNT -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint)
         }
     }

@@ -15,14 +15,6 @@ import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.domain.sync.SyncPrompt
 import noel.chronova.app.domain.sync.SyncStatus
 
-/** What the project list shows about sync. */
-data class SyncUi(
-    /** False in builds without a backend: no sync UI at all. */
-    val configured: Boolean = false,
-    val signedIn: Boolean = false,
-    val pending: Int = 0,
-    val status: SyncStatus = SyncStatus.Idle,
-)
 
 /** App-wide (activity-scoped) sync state for the project list and the reconnect prompt. */
 class SyncViewModel(private val coordinator: SyncCoordinator, auth: AuthRepository) : ViewModel() {

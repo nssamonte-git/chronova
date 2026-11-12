@@ -51,6 +51,8 @@ dependencies {
     implementation(projects.core.database)
     implementation(projects.core.network)
     implementation(projects.core.data)
+    implementation(projects.core.designsystem)
+    implementation(projects.core.ui)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)

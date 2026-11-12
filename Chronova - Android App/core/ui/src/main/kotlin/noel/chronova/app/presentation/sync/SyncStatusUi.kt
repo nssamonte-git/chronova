@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -15,43 +14,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import noel.chronova.app.R
+import noel.chronova.core.ui.R
 import noel.chronova.app.domain.sync.SyncFailure
-import noel.chronova.app.domain.sync.SyncPrompt
 import noel.chronova.app.domain.sync.SyncStatus
 
-/** "You're back online" — asks before syncing, as the user requires. */
-@Composable
-fun SyncPromptDialog(prompt: SyncPrompt, onSync: () -> Unit, onSignIn: () -> Unit, onLater: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onLater,
-        title = { Text(stringResource(R.string.sync_prompt_title)) },
-        text = {
-            Text(
-                pluralStringResource(
-                    if (prompt.signedIn) R.plurals.sync_prompt_body else R.plurals.sync_prompt_body_signed_out,
-                    prompt.pendingChanges,
-                    prompt.pendingChanges,
-                ),
-            )
-        },
-        confirmButton = {
-            if (prompt.signedIn) {
-                TextButton(onClick = onSync) { Text(stringResource(R.string.sync_now)) }
-            } else {
-                TextButton(onClick = onSignIn) { Text(stringResource(R.string.sync_sign_in)) }
-            }
-        },
-        dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.sync_later)) } },
-    )
-}
+/** What the project list shows about sync. */
+data class SyncUi(
+    /** False in builds without a backend: no sync UI at all. */
+    val configured: Boolean = false,
+    val signedIn: Boolean = false,
+    val pending: Int = 0,
+    val status: SyncStatus = SyncStatus.Idle,
+)
 
 /** Top-bar sync button with the number of unsynced changes. */
 @Composable

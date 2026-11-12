@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_status_syncing">Syncing…</string>
+    <string name="sync_status_synced">All changes synced</string>
+    <string name="sync_failed_not_signed_in">Sign in to sync</string>
+    <string name="sync_failed_sign_in_again">Sync failed: please sign in again</string>
+    <string name="sync_failed_offline">Sync failed: no connection</string>
+    <string name="sync_failed_busy">Sync failed: another device is syncing, try again shortly</string>
+    <string name="sync_failed_server">Sync failed: server problem, try again later</string>
+    <plurals name="sync_status_pending">
+        <item quantity="one">%d change not synced</item>
+        <item quantity="other">%d changes not synced</item>
+    </plurals>
+    <plurals name="sync_status_signed_out">
+        <item quantity="one">%d change on this device only. Sign in to sync.</item>
+        <item quantity="other">%d changes on this device only. Sign in to sync.</item>
+    </plurals>
+</resources>
