@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,13 +12,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
-import noel.chronova.core.model.TimelineConfig
 import noel.chronova.core.domain.schedule.ApplyResult
 import noel.chronova.feature.timeline.domain.ProjectSchedule
 import noel.chronova.feature.timeline.domain.TimelineUseCases
@@ -41,14 +38,8 @@ class ProjectTimelineViewModel(
     /** A one-off message for the screen, cleared by [dismissNotice]. */
     val notice: StateFlow<TimelineNotice?> = _notice.asStateFlow()
 
-    /** Null until this project's saved view settings have been read. */
-    private val config = MutableStateFlow<TimelineConfig?>(null)
+    private val settings = TimelineViewSettings(projectId, useCases, viewModelScope)
     private val selectedTaskId = MutableStateFlow<String?>(null)
-
-    private val _taskEditor = MutableStateFlow<TaskEditorState?>(null)
-
-    /** The add/edit task sheet, or null when closed. */
-    val taskEditor: StateFlow<TaskEditorState?> = _taskEditor.asStateFlow()
 
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
 
@@ -62,9 +53,24 @@ class ProjectTimelineViewModel(
     /** The schedule as the domain has it, behind what the screen shows; edits are made against it. */
     private var schedule: ProjectSchedule? = null
 
+    private val editor = TaskEditor(
+        projectId, useCases, zone, today, viewModelScope,
+        schedule = { schedule },
+        timeline = { readyTimeline() },
+        onAdded = { selectedTaskId.value = it },
+        onDeleted = { changes ->
+            undoChanges = changes
+            _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, id = ++undoOffers)
+        },
+        onRefused = { _notice.value = TimelineNotice.EditNotSaved },
+    )
+
+    /** The add/edit task sheet, or null when closed. */
+    val taskEditor: StateFlow<TaskEditorState?> = editor.state
+
     val state: StateFlow<TimelineScreenState> = combine(
         useCases.observeSchedule(projectId),
-        config,
+        settings.config,
         selectedTaskId,
     ) { schedule, config, selected ->
         if (schedule == null) {
@@ -118,108 +124,30 @@ class ProjectTimelineViewModel(
         _notice.value = null
     }
 
-    // Task editor intents.
+    // The task editor's intents (see [TaskEditor]).
 
-    /**
-     * Opens the editor for a new one-hour task at 09:00 on today's date when today
-     * is inside the project, otherwise on the project's first day.
-     */
-    fun startAddTask() {
-        val window = readyTimeline()?.window ?: return
-        val firstDay = Instant.ofEpochMilli(window.startMillis).atZone(zone).toLocalDate()
-        val lastDay = Instant.ofEpochMilli(window.endMillis - 1).atZone(zone).toLocalDate()
-        val todayDate = today()
-        val day = if (todayDate in firstDay..lastDay) todayDate else firstDay
-        val start = day.atTime(DEFAULT_START_HOUR, 0).atZone(zone).toInstant().toEpochMilli()
-        _taskEditor.value = TaskEditorState(
-            taskId = null,
-            title = "",
-            startMillis = start,
-            endMillis = start + DEFAULT_DURATION_MILLIS,
-            color = TaskColor.entries[(readyTimeline()?.tasks?.size ?: 0) % TaskColor.entries.size],
-        )
-    }
+    fun startAddTask() = editor.startAdd()
 
-    fun startEditTask(taskId: String) {
-        val timeline = readyTimeline() ?: return
-        val task = timeline.tasks.firstOrNull { it.id == taskId } ?: return
-        _taskEditor.value = TaskEditorState(
-            taskId = task.id,
-            title = task.title,
-            startMillis = task.startMillis,
-            endMillis = task.endMillis,
-            color = task.color,
-            predecessorIds = timeline.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
-            forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, schedule?.dependencies.orEmpty()),
-        )
-    }
+    fun startEditTask(taskId: String) = editor.startEdit(taskId)
 
     /** Adds or removes a predecessor in the editor; forbidden ones are ignored. */
-    fun onTogglePredecessor(predecessorId: String) = _taskEditor.update { editor ->
-        when {
-            editor == null || predecessorId in editor.forbiddenPredecessorIds -> editor
-            predecessorId in editor.predecessorIds -> editor.copy(predecessorIds = editor.predecessorIds - predecessorId)
-            else -> editor.copy(predecessorIds = editor.predecessorIds + predecessorId)
-        }
-    }
+    fun onTogglePredecessor(predecessorId: String) = editor.togglePredecessor(predecessorId)
 
-    fun onTaskTitleChange(title: String) = _taskEditor.update { it?.copy(title = title, problem = null) }
+    fun onTaskTitleChange(title: String) = editor.changeTitle(title)
 
     /** Moving the start keeps the duration, so the end moves with it. */
-    fun onTaskStartChange(startMillis: Long) = _taskEditor.update {
-        it?.copy(startMillis = startMillis, endMillis = startMillis + (it.endMillis - it.startMillis), problem = null)
-    }
+    fun onTaskStartChange(startMillis: Long) = editor.changeStart(startMillis)
 
-    fun onTaskEndChange(endMillis: Long) = _taskEditor.update { it?.copy(endMillis = endMillis, problem = null) }
+    fun onTaskEndChange(endMillis: Long) = editor.changeEnd(endMillis)
 
-    fun onTaskColorChange(color: TaskColor) = _taskEditor.update { it?.copy(color = color) }
+    fun onTaskColorChange(color: TaskColor) = editor.changeColor(color)
 
-    fun dismissTaskEditor() {
-        _taskEditor.value = null
-    }
+    fun dismissTaskEditor() = editor.dismiss()
 
-    fun saveTask() {
-        val entered = _taskEditor.value?.takeUnless { it.saving } ?: return
-        val timeline = readyTimeline() ?: return
-        val problem = useCases.validateTask(entered.title, entered.startMillis, entered.endMillis, timeline.window)
-        if (problem != null) {
-            _taskEditor.value = entered.copy(problem = problem.toUi())
-            return
-        }
-        _taskEditor.value = entered.copy(saving = true)
-        viewModelScope.launch {
-            val taskId = useCases.saveTask(
-                projectId = projectId,
-                taskId = entered.taskId,
-                existing = entered.taskId?.let { id -> schedule?.tasks?.firstOrNull { it.id == id } },
-                title = entered.title,
-                startMillis = entered.startMillis,
-                endMillis = entered.endMillis,
-                color = entered.color,
-                predecessorIds = entered.predecessorIds,
-            )
-            if (entered.taskId == null) selectedTaskId.value = taskId
-            _taskEditor.value = null
-        }
-    }
+    fun saveTask() = editor.save()
 
     /** Deletes the task being edited, with its links, and offers undo. */
-    fun deleteEditingTask() {
-        val taskId = _taskEditor.value?.taskId ?: return
-        val current = schedule ?: return
-        val task = current.tasks.firstOrNull { it.id == taskId } ?: return
-        _taskEditor.value = null
-        // Saved through the shared apply path; a refusal (the schedule changed meanwhile) is reported.
-        viewModelScope.launch {
-            when (val result = useCases.deleteTask(projectId, task, current.dependencies)) {
-                is ApplyResult.Applied -> {
-                    undoChanges = result.undo
-                    _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, id = ++undoOffers)
-                }
-                is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
-            }
-        }
-    }
+    fun deleteEditingTask() = editor.delete()
 
     /** Reverses the offered change set, unless those tasks were edited again since. */
     fun undo() {
@@ -238,58 +166,28 @@ class ProjectTimelineViewModel(
 
     private fun readyTimeline(): TimelineUiState? = (state.value as? TimelineScreenState.Ready)?.timeline
 
-    // Configuration intents. They change how time is displayed and snapped and
-    // never touch task timestamps.
+    // View settings (see [TimelineViewSettings]): how time is shown and snapped, never task times.
 
-    fun setTimeScale(scale: TimeScale) = updateConfig { it.withTimeScale(scale) }
+    fun setTimeScale(scale: TimeScale) = settings.setTimeScale(scale)
 
-    fun zoomIn() = updateConfig { it.zoomedIn() }
+    fun zoomIn() = settings.zoomIn()
 
-    fun zoomOut() = updateConfig { it.zoomedOut() }
+    fun zoomOut() = settings.zoomOut()
 
-    fun resetZoom() = updateConfig { it.zoomReset() }
+    fun resetZoom() = settings.resetZoom()
 
-    fun setSnapMinutes(minutes: Int) = updateConfig { it.withSnap(minutes) }
+    fun setSnapMinutes(minutes: Int) = settings.setSnapMinutes(minutes)
 
-    fun changeRowHeight(steps: Int) = updateConfig { it.withRowHeightStep(steps) }
-
-    /** Applies a view change and remembers it for this project on this device. */
-    fun updateConfig(transform: (TimelineConfig) -> TimelineConfig) {
-        val current = config.value ?: return
-        val next = transform(current)
-        if (next == current) return
-        config.value = next
-        viewModelScope.launch { useCases.saveViewSettings(projectId, next) }
-    }
-
-    /** A pinch zoomed without saving yet (see [finishZoom]). */
-    private var zoomUnsaved = false
+    fun changeRowHeight(steps: Int) = settings.changeRowHeight(steps)
 
     /** One pinch step: zooms at once, without saving every step of the gesture. */
-    fun zoomBy(factor: Float) {
-        val current = config.value ?: return
-        val next = current.zoomedBy(factor)
-        if (next == current) return
-        config.value = next
-        zoomUnsaved = true
-    }
+    fun zoomBy(factor: Float) = settings.zoomBy(factor)
 
     /** The pinch ended: remember the zoom it settled on, once. */
-    fun finishZoom() {
-        if (!zoomUnsaved) return
-        zoomUnsaved = false
-        val settled = config.value ?: return
-        viewModelScope.launch { useCases.saveViewSettings(projectId, settled) }
-    }
-
-    init {
-        viewModelScope.launch { config.value = useCases.loadViewSettings(projectId) }
-    }
+    fun finishZoom() = settings.finishZoom()
 
     companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
-        private const val DEFAULT_START_HOUR = 9
-        private const val DEFAULT_DURATION_MILLIS = 60 * 60_000L
 
         /** [projectId] comes from the timeline's navigation argument (the shell reads it). */
         fun factory(projectId: String, useCases: () -> TimelineUseCases): ViewModelProvider.Factory = viewModelFactory {

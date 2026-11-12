@@ -907,3 +907,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - On the phone, projects 7/7 and timeline 17/17 (test apps uninstalled).
     - In your app (server-URL build installed over it, data kept), both buttons now appear by name next to "Assistant".
     - 330 unit tests, lint 0 errors, module graph and UI-model checks OK.
+- Timeline ViewModel slimmed (plan for the last two gaps, batch A):
+  - `ProjectTimelineViewModel` 299 → 197 lines. The add/edit task sheet moved, as is, to plain-Kotlin `TaskEditor` (145): it reads the domain schedule and the shown timeline, and hands back to the ViewModel what follows (select a new task, offer undo, report a refusal). The view settings, pinch zoom included, moved to `TimelineViewSettings` (71).
+  - The ViewModel keeps the schedule mapping, selection, drag commits, notices and undo, plus one-line delegates, so the screen and its tests are unchanged. The unused public `updateConfig` was dropped.
+  - Checks: `ProjectTimelineViewModelTest` 21/21 with the test file untouched; 330 unit tests, lint 0 errors / 21 warnings, module graph and UI-model checks OK. On the phone, timeline screen tests 17/17 and the app's 11 device tests (pinch, rotation, Room) with the server-URL build; data restored.
