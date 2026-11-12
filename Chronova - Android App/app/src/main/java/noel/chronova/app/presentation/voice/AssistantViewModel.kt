@@ -188,6 +188,25 @@ class AssistantViewModel(
         }
     }
 
+    /**
+     * The first time this project is opened, the orb opens by itself, introduces the assistant
+     * and closes again. It only speaks: nothing is recorded and nothing of the user's is sent
+     * (only the fixed introduction, to be voiced). Offline or signed out it waits for a later visit.
+     */
+    fun introduceIfFirstVisit() {
+        if (ui.value.open || state.value.availability != AssistantAvailability.READY || settings.introduced(projectId)) return
+        settings.markIntroduced(projectId)
+        stopAfterword()
+        ui.update { it.copy(open = true, mode = OrbMode.Speaking, heard = null, saying = null, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
+        conversation = viewModelScope.launch {
+            try {
+                say(phrases.introduction())
+            } finally {
+                ui.update { it.copy(open = false) }
+            }
+        }
+    }
+
     /** Stops listening and speaking and closes the orb; nothing is applied. */
     fun close() {
         conversation?.cancel()

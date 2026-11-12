@@ -172,8 +172,15 @@ private class FakePlayer : SpeechPlayer {
     /** When set, each clip "plays" until the test scheduler has run what was waiting, like a real clip. */
     var holdIn: CoroutineScope? = null
 
+    /** When true, each clip "plays" until stop() (like a long clip the user cuts short). */
+    var untilStopped = false
+
     override fun play(audio: ByteArray) {
         played += audio // otherwise finishes at once
+        if (untilStopped) {
+            playing.value = true
+            return
+        }
         holdIn?.let { scope ->
             playing.value = true
             scope.launch {
@@ -183,17 +190,25 @@ private class FakePlayer : SpeechPlayer {
         }
     }
 
-    override fun stop() = Unit
+    override fun stop() {
+        playing.value = false
+    }
 
     override fun release() = Unit
 }
 
 private class FakeSettings : AssistantSettings {
     override var noticeAccepted = false
+    val introducedProjects = mutableSetOf<String>()
+    override fun introduced(projectId: String) = projectId in introducedProjects
+    override fun markIntroduced(projectId: String) {
+        introducedProjects += projectId
+    }
 }
 
 private object FakePhrases : AssistantPhrases {
     override fun greeting() = "hello"
+    override fun introduction() = "intro"
     override fun applyAsAsked() = "as asked?"
     override fun wasThatAYes() = "was that a yes?"
     override fun nothingHeard() = "say again"
@@ -242,6 +257,61 @@ class AssistantViewModelTest {
 
     @After
     fun tearDown() = Dispatchers.resetMain()
+
+    private fun viewModelFor(projectId: String) = AssistantViewModel(
+        projectId, repository, api, auth, online, recorder, player, settings, FakePhrases, zone,
+        clock = { 0L }, newId = { "new" }, language = { "en" },
+        notifications = notifications,
+    )
+
+    @Test
+    fun aProjectsFirstOpenIntroducesTheAssistantOnceWithoutListening() = runTest(dispatcher) {
+        runCurrent() // availability is worked out
+        viewModel.introduceIfFirstVisit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("intro"), api.said)
+        assertEquals(0, recorder.starts) // nothing recorded
+        assertTrue(api.requests.isEmpty()) // nothing interpreted
+        assertFalse(viewModel.state.value.open) // closes by itself
+        assertTrue(settings.introduced(SampleTasks.PROJECT_ID))
+
+        viewModel.introduceIfFirstVisit()
+        val again = viewModelFor(SampleTasks.PROJECT_ID) // the project opened another time
+        runCurrent()
+        again.introduceIfFirstVisit()
+        advanceUntilIdle()
+        assertEquals(listOf("intro"), api.said)
+
+        val other = viewModelFor("another-project")
+        runCurrent()
+        other.introduceIfFirstVisit()
+        advanceUntilIdle()
+        assertEquals(listOf("intro", "intro"), api.said)
+    }
+
+    @Test
+    fun offlineTheIntroductionWaitsForALaterVisit() = runTest(dispatcher) {
+        online.value = false
+        runCurrent()
+        viewModel.introduceIfFirstVisit()
+        advanceUntilIdle()
+        assertTrue(api.said.isEmpty())
+        assertFalse(settings.introduced(SampleTasks.PROJECT_ID))
+    }
+
+    @Test
+    fun theIntroductionCanBeCutShort() = runTest(dispatcher) {
+        player.untilStopped = true
+        runCurrent()
+        viewModel.introduceIfFirstVisit()
+        runCurrent()
+        assertTrue(viewModel.state.value.open) // still introducing
+        viewModel.close()
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.open)
+        assertTrue(settings.introduced(SampleTasks.PROJECT_ID)) // not repeated next time
+    }
 
     /** The user will say [words] (one per turn; null = silence; a leading "~" = said faintly, from across the room). */
     private fun says(vararg words: String?) {

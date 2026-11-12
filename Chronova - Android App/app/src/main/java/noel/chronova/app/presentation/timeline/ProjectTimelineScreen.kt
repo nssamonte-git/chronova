@@ -18,6 +18,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,6 +114,10 @@ fun ProjectTimelineScreen(
         // The project was deleted (e.g. by a sync) while open: leave the screen.
         TimelineScreenState.NotFound -> LaunchedEffect(Unit) { onBack() }
         is TimelineScreenState.Ready -> {
+            // First open of this project: the assistant introduces itself (once it can be heard).
+            LaunchedEffect(assistantState.availability) {
+                if (assistantState.availability == AssistantAvailability.READY) assistant.introduceIfFirstVisit()
+            }
             TimelineContent(
                 state = current.timeline,
                 actions = TimelineActions(
@@ -273,20 +281,36 @@ private fun TimelineContent(
                 title = state.projectName,
                 controlsVisible = showControls,
                 selectedTaskId = state.selectedTaskId,
-                assistantAvailable = assistantAvailable,
-                assistantOpen = assistantOpen,
-                onOpenAssistant = actions.onOpenAssistant,
                 onBack = actions.onBack,
                 onEditTask = actions.onEditTask,
                 onToggleControls = { showControls = !showControls },
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = actions.onAddTask,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.task_add)) },
-            )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (assistantAvailable) {
+                    val assistantLabel = stringResource(R.string.assistant_open)
+                    // The assistant's orb, just above "Add task" where it's easy to find. The live 3D orb;
+                    // the plain mic icon if this device can't render it. Paused while the big orb is open.
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = actions.onOpenAssistant)
+                            .semantics(mergeDescendants = true) { contentDescription = assistantLabel },
+                    ) {
+                        AssistantOrb(mode = OrbMode.Idle, active = !assistantOpen, modifier = Modifier.size(60.dp)) {
+                            Icon(painterResource(R.drawable.ic_mic), contentDescription = null, modifier = Modifier.size(32.dp))
+                        }
+                    }
+                }
+                ExtendedFloatingActionButton(
+                    onClick = actions.onAddTask,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.task_add)) },
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHost) },
         containerColor = MaterialTheme.colorScheme.background,
@@ -330,9 +354,6 @@ private fun TimelineTopBar(
     title: String,
     controlsVisible: Boolean,
     selectedTaskId: String?,
-    assistantAvailable: Boolean,
-    assistantOpen: Boolean,
-    onOpenAssistant: () -> Unit,
     onBack: () -> Unit,
     onEditTask: (String) -> Unit,
     onToggleControls: () -> Unit,
@@ -353,16 +374,6 @@ private fun TimelineTopBar(
             )
         },
         actions = {
-            if (assistantAvailable) {
-                val assistantLabel = stringResource(R.string.assistant_open)
-                IconButton(onClick = onOpenAssistant, modifier = Modifier.semantics { contentDescription = assistantLabel }) {
-                    // The live 3D orb; the plain mic icon if this device can't render it.
-                    // Paused while the big orb is open over the timeline.
-                    AssistantOrb(mode = OrbMode.Idle, active = !assistantOpen, modifier = Modifier.size(34.dp)) {
-                        Icon(painterResource(R.drawable.ic_mic), contentDescription = null)
-                    }
-                }
-            }
             if (selectedTaskId != null) {
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))

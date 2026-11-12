@@ -163,6 +163,7 @@
     <string name="assistant_was_that_a_yes">Sorry, was that a yes?</string>
     <string name="assistant_apply_as_asked">Okay. Shall I apply it as you asked, even with the clash?</string>
     <string name="assistant_offer_line">Or: %1$s</string>
+    <string name="assistant_introduction">Hi! I’m your Chronova assistant. Tap me anytime and tell me what to change, like \u201cpush build by two hours\u201d or \u201cadd a review tomorrow at three\u201d. I’ll tell you what I’ll do and ask before changing anything.</string>
     <string name="assistant_greeting">Hi! How can I help you?</string>
     <string name="assistant_say_again">I didn\u2019t catch that. Please say it again.</string>
     <string name="assistant_goodbye">I\u2019ll stop listening now. Tap the orb when you need me.</string>
