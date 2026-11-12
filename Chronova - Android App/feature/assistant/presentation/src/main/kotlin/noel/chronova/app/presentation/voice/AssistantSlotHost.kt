@@ -36,7 +36,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.app.R
+import noel.chronova.feature.assistant.presentation.R
 import noel.chronova.app.presentation.assistant.AssistantSlot
 import noel.chronova.app.presentation.assistant.AssistantSnackbar
 import noel.chronova.app.voice.orb.OrbMode

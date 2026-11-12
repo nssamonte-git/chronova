@@ -1,5 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!-- Assistant (typed and voice commands) -->
     <string name="assistant_open">Assistant</string>
     <string name="assistant_mic_denied">The assistant can’t use the microphone. You can type instead, or allow it in Settings.</string>

@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
-import noel.chronova.app.R
+import noel.chronova.feature.assistant.presentation.R
 import noel.chronova.app.domain.voice.PreviewItem
 import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.presentation.TimeFormat
