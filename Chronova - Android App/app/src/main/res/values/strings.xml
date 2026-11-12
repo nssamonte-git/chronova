@@ -1,7 +1,4 @@
 <resources>
-    <string name="sync_later">Later</string>
-    <string name="sync_sign_in">Sign in to sync</string>
-    <string name="sync_prompt_title">You’re back online</string>
     <string name="sync_never">Not synced yet on this device</string>
     <string name="sync_last">Last synced %1$s</string>
     <string name="account_sign_out_title">Sign out?</string>
@@ -62,14 +59,6 @@
     <plurals name="account_problem_code">
         <item quantity="one">Enter the %d-digit code.</item>
         <item quantity="other">Enter the %d-digit code.</item>
-    </plurals>
-    <plurals name="sync_prompt_body">
-        <item quantity="one">%d change on this device hasn’t been synced. Sync it now?</item>
-        <item quantity="other">%d changes on this device haven’t been synced. Sync them now?</item>
-    </plurals>
-    <plurals name="sync_prompt_body_signed_out">
-        <item quantity="one">%d change on this device isn’t backed up. Sign in to sync it.</item>
-        <item quantity="other">%d changes on this device aren’t backed up. Sign in to sync them.</item>
     </plurals>
     <plurals name="account_sign_out_unsynced">
         <item quantity="one">%d change hasn’t synced and will be lost. Your synced projects stay in your account.</item>

@@ -33,6 +33,7 @@ import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.notifications.NotificationUseCases
 import noel.chronova.app.domain.notifications.ObserveUnreadNotificationCount
 import noel.chronova.app.domain.projects.ProjectUseCases
+import noel.chronova.app.domain.sync.SyncUseCases
 import noel.chronova.app.domain.timeline.TimelineUseCases
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -144,4 +145,7 @@ class AppContainer(private val context: Context) {
         runSync = syncEngine::sync,
         notify = notify,
     )
+
+    /** The app-wide sync UI's use cases. */
+    fun syncUseCases(): SyncUseCases = SyncUseCases.create(authRepository, syncCoordinator)
 }

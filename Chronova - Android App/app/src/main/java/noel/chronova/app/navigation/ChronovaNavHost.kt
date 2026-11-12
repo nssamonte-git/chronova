@@ -79,7 +79,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         }
     }
     // Activity-scoped: the reconnect prompt can appear over any screen.
-    val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container.syncCoordinator, container.authRepository))
+    val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container::syncUseCases))
     val syncUi by sync.ui.collectAsStateWithLifecycle()
     val prompt by sync.prompt.collectAsStateWithLifecycle()
     prompt?.let {

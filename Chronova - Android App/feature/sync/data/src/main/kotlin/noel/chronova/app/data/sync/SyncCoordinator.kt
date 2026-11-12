@@ -19,7 +19,7 @@ import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.sync.SyncStatus
 import noel.chronova.app.domain.sync.SyncFailure
 import noel.chronova.app.domain.sync.SyncPrompt
-import noel.chronova.app.domain.sync.AccountSync
+import noel.chronova.app.domain.sync.SyncService
 
 /**
  * App-wide sync state. Sync never starts on its own: when the device comes back
@@ -38,14 +38,14 @@ class SyncCoordinator(
     private val busyRetryDelayMillis: Long = 2_000,
     /** Records what happened for the notifications page. */
     private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { _, _ -> },
-) : AccountSync {
+) : SyncService {
     override val pendingCount: StateFlow<Int> = local.pendingCount().stateIn(scope, SharingStarted.Eagerly, 0)
 
     private val _status = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     override val status: StateFlow<SyncStatus> = _status.asStateFlow()
 
     private val _prompt = MutableStateFlow<SyncPrompt?>(null)
-    val prompt: StateFlow<SyncPrompt?> = _prompt.asStateFlow()
+    override val prompt: StateFlow<SyncPrompt?> = _prompt.asStateFlow()
 
     private var job: Job? = null
 
@@ -74,7 +74,7 @@ class SyncCoordinator(
     }
 
     /** "Later": the prompt comes back on the next reconnect, not before. */
-    fun dismissPrompt() {
+    override fun dismissPrompt() {
         _prompt.value = null
     }
 

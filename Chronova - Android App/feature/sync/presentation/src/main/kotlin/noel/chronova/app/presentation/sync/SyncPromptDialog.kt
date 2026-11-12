@@ -6,7 +6,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import noel.chronova.app.R
+import noel.chronova.feature.sync.presentation.R
 import noel.chronova.app.domain.sync.SyncPrompt
 import noel.chronova.core.ui.R as CoreUiR
 
