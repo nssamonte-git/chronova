@@ -13,4 +13,6 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.ui)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    testImplementation(projects.core.testing)
 }

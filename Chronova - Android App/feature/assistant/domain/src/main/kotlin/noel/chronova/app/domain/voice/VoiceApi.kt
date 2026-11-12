@@ -48,16 +48,16 @@ data class VoiceDecision(
     val reply: String? = null,
 )
 
-enum class DecisionAnswer(val wire: String) {
-    Accepted("accepted"),
-    Declined("declined"),
-    Corrected("corrected"),
+enum class DecisionAnswer {
+    Accepted,
+    Declined,
+    Corrected,
 
     /** Took the clash-free alternative. */
-    AcceptedFix("accepted_fix"),
+    AcceptedFix,
 
     /** Turned the alternative down and kept their own version. */
-    KeptAsIs("kept_as_is"),
+    KeptAsIs,
 }
 
 /** What was heard, and the language it was heard in (null if the server didn't say). */
@@ -82,7 +82,7 @@ sealed interface ExplainRequest {
     data class Question(val text: String, override val language: String?) : ExplainRequest
 }
 
-enum class ExplainStage(val wire: String) { Proposal("proposal"), Applied("applied") }
+enum class ExplainStage { Proposal, Applied }
 
 /** [audio] is null when the server could write the words but not say them. */
 class SpokenAnswer(val text: String, val audio: ByteArray?, val audioType: String?)

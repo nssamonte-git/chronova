@@ -20,6 +20,20 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.account.ObserveAuthState
+import noel.chronova.app.domain.account.ObserveSessionEnded
+import noel.chronova.app.domain.account.SignIn
+import noel.chronova.app.domain.account.SignUp
+import noel.chronova.app.domain.account.ConfirmSignUp
+import noel.chronova.app.domain.account.ResendCode
+import noel.chronova.app.domain.account.RequestPasswordReset
+import noel.chronova.app.domain.account.ResetPassword
+import noel.chronova.app.domain.account.ObservePendingChanges
+import noel.chronova.app.domain.account.ObserveSyncStatus
+import noel.chronova.app.domain.account.LastSyncedAt
+import noel.chronova.app.domain.account.SyncAccountNow
+import noel.chronova.app.domain.account.SignOutAndClear
+import noel.chronova.app.domain.account.DeleteAccount
 
 /** Scripted auth: each call returns the next queued outcome and is recorded. */
 private class FakeAuth : AuthRepository {
@@ -79,7 +93,7 @@ class AccountViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         auth = FakeAuth()
         sync = FakeAccountSync()
-        viewModel = AccountViewModel(AccountUseCases.create(auth, sync))
+        viewModel = AccountViewModel(accountUseCases(auth, sync))
     }
 
     @After
@@ -214,3 +228,21 @@ class AccountViewModelTest {
         assertEquals(2, sync.deletes)
     }
 }
+
+/** The use cases the app wires, over fakes. */
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
+    observeAuthState = ObserveAuthState(auth),
+    observeSessionEnded = ObserveSessionEnded(auth),
+    signIn = SignIn(auth),
+    signUp = SignUp(auth),
+    confirmSignUp = ConfirmSignUp(auth),
+    resendCode = ResendCode(auth),
+    requestPasswordReset = RequestPasswordReset(auth),
+    resetPassword = ResetPassword(auth),
+    observePendingChanges = ObservePendingChanges(sync),
+    observeSyncStatus = ObserveSyncStatus(sync),
+    lastSyncedAt = LastSyncedAt(sync),
+    syncNow = SyncAccountNow(sync),
+    signOutAndClear = SignOutAndClear(sync),
+    deleteAccount = DeleteAccount(sync),
+)

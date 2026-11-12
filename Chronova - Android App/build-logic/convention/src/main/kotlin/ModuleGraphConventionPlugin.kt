@@ -13,7 +13,7 @@ import org.gradle.api.tasks.TaskAction
  * Root project only: registers `verifyModuleGraph`, which fails on a dependency between
  * modules that the three-layer architecture forbids (presentation -> domain <- data, features
  * never depend on each other, core never depends on features) and on a domain module built
- * with the Android plugin.
+ * with the Android plugin. Test dependencies follow the same rules, and may also use :core:testing.
  */
 class ModuleGraphConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -23,20 +23,22 @@ class ModuleGraphConventionPlugin : Plugin<Project> {
             task.group = "verification"
             task.description = "Checks module dependencies against the three-layer architecture."
             task.edges.set(modules.map { list -> list.flatMap { it.edges } })
+            task.testEdges.set(modules.map { list -> list.flatMap { it.testEdges } })
             task.androidModules.set(modules.map { list -> list.filter { it.android }.map { it.path } })
             task.report.set(target.layout.buildDirectory.file("reports/module-graph.txt"))
         }
     }
 
-    private class ModuleInfo(val path: String, val android: Boolean, val edges: List<String>)
+    private class ModuleInfo(val path: String, val android: Boolean, val edges: List<String>, val testEdges: List<String>)
 
     private fun Project.moduleInfo(): ModuleInfo {
-        val main = listOf("api", "implementation", "compileOnly", "runtimeOnly")
-        val targets = main.flatMap { name ->
+        fun targets(names: List<String>) = names.flatMap { name ->
             configurations.findByName(name)?.dependencies?.withType(ProjectDependency::class.java)?.map { it.path }.orEmpty()
         }.distinct()
+        val main = targets(listOf("api", "implementation", "compileOnly", "runtimeOnly"))
+        val test = targets(listOf("testImplementation", "testCompileOnly", "testRuntimeOnly", "androidTestImplementation", "androidTestCompileOnly"))
         val android = pluginManager.hasPlugin("com.android.library") || pluginManager.hasPlugin("com.android.application")
-        return ModuleInfo(path, android, targets.map { "$path->$it" })
+        return ModuleInfo(path, android, main.map { "$path->$it" }, test.map { "$path->$it" })
     }
 }
 
@@ -44,6 +46,10 @@ abstract class VerifyModuleGraphTask : DefaultTask() {
     /** "from->to" for every main-code project dependency. */
     @get:Input
     abstract val edges: ListProperty<String>
+
+    /** "from->to" for every test-only project dependency. */
+    @get:Input
+    abstract val testEdges: ListProperty<String>
 
     @get:Input
     abstract val androidModules: ListProperty<String>
@@ -58,10 +64,15 @@ abstract class VerifyModuleGraphTask : DefaultTask() {
             val (from, to) = edge.split("->")
             problemWith(from, to)?.let { problems += "$from -> $to: $it" }
         }
+        for (edge in testEdges.get()) {
+            val (from, to) = edge.split("->")
+            // Tests may use the shared fakes; otherwise they follow the module's own rules.
+            if (to != ":core:testing") problemWith(from, to)?.let { problems += "$from -> $to (tests): $it" }
+        }
         for (module in androidModules.get()) {
             if (module.isPureModule()) problems += "$module: a domain/pure module must use chronova.jvm.library, not an Android plugin"
         }
-        val text = if (problems.isEmpty()) "OK: ${edges.get().size} module dependencies checked\n" else problems.joinToString("\n", postfix = "\n")
+        val text = if (problems.isEmpty()) "OK: ${edges.get().size} module dependencies and ${testEdges.get().size} test dependencies checked\n" else problems.joinToString("\n", postfix = "\n")
         report.get().asFile.apply { parentFile.mkdirs() }.writeText(text)
         if (problems.isNotEmpty()) throw GradleException("Module graph breaks the architecture:\n$text")
     }

@@ -51,7 +51,7 @@ fun ChronovaNavHost(
     openNotifications: Boolean = false,
     onOpened: () -> Unit = {},
 ) {
-    val auth by container.authRepository.state.collectAsStateWithLifecycle()
+    val auth by container.observeAuthState().collectAsStateWithLifecycle()
     when (AppGate.of(auth)) {
         AppGate.Loading -> Box(
             modifier

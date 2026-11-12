@@ -245,12 +245,6 @@ class InterpretRequest(
         if (waitedFor.isEmpty()) return null
         return usable(proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }))
     }
-
-    companion object {
-        /** Wires the planner (new task ids from [newId]) for the app and tests. */
-        fun create(repository: ProjectRepository, voiceApi: VoiceApi, token: VoiceAccessToken, zone: ZoneId, clock: () -> Long, newId: () -> String) =
-            InterpretRequest(repository, voiceApi, token, AICommandHandler(CommandPlanner(zone, newId)), zone, clock)
-    }
 }
 
 /** The server's words (and audio) for changes, as a proposal or as applied; null if it couldn't be reached. */
@@ -383,40 +377,4 @@ class AssistantUseCases(
     val recordChange: RecordVoiceChange,
     val undo: UndoVoiceChange,
     val endSession: EndVoiceSession,
-) {
-    companion object {
-        fun create(
-            repository: ProjectRepository,
-            voiceApi: VoiceApi,
-            auth: AuthRepository,
-            online: Flow<Boolean>,
-            recorder: VoiceRecorder,
-            player: SpeechPlayer,
-            settings: AssistantSettings,
-            notifications: NotificationRepository?,
-            zone: ZoneId,
-            clock: () -> Long,
-            newId: () -> String,
-        ): AssistantUseCases {
-            val token = VoiceAccessToken(auth)
-            val applyChanges = ApplyScheduleChanges(repository, zone)
-            return AssistantUseCases(
-                observeAvailability = ObserveVoiceAvailability(auth, online),
-                checkServer = CheckVoiceServer(voiceApi),
-                notice = VoiceNotice(settings),
-                introduction = ProjectIntroduction(settings),
-                listen = ListenForSpeech(recorder),
-                play = PlaySpeech(player),
-                transcribe = TranscribeSpeech(repository, voiceApi, token),
-                interpret = InterpretRequest.create(repository, voiceApi, token, zone, clock, newId),
-                explain = ExplainChanges(voiceApi, token, zone, clock),
-                voicePhrase = VoicePhrase(voiceApi, token),
-                recordDecision = RecordDecision(voiceApi, token, zone),
-                apply = ApplyVoicePlan(applyChanges),
-                recordChange = RecordVoiceChange(notifications, repository, zone),
-                undo = UndoVoiceChange(applyChanges),
-                endSession = EndVoiceSession(auth),
-            )
-        }
-    }
-}
+)

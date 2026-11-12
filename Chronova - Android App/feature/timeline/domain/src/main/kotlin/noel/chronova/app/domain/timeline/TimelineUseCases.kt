@@ -120,21 +120,4 @@ class TimelineUseCases(
     val undo: UndoScheduleChanges,
     val loadViewSettings: LoadViewSettings,
     val saveViewSettings: SaveViewSettings,
-) {
-    companion object {
-        fun create(repository: ProjectRepository, zone: ZoneId): TimelineUseCases {
-            val apply = ApplyScheduleChanges(repository, zone)
-            return TimelineUseCases(
-                observeSchedule = ObserveProjectSchedule(repository),
-                commitEdit = CommitTaskEdit(apply),
-                validateTask = ValidateTask(),
-                forbiddenPredecessors = ForbiddenPredecessors(),
-                saveTask = SaveTask(repository),
-                deleteTask = DeleteTask(apply),
-                undo = UndoScheduleChanges(apply),
-                loadViewSettings = LoadViewSettings(repository),
-                saveViewSettings = SaveViewSettings(repository),
-            )
-        }
-    }
-}
+)

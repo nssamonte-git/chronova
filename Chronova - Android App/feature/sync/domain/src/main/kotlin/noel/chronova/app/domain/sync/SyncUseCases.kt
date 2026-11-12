@@ -52,13 +52,4 @@ class SyncUseCases(
     val observePrompt: ObserveSyncPrompt,
     val syncNow: SyncNow,
     val dismissPrompt: DismissSyncPrompt,
-) {
-    companion object {
-        fun create(auth: AuthRepository, sync: SyncService) = SyncUseCases(
-            observeOverview = ObserveSyncOverview(auth, sync),
-            observePrompt = ObserveSyncPrompt(sync),
-            syncNow = SyncNow(sync),
-            dismissPrompt = DismissSyncPrompt(sync),
-        )
-    }
-}
+)

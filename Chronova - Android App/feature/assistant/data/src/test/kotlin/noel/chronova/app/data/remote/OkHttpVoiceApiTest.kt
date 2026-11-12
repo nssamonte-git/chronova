@@ -25,6 +25,7 @@ import noel.chronova.app.domain.voice.VoiceDecision
 import noel.chronova.app.domain.voice.DecisionAnswer
 import noel.chronova.app.domain.voice.Transcript
 import noel.chronova.app.domain.voice.ExplainRequest
+import noel.chronova.app.domain.voice.ExplainStage
 import noel.chronova.app.domain.voice.VoiceApiException
 
 class OkHttpVoiceApiTest {
@@ -235,6 +236,27 @@ class OkHttpVoiceApiTest {
         val request = server.takeRequest()
         assertEquals("/v1/voice/decision", request.url.encodedPath)
         assertEquals("""{"said":"drop qa","proposed":[{"change":"removed","task":"QA"}],"answer":"corrected","reply":"keep it"}""", request.body!!.utf8())
+    }
+
+    @Test
+    fun everyAnswerAndStageIsSentWithTheApisName() = runTest {
+        val names = mapOf(
+            DecisionAnswer.Accepted to "accepted",
+            DecisionAnswer.Declined to "declined",
+            DecisionAnswer.Corrected to "corrected",
+            DecisionAnswer.AcceptedFix to "accepted_fix",
+            DecisionAnswer.KeptAsIs to "kept_as_is",
+        )
+        for ((answer, name) in names) {
+            reply(204)
+            api.decide("token-1", VoiceDecision("x", listOf(ExplainedChange("removed", task = "QA")), answer))
+            val body = server.takeRequest().body!!.utf8()
+            assertTrue(body, body.contains(""""answer":"$name""""))
+        }
+        reply(200, """{"text":"Done."}""")
+        api.explain("token-1", ExplainRequest.Changes(LocalDate.of(2026, 11, 12), emptyList(), "en", stage = ExplainStage.Applied))
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(body, body.contains(""""stage":"applied""""))
     }
 
     @Test

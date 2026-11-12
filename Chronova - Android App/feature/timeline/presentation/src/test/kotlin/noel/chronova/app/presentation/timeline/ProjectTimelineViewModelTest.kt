@@ -23,6 +23,18 @@ import org.junit.Before
 import org.junit.Test
 import noel.chronova.app.domain.timeline.TimelineUseCases
 import noel.chronova.app.testing.FakeProjectRepository
+import noel.chronova.app.domain.timeline.ObserveProjectSchedule
+import noel.chronova.app.domain.timeline.CommitTaskEdit
+import noel.chronova.app.domain.timeline.ValidateTask
+import noel.chronova.app.domain.timeline.ForbiddenPredecessors
+import noel.chronova.app.domain.timeline.SaveTask
+import noel.chronova.app.domain.timeline.DeleteTask
+import noel.chronova.app.domain.timeline.UndoScheduleChanges
+import noel.chronova.app.domain.timeline.LoadViewSettings
+import noel.chronova.app.domain.timeline.SaveViewSettings
+import noel.chronova.app.domain.schedule.ApplyScheduleChanges
+import noel.chronova.app.domain.repository.ProjectRepository
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectTimelineViewModelTest {
@@ -41,7 +53,7 @@ class ProjectTimelineViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, TimelineUseCases.create(repository, zone), zone, today = { today })
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, timelineUseCases(repository, zone), zone, today = { today })
     }
 
     @After
@@ -250,7 +262,7 @@ class ProjectTimelineViewModelTest {
         assertEquals(state().config, saved)
 
         // A new screen for the same project starts from the saved settings.
-        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, TimelineUseCases.create(repository, zone), zone, today = { today })
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, timelineUseCases(repository, zone), zone, today = { today })
         assertEquals(saved, timeline()().config)
     }
 
@@ -312,4 +324,20 @@ class ProjectTimelineViewModelTest {
         assertEquals(TimelineNotice.UndoNotPossible, viewModel.notice.value)
         assertEquals("QA (synced)", state().tasks.first { it.id == "qa-testing" }.title)
     }
+}
+
+/** The use cases the app wires, over a fake repository. */
+private fun timelineUseCases(repository: ProjectRepository, zone: ZoneId): TimelineUseCases {
+    val apply = ApplyScheduleChanges(repository, zone)
+    return TimelineUseCases(
+        observeSchedule = ObserveProjectSchedule(repository),
+        commitEdit = CommitTaskEdit(apply),
+        validateTask = ValidateTask(),
+        forbiddenPredecessors = ForbiddenPredecessors(),
+        saveTask = SaveTask(repository),
+        deleteTask = DeleteTask(apply),
+        undo = UndoScheduleChanges(apply),
+        loadViewSettings = LoadViewSettings(repository),
+        saveViewSettings = SaveViewSettings(repository),
+    )
 }

@@ -53,6 +53,26 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.voice.VoiceAccessToken
+import noel.chronova.app.domain.voice.ObserveVoiceAvailability
+import noel.chronova.app.domain.voice.CheckVoiceServer
+import noel.chronova.app.domain.voice.VoiceNotice
+import noel.chronova.app.domain.voice.ProjectIntroduction
+import noel.chronova.app.domain.voice.ListenForSpeech
+import noel.chronova.app.domain.voice.PlaySpeech
+import noel.chronova.app.domain.voice.TranscribeSpeech
+import noel.chronova.app.domain.voice.InterpretRequest
+import noel.chronova.app.domain.voice.AICommandHandler
+import noel.chronova.app.domain.voice.ExplainChanges
+import noel.chronova.app.domain.voice.VoicePhrase
+import noel.chronova.app.domain.voice.RecordDecision
+import noel.chronova.app.domain.voice.ApplyVoicePlan
+import noel.chronova.app.domain.voice.RecordVoiceChange
+import noel.chronova.app.domain.voice.UndoVoiceChange
+import noel.chronova.app.domain.voice.EndVoiceSession
+import noel.chronova.app.domain.schedule.ApplyScheduleChanges
+import noel.chronova.app.domain.schedule.CommandPlanner
+import java.time.ZoneId
 
 private class FakeAuth(initial: AuthState) : AuthRepository {
     override val state = MutableStateFlow(initial)
@@ -264,12 +284,33 @@ class AssistantViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    /** The use cases the app wires, over the fakes; edit times are 0 and new ids "new". */
+    private fun assistantUseCases(zone: ZoneId): AssistantUseCases {
+        val clock = { 0L }
+        val token = VoiceAccessToken(auth)
+        val applyChanges = ApplyScheduleChanges(repository, zone)
+        return AssistantUseCases(
+            observeAvailability = ObserveVoiceAvailability(auth, online),
+            checkServer = CheckVoiceServer(api),
+            notice = VoiceNotice(settings),
+            introduction = ProjectIntroduction(settings),
+            listen = ListenForSpeech(recorder),
+            play = PlaySpeech(player),
+            transcribe = TranscribeSpeech(repository, api, token),
+            interpret = InterpretRequest(repository, api, token, AICommandHandler(CommandPlanner(zone) { "new" }), zone, clock),
+            explain = ExplainChanges(api, token, zone, clock),
+            voicePhrase = VoicePhrase(api, token),
+            recordDecision = RecordDecision(api, token, zone),
+            apply = ApplyVoicePlan(applyChanges),
+            recordChange = RecordVoiceChange(notifications, repository, zone),
+            undo = UndoVoiceChange(applyChanges),
+            endSession = EndVoiceSession(auth),
+        )
+    }
+
     private fun viewModelFor(projectId: String) = AssistantViewModel(
         projectId,
-        AssistantUseCases.create(
-            repository, api, auth, online, recorder, player, settings, notifications, zone,
-            clock = { 0L }, newId = { "new" },
-        ),
+        assistantUseCases(zone),
         FakePhrases, zone, language = { "en" },
     )
 

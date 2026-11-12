@@ -47,12 +47,4 @@ class ProjectUseCases(
     val observe: ObserveProjects,
     val save: SaveProject,
     val delete: DeleteProject,
-) {
-    companion object {
-        fun create(repository: ProjectRepository, zone: ZoneId) = ProjectUseCases(
-            observe = ObserveProjects(repository),
-            save = SaveProject(repository, zone),
-            delete = DeleteProject(repository),
-        )
-    }
-}
+)

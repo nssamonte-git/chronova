@@ -90,23 +90,4 @@ class AccountUseCases(
     val syncNow: SyncAccountNow,
     val signOutAndClear: SignOutAndClear,
     val deleteAccount: DeleteAccount,
-) {
-    companion object {
-        fun create(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
-            observeAuthState = ObserveAuthState(auth),
-            observeSessionEnded = ObserveSessionEnded(auth),
-            signIn = SignIn(auth),
-            signUp = SignUp(auth),
-            confirmSignUp = ConfirmSignUp(auth),
-            resendCode = ResendCode(auth),
-            requestPasswordReset = RequestPasswordReset(auth),
-            resetPassword = ResetPassword(auth),
-            observePendingChanges = ObservePendingChanges(sync),
-            observeSyncStatus = ObserveSyncStatus(sync),
-            lastSyncedAt = LastSyncedAt(sync),
-            syncNow = SyncAccountNow(sync),
-            signOutAndClear = SignOutAndClear(sync),
-            deleteAccount = DeleteAccount(sync),
-        )
-    }
-}
+)

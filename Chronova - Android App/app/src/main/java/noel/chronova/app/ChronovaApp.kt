@@ -12,7 +12,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import noel.chronova.app.auth.ApiAuthRepository
-import noel.chronova.app.domain.account.AccountUseCases
 import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
@@ -22,7 +21,6 @@ import noel.chronova.app.data.local.ChronovaDatabase
 import noel.chronova.app.data.local.RoomNotificationRepository
 import noel.chronova.app.data.remote.OkHttpSyncApi
 import noel.chronova.app.data.remote.OkHttpVoiceApi
-import noel.chronova.app.domain.voice.VoiceApi
 import noel.chronova.app.data.repository.PreferencesFirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
 import noel.chronova.app.data.sync.RoomLocalSyncStore
@@ -30,22 +28,20 @@ import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.keepOnlyFor
 import noel.chronova.app.data.connectivity.onlineFlow
-import noel.chronova.app.domain.notifications.NotificationKind
-import noel.chronova.app.domain.notifications.NotificationRepository
-import noel.chronova.app.domain.notifications.NotificationUseCases
-import noel.chronova.app.domain.notifications.ObserveUnreadNotificationCount
-import noel.chronova.app.domain.projects.ProjectUseCases
-import noel.chronova.app.domain.sync.SyncUseCases
-import noel.chronova.app.domain.voice.AssistantUseCases
-import noel.chronova.app.domain.timeline.TimelineUseCases
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.domain.account.*
+import noel.chronova.app.domain.notifications.*
+import noel.chronova.app.domain.projects.*
+import noel.chronova.app.domain.schedule.CommandPlanner
+import noel.chronova.app.domain.sync.*
+import noel.chronova.app.domain.timeline.*
+import noel.chronova.app.domain.voice.*
 import noel.chronova.app.notifications.SystemNotifications
 import noel.chronova.app.presentation.voice.AssistantPhrases
 import noel.chronova.app.presentation.voice.ResourcePhrases
 import noel.chronova.app.voice.AndroidSpeechPlayer
 import noel.chronova.app.voice.AndroidVoiceRecorder
-import noel.chronova.app.domain.voice.AssistantSettings
 import noel.chronova.app.voice.PreferencesAssistantSettings
 
 class ChronovaApp : Application() {
@@ -71,10 +67,27 @@ class AppContainer(private val context: Context) {
     )
 
     /** The project list's use cases (the time zone is read when the list opens). */
-    fun projectUseCases(): ProjectUseCases = ProjectUseCases.create(projectRepository, ZoneId.systemDefault())
+    fun projectUseCases(): ProjectUseCases = ProjectUseCases(
+        observe = ObserveProjects(projectRepository),
+        save = SaveProject(projectRepository, ZoneId.systemDefault()),
+        delete = DeleteProject(projectRepository),
+    )
 
     /** The timeline's use cases (the time zone is read when the timeline opens). */
-    fun timelineUseCases(): TimelineUseCases = TimelineUseCases.create(projectRepository, ZoneId.systemDefault())
+    fun timelineUseCases(): TimelineUseCases {
+        val apply = ApplyScheduleChanges(projectRepository, ZoneId.systemDefault())
+        return TimelineUseCases(
+            observeSchedule = ObserveProjectSchedule(projectRepository),
+            commitEdit = CommitTaskEdit(apply),
+            validateTask = ValidateTask(),
+            forbiddenPredecessors = ForbiddenPredecessors(),
+            saveTask = SaveTask(projectRepository),
+            deleteTask = DeleteTask(apply),
+            undo = UndoScheduleChanges(apply),
+            loadViewSettings = LoadViewSettings(projectRepository),
+            saveViewSettings = SaveViewSettings(projectRepository),
+        )
+    }
 
     val backendConfig: BackendConfig = BackendConfig.fromBuildConfig()
 
@@ -90,8 +103,14 @@ class AppContainer(private val context: Context) {
     val observeUnreadNotificationCount = ObserveUnreadNotificationCount(notificationRepository)
 
     /** The notifications page's use cases (the time zone is read when the page opens). */
-    fun notificationUseCases(): NotificationUseCases =
-        NotificationUseCases.create(notificationRepository, projectRepository, ApplyScheduleChanges(projectRepository, ZoneId.systemDefault()))
+    fun notificationUseCases(): NotificationUseCases = NotificationUseCases(
+        observe = ObserveNotifications(notificationRepository),
+        observeLiveProjectIds = ObserveLiveProjectIds(projectRepository),
+        markRead = MarkNotificationRead(notificationRepository),
+        markAllRead = MarkAllNotificationsRead(notificationRepository),
+        clear = ClearNotifications(notificationRepository),
+        undo = UndoAssistantChange(notificationRepository, ApplyScheduleChanges(projectRepository, ZoneId.systemDefault())),
+    )
 
     private val notify: suspend (NotificationKind, Map<String, String>) -> Unit = { kind, args -> notificationRepository.add(kind, args) }
 
@@ -109,6 +128,9 @@ class AppContainer(private val context: Context) {
         } else {
             DisabledAuthRepository()
         }
+
+    /** Signed in or not, for the app's sign-in gate. */
+    val observeAuthState = ObserveAuthState(authRepository)
 
     private val syncStore = RoomLocalSyncStore(database, context.getSharedPreferences("chronova_sync", Context.MODE_PRIVATE))
 
@@ -142,26 +164,59 @@ class AppContainer(private val context: Context) {
     )
 
     /** The app-wide sync UI's use cases. */
-    fun syncUseCases(): SyncUseCases = SyncUseCases.create(authRepository, syncCoordinator)
+    fun syncUseCases(): SyncUseCases = SyncUseCases(
+        observeOverview = ObserveSyncOverview(authRepository, syncCoordinator),
+        observePrompt = ObserveSyncPrompt(syncCoordinator),
+        syncNow = SyncNow(syncCoordinator),
+        dismissPrompt = DismissSyncPrompt(syncCoordinator),
+    )
 
     /** The sign-in pages' and account page's use cases. */
-    fun accountUseCases(): AccountUseCases = AccountUseCases.create(authRepository, syncCoordinator)
+    fun accountUseCases(): AccountUseCases = AccountUseCases(
+        observeAuthState = observeAuthState,
+        observeSessionEnded = ObserveSessionEnded(authRepository),
+        signIn = SignIn(authRepository),
+        signUp = SignUp(authRepository),
+        confirmSignUp = ConfirmSignUp(authRepository),
+        resendCode = ResendCode(authRepository),
+        requestPasswordReset = RequestPasswordReset(authRepository),
+        resetPassword = ResetPassword(authRepository),
+        observePendingChanges = ObservePendingChanges(syncCoordinator),
+        observeSyncStatus = ObserveSyncStatus(syncCoordinator),
+        lastSyncedAt = LastSyncedAt(syncCoordinator),
+        syncNow = SyncAccountNow(syncCoordinator),
+        signOutAndClear = SignOutAndClear(syncCoordinator),
+        deleteAccount = DeleteAccount(syncCoordinator),
+    )
 
     /**
      * One assistant's use cases, with its own microphone recorder and answer player (one
      * recording and one answer at a time). The time zone is read when the timeline opens.
      */
-    fun assistantUseCases(): AssistantUseCases = AssistantUseCases.create(
-        repository = projectRepository,
-        voiceApi = voiceApi,
-        auth = authRepository,
-        online = online,
-        recorder = AndroidVoiceRecorder(context),
-        player = AndroidSpeechPlayer(context),
-        settings = assistantSettings,
-        notifications = notificationRepository,
-        zone = ZoneId.systemDefault(),
-        clock = System::currentTimeMillis,
-        newId = { UUID.randomUUID().toString() },
-    )
+    fun assistantUseCases(): AssistantUseCases {
+        val zone = ZoneId.systemDefault()
+        val clock: () -> Long = System::currentTimeMillis
+        val token = VoiceAccessToken(authRepository)
+        val applyChanges = ApplyScheduleChanges(projectRepository, zone)
+        return AssistantUseCases(
+            observeAvailability = ObserveVoiceAvailability(authRepository, online),
+            checkServer = CheckVoiceServer(voiceApi),
+            notice = VoiceNotice(assistantSettings),
+            introduction = ProjectIntroduction(assistantSettings),
+            listen = ListenForSpeech(AndroidVoiceRecorder(context)),
+            play = PlaySpeech(AndroidSpeechPlayer(context)),
+            transcribe = TranscribeSpeech(projectRepository, voiceApi, token),
+            interpret = InterpretRequest(
+                projectRepository, voiceApi, token,
+                AICommandHandler(CommandPlanner(zone, newId = { UUID.randomUUID().toString() })), zone, clock,
+            ),
+            explain = ExplainChanges(voiceApi, token, zone, clock),
+            voicePhrase = VoicePhrase(voiceApi, token),
+            recordDecision = RecordDecision(voiceApi, token, zone),
+            apply = ApplyVoicePlan(applyChanges),
+            recordChange = RecordVoiceChange(notificationRepository, projectRepository, zone),
+            undo = UndoVoiceChange(applyChanges),
+            endSession = EndVoiceSession(authRepository),
+        )
+    }
 }

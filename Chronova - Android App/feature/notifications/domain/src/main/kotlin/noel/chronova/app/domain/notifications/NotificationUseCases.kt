@@ -60,16 +60,4 @@ class NotificationUseCases(
     val markAllRead: MarkAllNotificationsRead,
     val clear: ClearNotifications,
     val undo: UndoAssistantChange,
-) {
-    companion object {
-        /** Wires the use cases to their repositories (the app's composition root and tests use it). */
-        fun create(notifications: NotificationRepository, projects: ProjectRepository, applyChanges: ApplyScheduleChanges) = NotificationUseCases(
-            observe = ObserveNotifications(notifications),
-            observeLiveProjectIds = ObserveLiveProjectIds(projects),
-            markRead = MarkNotificationRead(notifications),
-            markAllRead = MarkAllNotificationsRead(notifications),
-            clear = ClearNotifications(notifications),
-            undo = UndoAssistantChange(notifications, applyChanges),
-        )
-    }
-}
+)

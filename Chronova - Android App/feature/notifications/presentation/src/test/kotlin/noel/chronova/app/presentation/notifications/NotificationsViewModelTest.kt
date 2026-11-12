@@ -22,6 +22,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import noel.chronova.app.testing.FakeNotificationRepository
+import noel.chronova.app.domain.notifications.ObserveNotifications
+import noel.chronova.app.domain.notifications.ObserveLiveProjectIds
+import noel.chronova.app.domain.notifications.MarkNotificationRead
+import noel.chronova.app.domain.notifications.MarkAllNotificationsRead
+import noel.chronova.app.domain.notifications.ClearNotifications
+import noel.chronova.app.domain.notifications.UndoAssistantChange
+import noel.chronova.app.domain.notifications.NotificationRepository
+import noel.chronova.app.domain.repository.ProjectRepository
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotificationsViewModelTest {
@@ -36,7 +45,7 @@ class NotificationsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        viewModel = NotificationsViewModel(NotificationUseCases.create(notifications, projects, ApplyScheduleChanges(projects, zone)))
+        viewModel = NotificationsViewModel(notificationUseCases(notifications, projects, zone))
     }
 
     @After
@@ -106,3 +115,13 @@ class NotificationsViewModelTest {
         assertFalse(viewModel.shown.value.single().canUndo)
     }
 }
+
+/** The use cases the app wires, over fake repositories. */
+private fun notificationUseCases(notifications: NotificationRepository, projects: ProjectRepository, zone: ZoneId) = NotificationUseCases(
+    observe = ObserveNotifications(notifications),
+    observeLiveProjectIds = ObserveLiveProjectIds(projects),
+    markRead = MarkNotificationRead(notifications),
+    markAllRead = MarkAllNotificationsRead(notifications),
+    clear = ClearNotifications(notifications),
+    undo = UndoAssistantChange(notifications, ApplyScheduleChanges(projects, zone)),
+)

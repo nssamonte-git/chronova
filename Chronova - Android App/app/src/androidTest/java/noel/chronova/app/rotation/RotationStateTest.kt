@@ -40,6 +40,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import noel.chronova.app.domain.account.ObserveAuthState
+import noel.chronova.app.domain.account.ObserveSessionEnded
+import noel.chronova.app.domain.account.SignIn
+import noel.chronova.app.domain.account.SignUp
+import noel.chronova.app.domain.account.ConfirmSignUp
+import noel.chronova.app.domain.account.ResendCode
+import noel.chronova.app.domain.account.RequestPasswordReset
+import noel.chronova.app.domain.account.ResetPassword
+import noel.chronova.app.domain.account.ObservePendingChanges
+import noel.chronova.app.domain.account.ObserveSyncStatus
+import noel.chronova.app.domain.account.LastSyncedAt
+import noel.chronova.app.domain.account.SyncAccountNow
+import noel.chronova.app.domain.account.SignOutAndClear
+import noel.chronova.app.domain.account.DeleteAccount
 
 /**
  * What a rotation does to the screen's own state and layout, without the real app's data:
@@ -95,7 +109,7 @@ class RotationStateTest {
 
     @Test
     fun theSignInFormKeepsWhatWasTypedAndChosenAcrossARotation() {
-        val viewModel = AccountViewModel(AccountUseCases.create(SignedOutAuth(), IdleSync()))
+        val viewModel = AccountViewModel(accountUseCases(SignedOutAuth(), IdleSync()))
         val restorer = StateRestorationTester(compose)
         restorer.setContent { AccountScreen(viewModel = viewModel, onBack = null) }
 
@@ -132,3 +146,21 @@ private class IdleSync : AccountSync {
     override suspend fun signOutAndClear() = Unit
     override suspend fun deleteAccount(): SyncFailure? = null
 }
+
+/** The use cases the app wires, over fakes. */
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
+    observeAuthState = ObserveAuthState(auth),
+    observeSessionEnded = ObserveSessionEnded(auth),
+    signIn = SignIn(auth),
+    signUp = SignUp(auth),
+    confirmSignUp = ConfirmSignUp(auth),
+    resendCode = ResendCode(auth),
+    requestPasswordReset = RequestPasswordReset(auth),
+    resetPassword = ResetPassword(auth),
+    observePendingChanges = ObservePendingChanges(sync),
+    observeSyncStatus = ObserveSyncStatus(sync),
+    lastSyncedAt = LastSyncedAt(sync),
+    syncNow = SyncAccountNow(sync),
+    signOutAndClear = SignOutAndClear(sync),
+    deleteAccount = DeleteAccount(sync),
+)

@@ -18,6 +18,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.app.domain.projects.ObserveProjects
+import noel.chronova.app.domain.projects.SaveProject
+import noel.chronova.app.domain.projects.DeleteProject
+import noel.chronova.app.domain.repository.ProjectRepository
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectListViewModelTest {
@@ -31,7 +36,7 @@ class ProjectListViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectListViewModel(ProjectUseCases.create(repository, zone), today = { today })
+        viewModel = ProjectListViewModel(projectUseCases(repository, zone), today = { today })
     }
 
     @After
@@ -111,3 +116,10 @@ class ProjectListViewModelTest {
         assertNull(viewModel.pendingDelete.value)
     }
 }
+
+/** The use cases the app wires, over a fake repository. */
+private fun projectUseCases(repository: ProjectRepository, zone: ZoneId) = ProjectUseCases(
+    observe = ObserveProjects(repository),
+    save = SaveProject(repository, zone),
+    delete = DeleteProject(repository),
+)

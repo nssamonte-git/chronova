@@ -33,6 +33,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import noel.chronova.app.core.network.ApiJson
 import noel.chronova.app.core.network.await
 import noel.chronova.app.domain.voice.VoiceApi
+import noel.chronova.app.domain.voice.ExplainStage
+import noel.chronova.app.domain.voice.DecisionAnswer
 import noel.chronova.app.domain.voice.VoiceDecision
 import noel.chronova.app.domain.voice.Transcript
 import noel.chronova.app.domain.voice.ExplainRequest
@@ -70,7 +72,7 @@ class OkHttpVoiceApi(
                 today = request.today.toString(),
                 changes = request.changes.map { it.toDto() },
                 language = request.language,
-                stage = request.stage.wire,
+                stage = request.stage.toWire(),
                 warnings = request.warnings.map { it.toDto() }.ifEmpty { null },
                 offer = request.offer.map { it.toDto() }.ifEmpty { null },
             )
@@ -112,7 +114,7 @@ class OkHttpVoiceApi(
             said = decision.said,
             proposed = decision.proposed.map { it.toDto() },
             offered = decision.offered.map { it.toDto() }.ifEmpty { null },
-            answer = decision.answer.wire,
+            answer = decision.answer.toWire(),
             reply = decision.reply,
         )
         send("decision", ApiJson.json.encodeToString(DecisionRequestDto.serializer(), dto).toRequestBody(JSON), accessToken)
@@ -370,6 +372,21 @@ internal fun OperationDto.toDomain() = ProposedOperation(
     predecessorId = predecessorId,
     successorId = successorId,
 )
+
+/** The API's names for how the user answered (`POST /v1/voice/decision`). */
+internal fun DecisionAnswer.toWire(): String = when (this) {
+    DecisionAnswer.Accepted -> "accepted"
+    DecisionAnswer.Declined -> "declined"
+    DecisionAnswer.Corrected -> "corrected"
+    DecisionAnswer.AcceptedFix -> "accepted_fix"
+    DecisionAnswer.KeptAsIs -> "kept_as_is"
+}
+
+/** The API's names for what an explanation is for (`POST /v1/voice/explain`). */
+internal fun ExplainStage.toWire(): String = when (this) {
+    ExplainStage.Proposal -> "proposal"
+    ExplainStage.Applied -> "applied"
+}
 
 /** The error for an HTTP status the voice endpoints answered with. */
 internal fun voiceErrorFor(code: Int): VoiceApiException.Kind = when (code) {
