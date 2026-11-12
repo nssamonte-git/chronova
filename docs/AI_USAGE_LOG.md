@@ -786,3 +786,24 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - Found on the way: the restored data marked Jnn's first-open introduction as already heard, though it was still pending after the earlier drag check; I couldn't tell which interrupted rotation run used it up. At the earlier wish to keep it pending I removed just that entry, so it plays on the next open. Also from the rotation scenarios on the final modular build (rerun after the restart): assistant speaking, listening and talking all pass (screen held at every turn while open, released once closed); "intro" tested nothing (the fake voice clip is 1.5 s, so the introduction ended before the first turn) and "notice" failed only the memory rule (+25%, the same unexplained growth recorded before the refactor).
 - Checks: 278 tests, both debug APKs build, lint 0 errors / 21 warnings, module graph OK.
 - Release build after the refactor: `./gradlew :app:assembleRelease` succeeded (R8 with the library modules, no errors), giving a 29 MB unsigned APK. Not installed or run: it is unsigned, so any R8 problem that only shows at run time (reflection, Filament's native bindings, serializers) is unchecked.
+
+### End-to-end test of the modular app
+
+- You asked for the end-to-end test. Set-up as the project's rule says: the local server (Postgres and Mailpit in Docker, the queue worker), `adb reverse tcp:8000`, the phone's debug build pointing at it (built with the URL, `local.properties` restored), a throwaway account with credentials only in a scratch file (deleted afterwards), and a script as a second device (as in B27). Your app data and the local database were backed up first. For the voice step the web server ran as PHP's built-in server with the fake transcriber's phrases set to "push design by 2 hours|yes" (`artisan serve` drops that variable; `server/.env` was not touched); plain `artisan serve` was restored afterwards. Each step was predicted first.
+
+| Step | Predicted | Observed |
+|---|---|---|
+| Sign out of your account with the tunnel cut | sign-in page; your server tokens unchanged | ✔ sign-in page; tokens 3 → 3 |
+| Sign up, code from Mailpit | "No projects yet", 1 unread (signed in) | ✔ |
+| New project "E2E", tasks Design and Build (editor default 09:00–10:00), drag Build 192 px (one hour) | Build 10:00–11:00 | ✔ |
+| Build depends on Design | arrow, not red | ✔ |
+| Sync button, then Sync now | "4 changes not synced" / badge 4 → "All changes synced"; server has project 12–18 Nov, 2 tasks, 1 link at the same times | ✔ (server times in UTC, phone UTC+8) |
+| Second device renames Build → "Build v2" (newer), phone syncs | push applied; phone shows "Build v2" | ✔ |
+| Voice: "push design by two hours" (Mac `say`), then yes | Design 11:00–12:00 breaks the link; the fake has no fix, so the app offers its own (Build v2 12:00–13:00); on yes both move | end state ✔ Design 11:00–12:00, Build v2 12:00–13:00 — but the "yes" was a second recording I didn't make (something in the room, loud enough to pass the quiet-yes check); the fake turns any sound into its next phrase, so this run can't tell a real yes from noise |
+| Notifications page | sign-in, two syncs, "Assistant changed E2E · 2 tasks" with Undo | ✔ (first sync read "4 sent · 4 received": a first sync pulls everything after no cursor, its own records included — protocol behaviour, I hadn't predicted the "received") |
+| Undo on the page | Design 09:00–10:00, Build v2 10:00–11:00 | ✔ "Change undone" |
+| Wi-Fi off and on with 2 unsynced changes (wifi_on 1 → 0 → 1, mobile data stayed 0) | prompt for 2 changes, no sync on its own; Sync now syncs | ✔; server has the undone times |
+| Delete account | sign-in page; nothing of the account left on the server | ✔ users 3 → 2, projects, tasks, links, tokens and voice history back to the baseline; no crash in the crash buffer |
+
+- Afterwards: your app data restored (opens on "Jnn", 4 tasks, signed in as test@test.com; Jnn's introduction still pending), Mailpit emptied (it was empty before), normal server running, tunnel kept for later.
+- Checks: no code changed for this run.
