@@ -33,9 +33,9 @@ android {
 
     buildTypes {
         release {
+            // R8 shrinks and obfuscates the whole app, its own code included (the libraries ship their keep rules).
             optimization {
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
     }
