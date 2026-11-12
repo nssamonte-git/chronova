@@ -21,11 +21,6 @@ import noel.chronova.feature.notifications.domain.NotificationUseCases
 import noel.chronova.core.domain.notifications.NotificationQueries
 import noel.chronova.core.domain.repository.ProjectQueries
 
-enum class NotificationsMessage { UNDONE, CANNOT_UNDO }
-
-/** A project to filter by: the ones notifications mention, named as they were then. */
-data class ProjectChoice(val id: String, val name: String)
-
 class NotificationsViewModel(
     notifications: NotificationQueries,
     projects: ProjectQueries,

@@ -20,23 +20,6 @@ import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProjectResult
 import noel.chronova.core.domain.repository.ProjectQueries
 
-sealed interface ProjectListState {
-    data object Loading : ProjectListState
-    data class Loaded(val projects: List<ProjectRowUi>) : ProjectListState
-}
-
-/** The create/edit sheet. [projectId] is null when creating. [problem] shows after a failed save. */
-data class ProjectEditorState(
-    val projectId: String?,
-    val name: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val problem: ProjectProblemUi? = null,
-    val saving: Boolean = false,
-) {
-    val isNew: Boolean get() = projectId == null
-}
-
 class ProjectListViewModel(
     projects: ProjectQueries,
     private val useCases: ProjectUseCases,

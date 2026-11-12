@@ -15,3 +15,8 @@ data class NotificationUi(
     /** An assistant change that can still be undone from here. */
     val canUndo: Boolean,
 )
+
+enum class NotificationsMessage { UNDONE, CANNOT_UNDO }
+
+/** A project to filter by: the ones notifications mention, named as they were then. */
+data class ProjectChoice(val id: String, val name: String)

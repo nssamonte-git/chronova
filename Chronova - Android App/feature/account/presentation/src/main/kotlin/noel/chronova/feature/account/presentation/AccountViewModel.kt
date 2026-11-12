@@ -21,39 +21,6 @@ import kotlinx.coroutines.flow.stateIn
 import noel.chronova.core.domain.auth.AuthQueries
 import noel.chronova.core.domain.sync.SyncStatusQueries
 
-/** SIGN_IN/SIGN_UP → CONFIRM (code) for new accounts; FORGOT (email) → RESET (code + new password). */
-enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM, FORGOT, RESET }
-
-/** Problems the form itself catches before calling the server. */
-enum class FormProblem { INVALID_EMAIL, SHORT_PASSWORD, MISSING_CODE }
-
-/**
- * The sign-in form. The password lives only here, in memory: it is never saved to
- * instance state or disk, and it is cleared as soon as it has been used.
- */
-data class AccountForm(
-    val mode: AccountMode = AccountMode.SIGN_IN,
-    val email: String = "",
-    val password: String = "",
-    val code: String = "",
-    /** "Remember me" on the sign-in page: stay signed in on later launches. */
-    val remember: Boolean = true,
-    val busy: Boolean = false,
-    val formProblem: FormProblem? = null,
-    val authProblem: AuthProblemUi? = null,
-    /** Shown after a code is (re)sent or an account is confirmed. */
-    val notice: AccountNotice? = null,
-)
-
-enum class AccountNotice { CODE_SENT, RESET_CODE_SENT }
-
-/** A confirmation the signed-in account screen is asking for. */
-sealed interface AccountDialog {
-    /** Signing out removes this device's data; [unsynced] changes would be lost. */
-    data class SignOut(val unsynced: Int) : AccountDialog
-    data object DeleteAccount : AccountDialog
-}
-
 class AccountViewModel(
     auth: AuthQueries,
     private val sync: SyncStatusQueries,
