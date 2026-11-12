@@ -27,6 +27,32 @@ class ModuleGraphConventionPlugin : Plugin<Project> {
             task.androidModules.set(modules.map { list -> list.filter { it.android }.map { it.path } })
             task.report.set(target.layout.buildDirectory.file("reports/module-graph.txt"))
         }
+        target.tasks.register("verifyUiModels", VerifyUiModelsTask::class.java) { task ->
+            task.group = "verification"
+            task.description = "Checks that screens and UI state use UI models, not domain types."
+            task.sources.from(
+                target.fileTree(target.rootDir) {
+                    it.include("feature/*/presentation/src/main/**/*.kt", "core/ui/src/main/**/*.kt")
+                    it.exclude("**/build/**")
+                },
+            )
+            task.denied.set(UI_DENIED_IMPORTS)
+            task.report.set(target.layout.buildDirectory.file("reports/ui-models.txt"))
+        }
+    }
+
+    private companion object {
+        /** Domain entities, results and statuses that screens get as UI models instead. */
+        val UI_DENIED_IMPORTS = listOf(
+            """core\.model\.(SchedulerTask|TaskDependency|Project|ProjectSummary)""",
+            """core\.domain\.(SampleTasks|TaskProblem|ProjectProblem)""",
+            """core\.domain\.schedule\.(ScheduleChange|ApplyResult|ScheduleState)""",
+            """core\.domain\.notifications\.AppNotification""",
+            """core\.domain\.sync\.(SyncStatus|SyncPrompt)""",
+            """core\.domain\.auth\.(AuthState|AuthProblem|AuthOutcome)""",
+            """feature\.[a-z]+\.domain\.(PreviewItem|ScheduleWarning|VoicePlan|Interpretation|ExplainedChange|SaveProjectResult|SyncOverview|ProjectSchedule)""",
+            """feature\.[a-z]+\.domain\.schedule\.CommandProblem""",
+        )
     }
 
     private class ModuleInfo(val path: String, val android: Boolean, val edges: List<String>, val testEdges: List<String>)

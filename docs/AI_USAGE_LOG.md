@@ -883,3 +883,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `TimelineUiState.sample` builds from the mapper, so the state file no longer imports the domain.
   - ViewModel tests changed only where they compared screen state with domain tasks; one case was dropped because a screen task can no longer name another project.
   - Checks: 330 unit tests, lint 0 errors / 21 warnings, module graph OK. On the phone the 16 timeline screen tests (drag/resize included) passed unchanged, and the app's 11 device tests passed (pinch, rotation, Room) with the server-URL build; data restored.
+- Enforcing the UI-model rule (batch E):
+  - New `verifyUiModels` task in build-logic (registered by the root `chronova.module.graph` plugin, next to `verifyModuleGraph`, configuration-cache safe). It reads every file with composables and every `*UiState.kt` / `*UiModels.kt` in the feature presentation modules and `:core:ui`, and fails on an import of a denied domain entity, result or status.
+  - Helpers behind a ViewModel (the assistant's conversation and phrases) and the notification-shade adapter aren't checked because they declare no composables, so no file names need exempting.
+  - Proved: a `SchedulerTask` import planted in `TaskNameCell.kt` failed the check; the file was restored byte-for-byte.
+  - DECISIONS: the 2026-11-12 "screens render domain models" exception is replaced by the rule. HANDOFF and `Learn/02-architecture.md` updated (local, excluded from git).
+  - Checks: 330 unit tests, lint 0 errors / 21 warnings, module graph OK, `verifyUiModels` OK (28 files).
