@@ -889,3 +889,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Proved: a `SchedulerTask` import planted in `TaskNameCell.kt` failed the check; the file was restored byte-for-byte.
   - DECISIONS: the 2026-11-12 "screens render domain models" exception is replaced by the rule. HANDOFF and `Learn/02-architecture.md` updated (local, excluded from git).
   - Checks: 330 unit tests, lint 0 errors / 21 warnings, module graph OK, `verifyUiModels` OK (28 files).
+- Close-out (batch F):
+  - On the phone, with the server-URL build: all nine module test apps passed (`:core:data` 5, `:core:database` 3, `:core:designsystem` 2, `:core:ui` 9, projects 6, notifications 8, account 10, sync 5, timeline 16), each uninstalled afterwards. The app's 11 device tests had passed after batch D.
+  - One build of the test apps reported three errors that a rerun didn't reproduce. The APKs used match the current code: none of those modules changed after their last build.
+  - Hands-on in your app:
+    - Jnn's timeline listed its rows;
+    - dragging "Prepare dinner" by one hour moved it to exactly 19:00–20:00, and dragging back restored 18:00–19:00 (your data ends unchanged);
+    - the orb opened, greeted and closed on a tap outside, with no crash.
+    - Pinch wasn't done by hand (adb can't do two fingers); it's covered by `TimelinePinchTest` 4/4.
+  - Architecture audit 0 warnings; build gate passes (3 warnings, 2 suppressed); `verifyModuleGraph` and `verifyUiModels` OK.
+  - Largest ViewModel is now `ProjectTimelineViewModel` (299 lines: it also keeps the domain schedule behind the screen).
