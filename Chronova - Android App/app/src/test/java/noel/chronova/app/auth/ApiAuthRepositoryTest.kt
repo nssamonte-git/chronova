@@ -96,6 +96,37 @@ class ApiAuthRepositoryTest {
     }
 
     @Test
+    fun rememberedSignInsAreSavedForLaterLaunches() = runTest {
+        reply(200, signedInBody)
+        auth.signIn("ana@example.com", "pw")
+        assertEquals(Session("1|abc", "u-1", "ana@example.com"), store.session)
+
+        val relaunched = ApiAuthRepository(server.url("/").toString(), OkHttpClient(), store)
+        relaunched.refresh()
+        assertEquals(AuthState.SignedIn("u-1", "ana@example.com"), relaunched.state.value)
+    }
+
+    @Test
+    fun withoutRememberMeTheSessionLastsOnlyWhileTheAppRuns() = runTest {
+        store.session = Session("9|old", "u-9", "old@example.com") // a remembered session from before is replaced
+        reply(200, signedInBody)
+        auth.signIn("ana@example.com", "pw", remember = false)
+        assertEquals(AuthState.SignedIn("u-1", "ana@example.com"), auth.state.value)
+        assertEquals("1|abc", auth.accessToken())
+        assertNull("nothing on disk", store.session)
+
+        val relaunched = ApiAuthRepository(server.url("/").toString(), OkHttpClient(), store)
+        relaunched.refresh()
+        assertEquals(AuthState.SignedOut, relaunched.state.value)
+
+        server.takeRequest() // the login
+        reply(204)
+        auth.signOut()
+        assertEquals("Bearer 1|abc", server.takeRequest().headers["Authorization"]) // still ended on the server
+        assertNull(auth.accessToken())
+    }
+
+    @Test
     fun signOutRevokesTheTokenAndForgetsItEvenIfTheServerFails() = runTest {
         store.session = Session("1|abc", "u-1", "ana@example.com")
         auth.refresh()

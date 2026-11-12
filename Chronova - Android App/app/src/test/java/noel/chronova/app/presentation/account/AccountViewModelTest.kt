@@ -36,7 +36,7 @@ private class FakeAuth : AuthRepository {
         if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
     }
     override suspend fun resendCode(email: String) = next("resend:$email")
-    override suspend fun signIn(email: String, password: String) = next("signIn:$email").also {
+    override suspend fun signIn(email: String, password: String, remember: Boolean) = next("signIn:$email${if (remember) "" else ":once"}").also {
         if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
     }
     override suspend fun requestPasswordReset(email: String) = next("forgot:$email")
@@ -83,6 +83,22 @@ class AccountViewModelTest {
 
     @After
     fun tearDown() = Dispatchers.resetMain()
+
+    @Test
+    fun rememberMeIsOnByDefaultAndItsChoiceReachesSignIn() {
+        assertTrue(viewModel.form.value.remember)
+        viewModel.onEmailChange("ana@example.com")
+        viewModel.onPasswordChange("Long-enough-1")
+        viewModel.submit()
+        assertEquals("signIn:ana@example.com", auth.calls.last())
+
+        auth.state.value = AuthState.SignedOut
+        viewModel.onEmailChange("ana@example.com")
+        viewModel.onPasswordChange("Long-enough-1")
+        viewModel.onRememberChange(false)
+        viewModel.submit()
+        assertEquals("signIn:ana@example.com:once", auth.calls.last())
+    }
 
     @Test
     fun formProblemsAreCaughtBeforeCallingCognito() {

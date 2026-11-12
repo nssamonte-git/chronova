@@ -46,7 +46,8 @@ interface AuthRepository {
     /** Confirms the email with the emailed code and signs in. */
     suspend fun confirmSignUp(email: String, code: String): AuthOutcome
     suspend fun resendCode(email: String): AuthOutcome
-    suspend fun signIn(email: String, password: String): AuthOutcome
+    /** [remember]: stay signed in on later launches ("Remember me"); otherwise only while the app runs. */
+    suspend fun signIn(email: String, password: String, remember: Boolean = true): AuthOutcome
 
     /** Emails a reset code (the answer doesn't reveal whether the account exists). */
     suspend fun requestPasswordReset(email: String): AuthOutcome
@@ -82,7 +83,7 @@ class DisabledAuthRepository : AuthRepository {
     override suspend fun signUp(email: String, password: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun confirmSignUp(email: String, code: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun resendCode(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
-    override suspend fun signIn(email: String, password: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
+    override suspend fun signIn(email: String, password: String, remember: Boolean) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun requestPasswordReset(email: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun resetPassword(email: String, code: String, newPassword: String) = AuthOutcome.Failed(AuthProblem.UNKNOWN)
     override suspend fun signOut() = Unit

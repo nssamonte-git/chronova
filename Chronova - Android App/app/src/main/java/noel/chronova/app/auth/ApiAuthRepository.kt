@@ -42,15 +42,26 @@ class ApiAuthRepository(
     private val _sessionEnded = MutableStateFlow(false)
     override val sessionEnded: StateFlow<Boolean> = _sessionEnded.asStateFlow()
 
+    /** A session signed in without "Remember me": kept only while the app runs, never written to [store]. */
+    @Volatile
+    private var unsaved: Session? = null
+
+    private suspend fun session(): Session? = withContext(Dispatchers.IO) { store.read() } ?: unsaved
+
+    private suspend fun forget() {
+        unsaved = null
+        withContext(Dispatchers.IO) { store.clear() }
+    }
+
     override suspend fun refresh() {
-        val session = withContext(Dispatchers.IO) { store.read() }
+        val session = session()
         session?.let { beforeSignIn(it.userId) }
         _state.value = session?.let { AuthState.SignedIn(it.userId, it.email) } ?: AuthState.SignedOut
     }
 
     override suspend fun endSession() {
         if (_state.value !is AuthState.SignedIn) return
-        withContext(Dispatchers.IO) { store.clear() }
+        forget()
         _sessionEnded.value = true
         _state.value = AuthState.SignedOut
         notify(NotificationKind.SESSION_ENDED, emptyMap())
@@ -71,8 +82,8 @@ class ApiAuthRepository(
             is Reply.Error -> failure(r)
         }
 
-    override suspend fun signIn(email: String, password: String): AuthOutcome =
-        signedIn(post("auth/login", body(email) { put("password", password); put("device_name", DEVICE) }), NotificationKind.SIGNED_IN)
+    override suspend fun signIn(email: String, password: String, remember: Boolean): AuthOutcome =
+        signedIn(post("auth/login", body(email) { put("password", password); put("device_name", DEVICE) }), NotificationKind.SIGNED_IN, remember)
 
     override suspend fun requestPasswordReset(email: String): AuthOutcome =
         when (val r = post("auth/forgot", body(email))) {
@@ -84,16 +95,17 @@ class ApiAuthRepository(
         signedIn(post("auth/reset", body(email) { put("code", code); put("password", newPassword); put("device_name", DEVICE) }), NotificationKind.PASSWORD_CHANGED)
 
     override suspend fun signOut() {
-        val token = withContext(Dispatchers.IO) { store.read()?.token }
+        val token = session()?.token
         // Revoke the token on the server when possible; this device forgets it either way.
         if (token != null) post("auth/logout", JsonObject(emptyMap()), token)
-        withContext(Dispatchers.IO) { store.clear() }
+        forget()
         _state.value = AuthState.SignedOut
     }
 
-    override suspend fun accessToken(): String? = withContext(Dispatchers.IO) { store.read()?.token }
+    override suspend fun accessToken(): String? = session()?.token
 
-    private suspend fun signedIn(reply: Reply, event: NotificationKind): AuthOutcome = when (reply) {
+    /** [remember]: keep the session for later launches; otherwise only while the app runs. */
+    private suspend fun signedIn(reply: Reply, event: NotificationKind, remember: Boolean = true): AuthOutcome = when (reply) {
         is Reply.Error -> failure(reply)
         is Reply.Ok -> {
             val json = reply.json ?: return AuthOutcome.Failed(AuthProblem.UNKNOWN)
@@ -104,7 +116,14 @@ class ApiAuthRepository(
                 email = user.getValue("email").jsonPrimitive.content,
             )
             beforeSignIn(session.userId)
-            withContext(Dispatchers.IO) { store.write(session) }
+            if (remember) {
+                unsaved = null
+                withContext(Dispatchers.IO) { store.write(session) }
+            } else {
+                // Nothing on disk: the next launch opens on the sign-in page.
+                withContext(Dispatchers.IO) { store.clear() }
+                unsaved = session
+            }
             _sessionEnded.value = false
             _state.value = AuthState.SignedIn(session.userId, session.email)
             notify(event, mapOf("email" to session.email))

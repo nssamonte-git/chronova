@@ -59,7 +59,7 @@ private class FakeAuth(initial: AuthState) : AuthRepository {
     override suspend fun signUp(email: String, password: String) = AuthOutcome.Done
     override suspend fun confirmSignUp(email: String, code: String) = AuthOutcome.Done
     override suspend fun resendCode(email: String) = AuthOutcome.Done
-    override suspend fun signIn(email: String, password: String) = AuthOutcome.Done
+    override suspend fun signIn(email: String, password: String, remember: Boolean) = AuthOutcome.Done
     override suspend fun requestPasswordReset(email: String) = AuthOutcome.Done
     override suspend fun resetPassword(email: String, code: String, newPassword: String) = AuthOutcome.Done
     override suspend fun signOut() = Unit

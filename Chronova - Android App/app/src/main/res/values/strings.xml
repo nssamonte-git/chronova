@@ -62,6 +62,7 @@
     <string name="account_why">Sign in to sync your projects between devices. Without an account everything stays on this device.</string>
     <string name="account_confirm_body">Enter the code we emailed you.</string>
     <string name="account_email">Email</string>
+    <string name="account_remember_me">Remember me</string>
     <string name="account_show_password">Show password</string>
     <string name="account_hide_password">Hide password</string>
     <string name="account_password">Password</string>

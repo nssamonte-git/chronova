@@ -736,3 +736,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - You then asked for an eye on the password field. Every password field on the sign-in pages (sign in, create account, new password) now has an eye that shows what was typed and an eye-off that hides it again (dots by default; "Show password"/"Hide password" for screen readers). The two icons are Material's, added as local vectors since the app ships only the core icon set.
 - Checked on the phone without disturbing your session: the phone's data backed up, the server link cut so signing out couldn't revoke the token, a made-up password typed and toggled (dots → "Example123" → dots), then the backup restored; a sync afterwards succeeded with the same session.
 - Checks: app **258** tests, lint 0 errors / 17 warnings.
+
+### Remember me
+
+- You asked for a "Remember me" checkbox on the sign-in page. It sits under the password, ticked by default (the existing behaviour: the session is saved, encrypted, and later launches open straight into the app). Unticked, the session is kept only in memory and nothing is written to the phone: once the app is closed (or Android stops it in the background) it opens on the sign-in page again. The phone's projects stay behind the sign-in, with the same-account/other-account rule as before; signing out still ends the session on the server.
+- On the phone, your data backed up and the server link cut while signing out (so your session wasn't revoked): the checkbox showed ticked; unticked → signed in → closed and reopened → the sign-in page; ticked → signed in → closed and reopened → still signed in. Your data and session restored; a sync afterwards succeeded.
+- Checks: app **261** tests (3 new), lint 0 errors / 17 warnings.

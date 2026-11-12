@@ -1,12 +1,18 @@
 package noel.chronova.app.presentation.account
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -286,6 +292,19 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
                     contentType = if (choosingPassword) ContentType.NewPassword else ContentType.Password
                 },
         )
+    }
+    if (form.mode == AccountMode.SIGN_IN) {
+        // The whole row toggles; unticked, the session lasts only while the app runs.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(value = form.remember, enabled = !form.busy, role = Role.Checkbox, onValueChange = viewModel::onRememberChange),
+        ) {
+            Checkbox(checked = form.remember, onCheckedChange = null, enabled = !form.busy)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.account_remember_me), style = MaterialTheme.typography.bodyLarge)
+        }
     }
 
     val message = form.formProblem?.let { formProblemText(it) } ?: form.authProblem?.let { authProblemText(it) }

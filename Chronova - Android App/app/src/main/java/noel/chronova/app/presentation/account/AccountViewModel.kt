@@ -33,6 +33,8 @@ data class AccountForm(
     val email: String = "",
     val password: String = "",
     val code: String = "",
+    /** "Remember me" on the sign-in page: stay signed in on later launches. */
+    val remember: Boolean = true,
     val busy: Boolean = false,
     val formProblem: FormProblem? = null,
     val authProblem: AuthProblem? = null,
@@ -79,6 +81,8 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
 
     fun onPasswordChange(password: String) = _form.update { it.copy(password = password, formProblem = null, authProblem = null) }
 
+    fun onRememberChange(remember: Boolean) = _form.update { it.copy(remember = remember) }
+
     fun onCodeChange(code: String) = _form.update { it.copy(code = code.filter(Char::isDigit).take(CODE_LENGTH), formProblem = null, authProblem = null) }
 
     fun submit() {
@@ -91,7 +95,7 @@ class AccountViewModel(private val auth: AuthRepository, private val sync: Accou
         _form.value = form.copy(busy = true, notice = null)
         viewModelScope.launch {
             val outcome = when (form.mode) {
-                AccountMode.SIGN_IN -> auth.signIn(form.email, form.password)
+                AccountMode.SIGN_IN -> auth.signIn(form.email, form.password, form.remember)
                 AccountMode.SIGN_UP -> auth.signUp(form.email, form.password)
                 AccountMode.CONFIRM -> auth.confirmSignUp(form.email, form.code)
                 AccountMode.FORGOT -> auth.requestPasswordReset(form.email)
