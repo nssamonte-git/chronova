@@ -56,8 +56,23 @@ interface AuthRepository {
 
     suspend fun signOut()
 
+    /**
+     * The server no longer accepts this device's token (it expired after 60 unused days,
+     * staff signed the user out everywhere, or the account was disabled): forget it and
+     * return to the sign-in page. Unlike [signOut], the device's data stays, for the same
+     * account to find again ([ApiAuthRepository]'s `beforeSignIn` clears it for another).
+     */
+    suspend fun endSession() {}
+
+    /** True after [endSession], until the next sign-in, so the sign-in page can say why. */
+    val sessionEnded: StateFlow<Boolean> get() = NEVER_ENDED
+
     /** A valid access token for the sync API (refreshed if needed), or null when signed out. */
     suspend fun accessToken(): String?
+
+    private companion object {
+        val NEVER_ENDED: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+    }
 }
 
 /** For builds without a backend: always [AuthState.NotConfigured]. */

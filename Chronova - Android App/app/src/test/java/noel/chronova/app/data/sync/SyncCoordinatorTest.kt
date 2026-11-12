@@ -1,5 +1,6 @@
 package noel.chronova.app.data.sync
 
+import org.junit.Assert.assertFalse
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -31,6 +32,11 @@ private class StubAuth(initial: AuthState) : AuthRepository {
         state.value = AuthState.SignedOut
     }
     override suspend fun accessToken(): String? = if (state.value is AuthState.SignedIn) "token" else null
+    var ended = false
+    override suspend fun endSession() {
+        ended = true
+        state.value = AuthState.SignedOut
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,9 +56,11 @@ class SyncCoordinatorTest {
         runCurrent()
     }
 
-    private fun TestScope.coordinator(auth: AuthState = AuthState.SignedIn("sub", "a@b.c")) = SyncCoordinator(
+    private lateinit var auth: StubAuth
+
+    private fun TestScope.coordinator(state: AuthState = AuthState.SignedIn("sub", "a@b.c")) = SyncCoordinator(
         scope = backgroundScope,
-        auth = StubAuth(auth),
+        auth = StubAuth(state).also { auth = it },
         local = local,
         api = server,
         online = online,
@@ -124,9 +132,10 @@ class SyncCoordinatorTest {
     @Test
     fun failuresAreMappedForTheUser() = runTest(StandardTestDispatcher()) {
         val sync = coordinator()
-        outcomes += SyncOutcome.Failed(SyncApiException.Kind.UNAUTHORIZED)
+        // (A rejected token ends the session instead: aRejectedTokenEndsTheSessionButKeepsTheDevicesData.)
+        outcomes += SyncOutcome.Failed(SyncApiException.Kind.SERVER)
         sync.syncNow(); settle()
-        assertEquals(SyncStatus.Failed(SyncFailure.SIGN_IN_AGAIN), sync.status.value)
+        assertEquals(SyncStatus.Failed(SyncFailure.SERVER), sync.status.value)
 
         val signedOut = coordinator(AuthState.SignedOut)
         signedOut.syncNow(); settle()
@@ -144,5 +153,28 @@ class SyncCoordinatorTest {
         assertNull(sync.deleteAccount())
         assertTrue(server.deletedAccount)
         assertTrue(local.cleared)
+    }
+
+    @Test
+    fun aRejectedTokenEndsTheSessionButKeepsTheDevicesData() = runTest(StandardTestDispatcher()) {
+        val sync = coordinator()
+        local.edit(task("t1", 1))
+        outcomes.addLast(SyncOutcome.Failed(SyncApiException.Kind.UNAUTHORIZED))
+        sync.syncNow()
+        settle()
+        assertTrue(auth.ended)
+        assertEquals(AuthState.SignedOut, auth.state.value)
+        assertEquals("no stale failure for whoever signs in next", SyncStatus.Idle, sync.status.value)
+        assertFalse(local.cleared) // the same account finds its unsynced work again
+        assertEquals(1, local.dirtyChanges().size)
+    }
+
+    @Test
+    fun otherFailuresKeepTheSession() = runTest(StandardTestDispatcher()) {
+        val sync = coordinator()
+        outcomes.addLast(SyncOutcome.Failed(SyncApiException.Kind.NETWORK))
+        sync.syncNow()
+        settle()
+        assertFalse(auth.ended)
     }
 }

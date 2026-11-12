@@ -23,6 +23,21 @@ interface LocalSyncStore {
     fun lastSyncedAt(userId: String): Long?
     fun saveCursor(userId: String, cursor: String, syncedAt: Long)
 
-    /** Removes all projects, tasks, links, view settings and sync state (sign-out). */
+    /** Removes all projects, tasks, links, view settings and sync state (sign-out), the owner included. */
     suspend fun clearAll()
+
+    /** The account this device's data belongs to; null before any sign-in. */
+    fun owner(): String?
+    fun setOwner(userId: String)
+}
+
+/**
+ * Makes the device's data [userId]'s before they are signed in: data that belongs to
+ * another account (left after that account's session ended) is cleared first; data
+ * without an owner (made before signing in) becomes theirs.
+ */
+suspend fun LocalSyncStore.keepOnlyFor(userId: String) {
+    val owner = owner()
+    if (owner != null && owner != userId) clearAll()
+    if (owner != userId) setOwner(userId)
 }

@@ -1,5 +1,6 @@
 package noel.chronova.app.auth
 
+import org.junit.Assert.assertFalse
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -113,5 +114,33 @@ class ApiAuthRepositoryTest {
         store.session = Session("1|abc", "u-1", "ana@example.com")
         auth.refresh()
         assertEquals(AuthState.SignedIn("u-1", "ana@example.com"), auth.state.value)
+    }
+
+    @Test
+    fun anEndedSessionForgetsTheTokenAndSaysSoUntilTheNextSignIn() = runTest {
+        store.session = Session("1|abc", "u-1", "ana@example.com")
+        auth.refresh()
+        auth.endSession()
+        assertNull(store.session)
+        assertEquals(AuthState.SignedOut, auth.state.value)
+        assertTrue(auth.sessionEnded.value)
+        assertEquals(0, server.requestCount) // nothing to revoke: the server already refused it
+
+        reply(200, signedInBody)
+        auth.signIn("ana@example.com", "pw")
+        assertFalse(auth.sessionEnded.value)
+    }
+
+    @Test
+    fun theDeviceDataIsCheckedForTheAccountBeforeItIsSignedIn() = runTest {
+        val seen = mutableListOf<Pair<String, AuthState>>()
+        lateinit var checked: ApiAuthRepository
+        checked = ApiAuthRepository(server.url("/").toString(), OkHttpClient(), store, beforeSignIn = { seen += it to checked.state.value })
+        reply(200, signedInBody)
+        checked.signIn("ana@example.com", "pw")
+        store.session = Session("1|abc", "u-1", "ana@example.com")
+        checked.refresh()
+        assertEquals(listOf("u-1", "u-1"), seen.map { it.first })
+        assertFalse("checked before it is signed in", seen.first().second is AuthState.SignedIn)
     }
 }

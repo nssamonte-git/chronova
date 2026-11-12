@@ -713,3 +713,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Found by the tests:** Sanctum's test stand-in token isn't a stored record, and the first version crashed on it (500s across the sync tests); it now acts only on stored tokens with an expiry.
 - On the phone with a server build (your data backed up first): signed in; closing and reopening the app went straight to the projects; so did reopening with the server unreachable; a token backdated to 10 days left was moved to 60 days ahead by a sync. Data restored, test account deleted, the previous build reinstalled.
 - Checks: server **289** tests (2 new), Pint clean; app unchanged (**234**).
+
+### Back to sign-in when the server ends a session
+
+- You asked for the app to return to the sign-in page when the server ends a session (a token that expired after 60 unused days, "sign out everywhere", a disabled account). When sync, account deletion or voice gets a 401/403, the app now ends the session: it forgets the token and shows the sign-in page with "Your session has ended. Sign in again to carry on; your projects on this phone are still here." Unlike signing out, the phone's projects are kept, since unsynced work can't be sent with a rejected token.
+- The phone's data now remembers which account it belongs to (`LocalSyncStore.owner`). Before any sign-in completes (new or restored), the same account keeps it, data made before signing in becomes theirs, and data that belongs to another account is cleared first, so one person never sees another's projects.
+- On the phone with a server build and two throwaway accounts (your data backed up first), predicted first: A signed in and took over the phone's projects; revoking A's tokens on the server, then Sync now → the sign-in page with the note; A signed in again → its projects still there; revoked again → B signed in → "No projects yet". **Found there:** B's list still showed A's "Sync failed: please sign in again"; the sync status now resets when a session ends (rechecked: none for the next account). The old test expecting that message after a 401 now uses an ordinary server error.
+- Cleanup: both accounts deleted, your data restored (checksums match), the previous build reinstalled and opening on "Jnn".
+- Checks: app **242** tests (8 new), lint 0 errors / 17 warnings; server unchanged (**289**).

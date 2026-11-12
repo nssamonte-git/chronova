@@ -109,7 +109,14 @@ class SyncCoordinator(
                     delay(busyRetryDelayMillis * attempt)
                     continue
                 }
-                _status.value = statusOf(outcome)
+                // The server ended the session: back to the sign-in page, data kept, and nothing
+                // of this failure left for whoever signs in next.
+                if (outcome is SyncOutcome.Failed && outcome.kind == SyncApiException.Kind.UNAUTHORIZED) {
+                    auth.endSession()
+                    _status.value = SyncStatus.Idle
+                } else {
+                    _status.value = statusOf(outcome)
+                }
                 break
             }
         }
@@ -130,6 +137,10 @@ class SyncCoordinator(
         try {
             api.deleteAccount(token)
         } catch (error: SyncApiException) {
+            if (error.kind == SyncApiException.Kind.UNAUTHORIZED) {
+                auth.endSession()
+                _status.value = SyncStatus.Idle
+            }
             return failureOf(error.kind)
         }
         signOutAndClear()

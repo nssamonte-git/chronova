@@ -114,7 +114,14 @@ class FakeLocalStore : LocalSyncStore {
     override suspend fun clearAll() {
         rows.value = emptyMap()
         cursors.clear()
+        ownerId = null
         cleared = true
+    }
+
+    private var ownerId: String? = null
+    override fun owner() = ownerId
+    override fun setOwner(userId: String) {
+        ownerId = userId
     }
 }
 

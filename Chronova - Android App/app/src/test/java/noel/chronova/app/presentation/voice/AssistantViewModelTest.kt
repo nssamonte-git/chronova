@@ -61,6 +61,10 @@ private class FakeAuth(initial: AuthState) : AuthRepository {
     override suspend fun resetPassword(email: String, code: String, newPassword: String) = AuthOutcome.Done
     override suspend fun signOut() = Unit
     override suspend fun accessToken(): String? = if (state.value is AuthState.SignedIn) "token" else null
+    var ended = false
+    override suspend fun endSession() {
+        ended = true
+    }
 }
 
 /** Hears [heard] in turn; answers each request with [answer]; records everything said. */
@@ -428,6 +432,15 @@ class AssistantViewModelTest {
         says("push review by an hour", "no")
         talk()
         assertEquals(listOf(emptyList<ScheduleWarning>()), api.explained.filterIsInstance<ExplainRequest.Changes>().map { it.warnings })
+    }
+
+    @Test
+    fun aRejectedTokenIsSaidAndEndsTheSession() = runTest(dispatcher) {
+        api.transcribeFailure = VoiceApiException.Kind.UNAUTHORIZED
+        says("push review by an hour")
+        talk()
+        assertEquals(listOf("hello", "failure UNAUTHORIZED"), api.said)
+        assertTrue(auth.ended)
     }
 
     @Test

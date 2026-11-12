@@ -288,6 +288,8 @@ class AssistantViewModel(
             throw error
         } catch (error: VoiceApiException) {
             say(phrases.failure(error.kind))
+            // The server ended the session: the app goes back to the sign-in page.
+            if (error.kind == VoiceApiException.Kind.UNAUTHORIZED) auth.endSession()
         } catch (_: RecorderUnavailable) {
             say(phrases.microphoneUnavailable())
         }

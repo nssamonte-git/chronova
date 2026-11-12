@@ -202,6 +202,10 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
         AccountMode.RESET -> R.string.account_reset_title
     }
     Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
+    val sessionEnded by viewModel.sessionEnded.collectAsStateWithLifecycle()
+    if (required && sessionEnded && form.mode == AccountMode.SIGN_IN) {
+        Text(stringResource(R.string.account_session_ended), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+    }
     Explanation(
         stringResource(
             when (form.mode) {

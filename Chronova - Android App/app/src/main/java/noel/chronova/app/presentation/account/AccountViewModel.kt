@@ -52,6 +52,10 @@ sealed interface AccountDialog {
 class AccountViewModel(private val auth: AuthRepository, private val sync: AccountSync) : ViewModel() {
 
     val authState: StateFlow<AuthState> = auth.state
+
+    /** The server ended the last session; the sign-in page says so. */
+
+    val sessionEnded: StateFlow<Boolean> = auth.sessionEnded
     val pendingCount: StateFlow<Int> = sync.pendingCount
     val syncStatus: StateFlow<SyncStatus> = sync.status
 

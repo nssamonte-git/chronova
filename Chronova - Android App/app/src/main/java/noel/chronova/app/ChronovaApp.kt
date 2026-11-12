@@ -19,6 +19,7 @@ import noel.chronova.app.data.remote.OkHttpSyncApi
 import noel.chronova.app.data.remote.OkHttpVoiceApi
 import noel.chronova.app.data.remote.VoiceApi
 import noel.chronova.app.data.sync.RoomLocalSyncStore
+import noel.chronova.app.data.sync.keepOnlyFor
 import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.onlineFlow
@@ -74,6 +75,8 @@ class AppContainer(private val context: Context) {
                 baseUrl = backendConfig.apiUrl,
                 client = httpClient,
                 store = KeystoreTokenStore(context.getSharedPreferences("chronova_auth", Context.MODE_PRIVATE)),
+                // Another account's data, left when its session ended, never shows to the next one.
+                beforeSignIn = { userId -> syncStore.keepOnlyFor(userId) },
             )
         } else {
             DisabledAuthRepository()

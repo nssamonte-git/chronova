@@ -25,15 +25,31 @@ class ApiAuthRepository(
     baseUrl: String,
     private val client: OkHttpClient,
     private val store: TokenStore,
+    /**
+     * Runs before a session (new or restored) becomes signed in, with its user id: the
+     * place to make sure the device's data belongs to that account.
+     */
+    private val beforeSignIn: suspend (userId: String) -> Unit = {},
 ) : AuthRepository {
     private val base = baseUrl.trimEnd('/')
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Checking)
     override val state: StateFlow<AuthState> = _state.asStateFlow()
 
+    private val _sessionEnded = MutableStateFlow(false)
+    override val sessionEnded: StateFlow<Boolean> = _sessionEnded.asStateFlow()
+
     override suspend fun refresh() {
         val session = withContext(Dispatchers.IO) { store.read() }
+        session?.let { beforeSignIn(it.userId) }
         _state.value = session?.let { AuthState.SignedIn(it.userId, it.email) } ?: AuthState.SignedOut
+    }
+
+    override suspend fun endSession() {
+        if (_state.value !is AuthState.SignedIn) return
+        withContext(Dispatchers.IO) { store.clear() }
+        _sessionEnded.value = true
+        _state.value = AuthState.SignedOut
     }
 
     override suspend fun signUp(email: String, password: String): AuthOutcome =
@@ -83,7 +99,9 @@ class ApiAuthRepository(
                 userId = user.getValue("id").jsonPrimitive.content,
                 email = user.getValue("email").jsonPrimitive.content,
             )
+            beforeSignIn(session.userId)
             withContext(Dispatchers.IO) { store.write(session) }
+            _sessionEnded.value = false
             _state.value = AuthState.SignedIn(session.userId, session.email)
             AuthOutcome.Done
         }

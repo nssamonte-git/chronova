@@ -144,8 +144,16 @@ class RoomLocalSyncStore(
         }
     }
 
+    override fun owner(): String? = prefs.getString(KEY_OWNER, null)
+
+    override fun setOwner(userId: String) = prefs.edit { putString(KEY_OWNER, userId) }
+
     private fun cursorKey(userId: String) = "cursor_$userId"
     private fun syncedAtKey(userId: String) = "synced_at_$userId"
+
+    private companion object {
+        const val KEY_OWNER = "owner"
+    }
 }
 
 /** A local edit newer than the incoming version (still unsynced) wins; ties go to the server. */
