@@ -12,4 +12,11 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.designsystem)
     implementation(libs.androidx.compose.material.icons.core)
+
+    // On-device Compose tests: this module's own test app (see HANDOFF), not the app's data.
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.manifest)
 }
