@@ -90,4 +90,14 @@ class EndpointDetectorTest {
         assertEquals(1f, d.level(30_000), 0.001f)
         assertTrue(d.level(3_000) in 0.05f..0.9f)
     }
+
+    @Test
+    fun speechThatStartsDuringCalibrationDoesNotHideTheNextWords() {
+        // The user is already talking as listening starts (levels ~8,000), then says "yes" (~6,000).
+        val detector = EndpointDetector()
+        val levels = listOf(8_000, 9_000, 7_000) + List(5) { 400 } + List(5) { 6_000 } + List(15) { 400 }
+        var decision: EndpointDetector.Decision = EndpointDetector.Decision.Continue
+        levels.forEachIndexed { i, level -> if (decision == EndpointDetector.Decision.Continue) decision = detector.sample(level, (i + 1) * 100L) }
+        assertEquals(EndpointDetector.Decision.Done, decision)
+    }
 }

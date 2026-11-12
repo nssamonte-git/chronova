@@ -149,7 +149,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 224 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 225 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
 | Server (Pest, real Postgres) | `cd server && composer test` | 287 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |

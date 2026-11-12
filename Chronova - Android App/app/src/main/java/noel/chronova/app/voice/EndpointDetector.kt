@@ -4,7 +4,11 @@ package noel.chronova.app.voice
  * Decides, from microphone levels sampled about every 100 ms, when the user has
  * finished speaking — so a voice-only turn ends without a Done button.
  *
- * The first [calibrationMs] learn the room's noise floor. Speech is a level clearly
+ * The first [calibrationMs] learn the room's noise floor. Afterwards the floor only goes
+ * down: whenever the last [calibrationMs] were quieter on average, that is the new floor, so a
+ * user already talking when listening starts doesn't keep the bar above their own voice
+ * once they pause (seen on the phone: a "yes" said across the start was missed), while
+ * steady room noise still keeps it high. Speech is a level clearly
  * above it ([speechRatio] times the floor, and at least [minSpeechLevel]) for at least
  * [minSpeechMs] without a break, so taps, clicks and scattered room noise don't count; the turn ends after
  * [silenceMs] of quiet following speech. With no speech by
@@ -32,6 +36,8 @@ class EndpointDetector(
 
     private var floorSum = 0L
     private var floorCount = 0
+    private var floor = 0f
+    private val recent = ArrayDeque<Int>()
     private var heardSpeech = false
     private var loudRunMs = 0L
     private var lastSpeechAt = 0L
@@ -44,10 +50,13 @@ class EndpointDetector(
         if (elapsedMs < calibrationMs) {
             floorSum += amplitude
             floorCount++
+            floor = floorSum / floorCount.toFloat()
             return Decision.Continue
         }
-        val floor = if (floorCount == 0) 0f else floorSum / floorCount.toFloat()
-        val threshold = maxOf(minSpeechLevel.toFloat(), floor * speechRatio)
+        recent.addLast(amplitude)
+        if (recent.size > (calibrationMs / sampleMs).coerceAtLeast(1)) recent.removeFirst()
+        if (recent.size.toLong() * sampleMs >= calibrationMs) floor = minOf(floor, recent.average().toFloat())
+        val threshold = threshold()
         if (amplitude >= threshold) {
             loudRunMs += sampleMs
             if (loudRunMs >= minSpeechMs) heardSpeech = true
@@ -65,8 +74,11 @@ class EndpointDetector(
 
     /** A 0..1 level for the listening animation, relative to the speech threshold. */
     fun level(amplitude: Int): Float {
-        val floor = if (floorCount == 0) 0f else floorSum / floorCount.toFloat()
-        val threshold = maxOf(minSpeechLevel.toFloat(), floor * speechRatio)
-        return ((amplitude - floor) / (threshold * 3f - floor).coerceAtLeast(1f)).coerceIn(0f, 1f)
+        val floor = floor()
+        return ((amplitude - floor) / (threshold() * 3f - floor).coerceAtLeast(1f)).coerceIn(0f, 1f)
     }
+
+    private fun floor(): Float = floor
+
+    private fun threshold(): Float = maxOf(minSpeechLevel.toFloat(), floor * speechRatio)
 }

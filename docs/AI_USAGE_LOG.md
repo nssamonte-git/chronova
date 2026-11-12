@@ -677,3 +677,16 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - `/interpret` now answers the clash-free `alternative` itself when it sees its plan would clash (strict schema field; checked like the operations, a broken one is dropped), so `/resolve` is only a fallback; the rules for choosing it moved into the shared, cached rules. Clash proposals are told to stay under 35 words. Real API: one call 4.4–6.9 s instead of ~8.5 s for two; the offer 167 characters.
 - On the phone with the real providers, predicted first and as predicted: end of speech → spoken proposal 9.2 s (was 11.6) and 7.7 s (was 10.3) for clashes, 9.0 s without; "Review would be added at 4 p.m. today, but would clash with test. Shall I move test to 2 p.m.?"; no `/resolve` calls. 16 provider calls, about $0.03. Phone data restored, test account deleted.
 - Checks: server **287** tests, Pint clean; app **224** tests.
+
+### Multi-task requests with overlaps, on the phone
+
+- You asked to test multi-task overlapping requests on the phone (real providers, throwaway account, phone data backed up and restored). Predicted first; as predicted unless noted:
+  - One request adding four tasks that don't overlap: all four added, no warning, no alternative.
+  - "QA 3–4 and Demo 3:30–4:30" (clashing with each other): Demo offered at 4–5 from the first call; accepted.
+  - "Move QA and Demo to 11 a.m." into a full morning: a five-task alternative, accepted. Interpret took 9 s; 13.8 s from end of speech to the spoken proposal, which then took 11.6 s to say.
+  - "Retro 3–4 and Docs 4–5" over Review and Planning: offered, declined, "as you asked?" → yes → both kept at their times.
+  - 8 interpret calls averaged 6.2 s (max 8.9 s) with clashes; no `/resolve` calls; 45 provider calls, about $0.12.
+- **Not as predicted, from the room:** speech near the phone (radio, TV or conversation) was transcribed into answers ("Or in the generation and cultural conservation- Yes …"); the app treated that as a correction and asked again, as designed. Noise also ended turns early, so my scripted words fell into the wrong turns twice; nothing was applied wrongly in those runs.
+- **Found and fixed:** a listen that starts while someone is already talking learned their voice as the room's noise floor, so the "yes" that followed was too quiet to count. The floor now only goes down after 300 ms of quieter sound (a steadily noisy room still raises the bar). Test added; it fails on the old code.
+- **Open:** twice (10:45 and 11:30) an answer turn with no scripted speech came back as a 3-character transcript read as "yes" and applied the offered alternative (Undo was available). Either someone near the phone said yes, or the background audio was heard as yes; not resolved yet.
+- Checks: app **225** tests, lint 0 errors / 17 warnings; server **287**.
