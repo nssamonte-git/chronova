@@ -51,6 +51,29 @@ it('hears the configured phrase with the fake transcriber', function () {
         ->and($event->user_id)->toBe($this->user->getKey());
 });
 
+it('hears several configured phrases in turn, per user, wrapping around', function () {
+    config(['voice.fake_transcript' => 'push build by 2 hours | yes|']);
+    $other = User::factory()->create();
+
+    transcribe()->assertOk()->assertJson(['text' => 'push build by 2 hours']);
+    Sanctum::actingAs($other, ['sync']);
+    transcribe()->assertOk()->assertJson(['text' => 'push build by 2 hours']);
+    transcribe()->assertOk()->assertJson(['text' => 'yes']);
+    Sanctum::actingAs($this->user, ['sync']);
+    transcribe()->assertOk()->assertJson(['text' => 'yes']);
+    transcribe()->assertOk()->assertJson(['text' => 'push build by 2 hours']);
+    Sanctum::actingAs($other, ['sync']);
+    transcribe()->assertOk()->assertJson(['text' => 'push build by 2 hours']);
+
+    expect(VoiceEvent::where('user_id', $this->user->getKey())->pluck('characters')->all())->toBe([21, 3, 21]);
+});
+
+it('hears a single phrase every time', function () {
+    config(['voice.fake_transcript' => 'delete review']);
+    transcribe()->assertOk()->assertJson(['text' => 'delete review']);
+    transcribe()->assertOk()->assertJson(['text' => 'delete review']);
+});
+
 it('sends the recording to ElevenLabs Scribe with the key only in a header', function () {
     useElevenLabs();
     Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);
@@ -199,8 +222,10 @@ it('needs a signed-in, active user with the sync ability', function () {
 });
 
 it('stores no words or audio in its metrics', function () {
-    config(['voice.fake_transcript' => 'rename design to Secret plan']);
+    config(['voice.fake_transcript' => 'rename design to Secret plan|yes']);
     transcribe();
-    $row = (array) DB::table('voice_events')->first();
-    expect(json_encode($row))->not->toContain('Secret')->not->toContain('rename')->not->toContain('m4a');
+    transcribe();
+    expect(VoiceEvent::count())->toBe(2)
+        ->and(json_encode(DB::table('voice_events')->get()))->not->toContain('Secret')->not->toContain('rename')
+        ->not->toContain('yes')->not->toContain('m4a');
 });

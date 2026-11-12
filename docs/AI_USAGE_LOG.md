@@ -600,3 +600,13 @@ Your logo image is used as is (your choice over a vector redraw): it is processe
 - `docs/AI_USAGE_WRITEUP.md` covered only the take-home. The take-home sections are kept as written (now labelled), with one line noting which suggested improvements were built later; a new section 5 covers everything after it: the phases (B10–B16, B17–B34, V0–V10, branding, repository layout) with what each added and the decisions you made, your direct actions, how output was reviewed, 14 AI mistakes from the log in the same table form, a current technical assessment, and a whole-project timeline (56 commits, 20:09 on 11 Nov to 07:54 on 12 Nov, counted per phase from `git rev-list`). A note explains the repository layout and that older log paths are relative to the Android folder.
 - Facts were taken from this log and git; while checking, I corrected three of my own summaries before committing — the B11 request ("work for any project", not "multiple projects"), the image test count (the suite ran inside the image at 99, not 227) and the interpreter sample set (two of my expected answers were corrected, not one).
 - The README's two descriptions of the writeup now match its scope.
+
+## Voice orb: a live 3D, voice-only assistant (plan O1–O5)
+
+You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference image, and asked for the model as the assistant's icon, the image as its look, and a voice-only assistant: tap the orb, it appears in the middle of the screen, listens, says what it will change and asks, applies on a spoken yes, then hides and says what changed while you look at the timeline. Your choices: live 3D on the phone; the orb on the button and as a large centre orb. For the questions you skipped, the recommended defaults: read-only captions, English yes/no words (anything else is a corrected request), the existing Undo bar.
+
+### O2 — Server: explanation stages and a fake conversation (done in a parallel session)
+
+- `POST /v1/voice/explain` takes `stage`: `proposal` (default; what will change, ending "Shall I apply it?") or `applied` (past tense, starting "Done."); other values are refused (422). The explainer's instructions and the plain fallback summaries cover both stages; questions are unchanged.
+- `VOICE_FAKE_TRANSCRIPT` can hold several `|`-separated phrases, heard in turn per user (`push build by 2 hours|yes`), so the whole spoken loop can be tried on the phone without keys.
+- This step ran in a separate Claude Code session on the same folder (server files and `docs/voice-api.md` only, nothing committed there). Checked here before committing: `composer test` **247 passed** (20 new), Pint clean, and the controller, fallback wording and fake transcriber read as described.

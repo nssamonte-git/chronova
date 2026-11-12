@@ -88,12 +88,13 @@ The server checks that every id is in the request's `tasks`, dates are real, amo
 
 ## `POST /v1/voice/explain`
 
-Says what a preview will change, so the user hears it before tapping Apply — or speaks a clarifying question. Send either `changes` (with `today`) or `question`:
+Says what a preview will change and asks whether to apply it, so the user can answer yes or no by voice; says what has changed once it is applied; or speaks a clarifying question. Send either `changes` (with `today`, and optionally `stage`) or `question`:
 
 ```json
 {
   "today": "2026-11-12",
   "language": "en",
+  "stage": "proposal",
   "changes": [
     { "change": "moved", "task": "Build", "fromStart": "2026-11-12T09:00", "fromEnd": "2026-11-12T10:00", "toStart": "2026-11-12T11:00", "toEnd": "2026-11-12T12:00" }
   ]
@@ -110,9 +111,18 @@ Says what a preview will change, so the user hears it before tapping Apply — o
 
 Titles ≤ 200 characters, ≤ 100 changes, local date-times as in `/interpret`. `question` ≤ 300 characters. `language` (optional) is the language to answer in — the one `/transcribe` detected.
 
-Response (200): `{"text": "Build moves to 11 a.m. today. Tap Apply to confirm.", "audio": "<base64>", "audioType": "audio/mpeg"}`.
+`stage` (optional) says what the words are for; anything else is rejected (422):
 
-- The words are written by the explainer (at most two sentences, ≤ 400 characters, checked); if it fails, a plain English summary is used instead. A question is spoken as it is.
+| `stage` | When | Example `text` |
+|---|---|---|
+| `proposal` (default) | Before applying: what will change, ending with the question "Shall I apply it?" (in the answer's language) | `Build will move to 11 a.m. today. Shall I apply it?` |
+| `applied` | After the app applied it: what has changed, in the past tense, starting with "Done.", no question | `Done. Build now runs from 11 a.m. to noon.` |
+
+Clients that send no `stage` get `proposal`. A `question` is spoken as it is and ignores `stage`.
+
+Response (200): `{"text": "Build will move to 11 a.m. today. Shall I apply it?", "audio": "<base64>", "audioType": "audio/mpeg"}`.
+
+- The words are written by the explainer (at most two sentences, plus the question or "Done.", ≤ 400 characters, checked); if it fails, a plain English summary for the stage is used instead (`Build will move to Thursday 12 November, 11:00 to 12:00. Shall I apply it?` / `Done. Build moved to Thursday 12 November, 11:00 to 12:00.`). The stage's wording is in the explainer's instructions; the changes, titles included, are sent as data. A question is spoken as it is.
 - `audio` and `audioType` are null when speech failed; the text is still returned. The endpoint never fails because a provider did — only for the kill switch, validation, auth and rate limits.
 
 ## Privacy
@@ -156,7 +166,7 @@ Sample set (`interpret`): 15 of 15 as expected — shifts, moves to a weekday or
 | `VOICE_ENABLED` | `true` | Kill switch |
 | `VOICE_INTERPRETER` | `fake` | `openai`, or `fake` (rule-based, no network) for development and tests |
 | `VOICE_TRANSCRIBER` | `fake` | `elevenlabs`, or `fake` (always hears `VOICE_FAKE_TRANSCRIPT`) |
-| `VOICE_FAKE_TRANSCRIPT` | `push design by 2 hours` | Development only |
+| `VOICE_FAKE_TRANSCRIPT` | `push design by 2 hours` | Development only. Several phrases separated by `\|` are heard in turn, per user, wrapping around: `push design by 2 hours\|yes` tries a spoken command and its spoken yes without keys |
 | `VOICE_KEYTERMS` | `true` | Pass task titles to the transcriber (+20% transcription cost) |
 | `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
 | `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |

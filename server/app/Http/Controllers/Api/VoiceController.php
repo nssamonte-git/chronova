@@ -17,6 +17,7 @@ use DateTimeZone;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Voice editing (docs/voice-api.md). The server only proposes: the app checks
@@ -130,8 +131,9 @@ class VoiceController extends Controller
     }
 
     /**
-     * Says what a preview will change (or speaks a clarifying question), so
-     * the user hears it before deciding. Never blocks the preview: if writing
+     * Says what a preview will change and asks whether to apply it (stage
+     * "proposal"), says what has just changed (stage "applied"), or speaks a
+     * clarifying question. Never blocks the preview: if writing
      * the words fails a plain summary is used, and if speech fails the words
      * come back without audio.
      */
@@ -166,8 +168,11 @@ class VoiceController extends Controller
             'changes.*.toEnd' => $time,
             'today' => ['required_with:changes', 'date_format:Y-m-d'],
             'language' => ['nullable', 'string', 'regex:/^[a-z]{2,3}$/'],
+            // What the words are for; a question ignores it.
+            'stage' => ['nullable', 'string', Rule::in(ChangeList::STAGES)],
         ]);
         $language = $data['language'] ?? null;
+        $stage = $data['stage'] ?? ChangeList::PROPOSAL;
 
         $kind = 'speak';
         $fallback = false;
@@ -177,11 +182,11 @@ class VoiceController extends Controller
         } else {
             $kind = 'explain';
             try {
-                $explanation = $explainer->explain($data['changes'], $data['today'], $language);
+                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage);
                 $words = $explanation->text;
                 $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
             } catch (ProviderUnavailable) {
-                $words = ChangeList::summary($data['changes']);
+                $words = ChangeList::summary($data['changes'], $stage);
                 $fallback = true;
             }
         }

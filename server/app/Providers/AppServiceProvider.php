@@ -38,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->bind(Transcriber::class, fn ($app) => match (config('voice.transcriber')) {
             'elevenlabs' => new ElevenLabsTranscriber($app->make(Http::class), config('voice.elevenlabs')),
-            default => new FakeTranscriber(config('voice.fake_transcript')),
+            default => new FakeTranscriber(config('voice.fake_transcript'), $app->make('cache.store'), $app->make('request')->user()?->getKey()),
         });
         $this->app->bind(Explainer::class, fn ($app) => match (config('voice.explainer')) {
             'openai' => new OpenAiExplainer($app->make(Http::class), config('voice.openai')),

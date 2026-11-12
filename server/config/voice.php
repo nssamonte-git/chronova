@@ -12,7 +12,8 @@ return [
     // "openai" in production; "fake" (rule-based, no network) for development and tests.
     'interpreter' => env('VOICE_INTERPRETER', 'fake'),
 
-    // "elevenlabs" in production; "fake" always hears VOICE_FAKE_TRANSCRIPT.
+    // "elevenlabs" in production; "fake" always hears VOICE_FAKE_TRANSCRIPT, or, with several
+    // phrases separated by "|" ("push design by 2 hours|yes"), each in turn per user.
     'transcriber' => env('VOICE_TRANSCRIBER', 'fake'),
     'fake_transcript' => env('VOICE_FAKE_TRANSCRIPT', 'push design by 2 hours'),
     // Send the project's task titles to the transcriber as words to listen for (fewer

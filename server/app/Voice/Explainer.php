@@ -2,14 +2,15 @@
 
 namespace App\Voice;
 
-/** Writes a short spoken summary of changes the user is about to confirm. */
+/** Writes a short spoken summary of changes the user is asked about, or has just applied. */
 interface Explainer
 {
     /**
      * @param  array  $changes  validated change list (ChangeList)
      * @param  string|null  $language  ISO 639 code to answer in, or null for English
+     * @param  string  $stage  ChangeList::PROPOSAL (what will change, ending with a question) or ChangeList::APPLIED (what has changed)
      *
      * @throws ProviderUnavailable when the provider fails or answers with something unusable
      */
-    public function explain(array $changes, string $today, ?string $language): Explanation;
+    public function explain(array $changes, string $today, ?string $language, string $stage = ChangeList::PROPOSAL): Explanation;
 }
