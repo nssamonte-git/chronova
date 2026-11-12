@@ -1,7 +1,6 @@
 package noel.chronova.app.data.remote
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
 /** Wire format of `POST /v1/sync` (see docs/sync-protocol.md). */
@@ -30,14 +29,6 @@ data class SyncResponseDto(
     val cursor: String,
     val hasMore: Boolean,
 )
-
-object SyncJson {
-    /** Unknown fields from a newer server are ignored; nulls are left out. */
-    val json = Json {
-        ignoreUnknownKeys = true
-        explicitNulls = false
-    }
-}
 
 object SyncEntities {
     const val PROJECT = "project"

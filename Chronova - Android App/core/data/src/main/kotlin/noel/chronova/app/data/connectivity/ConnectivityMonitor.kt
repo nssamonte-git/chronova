@@ -1,4 +1,4 @@
-package noel.chronova.app.data.sync
+package noel.chronova.app.data.connectivity
 
 import android.content.Context
 import android.net.ConnectivityManager

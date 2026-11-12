@@ -18,6 +18,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 sourceCompatibility = JavaVersion.VERSION_11
                 targetCompatibility = JavaVersion.VERSION_11
             }
+            // :app:lintDebug also checks every module it depends on, as it did when all code lived in :app.
+            lint { checkDependencies = true }
         }
         addUnitTestDependencies()
     }

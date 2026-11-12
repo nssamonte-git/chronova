@@ -29,6 +29,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import noel.chronova.app.core.network.ApiJson
 
 /** The server's voice endpoints (`docs/voice-api.md`). Provider keys never reach the app. */
 interface VoiceApi {
@@ -180,7 +181,7 @@ class OkHttpVoiceApi(
             )
             is ExplainRequest.Question -> ExplainRequestDto(question = request.text, language = request.language)
         }
-        val body = SyncJson.json.encodeToString(ExplainRequestDto.serializer(), dto)
+        val body = ApiJson.json.encodeToString(ExplainRequestDto.serializer(), dto)
         val reply = call("explain", body.toRequestBody(JSON), ExplainResponseDto.serializer(), accessToken)
         val audio = try {
             reply.audio?.let { Base64.getDecoder().decode(it) }
@@ -191,7 +192,7 @@ class OkHttpVoiceApi(
     }
 
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
-        val body = SyncJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto()))
+        val body = ApiJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto()))
         return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
     }
 
@@ -204,9 +205,9 @@ class OkHttpVoiceApi(
     ): Proposal {
         val body = buildJsonObject {
             put("transcript", transcript)
-            put("context", SyncJson.json.encodeToJsonElement(VoiceContextDto.serializer(), context.toDto()))
+            put("context", ApiJson.json.encodeToJsonElement(VoiceContextDto.serializer(), context.toDto()))
             put("planned", JsonArray(planned.map { it.toWire() }))
-            put("clashes", SyncJson.json.encodeToJsonElement(ListSerializer(ExplainWarningDto.serializer()), clashes.map { it.toDto() }))
+            put("clashes", ApiJson.json.encodeToJsonElement(ListSerializer(ExplainWarningDto.serializer()), clashes.map { it.toDto() }))
         }
         return call("resolve", body.toString().toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
     }
@@ -219,7 +220,7 @@ class OkHttpVoiceApi(
             answer = decision.answer.wire,
             reply = decision.reply,
         )
-        send("decision", SyncJson.json.encodeToString(DecisionRequestDto.serializer(), dto).toRequestBody(JSON), accessToken)
+        send("decision", ApiJson.json.encodeToString(DecisionRequestDto.serializer(), dto).toRequestBody(JSON), accessToken)
     }
 
     // Callers are often on the main thread (ViewModels): the whole call, body reading included, runs on [io].
@@ -231,7 +232,7 @@ class OkHttpVoiceApi(
     ): T = withContext(io) {
         val text = send(endpoint, body, accessToken)
         try {
-            SyncJson.json.decodeFromString(reply, text)
+            ApiJson.json.decodeFromString(reply, text)
         } catch (error: SerializationException) {
             throw VoiceApiException(VoiceApiException.Kind.UNAVAILABLE, error)
         } catch (error: IllegalArgumentException) {

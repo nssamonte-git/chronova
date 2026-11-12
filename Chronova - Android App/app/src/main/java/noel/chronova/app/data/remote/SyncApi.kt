@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import noel.chronova.app.core.network.ApiJson
 
 /** The sync backend. Every call needs a Cognito access token. */
 interface SyncApi {
@@ -51,10 +52,10 @@ class OkHttpSyncApi(
     private val base = baseUrl.trimEnd('/')
 
     override suspend fun sync(accessToken: String, request: SyncRequestDto): SyncResponseDto {
-        val body = SyncJson.json.encodeToString(SyncRequestDto.serializer(), request).toRequestBody(JSON)
+        val body = ApiJson.json.encodeToString(SyncRequestDto.serializer(), request).toRequestBody(JSON)
         val response = call(Request.Builder().url("$base/v1/sync").post(body).bearer(accessToken).build())
         return try {
-            SyncJson.json.decodeFromString(SyncResponseDto.serializer(), response)
+            ApiJson.json.decodeFromString(SyncResponseDto.serializer(), response)
         } catch (error: IllegalArgumentException) {
             throw SyncApiException(SyncApiException.Kind.SERVER, error)
         }

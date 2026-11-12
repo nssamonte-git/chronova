@@ -2,7 +2,6 @@ package noel.chronova.app
 
 import android.app.Application
 import android.content.Context
-import androidx.core.content.edit
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,18 +13,19 @@ import noel.chronova.app.domain.auth.AuthRepository
 import noel.chronova.app.auth.BackendConfig
 import noel.chronova.app.auth.DisabledAuthRepository
 import noel.chronova.app.auth.KeystoreTokenStore
+import noel.chronova.app.core.network.defaultHttpClient
 import noel.chronova.app.data.local.ChronovaDatabase
 import noel.chronova.app.data.local.RoomNotificationRepository
 import noel.chronova.app.data.remote.OkHttpSyncApi
 import noel.chronova.app.data.remote.OkHttpVoiceApi
 import noel.chronova.app.data.remote.VoiceApi
-import noel.chronova.app.data.repository.FirstLaunchFlag
+import noel.chronova.app.data.repository.PreferencesFirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
 import noel.chronova.app.data.sync.RoomLocalSyncStore
 import noel.chronova.app.data.sync.SyncCoordinator
 import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.keepOnlyFor
-import noel.chronova.app.data.sync.onlineFlow
+import noel.chronova.app.data.connectivity.onlineFlow
 import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.repository.ProjectRepository
@@ -38,7 +38,6 @@ import noel.chronova.app.voice.AssistantSettings
 import noel.chronova.app.voice.PreferencesAssistantSettings
 import noel.chronova.app.voice.SpeechPlayer
 import noel.chronova.app.voice.VoiceRecorder
-import okhttp3.OkHttpClient
 
 class ChronovaApp : Application() {
     val container: AppContainer by lazy { AppContainer(this) }
@@ -57,20 +56,14 @@ class AppContainer(private val context: Context) {
 
     private val database: ChronovaDatabase = ChronovaDatabase.create(context)
 
-    private val firstLaunch = object : FirstLaunchFlag {
-        private val prefs = context.getSharedPreferences("chronova", Context.MODE_PRIVATE)
-        override fun isFirst() = !prefs.getBoolean(KEY_SEEDED, false)
-        override fun markDone() = prefs.edit { putBoolean(KEY_SEEDED, true) }
-    }
-
-    val projectRepository: ProjectRepository = RoomProjectRepository(database, firstLaunch)
+    val projectRepository: ProjectRepository = RoomProjectRepository(
+        database,
+        PreferencesFirstLaunchFlag(context.getSharedPreferences("chronova", Context.MODE_PRIVATE)),
+    )
 
     val backendConfig: BackendConfig = BackendConfig.fromBuildConfig()
 
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val httpClient = defaultHttpClient()
 
     /** What happened (sync, assistant, account), for the notifications page; important ones also reach the shade. */
     val notificationRepository: NotificationRepository =
@@ -129,8 +122,4 @@ class AppContainer(private val context: Context) {
         runSync = syncEngine::sync,
         notify = notify,
     )
-
-    private companion object {
-        const val KEY_SEEDED = "sample_seeded"
-    }
 }

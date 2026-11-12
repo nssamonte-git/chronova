@@ -12,7 +12,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import noel.chronova.app.data.remote.SyncJson
+import noel.chronova.app.core.network.ApiJson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -163,12 +163,12 @@ class ApiAuthRepository(
             .url("$base/v1/$path")
             .header("Accept", "application/json")
             .apply { if (token != null) header("Authorization", "Bearer $token") }
-            .post(SyncJson.json.encodeToString(JsonObject.serializer(), body).toRequestBody(JSON))
+            .post(ApiJson.json.encodeToString(JsonObject.serializer(), body).toRequestBody(JSON))
             .build()
         try {
             client.newCall(request).execute().use { response ->
                 val text = response.body.string()
-                val json = runCatching { SyncJson.json.parseToJsonElement(text).jsonObject }.getOrNull()
+                val json = runCatching { ApiJson.json.parseToJsonElement(text).jsonObject }.getOrNull()
                 if (response.isSuccessful) {
                     Reply.Ok(json)
                 } else {
