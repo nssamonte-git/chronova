@@ -529,9 +529,11 @@ class AssistantViewModel(
         /**
          * How loud (the [EndpointDetector.loudestSpeech] of the answer) a "yes" must be to count at
          * once. Measured on the test phone (Android 10): requests said to the phone 8,900–10,200, a
-         * one-word "yes" ~4,700, a "yes" at the volume of a voice across the room 1,400–1,600.
+         * one-word "yes" ~4,700–5,200, a "yes" at the volume of a voice across the room 1,400–2,500.
+         * Lowered from 3,000 (user request, 12 Nov): a soft "yes" said to the phone was asked about
+         * twice and nothing changed; the faintest voices across the room are still asked about.
          */
-        const val NEAR_SPEECH_LEVEL = 3_000
+        const val NEAR_SPEECH_LEVEL = 2_000
 
         /** How long a caption stays when there's no audio: about 15 characters a second, at least 2 s. */
         fun readingTimeMs(text: String): Long = (text.length * 65L).coerceIn(2_000L, 8_000L)

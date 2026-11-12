@@ -381,17 +381,21 @@ class AssistantViewModelTest {
         assertTrue(settings.introduced(SampleTasks.PROJECT_ID)) // not repeated next time
     }
 
-    /** The user will say [words] (one per turn; null = silence; a leading "~" = said faintly, from across the room). */
+    /**
+     * The user will say [words] (one per turn; null = silence; a leading "~" = said faintly, from across
+     * the room; a leading "-" = said softly to the phone).
+     */
     private fun says(vararg words: String?) {
         words.forEach { word ->
             recorder.turns.addLast(
                 when {
                     word == null -> 0
-                    word.startsWith("~") -> 2_500
+                    word.startsWith("~") -> 1_500
+                    word.startsWith("-") -> 2_500
                     else -> 8_000
                 },
             )
-            if (word != null) api.heard.addLast(word.removePrefix("~"))
+            if (word != null) api.heard.addLast(word.removePrefix("~").removePrefix("-"))
         }
     }
 
@@ -747,6 +751,15 @@ class AssistantViewModelTest {
         says("push review by an hour", "~yes", "yes")
         talk()
         assertEquals(listOf("hello", "was that a yes?"), api.said)
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+    }
+
+    @Test
+    fun aSoftYesSaidToThePhoneAppliesAtOnce() = runTest(dispatcher) {
+        api.answer = shift(1)
+        says("push review by an hour", "-yes")
+        talk()
+        assertEquals(listOf("hello"), api.said) // no "was that a yes?"
         assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
     }
 
