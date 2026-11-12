@@ -2,6 +2,10 @@ package noel.chronova.app.presentation.voice
 
 import java.io.File
 import java.time.ZoneOffset
+import kotlinx.coroutines.yield
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,8 +129,18 @@ private class FakePlayer : SpeechPlayer {
     override val playing = MutableStateFlow(false)
     val played = mutableListOf<ByteArray>()
 
+    /** When set, each clip "plays" until the test scheduler has run what was waiting, like a real clip. */
+    var holdIn: CoroutineScope? = null
+
     override fun play(audio: ByteArray) {
-        played += audio // finishes at once
+        played += audio // otherwise finishes at once
+        holdIn?.let { scope ->
+            playing.value = true
+            scope.launch {
+                yield()
+                playing.value = false
+            }
+        }
     }
 
     override fun stop() = Unit
@@ -139,6 +153,7 @@ private class FakeSettings : AssistantSettings {
 }
 
 private object FakePhrases : AssistantPhrases {
+    override fun greeting() = "hello"
     override fun nothingHeard() = "say again"
     override fun goodbye() = "goodbye"
     override fun nothingChanged() = "nothing changed"
@@ -225,11 +240,17 @@ class AssistantViewModelTest {
     @Test
     fun noLeavesEverythingAsItWas() = runTest(dispatcher) {
         api.answer = shift(1)
+        val linesWhileDeclining = mutableListOf<Int>()
+        player.holdIn = this
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.state.collect { if (it.saying == "nothing changed") linesWhileDeclining += it.proposal.size }
+        }
         says("push review by an hour", "no")
         talk()
         assertEquals(originalReview, review)
         assertTrue(repository.applied.isEmpty())
-        assertEquals(listOf("nothing changed"), api.said)
+        assertEquals(listOf("hello", "nothing changed"), api.said)
+        assertTrue(linesWhileDeclining.isNotEmpty() && linesWhileDeclining.all { it == 0 }) // the change lines are gone, so nothing looks applied
         assertFalse(viewModel.state.value.open)
     }
 
@@ -250,7 +271,7 @@ class AssistantViewModelTest {
         }
         says("move the review", "design review", "yes")
         talk()
-        assertEquals(listOf("Which review?"), api.said)
+        assertEquals(listOf("hello", "Which review?"), api.said)
         assertEquals("move the review. Answer to \"Which review?\": design review", api.requests[1])
         assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
     }
@@ -259,10 +280,20 @@ class AssistantViewModelTest {
     fun silenceTwiceSaysGoodbyeWithoutCallingTheServer() = runTest(dispatcher) {
         says(null, null)
         talk()
-        assertEquals(listOf("say again", "goodbye"), api.said)
+        assertEquals(listOf("hello", "say again", "goodbye"), api.said)
         assertTrue(api.requests.isEmpty())
         assertFalse(viewModel.state.value.open)
         assertTrue(repository.applied.isEmpty())
+    }
+
+    @Test
+    fun itSaysHelloFirstAndFetchesTheGreetingOnlyOnce() = runTest(dispatcher) {
+        says(null, null)
+        talk()
+        assertEquals("hello", api.said.first())
+        says(null, null)
+        talk()
+        assertEquals(listOf("hello", "say again", "goodbye", "say again", "goodbye"), api.said)
     }
 
     @Test
@@ -270,7 +301,7 @@ class AssistantViewModelTest {
         api.answer = { _, c -> Proposal(c.revision, "unsupported", emptyList(), null, "Only schedules.") }
         says("what's the weather", null)
         talk()
-        assertEquals(listOf("Only schedules.", "goodbye"), api.said)
+        assertEquals(listOf("hello", "Only schedules.", "goodbye"), api.said)
         assertTrue(repository.applied.isEmpty())
     }
 
@@ -280,7 +311,7 @@ class AssistantViewModelTest {
         says("push review by an hour", null)
         talk()
         assertEquals(originalReview, review)
-        assertEquals(listOf("nothing changed"), api.said)
+        assertEquals(listOf("hello", "nothing changed"), api.said)
     }
 
     @Test
@@ -295,7 +326,7 @@ class AssistantViewModelTest {
         talk()
         assertEquals("Edited by hand", review.title)
         assertEquals(originalReview.startMillis, review.startMillis)
-        assertEquals(listOf("schedule changed"), api.said)
+        assertEquals(listOf("hello", "schedule changed"), api.said)
         assertNull(viewModel.message.value)
     }
 
@@ -337,7 +368,7 @@ class AssistantViewModelTest {
     fun aBusyMicrophoneOrFailingServerIsSaidAndEndsIt() = runTest(dispatcher) {
         recorder.unavailable = true
         talk()
-        assertEquals(listOf("mic busy"), api.said)
+        assertEquals(listOf("hello", "mic busy"), api.said)
 
         recorder.unavailable = false
         api.explained.clear()

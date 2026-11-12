@@ -637,3 +637,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Found on the phone:** after a change the timeline scrolled to the task's *old* time, because the highlight arrived before the moved task did, so the highlighted bar was off screen. The scroll now follows the task's current times; checked again: it lands on Build at its new time, highlighted.
 - You asked why it said "Tap Apply to confirm": that was the stand-in recording (made for the old sheet), played whatever the words were. It is now just "This is the test voice." With your go-ahead to use your ElevenLabs voice, two runs used real ElevenLabs speech (stand-ins for everything else, about 400 characters in all); the first request took 17 s, later ones about 1 s.
 - Checks: app **198** tests, lint 0 errors / 17 warnings; server **247**, Pint clean.
+
+### O5 — The real providers, voice-only
+
+- With your go-ahead: the phone against the local server with real OpenAI and ElevenLabs (your voice), a throwaway account, your phone data backed up first and restored afterwards. A new test script reacts to the phone's log as it streams and, after you pointed out it had answered "Yes" to "What date…?", reads the orb's question before choosing a reply.
+- Results, timings and cost: `docs/voice-api.md` ("The voice-only loop"). Per confirmed command about $0.007; the whole session's 148 calls about $0.21.
+- **Found:** "move build to 3 PM" sometimes became a new start with the old end (refused by the app), and adding a task at a time asked for the date. Both fixed in the interpreter's rules; checked against the real model, 24 of 24 and 14 of 14.
+- **Found:** after a no, the change line stayed under "Okay, nothing changed." It is now cleared first. The new test failed without the fix (it first passed either way, because the fake player finished at once; the fake now holds playback briefly).
+- You asked for a greeting: "Hi! How can I help you?" is said when the orb opens, fetched once and then replayed from memory.
+- Multiple tasks: creating two tasks, swapping two tasks (each keeps its length), moving a task onto another and adding a dependency against the current times all worked; overlaps and the broken link were applied without a warning (the link turned red), which led to your next request.
+- Checks: app **199** tests, server **247**.

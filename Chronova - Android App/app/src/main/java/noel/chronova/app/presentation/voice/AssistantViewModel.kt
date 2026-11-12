@@ -117,6 +117,7 @@ class AssistantViewModel(
 
     /** Saying what changed, after the orb has closed. */
     private var afterword: Job? = null
+    private var greeting: Spoken? = null
 
     /** The language the user was last heard in, for what the assistant says back. */
     private var heardLanguage: String? = null
@@ -215,6 +216,7 @@ class AssistantViewModel(
         var pendingWords: String? = null
         var strikes = 0
         try {
+            greet()
             while (true) {
                 val words = pendingWords ?: listen() ?: run {
                     strikes++
@@ -227,10 +229,10 @@ class AssistantViewModel(
                 context = null
                 when (val outcome = interpret(request)) {
                     is Outcome.Proposal -> {
-                        val reply = propose(outcome) ?: return say(phrases.nothingChanged())
+                        val reply = propose(outcome) ?: return declined()
                         when (ConfirmationReply.of(reply)) {
                             ConfirmationReply.Yes -> return applyAndExplain(outcome)
-                            ConfirmationReply.No -> return say(phrases.nothingChanged())
+                            ConfirmationReply.No -> return declined()
                             ConfirmationReply.Other -> {
                                 // A corrected request: worked out again with the first one as context.
                                 context = "$request. Change of plan:"
@@ -360,16 +362,30 @@ class AssistantViewModel(
         null
     }
 
-    /** Says [text] in the assistant's voice (falls back to a caption alone). */
-    private suspend fun say(text: String) {
-        val spoken = try {
-            voiceApi.explain(token(), ExplainRequest.Question(text, heardLanguage)).let { Spoken(it.text, it.audio) }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: VoiceApiException) {
-            Spoken(text, null)
-        }
+    /** The proposal was turned down (or not answered): its lines go, so nothing looks applied. */
+    private suspend fun declined() {
+        ui.update { it.copy(proposal = emptyList()) }
+        say(phrases.nothingChanged())
+    }
+
+    /** Says hello when the orb opens. The voiced greeting is fetched once and replayed after that. */
+    private suspend fun greet() {
+        val cached = greeting
+        if (cached != null) return speak(cached)
+        val spoken = voice(phrases.greeting())
+        if (spoken.audio != null) greeting = spoken
         speak(spoken)
+    }
+
+    /** Says [text] in the assistant's voice (falls back to a caption alone). */
+    private suspend fun say(text: String) = speak(voice(text))
+
+    private suspend fun voice(text: String): Spoken = try {
+        voiceApi.explain(token(), ExplainRequest.Question(text, heardLanguage)).let { Spoken(it.text, it.audio) }
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: VoiceApiException) {
+        Spoken(text, null)
     }
 
     private data class Spoken(val text: String, val audio: ByteArray?)

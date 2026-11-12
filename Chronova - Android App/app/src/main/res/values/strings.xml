@@ -152,6 +152,7 @@
     <string name="assistant_mic_denied">The assistant can’t use the microphone. You can type instead, or allow it in Settings.</string>
     <string name="assistant_open_settings">Settings</string>
     <string name="assistant_mic_unavailable">The microphone isn’t available right now. Another app may be using it.</string>
+    <string name="assistant_greeting">Hi! How can I help you?</string>
     <string name="assistant_say_again">I didn\u2019t catch that. Please say it again.</string>
     <string name="assistant_goodbye">I\u2019ll stop listening now. Tap the orb when you need me.</string>
     <string name="assistant_nothing_changed">Okay, nothing changed.</string>
