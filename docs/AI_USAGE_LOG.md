@@ -899,3 +899,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - Pinch wasn't done by hand (adb can't do two fingers); it's covered by `TimelinePinchTest` 4/4.
   - Architecture audit 0 warnings; build gate passes (3 warnings, 2 suppressed); `verifyModuleGraph` and `verifyUiModels` OK.
   - Largest ViewModel is now `ProjectTimelineViewModel` (299 lines: it also keeps the domain schedule behind the screen).
+- TalkBack labels, at your request:
+  - **The bug:** the "New project" and "Add task" extended FABs had no name in the accessibility tree (confirmed in the phone's UI dump; Material's extended FAB hides its text from accessibility), so TalkBack could only say "Button".
+  - **The fix:** each FAB now sets its label as its content description.
+  - **Tests:** one test per screen finds the button by that name with a click action, as an accessibility service would; the projects test also taps it and checks the editor opens.
+  - **Checks:**
+    - On the phone, projects 7/7 and timeline 17/17 (test apps uninstalled).
+    - In your app (server-URL build installed over it, data kept), both buttons now appear by name next to "Assistant".
+    - 330 unit tests, lint 0 errors, module graph and UI-model checks OK.

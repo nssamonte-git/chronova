@@ -146,10 +146,13 @@ private fun ProjectListContent(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
+            val label = stringResource(R.string.project_new)
             ExtendedFloatingActionButton(
                 onClick = onCreate,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.project_new)) },
+                text = { Text(label) },
+                // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
+                modifier = Modifier.semantics { contentDescription = label },
             )
         },
         topBar = {

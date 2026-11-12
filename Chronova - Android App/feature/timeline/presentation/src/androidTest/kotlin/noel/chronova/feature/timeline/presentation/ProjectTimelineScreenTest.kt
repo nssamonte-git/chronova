@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -47,6 +48,13 @@ class ProjectTimelineScreenTest {
     private fun predecessorChip(title: String) = compose.onNode(hasText(title) and isSelectable())
 
     // Rows.
+
+    @Test
+    fun theAddTaskButtonHasALabelForTalkBack() {
+        screen.show(listOf(survey))
+        // What an accessibility service sees: the merged button node, named and clickable.
+        compose.onNode(hasContentDescription(screen.string(R.string.task_add)) and hasClickAction()).assertExists()
+    }
 
     @Test
     fun listsOnlyTheTasksOnScreen() {

@@ -39,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -198,10 +199,13 @@ private fun TimelineContent(
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // The assistant's orb, just above "Add task" where it's easy to find.
                 if (assistant.available) assistant.orbButton(Modifier)
+                val addLabel = stringResource(R.string.task_add)
                 ExtendedFloatingActionButton(
                     onClick = actions.onAddTask,
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.task_add)) },
+                    text = { Text(addLabel) },
+                    // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
+                    modifier = Modifier.semantics { contentDescription = addLabel },
                 )
             }
         },

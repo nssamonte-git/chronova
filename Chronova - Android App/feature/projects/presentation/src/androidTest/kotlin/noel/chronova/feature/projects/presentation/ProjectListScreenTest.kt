@@ -2,6 +2,7 @@ package noel.chronova.feature.projects.presentation
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -85,6 +86,14 @@ class ProjectListScreenTest {
 
     private fun button(text: String) = compose.onNode(hasText(text) and hasClickAction())
     private fun nameField() = compose.onNode(hasSetTextAction() and hasText(res.getString(R.string.project_name)))
+
+    @Test
+    fun theNewProjectButtonHasALabelForTalkBack() {
+        show(emptyList())
+        // What an accessibility service sees: the merged button node, named and clickable.
+        compose.onNode(hasContentDescription(res.getString(R.string.project_new)) and hasClickAction()).assertExists().performClick()
+        compose.onNode(hasSetTextAction() and hasText(res.getString(R.string.project_name))).assertExists()
+    }
 
     @Test
     fun listsEachProjectWithItsDatesAndTaskCount() {
