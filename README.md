@@ -50,7 +50,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 ├── Chronova - Android App/          the Android app — open this folder (not the repository root) in Android Studio
 │   ├── app/src/main/             app code (package noel.chronova.app) and resources
 │   ├── app/src/test/             JVM unit tests
-│   ├── app/src/androidTest/      instrumented tests (Room)
+│   ├── app/src/androidTest/      instrumented tests (Room, rotation)
 │   ├── gradle/  build.gradle.kts  settings.gradle.kts  gradlew
 │   └── local.properties          uncommitted: SDK path and the server URL
 ├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
@@ -152,8 +152,10 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 258 |
-| Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 267 |
+| Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w -e class noel.chronova.app.data.repository.ApplyChangesRoomTest noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
+| Android instrumented (rotation: the assistant's layout in landscape and portrait, the sign-in form across a rotation, 50 real rotations) | build both APKs as above, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it) | 4 |
+| Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations (sheets, dialogs, a drag, the assistant listening, talking and introducing itself, a 200-turn memory soak) and checks for crashes, leaked activities, memory growth and lost state. Backs the app's data up and restores it, and the phone's rotation setting; `restore` puts back a backup an interrupted run left | 16 scenarios |
 | Server (Pest, real Postgres) | `cd server && composer test` | 289 |
 | Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
@@ -180,7 +182,8 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - In Months scale a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
-- The app is light-themed (the admin panel is dark-only). Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
+- The app is light-themed (the admin panel is dark-only). Seven instrumented tests (the Room transaction, rotation) and an adb rotation stress script; other device behaviour was verified by hand.
+- While the assistant is open, or still saying what it changed, the screen keeps its orientation; it turns with the phone again once the assistant is done.
 - The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes). A yes quieter than someone talking to the phone gets "Sorry, was that a yes?" first; the level is tuned on one phone.
 - The 3D orb (Filament 1.79) adds native libraries: the debug APK is about 40 MB (15 MB before); Play's per-device delivery ships one CPU type, about 6 MB more. It needs OpenGL ES 3.0, and falls back to the mic icon otherwise or after the 3D view has failed once.
 - Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
