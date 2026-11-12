@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import noel.chronova.app.domain.ProjectProblem
 import noel.chronova.app.domain.SampleTasks
+import noel.chronova.app.domain.projects.ProjectUseCases
 import noel.chronova.app.testing.FakeProjectRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -30,7 +31,7 @@ class ProjectListViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectListViewModel(repository, zone, today = { today })
+        viewModel = ProjectListViewModel(ProjectUseCases.create(repository, zone), today = { today })
     }
 
     @After

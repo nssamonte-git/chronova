@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.app.domain.ProjectProblem
-import noel.chronova.app.domain.ProjectRules
 import noel.chronova.app.domain.model.Project
 import noel.chronova.app.domain.model.ProjectSummary
-import noel.chronova.app.domain.repository.ProjectRepository
+import noel.chronova.app.domain.projects.ProjectUseCases
+import noel.chronova.app.domain.projects.SaveProjectResult
 
 sealed interface ProjectListState {
     data object Loading : ProjectListState
@@ -39,12 +39,11 @@ data class ProjectEditorState(
 }
 
 class ProjectListViewModel(
-    private val repository: ProjectRepository,
-    private val zone: ZoneId = ZoneId.systemDefault(),
-    private val today: () -> LocalDate = { LocalDate.now(zone) },
+    private val useCases: ProjectUseCases,
+    private val today: () -> LocalDate = { LocalDate.now(ZoneId.systemDefault()) },
 ) : ViewModel() {
 
-    val state: StateFlow<ProjectListState> = repository.observeProjects()
+    val state: StateFlow<ProjectListState> = useCases.observe()
         .map<List<ProjectSummary>, ProjectListState> { ProjectListState.Loaded(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectListState.Loading)
 
@@ -80,16 +79,13 @@ class ProjectListViewModel(
         val entered = _editor.value?.takeUnless { it.saving } ?: return
         _editor.value = entered.copy(saving = true)
         viewModelScope.launch {
-            val tasks = entered.projectId?.let { repository.tasksOf(it) }.orEmpty()
-            val problem = ProjectRules.validate(entered.name, entered.startDate, entered.endDate, tasks, zone)
-            if (problem != null) {
-                _editor.value = entered.copy(problem = problem, saving = false)
-                return@launch
-            }
-            if (entered.projectId == null) {
-                _openProject.value = repository.createProject(entered.name, entered.startDate, entered.endDate)
-            } else {
-                repository.updateProject(Project(entered.projectId, entered.name, entered.startDate, entered.endDate))
+            when (val result = useCases.save(entered.projectId, entered.name, entered.startDate, entered.endDate)) {
+                is SaveProjectResult.Invalid -> {
+                    _editor.value = entered.copy(problem = result.problem, saving = false)
+                    return@launch
+                }
+                is SaveProjectResult.Created -> _openProject.value = result.projectId
+                SaveProjectResult.Updated -> Unit
             }
             _editor.value = null
         }
@@ -110,14 +106,14 @@ class ProjectListViewModel(
     fun confirmDelete() {
         val target = _pendingDelete.value ?: return
         _pendingDelete.value = null
-        viewModelScope.launch { repository.deleteProject(target.project.id) }
+        viewModelScope.launch { useCases.delete(target.project.id) }
     }
 
     companion object {
         const val DEFAULT_LENGTH_DAYS = 7L
 
-        fun factory(repository: ProjectRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ProjectListViewModel(repository) }
+        fun factory(useCases: () -> ProjectUseCases): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ProjectListViewModel(useCases()) }
         }
     }
 }

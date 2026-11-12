@@ -32,6 +32,7 @@ import noel.chronova.app.domain.notifications.NotificationKind
 import noel.chronova.app.domain.notifications.NotificationRepository
 import noel.chronova.app.domain.notifications.NotificationUseCases
 import noel.chronova.app.domain.notifications.ObserveUnreadNotificationCount
+import noel.chronova.app.domain.projects.ProjectUseCases
 import noel.chronova.app.domain.schedule.ApplyScheduleChanges
 import noel.chronova.app.domain.repository.ProjectRepository
 import noel.chronova.app.notifications.SystemNotifications
@@ -65,6 +66,9 @@ class AppContainer(private val context: Context) {
         database,
         PreferencesFirstLaunchFlag(context.getSharedPreferences("chronova", Context.MODE_PRIVATE)),
     )
+
+    /** The project list's use cases (the time zone is read when the list opens). */
+    fun projectUseCases(): ProjectUseCases = ProjectUseCases.create(projectRepository, ZoneId.systemDefault())
 
     val backendConfig: BackendConfig = BackendConfig.fromBuildConfig()
 

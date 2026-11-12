@@ -40,9 +40,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
-import noel.chronova.app.R
+import noel.chronova.feature.projects.presentation.R
 import noel.chronova.app.domain.ProjectProblem
 import noel.chronova.app.presentation.TimeFormat
+import noel.chronova.core.ui.R as CoreUiR
 
 /** Bottom sheet to create or edit a project's name and date range. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,9 +109,9 @@ fun ProjectEditorSheet(
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) }
                 Button(onClick = onSave, enabled = !editor.saving, modifier = Modifier.padding(start = 8.dp)) {
-                    Text(stringResource(if (editor.isNew) R.string.create else R.string.save))
+                    Text(stringResource(if (editor.isNew) R.string.create else CoreUiR.string.save))
                 }
             }
         }
@@ -150,9 +151,9 @@ private fun DateRangeDialog(
             TextButton(
                 enabled = startMillis != null,
                 onClick = { if (startMillis != null && endMillis != null) onConfirm(startMillis.toPickerDate(), endMillis.toPickerDate()) },
-            ) { Text(stringResource(R.string.ok)) }
+            ) { Text(stringResource(CoreUiR.string.ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
     ) {
         DateRangePicker(state = state, modifier = Modifier.weight(1f))
     }

@@ -46,6 +46,7 @@ import noel.chronova.app.domain.voice.PreviewItem
 import noel.chronova.app.domain.voice.ScheduleWarning
 import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.voice.orb.OrbMode
+import noel.chronova.core.ui.R as CoreUiR
 
 /**
  * The voice assistant in the middle of the screen: the large orb over a dimmed

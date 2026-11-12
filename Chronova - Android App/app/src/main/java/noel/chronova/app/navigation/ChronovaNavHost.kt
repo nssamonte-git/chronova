@@ -94,7 +94,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
     NavHost(navController = navController, startDestination = ProjectListRoute, modifier = modifier) {
         composable<ProjectListRoute> {
             ProjectListScreen(
-                viewModel = viewModel(factory = ProjectListViewModel.factory(container.projectRepository)),
+                viewModel = viewModel(factory = ProjectListViewModel.factory(container::projectUseCases)),
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
                 onOpenAccount = { navController.navigate(AccountRoute) },
                 syncUi = syncUi,

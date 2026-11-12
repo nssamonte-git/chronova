@@ -69,6 +69,7 @@ import noel.chronova.app.domain.model.TaskColor
 import noel.chronova.app.domain.model.TimelineWindow
 import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.ui.theme.toColor
+import noel.chronova.core.ui.R as CoreUiR
 
 private enum class Picking { START_DATE, START_TIME, END_DATE, END_TIME }
 
@@ -155,13 +156,13 @@ fun TaskEditorSheet(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (!editor.isNew) {
                     TextButton(onClick = onDelete) {
-                        Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(CoreUiR.string.delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) }
                 Button(onClick = onSave, enabled = !editor.saving, modifier = Modifier.padding(start = 8.dp)) {
-                    Text(stringResource(if (editor.isNew) R.string.add else R.string.save))
+                    Text(stringResource(if (editor.isNew) R.string.add else CoreUiR.string.save))
                 }
             }
         }
@@ -284,9 +285,9 @@ private fun DateDialog(
                     val date = state.selectedDateMillis?.toPickerDate() ?: return@TextButton
                     onConfirm(date.atTime(current.toLocalTime()).atZone(zone).toInstant().toEpochMilli())
                 },
-            ) { Text(stringResource(R.string.ok)) }
+            ) { Text(stringResource(CoreUiR.string.ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
     ) {
         DatePicker(state = state)
     }
@@ -309,9 +310,9 @@ private fun TimeDialog(
             TextButton(onClick = {
                 val time = LocalTime.of(state.hour, state.minute)
                 onConfirm(current.toLocalDate().atTime(time).atZone(zone).toInstant().toEpochMilli())
-            }) { Text(stringResource(R.string.ok)) }
+            }) { Text(stringResource(CoreUiR.string.ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
         text = { TimePicker(state = state) },
     )
 }

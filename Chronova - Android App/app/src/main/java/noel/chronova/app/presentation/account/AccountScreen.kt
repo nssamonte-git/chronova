@@ -79,7 +79,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (onBack == null) R.string.app_name else R.string.account_title)) },
+                title = { Text(stringResource(if (onBack == null) CoreUiR.string.app_name else R.string.account_title)) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -200,7 +200,7 @@ private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, o
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = { TextButton(onClick = onConfirm) { Text(confirm, color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
     )
 }
 

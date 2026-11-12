@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.app.R
+import noel.chronova.feature.projects.presentation.R
 import noel.chronova.app.domain.SampleTasks
 import noel.chronova.app.domain.model.ProjectSummary
 import noel.chronova.app.presentation.TimeFormat
@@ -59,6 +59,7 @@ import noel.chronova.app.presentation.sync.SyncButton
 import noel.chronova.app.presentation.sync.SyncStatusLine
 import noel.chronova.app.presentation.sync.SyncUi
 import noel.chronova.app.ui.theme.ChronovaTheme
+import noel.chronova.core.ui.R as CoreUiR
 
 @Composable
 fun ProjectListScreen(
@@ -121,10 +122,10 @@ fun ProjectListScreen(
             },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDelete) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(CoreUiR.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text(stringResource(CoreUiR.string.cancel)) } },
         )
     }
 }
@@ -158,7 +159,7 @@ private fun ProjectListContent(
                 title = {
                     Column {
                         Text(
-                            text = stringResource(R.string.app_name),
+                            text = stringResource(CoreUiR.string.app_name),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -276,7 +277,7 @@ private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDelete: () ->
                 },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.delete)) },
+                text = { Text(stringResource(CoreUiR.string.delete)) },
                 leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
                 onClick = {
                     expanded = false

@@ -56,6 +56,8 @@ dependencies {
     implementation(projects.feature.notifications.domain)
     implementation(projects.feature.notifications.data)
     implementation(projects.feature.notifications.presentation)
+    implementation(projects.feature.projects.domain)
+    implementation(projects.feature.projects.presentation)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
