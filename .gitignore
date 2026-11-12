@@ -1,2 +1,3 @@
 # The Android project keeps its own .gitignore in "Chronova - Android App/"; server/ has its own too.
 .DS_Store
+node_modules/

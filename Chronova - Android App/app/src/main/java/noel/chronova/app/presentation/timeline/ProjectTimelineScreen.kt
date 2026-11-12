@@ -1,5 +1,21 @@
 package noel.chronova.app.presentation.timeline
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
+import androidx.core.content.ContextCompat
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.provider.Settings
+import android.net.Uri
+import android.content.pm.PackageManager
+import android.content.Intent
+import android.Manifest
+import androidx.compose.foundation.layout.size
+import noel.chronova.app.voice.orb.OrbMode
+import noel.chronova.app.presentation.voice.AssistantOrb
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +68,8 @@ import noel.chronova.app.presentation.components.TimelineControls
 import noel.chronova.app.presentation.TimeFormat
 import noel.chronova.app.presentation.voice.AssistantAvailability
 import noel.chronova.app.presentation.voice.AssistantMessage
-import noel.chronova.app.presentation.voice.AssistantSheet
+import noel.chronova.app.presentation.voice.AssistantOverlay
+import noel.chronova.app.presentation.voice.AssistantNotice
 import noel.chronova.app.presentation.voice.AssistantViewModel
 import noel.chronova.app.ui.theme.ChronovaTheme
 
@@ -65,6 +82,23 @@ fun ProjectTimelineScreen(
 ) {
     val assistantState by assistant.state.collectAsStateWithLifecycle()
     val assistantMessage by assistant.message.collectAsStateWithLifecycle()
+    val highlighted by assistant.highlight.collectAsStateWithLifecycle()
+    val micLevel = assistant.level
+    val context = LocalContext.current
+    var showNotice by remember { mutableStateOf(false) }
+    val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) assistant.open() else assistant.onMicrophoneDenied()
+    }
+    // Tap the orb: the one-time notice, then the microphone permission, then the orb opens and listens.
+    val startAssistant = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            assistant.open()
+        } else {
+            askForMicrophone.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+    val onOrbTap = { if (assistantState.noticeAccepted) startAssistant() else showNotice = true }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { assistant.onLeftApp() }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
@@ -93,33 +127,35 @@ fun ProjectTimelineScreen(
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
-                    onOpenAssistant = assistant::open,
+                    onOpenAssistant = onOrbTap,
                     onAssistantUndo = assistant::undo,
                     onAssistantMessageShown = assistant::dismissMessage,
+                    onOpenAppSettings = {
+                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+                    },
                 ),
                 assistantAvailable = assistantState.availability != AssistantAvailability.NOT_CONFIGURED,
+                assistantOpen = assistantState.open,
                 assistantMessage = assistantMessage,
+                highlighted = highlighted,
                 undoOffer = undoOffer,
                 notice = notice,
                 modifier = modifier,
             )
-            if (assistantState.open) {
-                val timeline = current.timeline
-                AssistantSheet(
-                    state = assistantState,
-                    zone = timeline.zone,
-                    projectEnd = TimeFormat.day(timeline.window.endMillis - 1, timeline.zone),
-                    onInputChange = assistant::onInputChange,
-                    onSubmit = assistant::submit,
-                    onStartListening = assistant::startListening,
-                    onFinishListening = assistant::finishListening,
-                    onMicrophoneDenied = assistant::onMicrophoneDenied,
-                    onLeftApp = assistant::onLeftApp,
-                    onReplay = assistant::replay,
-                    onToggleMuted = assistant::toggleMuted,
-                    onCancel = assistant::cancel,
-                    onApply = assistant::apply,
-                    onDismiss = assistant::close,
+            AssistantOverlay(
+                state = assistantState,
+                zone = current.timeline.zone,
+                level = { micLevel.value },
+                onClose = assistant::close,
+            )
+            if (showNotice) {
+                AssistantNotice(
+                    onContinue = {
+                        showNotice = false
+                        assistant.acceptNotice()
+                        startAssistant()
+                    },
+                    onDismiss = { showNotice = false },
                 )
             }
             taskEditor?.let { editor ->
@@ -161,6 +197,7 @@ data class TimelineActions(
     val onOpenAssistant: () -> Unit = {},
     val onAssistantUndo: () -> Unit = {},
     val onAssistantMessageShown: () -> Unit = {},
+    val onOpenAppSettings: () -> Unit = {},
 )
 
 @Composable
@@ -171,7 +208,9 @@ private fun TimelineContent(
     undoOffer: UndoOffer? = null,
     notice: TimelineNotice? = null,
     assistantAvailable: Boolean = false,
+    assistantOpen: Boolean = false,
     assistantMessage: AssistantMessage? = null,
+    highlighted: Set<String> = emptySet(),
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
@@ -197,6 +236,23 @@ private fun TimelineContent(
                 snackbarHost.showSnackbar(resources.getString(R.string.undo_not_possible), duration = SnackbarDuration.Short)
                 actions.onAssistantMessageShown()
             }
+            AssistantMessage.NeedsConnection -> {
+                snackbarHost.showSnackbar(resources.getString(R.string.assistant_needs_connection), duration = SnackbarDuration.Short)
+                actions.onAssistantMessageShown()
+            }
+            AssistantMessage.NeedsSignIn -> {
+                snackbarHost.showSnackbar(resources.getString(R.string.assistant_needs_sign_in), duration = SnackbarDuration.Short)
+                actions.onAssistantMessageShown()
+            }
+            AssistantMessage.MicrophoneDenied -> {
+                val result = snackbarHost.showSnackbar(
+                    resources.getString(R.string.assistant_mic_denied),
+                    actionLabel = resources.getString(R.string.assistant_open_settings),
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) actions.onOpenAppSettings()
+                actions.onAssistantMessageShown()
+            }
         }
     }
     val editNotSavedMessage = stringResource(R.string.edit_not_saved)
@@ -218,6 +274,7 @@ private fun TimelineContent(
                 controlsVisible = showControls,
                 selectedTaskId = state.selectedTaskId,
                 assistantAvailable = assistantAvailable,
+                assistantOpen = assistantOpen,
                 onOpenAssistant = actions.onOpenAssistant,
                 onBack = actions.onBack,
                 onEditTask = actions.onEditTask,
@@ -258,6 +315,7 @@ private fun TimelineContent(
                 onSelectTask = actions.onSelectTask,
                 onCommitEdit = actions.onCommitEdit,
                 onEditTask = actions.onEditTask,
+                highlighted = highlighted,
                 modifier = Modifier.weight(1f),
                 // Lets the last rows scroll clear of the FAB.
                 contentPadding = PaddingValues(bottom = 88.dp),
@@ -273,6 +331,7 @@ private fun TimelineTopBar(
     controlsVisible: Boolean,
     selectedTaskId: String?,
     assistantAvailable: Boolean,
+    assistantOpen: Boolean,
     onOpenAssistant: () -> Unit,
     onBack: () -> Unit,
     onEditTask: (String) -> Unit,
@@ -295,8 +354,13 @@ private fun TimelineTopBar(
         },
         actions = {
             if (assistantAvailable) {
-                IconButton(onClick = onOpenAssistant) {
-                    Icon(painterResource(R.drawable.ic_mic), contentDescription = stringResource(R.string.assistant_open))
+                val assistantLabel = stringResource(R.string.assistant_open)
+                IconButton(onClick = onOpenAssistant, modifier = Modifier.semantics { contentDescription = assistantLabel }) {
+                    // The live 3D orb; the plain mic icon if this device can't render it.
+                    // Paused while the big orb is open over the timeline.
+                    AssistantOrb(mode = OrbMode.Idle, active = !assistantOpen, modifier = Modifier.size(34.dp)) {
+                        Icon(painterResource(R.drawable.ic_mic), contentDescription = null)
+                    }
                 }
             }
             if (selectedTaskId != null) {

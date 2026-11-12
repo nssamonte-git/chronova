@@ -1,5 +1,6 @@
 package noel.chronova.app.presentation.components
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -70,6 +71,8 @@ fun SchedulerTimeline(
     onEditTask: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    /** Tasks the assistant just changed: outlined, and the first one scrolled into view. */
+    highlighted: Set<String> = emptySet(),
 ) {
     val config = state.config
     val window = state.window
@@ -87,6 +90,22 @@ fun SchedulerTimeline(
         TimelineViewportState(initialScrollX(state, pxPerMinute))
     }
     val listState = rememberLazyListState()
+    // Bring the first task the assistant changed into view (row, then time) while it says what changed.
+    // Keyed on its times too: the highlight can arrive before the moved task does, and the scroll
+    // must follow the task to where it now is.
+    val highlightIndex = state.tasks.indexOfFirst { it.id in highlighted }
+    val highlightTask = state.tasks.getOrNull(highlightIndex)
+    LaunchedEffect(highlighted, highlightTask?.startMillis, highlightTask?.endMillis) {
+        val task = highlightTask ?: return@LaunchedEffect
+        val visible = listState.layoutInfo.visibleItemsInfo.map { it.index }
+        if (highlightIndex !in visible) listState.animateScrollToItem(highlightIndex)
+        val startX = (task.startMillis - window.startMillis) / 60_000f * pxPerMinute
+        val endX = (task.endMillis - window.startMillis) / 60_000f * pxPerMinute
+        val width = viewport.viewportWidth
+        if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
+            viewport.animateScrollTo(startX - width * 0.2f)
+        }
+    }
 
     val colors = MaterialTheme.colorScheme
     // Time always flows left-to-right, even in RTL locales.
@@ -173,6 +192,7 @@ fun SchedulerTimeline(
                                 TaskLane(
                                     task = task,
                                     selected = task.id == state.selectedTaskId,
+                                    highlighted = task.id in highlighted,
                                     window = window,
                                     zone = state.zone,
                                     pxPerMinute = pxPerMinute,

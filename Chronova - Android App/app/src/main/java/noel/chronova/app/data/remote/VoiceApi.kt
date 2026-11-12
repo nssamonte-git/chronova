@@ -44,12 +44,19 @@ data class Transcript(val text: String, val language: String?)
 sealed interface ExplainRequest {
     val language: String?
 
-    /** The previewed changes, to be summarised before the user confirms. */
-    data class Changes(val today: LocalDate, val changes: List<ExplainedChange>, override val language: String?) : ExplainRequest
+    /** Changes to describe: as a proposal that asks to apply them, or as already applied. */
+    data class Changes(
+        val today: LocalDate,
+        val changes: List<ExplainedChange>,
+        override val language: String?,
+        val stage: ExplainStage = ExplainStage.Proposal,
+    ) : ExplainRequest
 
     /** A clarifying question, spoken as it is. */
     data class Question(val text: String, override val language: String?) : ExplainRequest
 }
+
+enum class ExplainStage(val wire: String) { Proposal("proposal"), Applied("applied") }
 
 /** [audio] is null when the server could write the words but not say them. */
 class SpokenAnswer(val text: String, val audio: ByteArray?, val audioType: String?)
@@ -117,6 +124,7 @@ class OkHttpVoiceApi(
                 today = request.today.toString(),
                 changes = request.changes.map { it.toDto() },
                 language = request.language,
+                stage = request.stage.wire,
             )
             is ExplainRequest.Question -> ExplainRequestDto(question = request.text, language = request.language)
         }
@@ -184,6 +192,7 @@ internal data class ExplainRequestDto(
     val changes: List<ExplainChangeDto>? = null,
     val question: String? = null,
     val language: String? = null,
+    val stage: String? = null,
 )
 
 /** Null fields are left out (`explicitNulls = false`): the server wants exactly the fields of each kind. */

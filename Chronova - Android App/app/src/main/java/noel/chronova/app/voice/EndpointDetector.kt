@@ -1,0 +1,72 @@
+package noel.chronova.app.voice
+
+/**
+ * Decides, from microphone levels sampled about every 100 ms, when the user has
+ * finished speaking — so a voice-only turn ends without a Done button.
+ *
+ * The first [calibrationMs] learn the room's noise floor. Speech is a level clearly
+ * above it ([speechRatio] times the floor, and at least [minSpeechLevel]) for at least
+ * [minSpeechMs] without a break, so taps, clicks and scattered room noise don't count; the turn ends after
+ * [silenceMs] of quiet following speech. With no speech by
+ * [noSpeechTimeoutMs] the turn ends empty, and [maxMs] is a hard limit.
+ */
+class EndpointDetector(
+    private val calibrationMs: Long = 300,
+    private val silenceMs: Long = 1_200,
+    private val noSpeechTimeoutMs: Long = 8_000,
+    private val maxMs: Long = 60_000,
+    private val speechRatio: Float = 3f,
+    private val minSpeechLevel: Int = 1_500,
+    private val minSpeechMs: Long = 300,
+    private val sampleMs: Long = 100,
+) {
+    sealed interface Decision {
+        data object Continue : Decision
+
+        /** Speech was heard and has ended (or the hard limit was reached). */
+        data object Done : Decision
+
+        /** Nothing that sounded like speech before the timeout. */
+        data object NothingHeard : Decision
+    }
+
+    private var floorSum = 0L
+    private var floorCount = 0
+    private var heardSpeech = false
+    private var loudRunMs = 0L
+    private var lastSpeechAt = 0L
+
+    /** True once something above the noise floor has been heard. */
+    val speechStarted: Boolean get() = heardSpeech
+
+    /** Feeds one sample: the maximum amplitude (0..32767) since the last one, at [elapsedMs] into the turn. */
+    fun sample(amplitude: Int, elapsedMs: Long): Decision {
+        if (elapsedMs < calibrationMs) {
+            floorSum += amplitude
+            floorCount++
+            return Decision.Continue
+        }
+        val floor = if (floorCount == 0) 0f else floorSum / floorCount.toFloat()
+        val threshold = maxOf(minSpeechLevel.toFloat(), floor * speechRatio)
+        if (amplitude >= threshold) {
+            loudRunMs += sampleMs
+            if (loudRunMs >= minSpeechMs) heardSpeech = true
+            if (heardSpeech) lastSpeechAt = elapsedMs
+        } else {
+            loudRunMs = 0
+        }
+        return when {
+            elapsedMs >= maxMs -> if (heardSpeech) Decision.Done else Decision.NothingHeard
+            heardSpeech && elapsedMs - lastSpeechAt >= silenceMs -> Decision.Done
+            !heardSpeech && elapsedMs >= noSpeechTimeoutMs -> Decision.NothingHeard
+            else -> Decision.Continue
+        }
+    }
+
+    /** A 0..1 level for the listening animation, relative to the speech threshold. */
+    fun level(amplitude: Int): Float {
+        val floor = if (floorCount == 0) 0f else floorSum / floorCount.toFloat()
+        val threshold = maxOf(minSpeechLevel.toFloat(), floor * speechRatio)
+        return ((amplitude - floor) / (threshold * 3f - floor).coerceAtLeast(1f)).coerceIn(0f, 1f)
+    }
+}

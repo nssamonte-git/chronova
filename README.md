@@ -32,11 +32,13 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Dependencies**: finish-to-start links chosen in the task editor (cycles are blocked); arrows on the timeline turn red when violated.
 - **Offline-first sync**: local Room database; a reconnect prompt ("You're back online — sync now?"), a sync button with the number of unsynced changes, last-write-wins conflict handling, sign-out/delete account clear the device.
 - **Accounts**: sign up with an emailed 6-digit code, sign in, forgot/reset password, delete account. The token is encrypted with an Android Keystore key.
-- **Voice and typed commands** (signed in, online): tap the mic in the timeline, then **Speak** ("push build by two hours and everything after it") or type. The server transcribes (ElevenLabs Scribe) and interprets (OpenAI, strict schema) the instruction; the app checks the proposal against its own data and shows a **preview** — nothing changes until **Apply**, and **Undo** follows. Spoken commands also get a short **spoken answer** ("Build will move to today from 11 a.m. to noon. Tap Apply to confirm."), with Replay and a remembered mute. "…and everything after it" pushes dependent tasks just enough; dragging never moves other tasks. See [`docs/voice-api.md`](docs/voice-api.md).
+- **Voice assistant** (signed in, online): tap the orb in the timeline's top bar and it comes to the centre of the screen and listens; say what to change ("push build by two hours and everything after it"). It ends your turn by itself after a short silence. The server transcribes (ElevenLabs Scribe) and interprets (OpenAI, strict schema) the request; the app checks the proposal against its own data, the orb says what will change and asks "Shall I apply it?", and you answer by voice: yes applies, no leaves everything as it was, anything else is taken as a corrected request. It asks out loud when the request is unclear. Once applied the orb hides and says what changed while the changed task is highlighted on the timeline, and **Undo** follows. There is no text field; tapping outside the orb or Back stops it. "…and everything after it" pushes dependent tasks just enough; dragging never moves other tasks. See [`docs/voice-api.md`](docs/voice-api.md).
 
 ## Branding
 
 The Chronova logo (`docs/brand/chronova-logo.webp`) is used as supplied. `python3 tools/brand/generate.py` (Pillow) rebuilds everything from it: the Android adaptive and themed icon layers and the launch-screen logo (`Chronova - Android App/app/src/main/res/drawable-nodpi/brand_*`), and the admin panel's logo and favicons (`server/public/images/brand/`, `server/public/favicon.ico`). The admin panel is dark-only in the logo's colours (`AdminPanelProvider`, `server/resources/css/admin-theme.css`).
+
+The assistant orb is the supplied 3D model (`docs/brand/assistant-orb.glb`) in the colours of its reference image (`docs/brand/assistant-orb-reference.webp`). `cd tools/brand/orb && npm ci && node convert.mjs` (glTF-Transform, Draco, sharp) writes the copy the app renders, `Chronova - Android App/app/src/main/assets/orb/assistant_orb.glb` (880 KB, byte-identical on every run): Draco decoded, textures as JPEG/PNG, a glossy material with an inner glow. The app draws it live with Filament, lit by blue, violet and magenta lights and a reflection map in the same colours, with a halo and sparkle drawn by Compose; it falls back to the mic icon if the 3D view can't start.
 
 ## Repository layout
 
@@ -59,7 +61,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── brand/                    the logo as supplied
 │   ├── AI_USAGE_LOG.md           per-batch development log
 │   └── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it
-└── tools/brand/                  icon and logo generator (writes into both the app and the server)
+└── tools/brand/                  icon and logo generator (writes into both the app and the server); orb/ converts the 3D orb for the app
 ```
 
 App commands run from `Chronova - Android App/`; server and infrastructure commands from `server/` and `server/infra/`; git and the brand generator from the repository root.
@@ -94,7 +96,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (227 tests)
+composer test                 # Pest (247 tests)
 ```
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
@@ -115,7 +117,7 @@ noel.chronova.app
 ├── data/sync         SyncEngine, RoomLocalSyncStore, SyncCoordinator (reconnect prompt), connectivity
 ├── domain/schedule   ScheduleChange, ApplyScheduleChanges (one transaction, stale-checked, undoable), CommandPlanner, DependentsRescheduler
 ├── domain/voice      VoiceContext, AICommandHandler (proposal → commands → plan), PreviewItem
-├── voice             microphone recorder, speech player
+├── voice             microphone recorder, end-of-speech detection, speech player, 3D orb (Filament)
 ├── auth              ApiAuthRepository, Keystore token store, backend config
 ├── navigation        project list → timeline, account
 └── presentation      projects, timeline (+ task editor), account, sync UI, components
@@ -147,10 +149,10 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 195 |
+| Android JVM unit tests | `cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest` | 198 |
 | Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Server (Pest, real Postgres) | `cd server && composer test` | 227 |
-| Server inside the image | `cd server && docker compose --profile test run --rm --build test` | 227 |
+| Server (Pest, real Postgres) | `cd server && composer test` | 247 |
+| Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npm test` | 16 |
 
 The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
@@ -163,7 +165,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - **No custom domain required on AWS**: CloudFront's default domain gives HTTPS; the load balancer is private (VPC origin), so client IPs come from CloudFront's own header. A custom domain is needed to enforce TLS 1.2+.
 - **Fixed 15-minute minimum duration** across all snap intervals; the dragged edge snaps to the nearest allowed grid line.
 - **Pinned dependency versions**, each at least two weeks old when chosen; lint and npm report newer ones.
-- **Voice proposes, the user decides.** Every voice or typed command is previewed and needs Apply; Undo follows. Only spoken commands get a spoken answer (typed ones are answered on screen). Voice is on for every signed-in user, so cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
+- **Voice proposes, the user decides — by voice.** The assistant is voice-only: it says every change before making it and applies it only on a spoken yes; Undo follows. Silence, a no or tapping away changes nothing. Voice is on for every signed-in user, so cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
 
 ## Known limitations
 
@@ -175,6 +177,8 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
 - The app is light-themed (the admin panel is dark-only). Only three instrumented tests (the Room transaction) and no UI test suite; device behaviour was verified by hand.
+- The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses.
+- The 3D orb (Filament 1.79) adds native libraries: the debug APK is about 40 MB (15 MB before); Play's per-device delivery ships one CPU type, about 6 MB more. It needs OpenGL ES 3.0, and falls back to the mic icon otherwise or after the 3D view has failed once.
 - Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
 
 ## AI usage

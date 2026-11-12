@@ -159,7 +159,7 @@ class OkHttpVoiceApiTest {
         assertEquals("/v1/voice/explain", request.url.encodedPath)
         assertEquals(
             """{"today":"2026-11-12","changes":[{"change":"removed","task":"QA"},""" +
-                """{"change":"added","task":"Demo","toStart":"2026-11-13T09:00","toEnd":"2026-11-13T10:00"}],"language":"en"}""",
+                """{"change":"added","task":"Demo","toStart":"2026-11-13T09:00","toEnd":"2026-11-13T10:00"}],"language":"en","stage":"proposal"}""",
             request.body!!.utf8(),
         )
         assertEquals("Build moves to 11.", answer.text)

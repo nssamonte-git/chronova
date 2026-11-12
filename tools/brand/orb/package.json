@@ -1,0 +1,16 @@
+{
+  "name": "chronova-orb-convert",
+  "private": true,
+  "type": "module",
+  "description": "Converts docs/brand/assistant-orb.glb into the app's asset (see convert.mjs).",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "draco3dgltf": "1.5.9",
+    "sharp": "0.35.5"
+  }
+}

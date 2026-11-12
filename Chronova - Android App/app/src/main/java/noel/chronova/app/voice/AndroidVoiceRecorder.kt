@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.SystemClock
+import android.util.Log
 import java.io.File
 import java.io.IOException
 
@@ -44,12 +45,14 @@ class AndroidVoiceRecorder(private val context: Context) : VoiceRecorder {
         this.recorder = recorder
         this.file = output
         startedAt = SystemClock.elapsedRealtime()
+        Log.i(TAG, "listening") // state only, never content
     }
 
     override fun stop(): Recording? {
         val recorder = recorder ?: return null
         val output = file ?: return null
         val durationMs = SystemClock.elapsedRealtime() - startedAt
+        Log.i(TAG, "stopped")
         this.recorder = null
         this.file = null
         val ok = try {
@@ -68,7 +71,14 @@ class AndroidVoiceRecorder(private val context: Context) : VoiceRecorder {
         return Recording(output, durationMs.coerceAtMost(MAX_MS.toLong()))
     }
 
+    override fun amplitude(): Int = try {
+        (recorder?.maxAmplitude ?: 0).also { Log.v(TAG, "level $it") } // a number only, for tuning
+    } catch (_: IllegalStateException) {
+        0
+    }
+
     override fun cancel() {
+        if (recorder != null) Log.i(TAG, "cancelled")
         recorder?.let { recorder ->
             try {
                 recorder.stop()
@@ -93,6 +103,7 @@ class AndroidVoiceRecorder(private val context: Context) : VoiceRecorder {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
 
     private companion object {
+        const val TAG = "ChronovaVoice"
         const val MAX_MS = 61_000
     }
 }

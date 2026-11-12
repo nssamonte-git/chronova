@@ -15,6 +15,9 @@ interface VoiceRecorder {
 
     /** Stops and throws the recording away. Safe to call when not recording. */
     fun cancel()
+
+    /** The loudest level (0..32767) since the last call; 0 when not recording. */
+    fun amplitude(): Int
 }
 
 class RecorderUnavailable(cause: Throwable) : Exception("The microphone can't be used.", cause)

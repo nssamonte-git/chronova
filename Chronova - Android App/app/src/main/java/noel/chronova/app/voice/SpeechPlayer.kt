@@ -18,17 +18,17 @@ interface SpeechPlayer {
     fun release()
 }
 
-/** Whether the assistant speaks its answers; remembered across launches. */
-interface SpeechSettings {
-    var muted: Boolean
+/** The assistant's remembered settings: whether the user has seen the one-time privacy notice. */
+interface AssistantSettings {
+    var noticeAccepted: Boolean
 }
 
-class PreferencesSpeechSettings(private val prefs: SharedPreferences) : SpeechSettings {
-    override var muted: Boolean
-        get() = prefs.getBoolean(KEY_MUTED, false)
-        set(value) = prefs.edit { putBoolean(KEY_MUTED, value) }
+class PreferencesAssistantSettings(private val prefs: SharedPreferences) : AssistantSettings {
+    override var noticeAccepted: Boolean
+        get() = prefs.getBoolean(KEY_NOTICE, false)
+        set(value) = prefs.edit { putBoolean(KEY_NOTICE, value) }
 
     private companion object {
-        const val KEY_MUTED = "spoken_answers_muted"
+        const val KEY_NOTICE = "voice_notice_accepted"
     }
 }

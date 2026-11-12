@@ -67,6 +67,8 @@ fun TaskLane(
     /** A finished drag: the task as it was when the drag started, and as edited. */
     onCommit: (original: SchedulerTask, edited: SchedulerTask) -> Unit,
     modifier: Modifier = Modifier,
+    /** Just changed by the assistant. */
+    highlighted: Boolean = false,
 ) {
     var preview by remember { mutableStateOf<SchedulerTask?>(null) }
     var dragging by remember { mutableStateOf(false) }
@@ -116,6 +118,7 @@ fun TaskLane(
             color = task.color.toColor(),
             selected = selected,
             active = dragging,
+            highlighted = highlighted,
             handleOutset = if (selected) HandleOutset else 0.dp,
             modifier = Modifier
                 // Layout-phase reads: scrolling and moving don't recompose or re-measure siblings.

@@ -24,9 +24,11 @@ import noel.chronova.app.data.sync.SyncEngine
 import noel.chronova.app.data.sync.onlineFlow
 import noel.chronova.app.voice.AndroidSpeechPlayer
 import noel.chronova.app.voice.AndroidVoiceRecorder
-import noel.chronova.app.voice.PreferencesSpeechSettings
+import noel.chronova.app.voice.PreferencesAssistantSettings
+import noel.chronova.app.presentation.voice.AssistantPhrases
+import noel.chronova.app.presentation.voice.ResourcePhrases
 import noel.chronova.app.voice.SpeechPlayer
-import noel.chronova.app.voice.SpeechSettings
+import noel.chronova.app.voice.AssistantSettings
 import noel.chronova.app.voice.VoiceRecorder
 import noel.chronova.app.data.repository.FirstLaunchFlag
 import noel.chronova.app.data.repository.RoomProjectRepository
@@ -94,7 +96,10 @@ class AppContainer(private val context: Context) {
     /** A player for one assistant's spoken answers. */
     fun newSpeechPlayer(): SpeechPlayer = AndroidSpeechPlayer(context)
 
-    val speechSettings: SpeechSettings = PreferencesSpeechSettings(context.getSharedPreferences("chronova_voice", Context.MODE_PRIVATE))
+    val assistantSettings: AssistantSettings = PreferencesAssistantSettings(context.getSharedPreferences("chronova_voice", Context.MODE_PRIVATE))
+
+    /** The assistant's own words (spoken problems, goodbyes), from string resources. */
+    val assistantPhrases: AssistantPhrases = ResourcePhrases(context.resources)
 
     /** Whether the internet is reachable (each collector gets its own callback). */
     val online: Flow<Boolean> = onlineFlow(context)

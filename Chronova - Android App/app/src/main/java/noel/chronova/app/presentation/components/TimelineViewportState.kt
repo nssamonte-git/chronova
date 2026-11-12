@@ -1,5 +1,6 @@
 package noel.chronova.app.presentation.components
 
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -52,6 +53,11 @@ class TimelineViewportState(initialScrollX: Float = 0f) {
         maxScrollX = ViewportMath.maxScroll(contentWidth, viewportWidth)
         val clamped = target.coerceIn(0f, maxScrollX)
         if (clamped != scrollX) scrollX = clamped
+    }
+
+    /** Smoothly scrolls so the content x [target] is at the viewport's left edge (clamped). */
+    suspend fun animateScrollTo(target: Float) {
+        scrollableState.animateScrollBy(target.coerceIn(0f, maxScrollX) - scrollX)
     }
 
     companion object {

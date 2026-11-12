@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.util.Log
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,7 @@ class AndroidSpeechPlayer(private val context: Context) : SpeechPlayer {
         }
         this.player = player
         _playing.value = true
+        Log.i("ChronovaVoice", "speaking")
     }
 
     override fun stop() {
@@ -74,6 +76,7 @@ class AndroidSpeechPlayer(private val context: Context) : SpeechPlayer {
     override fun release() = stop()
 
     private fun finish() {
+        if (_playing.value) Log.i("ChronovaVoice", "spoken")
         audioManager.abandonAudioFocusRequest(focus)
         file.delete()
         _playing.value = false
