@@ -141,7 +141,9 @@ internal class AssistantConversation(
         // On screen, only what the alternative does differently (it says the same).
         val asked = ExplainedChange.from(proposal.items, zone)
         val different = offer.filter { item -> ExplainedChange.from(listOf(item), zone).any { it !in asked } }
-        session.ui.update { it.copy(proposal = proposal.items, warnings = proposal.warnings, offer = different) }
+        session.ui.update { state ->
+            state.copy(proposal = proposal.items.map { it.toUi() }, warnings = proposal.warnings.map { it.toUi() }, offer = different.map { it.toUi() })
+        }
         // A clash is named before the question, which offers the alternative or asks whether to apply it anyway.
         voice.speak(voice.explain(proposal.items, ExplainStage.Proposal, proposal.warnings, offer))
         return ears.listen(answering = true)
@@ -201,7 +203,8 @@ internal class AssistantConversation(
         when (val result = useCases.apply(projectId, proposal)) {
             is ApplyResult.Rejected -> voice.say(phrases.scheduleChanged())
             is ApplyResult.Applied -> {
-                session.message.value = AssistantMessage.Applied(proposal.changes.taskCount(), result.undo)
+                session.lastUndo = result.undo
+                session.message.value = AssistantMessage.Applied(proposal.changes.taskCount())
                 useCases.recordChange(projectId, proposal, result.undo)
                 // Still busy while the orb gives way to the explanation: no gap in between.
                 session.explaining.value = true

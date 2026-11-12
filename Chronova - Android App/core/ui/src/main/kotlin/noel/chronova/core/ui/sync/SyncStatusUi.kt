@@ -22,7 +22,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import noel.chronova.core.ui.R
 import noel.chronova.core.domain.sync.SyncFailure
-import noel.chronova.core.domain.sync.SyncStatus
+
+/** What sync is doing, as the screens show it. */
+sealed interface SyncPhase {
+    data object Idle : SyncPhase
+    data object Syncing : SyncPhase
+    data object Synced : SyncPhase
+    data class Failed(val reason: SyncFailure) : SyncPhase
+}
 
 /** What the project list shows about sync. */
 data class SyncUi(
@@ -30,14 +37,14 @@ data class SyncUi(
     val configured: Boolean = false,
     val signedIn: Boolean = false,
     val pending: Int = 0,
-    val status: SyncStatus = SyncStatus.Idle,
+    val phase: SyncPhase = SyncPhase.Idle,
 )
 
 /** Top-bar sync button with the number of unsynced changes. */
 @Composable
 fun SyncButton(ui: SyncUi, onSync: () -> Unit) {
-    IconButton(onClick = onSync, enabled = ui.status != SyncStatus.Syncing) {
-        if (ui.status == SyncStatus.Syncing) {
+    IconButton(onClick = onSync, enabled = ui.phase != SyncPhase.Syncing) {
+        if (ui.phase == SyncPhase.Syncing) {
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         } else {
             BadgedBox(badge = { if (ui.pending > 0) Badge { Text(if (ui.pending > 99) "99+" else "${ui.pending}") } }) {
@@ -51,7 +58,7 @@ fun SyncButton(ui: SyncUi, onSync: () -> Unit) {
 @Composable
 fun SyncStatusLine(ui: SyncUi, onClick: () -> Unit) {
     val text = syncStatusText(ui) ?: return
-    val isError = ui.status is SyncStatus.Failed
+    val isError = ui.phase is SyncPhase.Failed
     Row(
         Modifier
             .fillMaxWidth()
@@ -70,13 +77,13 @@ fun SyncStatusLine(ui: SyncUi, onClick: () -> Unit) {
 @Composable
 fun syncStatusText(ui: SyncUi): String? {
     if (!ui.configured) return null
-    return when (val status = ui.status) {
-        SyncStatus.Syncing -> stringResource(R.string.sync_status_syncing)
-        is SyncStatus.Failed -> syncFailureText(status.reason)
-        is SyncStatus.Synced ->
+    return when (val phase = ui.phase) {
+        SyncPhase.Syncing -> stringResource(R.string.sync_status_syncing)
+        is SyncPhase.Failed -> syncFailureText(phase.reason)
+        SyncPhase.Synced ->
             if (ui.pending > 0) pluralStringResource(R.plurals.sync_status_pending, ui.pending, ui.pending)
             else stringResource(R.string.sync_status_synced)
-        SyncStatus.Idle -> when {
+        SyncPhase.Idle -> when {
             ui.pending == 0 -> null
             ui.signedIn -> pluralStringResource(R.plurals.sync_status_pending, ui.pending, ui.pending)
             else -> pluralStringResource(R.plurals.sync_status_signed_out, ui.pending, ui.pending)

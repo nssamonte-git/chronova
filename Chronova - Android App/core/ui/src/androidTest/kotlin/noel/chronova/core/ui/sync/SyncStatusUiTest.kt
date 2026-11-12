@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import noel.chronova.core.domain.sync.SyncFailure
-import noel.chronova.core.domain.sync.SyncStatus
 import noel.chronova.core.ui.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,7 +27,7 @@ class SyncStatusUiTest {
     val compose = createComposeRule()
 
     private val res = InstrumentationRegistry.getInstrumentation().targetContext.resources
-    private val synced = SyncStatus.Synced(at = 1L, pushed = 0, pulled = 0)
+    private val synced = SyncPhase.Synced
     private val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
     /** What [syncStatusText] says for each of [uis] (one composition: a test sets content once). */
@@ -42,9 +41,9 @@ class SyncStatusUiTest {
     @Test
     fun saysNothingWithoutABackendOrWithNothingToSay() {
         val texts = textsFor(
-            SyncUi(configured = false, pending = 3, status = SyncStatus.Failed(SyncFailure.OFFLINE)),
-            SyncUi(configured = false, status = SyncStatus.Syncing),
-            SyncUi(configured = true, signedIn = true, pending = 0, status = SyncStatus.Idle),
+            SyncUi(configured = false, pending = 3, phase = SyncPhase.Failed(SyncFailure.OFFLINE)),
+            SyncUi(configured = false, phase = SyncPhase.Syncing),
+            SyncUi(configured = true, signedIn = true, pending = 0, phase = SyncPhase.Idle),
         )
         texts.forEach { assertNull(it) }
     }
@@ -52,9 +51,9 @@ class SyncStatusUiTest {
     @Test
     fun saysWhatSyncIsDoing() {
         val texts = textsFor(
-            SyncUi(configured = true, signedIn = true, status = SyncStatus.Syncing),
-            SyncUi(configured = true, signedIn = true, status = synced),
-            SyncUi(configured = true, signedIn = true, pending = 2, status = synced),
+            SyncUi(configured = true, signedIn = true, phase = SyncPhase.Syncing),
+            SyncUi(configured = true, signedIn = true, phase = synced),
+            SyncUi(configured = true, signedIn = true, pending = 2, phase = synced),
         )
         assertEquals(
             listOf(
@@ -76,7 +75,7 @@ class SyncStatusUiTest {
             SyncFailure.SERVER to R.string.sync_failed_server,
         )
         val failures = SyncFailure.entries
-        val texts = textsFor(*failures.map { SyncUi(configured = true, signedIn = true, status = SyncStatus.Failed(it)) }.toTypedArray())
+        val texts = textsFor(*failures.map { SyncUi(configured = true, signedIn = true, phase = SyncPhase.Failed(it)) }.toTypedArray())
         assertEquals(failures.map { res.getString(expected.getValue(it)) }, texts)
         assertEquals(failures.size, texts.toSet().size)
     }
@@ -106,7 +105,7 @@ class SyncStatusUiTest {
     fun statusLineShowsTheTextAndOpensOnTap() {
         var taps = 0
         compose.setContent {
-            SyncStatusLine(SyncUi(configured = true, signedIn = true, status = SyncStatus.Failed(SyncFailure.OFFLINE))) { taps++ }
+            SyncStatusLine(SyncUi(configured = true, signedIn = true, phase = SyncPhase.Failed(SyncFailure.OFFLINE))) { taps++ }
         }
         compose.onNodeWithText(res.getString(R.string.sync_failed_offline)).assertIsDisplayed().performClick()
         assertEquals(1, taps)
@@ -138,7 +137,7 @@ class SyncStatusUiTest {
     @Test
     fun buttonIsDisabledWhileSyncing() {
         var syncs = 0
-        compose.setContent { SyncButton(SyncUi(configured = true, signedIn = true, pending = 3, status = SyncStatus.Syncing)) { syncs++ } }
+        compose.setContent { SyncButton(SyncUi(configured = true, signedIn = true, pending = 3, phase = SyncPhase.Syncing)) { syncs++ } }
         compose.onNode(button).assertIsNotEnabled().performClick()
         // A spinner instead of the icon and badge.
         compose.onNodeWithContentDescription(res.getString(R.string.sync_now)).assertDoesNotExist()

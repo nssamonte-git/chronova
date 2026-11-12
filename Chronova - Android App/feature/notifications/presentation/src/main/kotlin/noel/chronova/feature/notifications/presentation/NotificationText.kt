@@ -2,14 +2,13 @@ package noel.chronova.feature.notifications.presentation
 
 import android.content.res.Resources
 import noel.chronova.core.domain.sync.SyncFailure
-import noel.chronova.core.domain.notifications.AppNotification
 import noel.chronova.core.domain.notifications.NotificationKind
 import noel.chronova.core.ui.R as CoreUiR
 
 data class NotificationText(val title: String, val body: String)
 
 /** A notification's words, in the phone's language, for the page and the notification shade. */
-fun notificationText(notification: AppNotification, resources: Resources): NotificationText {
+fun notificationText(notification: NotificationUi, resources: Resources): NotificationText {
     val args = notification.args
     fun count(key: String) = args[key]?.toIntOrNull() ?: 0
     fun tasks() = args["tasks"].orEmpty().split('\n').filter { it.isNotBlank() }.joinToString(", ")

@@ -1,5 +1,6 @@
 package noel.chronova.feature.projects.presentation
 
+import java.time.LocalDate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.core.domain.SampleTasks
-import noel.chronova.core.model.ProjectSummary
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.ui.sync.SyncButton
 import noel.chronova.core.ui.sync.SyncStatusLine
@@ -88,7 +87,7 @@ fun ProjectListScreen(
         state = state,
         onOpenProject = onOpenProject,
         onCreate = viewModel::startCreate,
-        onEdit = { viewModel.startEdit(it.project) },
+        onEdit = viewModel::startEdit,
         onDelete = viewModel::requestDelete,
         onOpenAccount = onOpenAccount,
         syncUi = syncUi,
@@ -109,7 +108,7 @@ fun ProjectListScreen(
     pendingDelete?.let { target ->
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
-            title = { Text(stringResource(R.string.project_delete_title, target.project.name)) },
+            title = { Text(stringResource(R.string.project_delete_title, target.name)) },
             text = {
                 Text(
                     if (target.taskCount == 0) {
@@ -135,8 +134,8 @@ private fun ProjectListContent(
     state: ProjectListState,
     onOpenProject: (String) -> Unit,
     onCreate: () -> Unit,
-    onEdit: (ProjectSummary) -> Unit,
-    onDelete: (ProjectSummary) -> Unit,
+    onEdit: (ProjectRowUi) -> Unit,
+    onDelete: (ProjectRowUi) -> Unit,
     onOpenAccount: () -> Unit,
     syncUi: SyncUi,
     onSync: () -> Unit,
@@ -205,10 +204,10 @@ private fun ProjectListContent(
                                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                items(state.projects, key = { it.project.id }) { summary ->
+                                items(state.projects, key = { it.id }) { summary ->
                                     ProjectCard(
                                         summary = summary,
-                                        onClick = { onOpenProject(summary.project.id) },
+                                        onClick = { onOpenProject(summary.id) },
                                         onEdit = { onEdit(summary) },
                                         onDelete = { onDelete(summary) },
                                     )
@@ -222,7 +221,7 @@ private fun ProjectListContent(
 }
 
 @Composable
-private fun ProjectCard(summary: ProjectSummary, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -231,23 +230,23 @@ private fun ProjectCard(summary: ProjectSummary, onClick: () -> Unit, onEdit: ()
     ) {
         Row(verticalAlignment = Alignment.Top) {
             ProjectCardText(summary, Modifier.weight(1f))
-            ProjectMenu(projectName = summary.project.name, onEdit = onEdit, onDelete = onDelete)
+            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDelete = onDelete)
         }
     }
 }
 
 @Composable
-private fun ProjectCardText(summary: ProjectSummary, modifier: Modifier = Modifier) {
+private fun ProjectCardText(summary: ProjectRowUi, modifier: Modifier = Modifier) {
     Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = summary.project.name,
+            text = summary.name,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = TimeFormat.dateRange(summary.project.startDate, summary.project.endDate),
+            text = TimeFormat.dateRange(summary.startDate, summary.endDate),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -292,7 +291,9 @@ private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDelete: () ->
 private fun ProjectListPreview() {
     ChronovaTheme {
         ProjectListContent(
-            state = ProjectListState.Loaded(listOf(ProjectSummary(SampleTasks.project, taskCount = 4))),
+            state = ProjectListState.Loaded(
+                listOf(ProjectRowUi("sample", "Sample project", LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 4), taskCount = 4)),
+            ),
             onOpenProject = {},
             onCreate = {},
             onEdit = {},

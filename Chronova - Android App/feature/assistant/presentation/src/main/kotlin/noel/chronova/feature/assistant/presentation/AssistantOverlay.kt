@@ -41,8 +41,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
-import noel.chronova.feature.assistant.domain.PreviewItem
-import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
 import noel.chronova.core.ui.R as CoreUiR
@@ -195,9 +193,9 @@ private fun Captions(state: AssistantUiState, zone: ZoneId, maxHeight: Dp) {
 
 /** One clash a proposal would cause, as a caption line. */
 @Composable
-private fun warningText(warning: ScheduleWarning): String = when (warning) {
-    is ScheduleWarning.Overlap -> stringResource(R.string.assistant_warning_overlap, warning.task, warning.other)
-    is ScheduleWarning.BrokenLink -> stringResource(R.string.assistant_warning_link, warning.successor, warning.predecessor)
+private fun warningText(warning: WarningUi): String = when (warning) {
+    is WarningUi.Overlap -> stringResource(R.string.assistant_warning_overlap, warning.task, warning.other)
+    is WarningUi.BrokenLink -> stringResource(R.string.assistant_warning_link, warning.successor, warning.predecessor)
 }
 
 /** The one-time notice before the first conversation: what goes to ElevenLabs and OpenAI. */
@@ -213,24 +211,24 @@ fun AssistantNotice(onContinue: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun previewText(item: PreviewItem, zone: ZoneId): String = when (item) {
-    is PreviewItem.Changed -> {
+private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item) {
+    is ProposalLineUi.Changed -> {
         val parts = mutableListOf<String>()
-        if (item.renamed) parts += stringResource(R.string.assistant_preview_renamed, item.before.title, item.after.title)
+        if (item.renamed) parts += stringResource(R.string.assistant_preview_renamed, item.titleBefore, item.title)
         if (item.moved) {
             parts += stringResource(
                 R.string.assistant_preview_moved,
-                item.after.title,
-                range(item.before.startMillis, item.before.endMillis, zone),
-                range(item.after.startMillis, item.after.endMillis, zone),
+                item.title,
+                range(item.startBefore, item.endBefore, zone),
+                range(item.start, item.end, zone),
             )
         }
         parts.joinToString("\n")
     }
-    is PreviewItem.Added -> stringResource(R.string.assistant_preview_added, item.task.title, range(item.task.startMillis, item.task.endMillis, zone))
-    is PreviewItem.Removed -> stringResource(R.string.assistant_preview_removed, item.task.title)
-    is PreviewItem.Linked -> stringResource(R.string.assistant_preview_linked, item.predecessor, item.successor)
-    is PreviewItem.Unlinked -> stringResource(R.string.assistant_preview_unlinked, item.predecessor, item.successor)
+    is ProposalLineUi.Added -> stringResource(R.string.assistant_preview_added, item.title, range(item.start, item.end, zone))
+    is ProposalLineUi.Removed -> stringResource(R.string.assistant_preview_removed, item.title)
+    is ProposalLineUi.Linked -> stringResource(R.string.assistant_preview_linked, item.predecessor, item.successor)
+    is ProposalLineUi.Unlinked -> stringResource(R.string.assistant_preview_unlinked, item.predecessor, item.successor)
 }
 
 /** "Thu 12 09:00 – 11:00", or "Thu 12 09:00 – Fri 13 17:00" across days. */

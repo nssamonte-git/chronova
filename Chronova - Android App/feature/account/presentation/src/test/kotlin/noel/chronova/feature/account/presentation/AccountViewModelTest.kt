@@ -141,7 +141,7 @@ class AccountViewModelTest {
         viewModel.onCodeChange("12a34 56")
         assertEquals("123456", viewModel.form.value.code)
         viewModel.submit()
-        assertEquals(AuthState.SignedIn("sub", "ana@example.com"), viewModel.authState.value)
+        assertEquals(AccountAuthUi.SignedIn("ana@example.com"), viewModel.authState.value)
         assertEquals(listOf("signUp:ana@example.com", "confirm:ana@example.com:123456"), auth.calls)
         assertEquals(AccountForm(), viewModel.form.value)
     }
@@ -162,7 +162,7 @@ class AccountViewModelTest {
         viewModel.onPasswordChange("New-password-42")
         viewModel.submit()
         assertEquals(listOf("forgot:ana@example.com", "reset:ana@example.com:654321"), auth.calls)
-        assertEquals(AuthState.SignedIn("sub", "ana@example.com"), viewModel.authState.value)
+        assertEquals(AccountAuthUi.SignedIn("ana@example.com"), viewModel.authState.value)
     }
 
     @Test
@@ -172,7 +172,7 @@ class AccountViewModelTest {
         auth.outcomes += AuthOutcome.Failed(AuthProblem.WRONG_CREDENTIALS)
         viewModel.submit()
         val form = viewModel.form.value
-        assertEquals(AuthProblem.WRONG_CREDENTIALS, form.authProblem)
+        assertEquals(AuthProblemUi.WRONG_CREDENTIALS, form.authProblem)
         assertEquals(false, form.busy)
         // Typing clears the message.
         viewModel.onPasswordChange("wrong2")

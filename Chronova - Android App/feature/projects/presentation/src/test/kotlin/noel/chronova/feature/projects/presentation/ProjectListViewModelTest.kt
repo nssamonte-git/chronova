@@ -8,7 +8,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import noel.chronova.core.domain.ProjectProblem
 import noel.chronova.core.domain.SampleTasks
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.core.testing.FakeProjectRepository
@@ -70,7 +69,7 @@ class ProjectListViewModelTest {
     fun blankName_keepsEditorOpenWithProblem() = runTest {
         viewModel.startCreate()
         viewModel.saveEditor()
-        assertEquals(ProjectProblem.BlankName, viewModel.editor.value?.problem)
+        assertEquals(ProjectProblemUi.BlankName, viewModel.editor.value?.problem)
         assertEquals(1, repository.projects.value.size)
         // Typing clears the problem.
         viewModel.onNameChange("A")
@@ -79,17 +78,17 @@ class ProjectListViewModelTest {
 
     @Test
     fun edit_cannotShrinkPastExistingTasks() = runTest {
-        viewModel.startEdit(SampleTasks.project)
+        viewModel.startEdit(noel.chronova.core.model.ProjectSummary(SampleTasks.project, 4).toUi())
         // All sample tasks are on the first day, so dropping that day excludes all four.
         viewModel.onRangeChange(SampleTasks.REFERENCE_DATE.plusDays(1), SampleTasks.REFERENCE_DATE.plusDays(2))
         viewModel.saveEditor()
-        assertEquals(ProjectProblem.ExcludesTasks(4), viewModel.editor.value?.problem)
+        assertEquals(ProjectProblemUi.ExcludesTasks(4), viewModel.editor.value?.problem)
         assertEquals(SampleTasks.project, repository.projects.value.single())
     }
 
     @Test
     fun edit_renamesAndExtends() = runTest {
-        viewModel.startEdit(SampleTasks.project)
+        viewModel.startEdit(noel.chronova.core.model.ProjectSummary(SampleTasks.project, 4).toUi())
         viewModel.onNameChange("Website launch")
         viewModel.onRangeChange(SampleTasks.REFERENCE_DATE, SampleTasks.REFERENCE_DATE.plusDays(13))
         viewModel.saveEditor()
@@ -103,12 +102,12 @@ class ProjectListViewModelTest {
     @Test
     fun delete_needsConfirmation() = runTest {
         val summary = noel.chronova.core.model.ProjectSummary(SampleTasks.project, 4)
-        viewModel.requestDelete(summary)
+        viewModel.requestDelete(summary.toUi())
         assertEquals(1, repository.projects.value.size)
         viewModel.cancelDelete()
         assertEquals(1, repository.projects.value.size)
 
-        viewModel.requestDelete(summary)
+        viewModel.requestDelete(summary.toUi())
         viewModel.confirmDelete()
         assertTrue(repository.projects.value.isEmpty())
         assertTrue(repository.tasks.value.isEmpty())

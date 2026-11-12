@@ -13,7 +13,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import noel.chronova.core.domain.notifications.AppNotification
 import noel.chronova.feature.notifications.domain.NotificationPoster
-import noel.chronova.feature.notifications.presentation.notificationText
 
 /**
  * Posts important notifications (a failed sync, an ended session) to the phone's
@@ -37,7 +36,7 @@ class SystemNotifications(
             NotificationChannel(CHANNEL, context.getString(R.string.notifications_channel), NotificationManager.IMPORTANCE_DEFAULT)
                 .apply { description = context.getString(R.string.notifications_channel_body) },
         )
-        val text = notificationText(notification, context.resources)
+        val text = notificationText(notification.toUi(), context.resources)
         val open = PendingIntent.getActivity(
             context,
             0,

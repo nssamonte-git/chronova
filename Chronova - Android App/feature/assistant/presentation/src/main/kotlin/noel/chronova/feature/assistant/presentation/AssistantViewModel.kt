@@ -163,11 +163,13 @@ class AssistantViewModel(
     }
 
     fun undo() {
-        val applied = session.message.value as? AssistantMessage.Applied ?: return
+        if (session.message.value !is AssistantMessage.Applied) return
+        val changes = session.lastUndo
         session.message.value = null
+        session.lastUndo = emptyList()
         conversation.stopAfterword()
         viewModelScope.launch {
-            if (useCases.undo(projectId, applied.undo) is ApplyResult.Rejected) session.message.value = AssistantMessage.UndoNotPossible
+            if (useCases.undo(projectId, changes) is ApplyResult.Rejected) session.message.value = AssistantMessage.UndoNotPossible
         }
     }
 

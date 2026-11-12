@@ -471,7 +471,7 @@ class AssistantViewModelTest {
     fun aClashIsShownAndNamedBeforeAskingAndOnlyAYesAppliesIt() = runTest(dispatcher) {
         api.answer = shift(-1) // Review 15:00–16:00 runs into QA Testing (13:30–16:00)
         player.holdIn = this
-        val shownWhileAsking = mutableListOf<List<ScheduleWarning>>()
+        val shownWhileAsking = mutableListOf<List<WarningUi>>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.state.collect { if (it.proposal.isNotEmpty()) shownWhileAsking += it.warnings }
         }
@@ -483,9 +483,9 @@ class AssistantViewModelTest {
         assertEquals(listOf(ExplainStage.Proposal, ExplainStage.Applied), sent.map { it.stage })
         assertEquals(overlap, sent[0].warnings)
         assertEquals(emptyList<ScheduleWarning>(), sent[1].warnings) // once applied, nothing to warn about
-        assertTrue(shownWhileAsking.isNotEmpty() && shownWhileAsking.all { it == overlap })
+        assertTrue(shownWhileAsking.isNotEmpty() && shownWhileAsking.all { it == listOf(WarningUi.Overlap("Review", "QA Testing")) })
         assertEquals(originalReview.startMillis - 3_600_000L, review.startMillis)
-        assertEquals(emptyList<ScheduleWarning>(), viewModel.state.value.warnings)
+        assertEquals(emptyList<WarningUi>(), viewModel.state.value.warnings)
     }
 
     @Test

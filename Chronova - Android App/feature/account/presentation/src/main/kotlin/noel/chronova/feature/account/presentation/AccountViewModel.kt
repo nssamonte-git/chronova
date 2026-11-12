@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.feature.account.domain.AccountUseCases
 import noel.chronova.core.domain.auth.AuthOutcome
-import noel.chronova.core.domain.auth.AuthProblem
-import noel.chronova.core.domain.auth.AuthState
 import noel.chronova.core.domain.sync.SyncFailure
-import noel.chronova.core.domain.sync.SyncStatus
+import noel.chronova.core.ui.sync.SyncPhase
+import noel.chronova.core.ui.sync.toSyncPhase
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import noel.chronova.core.domain.auth.AuthQueries
 import noel.chronova.core.domain.sync.SyncStatusQueries
 
@@ -38,7 +40,7 @@ data class AccountForm(
     val remember: Boolean = true,
     val busy: Boolean = false,
     val formProblem: FormProblem? = null,
-    val authProblem: AuthProblem? = null,
+    val authProblem: AuthProblemUi? = null,
     /** Shown after a code is (re)sent or an account is confirmed. */
     val notice: AccountNotice? = null,
 )
@@ -58,13 +60,15 @@ class AccountViewModel(
     private val useCases: AccountUseCases,
 ) : ViewModel() {
 
-    val authState: StateFlow<AuthState> = auth.state
+    val authState: StateFlow<AccountAuthUi> = auth.state.map { it.toUi() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, auth.state.value.toUi())
 
     /** The server ended the last session; the sign-in page says so. */
 
     val sessionEnded: StateFlow<Boolean> = auth.sessionEnded
     val pendingCount: StateFlow<Int> = sync.pendingCount
-    val syncStatus: StateFlow<SyncStatus> = sync.status
+    val syncPhase: StateFlow<SyncPhase> = sync.status.map { it.toSyncPhase() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, sync.status.value.toSyncPhase())
 
     private val _dialog = MutableStateFlow<AccountDialog?>(null)
     val dialog: StateFlow<AccountDialog?> = _dialog.asStateFlow()
@@ -119,7 +123,7 @@ class AccountViewModel(
                 it.copy(
                     busy = false,
                     notice = AccountNotice.CODE_SENT.takeIf { outcome == AuthOutcome.NeedsConfirmation },
-                    authProblem = (outcome as? AuthOutcome.Failed)?.problem,
+                    authProblem = (outcome as? AuthOutcome.Failed)?.problem?.toUi(),
                 )
             }
         }
@@ -160,7 +164,7 @@ class AccountViewModel(
         }
         AuthOutcome.NeedsConfirmation ->
             form.copy(mode = AccountMode.CONFIRM, password = "", busy = false, notice = AccountNotice.CODE_SENT, authProblem = null)
-        is AuthOutcome.Failed -> form.copy(busy = false, authProblem = outcome.problem, code = "")
+        is AuthOutcome.Failed -> form.copy(busy = false, authProblem = outcome.problem.toUi(), code = "")
     }
 
     private fun validate(form: AccountForm): FormProblem? = when (form.mode) {

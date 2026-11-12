@@ -28,13 +28,13 @@ import noel.chronova.core.domain.auth.AuthState
 import noel.chronova.core.domain.sync.AccountSync
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.domain.sync.SyncStatus
-import noel.chronova.feature.assistant.domain.PreviewItem
-import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.feature.account.presentation.AccountScreen
 import noel.chronova.feature.account.presentation.AccountViewModel
 import noel.chronova.feature.assistant.presentation.AssistantAvailability
 import noel.chronova.feature.assistant.presentation.AssistantOverlay
 import noel.chronova.feature.assistant.presentation.AssistantUiState
+import noel.chronova.feature.assistant.presentation.ProposalLineUi
+import noel.chronova.feature.assistant.presentation.WarningUi
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -68,9 +68,9 @@ class RotationStateTest {
         saying = "Lunch at noon and Sync at 11 today. Lunch would clash with Review and test, and Sync with Stand Up. " +
             "Shall I move Review to 9:30, Stand Up to 10:30, and test to 1 p.m.?",
         // Enough lines under the orb to fill the captions to their height limit.
-        proposal = listOf(PreviewItem.Linked("Design", "Lunch"), PreviewItem.Linked("Lunch", "Sync"), PreviewItem.Linked("Sync", "Review")),
-        warnings = listOf(ScheduleWarning.Overlap("Lunch", "Review and test"), ScheduleWarning.Overlap("Sync", "Stand Up")),
-        offer = listOf(PreviewItem.Linked("Review", "Stand Up"), PreviewItem.Linked("Stand Up", "test"), PreviewItem.Linked("test", "Lunch")),
+        proposal = listOf(ProposalLineUi.Linked("Design", "Lunch"), ProposalLineUi.Linked("Lunch", "Sync"), ProposalLineUi.Linked("Sync", "Review")),
+        warnings = listOf(WarningUi.Overlap("Lunch", "Review and test"), WarningUi.Overlap("Sync", "Stand Up")),
+        offer = listOf(ProposalLineUi.Linked("Review", "Stand Up"), ProposalLineUi.Linked("Stand Up", "test"), ProposalLineUi.Linked("test", "Lunch")),
     )
 
     private fun overlayFits(width: Dp, height: Dp) {

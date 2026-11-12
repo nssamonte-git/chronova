@@ -38,8 +38,8 @@ class NotificationsViewModel(
         notifications.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** The notifications the filters let through, in the chosen order. */
-    val shown: StateFlow<List<AppNotification>> =
-        combine(all, _filter) { list, filter -> filter.apply(list) }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val shown: StateFlow<List<NotificationUi>> =
+        combine(all, _filter) { list, filter -> filter.apply(list).map { it.toUi() } }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val isEmpty: StateFlow<Boolean> = all.map { it.isEmpty() }.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
@@ -72,9 +72,10 @@ class NotificationsViewModel(
     }
 
     /** Reverses an assistant change, unless its tasks have changed since. */
-    fun undo(notification: AppNotification) {
+    fun undo(notification: NotificationUi) {
+        val target = all.value.firstOrNull { it.id == notification.id } ?: return
         viewModelScope.launch {
-            val undone = useCases.undo(notification)
+            val undone = useCases.undo(target)
             _message.value = if (undone) NotificationsMessage.UNDONE else NotificationsMessage.CANNOT_UNDO
         }
     }

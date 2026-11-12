@@ -22,6 +22,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import noel.chronova.core.ui.sync.SyncPhase
 import noel.chronova.core.ui.sync.SyncUi
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -60,7 +61,7 @@ class SyncViewModelTest {
         val collecting = backgroundScope.launch { viewModel.ui.collect {} }
         sync.pendingCount.value = 2
         sync.status.value = SyncStatus.Syncing
-        assertEquals(SyncUi(configured = true, signedIn = true, pending = 2, status = SyncStatus.Syncing), viewModel.ui.value)
+        assertEquals(SyncUi(configured = true, signedIn = true, pending = 2, phase = SyncPhase.Syncing), viewModel.ui.value)
 
         auth.state.value = AuthState.NotConfigured
         assertEquals(false, viewModel.ui.value.configured)

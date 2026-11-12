@@ -62,7 +62,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.core.domain.notifications.AppNotification
 import noel.chronova.core.domain.notifications.NotificationCategory
 import noel.chronova.core.domain.notifications.NotificationKind
 import noel.chronova.core.designsystem.R as DesignR
@@ -219,7 +218,7 @@ private fun Filters(
 
 @Composable
 private fun Item(
-    notification: AppNotification,
+    notification: NotificationUi,
     text: NotificationText,
     canOpen: Boolean,
     onClick: () -> Unit,

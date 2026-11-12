@@ -2,6 +2,7 @@ package noel.chronova.feature.assistant.presentation
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import noel.chronova.core.domain.schedule.ScheduleChange
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** What the conversation and [AssistantViewModel] share: the state the screen shows, and the scope it runs in. */
@@ -20,4 +21,7 @@ internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boole
 
     /** Saying what changed, after the orb has closed. */
     var afterword: Job? = null
+
+    /** What the last applied change's undo would apply, while its message offers Undo. */
+    var lastUndo: List<ScheduleChange> = emptyList()
 }

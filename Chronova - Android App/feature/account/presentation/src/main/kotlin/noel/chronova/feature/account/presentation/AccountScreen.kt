@@ -57,9 +57,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.core.domain.auth.AuthProblem
-import noel.chronova.core.domain.auth.AuthState
-import noel.chronova.core.domain.sync.SyncStatus
+import noel.chronova.core.ui.sync.SyncPhase
 import noel.chronova.core.ui.sync.SyncUi
 import noel.chronova.core.ui.sync.syncFailureText
 import noel.chronova.core.ui.sync.syncStatusText
@@ -116,12 +114,12 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                     )
                 }
                 when (val state = authState) {
-                    AuthState.NotConfigured -> Explanation(
+                    AccountAuthUi.NotConfigured -> Explanation(
                         stringResource(if (onBack == null) R.string.account_no_server else R.string.account_not_configured),
                     )
-                    AuthState.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-                    is AuthState.SignedIn -> SignedIn(state.email, viewModel)
-                    AuthState.SignedOut -> SignInForm(form, viewModel, required = onBack == null)
+                    AccountAuthUi.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+                    is AccountAuthUi.SignedIn -> SignedIn(state.email, viewModel)
+                    AccountAuthUi.SignedOut -> SignInForm(form, viewModel, required = onBack == null)
                 }
             }
         }
@@ -136,18 +134,18 @@ private fun Explanation(text: String) {
 @Composable
 private fun SignedIn(email: String, viewModel: AccountViewModel) {
     val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
-    val status by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val phase by viewModel.syncPhase.collectAsStateWithLifecycle()
     val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
     Text(stringResource(R.string.account_signed_in_as, email), style = MaterialTheme.typography.titleMedium)
     Explanation(stringResource(R.string.account_signed_in_body))
 
-    val ui = SyncUi(configured = true, signedIn = true, pending = pending, status = status)
+    val ui = SyncUi(configured = true, signedIn = true, pending = pending, phase = phase)
     Text(
         syncStatusText(ui) ?: lastSyncedText(viewModel.lastSyncedAt()),
         style = MaterialTheme.typography.bodyMedium,
-        color = if (status is SyncStatus.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (phase is SyncPhase.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Button(onClick = viewModel::syncNow, enabled = status != SyncStatus.Syncing, modifier = Modifier.fillMaxWidth()) {
+    Button(onClick = viewModel::syncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(CoreUiR.string.sync_now))
     }
     OutlinedButton(onClick = viewModel::requestSignOut, modifier = Modifier.fillMaxWidth()) {
@@ -356,16 +354,16 @@ private fun formProblemText(problem: FormProblem): String = when (problem) {
 }
 
 @Composable
-private fun authProblemText(problem: AuthProblem): String = stringResource(
+private fun authProblemText(problem: AuthProblemUi): String = stringResource(
     when (problem) {
-        AuthProblem.WRONG_CREDENTIALS -> R.string.auth_wrong_credentials
-        AuthProblem.ACCOUNT_EXISTS -> R.string.auth_account_exists
-        AuthProblem.WEAK_PASSWORD -> R.string.auth_weak_password
-        AuthProblem.WRONG_CODE -> R.string.auth_wrong_code
-        AuthProblem.ACCOUNT_DISABLED -> R.string.auth_account_disabled
-        AuthProblem.CODE_EXPIRED -> R.string.auth_code_expired
-        AuthProblem.TOO_MANY_ATTEMPTS -> R.string.auth_too_many
-        AuthProblem.NETWORK -> R.string.auth_network
-        AuthProblem.UNKNOWN -> R.string.auth_unknown
+        AuthProblemUi.WRONG_CREDENTIALS -> R.string.auth_wrong_credentials
+        AuthProblemUi.ACCOUNT_EXISTS -> R.string.auth_account_exists
+        AuthProblemUi.WEAK_PASSWORD -> R.string.auth_weak_password
+        AuthProblemUi.WRONG_CODE -> R.string.auth_wrong_code
+        AuthProblemUi.ACCOUNT_DISABLED -> R.string.auth_account_disabled
+        AuthProblemUi.CODE_EXPIRED -> R.string.auth_code_expired
+        AuthProblemUi.TOO_MANY_ATTEMPTS -> R.string.auth_too_many
+        AuthProblemUi.NETWORK -> R.string.auth_network
+        AuthProblemUi.UNKNOWN -> R.string.auth_unknown
     },
 )

@@ -40,7 +40,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
-import noel.chronova.core.domain.ProjectProblem
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.ui.R as CoreUiR
 
@@ -78,7 +77,7 @@ fun ProjectEditorSheet(
                 onValueChange = onNameChange,
                 label = { Text(stringResource(R.string.project_name)) },
                 singleLine = true,
-                isError = editor.problem == ProjectProblem.BlankName,
+                isError = editor.problem == ProjectProblemUi.BlankName,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -159,11 +158,11 @@ private fun DateRangeDialog(
 }
 
 @Composable
-private fun problemText(problem: ProjectProblem): String = when (problem) {
-    ProjectProblem.BlankName -> stringResource(R.string.problem_blank_name)
-    ProjectProblem.EndBeforeStart -> stringResource(R.string.problem_end_before_start)
-    is ProjectProblem.TooLong -> pluralStringResource(R.plurals.problem_too_long, problem.maxDays, problem.maxDays)
-    is ProjectProblem.ExcludesTasks -> pluralStringResource(R.plurals.problem_excludes_tasks, problem.count, problem.count)
+private fun problemText(problem: ProjectProblemUi): String = when (problem) {
+    ProjectProblemUi.BlankName -> stringResource(R.string.problem_blank_name)
+    ProjectProblemUi.EndBeforeStart -> stringResource(R.string.problem_end_before_start)
+    is ProjectProblemUi.TooLong -> pluralStringResource(R.plurals.problem_too_long, problem.maxDays, problem.maxDays)
+    is ProjectProblemUi.ExcludesTasks -> pluralStringResource(R.plurals.problem_excludes_tasks, problem.count, problem.count)
 }
 
 private fun dayCount(start: LocalDate, end: LocalDate): Int = (ChronoUnit.DAYS.between(start, end) + 1).toInt()

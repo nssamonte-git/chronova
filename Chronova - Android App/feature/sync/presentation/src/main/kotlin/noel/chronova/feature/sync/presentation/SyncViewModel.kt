@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import noel.chronova.core.domain.sync.SyncPrompt
 import noel.chronova.feature.sync.domain.SyncUseCases
 import noel.chronova.core.ui.sync.SyncUi
 import noel.chronova.feature.sync.domain.SyncPromptQueries
@@ -18,10 +17,11 @@ import noel.chronova.feature.sync.domain.SyncPromptQueries
 class SyncViewModel(prompts: SyncPromptQueries, private val useCases: SyncUseCases) : ViewModel() {
 
     val ui: StateFlow<SyncUi> = useCases.observeOverview()
-        .map { SyncUi(configured = it.configured, signedIn = it.signedIn, pending = it.pending, status = it.status) }
+        .map { it.toUi() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncUi())
 
-    val prompt: StateFlow<SyncPrompt?> = prompts.prompt
+    val prompt: StateFlow<SyncPromptUi?> = prompts.prompt.map { it?.toUi() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, prompts.prompt.value?.toUi())
 
     fun syncNow() = useCases.syncNow()
 

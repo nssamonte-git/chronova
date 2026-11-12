@@ -1,8 +1,5 @@
 package noel.chronova.feature.assistant.presentation
 
-import noel.chronova.core.domain.schedule.ScheduleChange
-import noel.chronova.feature.assistant.domain.PreviewItem
-import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
 
 /** Whether the assistant can be used right now. */
@@ -24,18 +21,19 @@ data class AssistantUiState(
     /** Caption: what the assistant is saying. */
     val saying: String? = null,
     /** The changes it is asking about, shown under the orb while it waits for yes or no. */
-    val proposal: List<PreviewItem> = emptyList(),
+    val proposal: List<ProposalLineUi> = emptyList(),
     /** Clashes the proposal would cause, shown under its lines; the assistant names them before asking. */
-    val warnings: List<ScheduleWarning> = emptyList(),
+    val warnings: List<WarningUi> = emptyList(),
     /** A clash-free alternative the assistant is offering instead, shown under the warnings. */
-    val offer: List<PreviewItem> = emptyList(),
+    val offer: List<ProposalLineUi> = emptyList(),
     /** The one-time notice (what goes to ElevenLabs and OpenAI) has been accepted. */
     val noticeAccepted: Boolean = false,
 )
 
 /** Things to tell the user on the timeline, outside the orb. */
 sealed interface AssistantMessage {
-    data class Applied(val taskCount: Int, val undo: List<ScheduleChange>) : AssistantMessage
+    /** [taskCount] tasks changed; the change can be undone from the message (the ViewModel keeps what to undo). */
+    data class Applied(val taskCount: Int) : AssistantMessage
     data object UndoNotPossible : AssistantMessage
     data object NeedsConnection : AssistantMessage
     data object NeedsSignIn : AssistantMessage
