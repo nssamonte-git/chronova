@@ -44,6 +44,6 @@ class SyncUseCasesTest {
         SyncNow(sync)()
         DismissSyncPrompt(sync)()
         assertEquals(listOf("syncNow", "dismissPrompt"), sync.calls)
-        assertEquals(null, ObserveSyncPrompt(sync)().value)
+        assertEquals(null, sync.prompt.value)
     }
 }

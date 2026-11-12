@@ -29,11 +29,7 @@ class AccountUseCasesTest {
     }
 
     @Test
-    fun theAccountPageReadsSyncState() {
-        sync.pendingCount.value = 5
-        sync.lastSynced = 1_234L
-        assertEquals(5, ObservePendingChanges(sync)().value)
-        assertEquals(1_234L, LastSyncedAt(sync)())
+    fun syncNowGoesToTheAccountsSync() {
         SyncAccountNow(sync)()
         assertEquals(listOf("syncNow"), sync.calls)
     }

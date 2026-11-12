@@ -15,14 +15,7 @@ import noel.chronova.core.domain.schedule.ScheduleState
  * Local source of truth for projects and their tasks. Every write is local first;
  * syncing to the server is a separate, user-confirmed step.
  */
-interface ProjectRepository {
-    fun observeProjects(): Flow<List<ProjectSummary>>
-
-    /** Emits null once the project does not exist (or was deleted). */
-    fun observeProject(projectId: String): Flow<Project?>
-
-    /** The project's tasks in row order. */
-    fun observeTasks(projectId: String): Flow<List<SchedulerTask>>
+interface ProjectRepository : ProjectQueries {
 
     /** The project's live tasks right now (for validation). */
     suspend fun tasksOf(projectId: String): List<SchedulerTask>
@@ -62,8 +55,6 @@ interface ProjectRepository {
         verify: (ScheduleState?) -> P?,
     ): P?
 
-    /** The project's live links. */
-    fun observeDependencies(projectId: String): Flow<List<TaskDependency>>
 
     /**
      * Makes [predecessorIds] exactly the tasks that [taskId] depends on: missing

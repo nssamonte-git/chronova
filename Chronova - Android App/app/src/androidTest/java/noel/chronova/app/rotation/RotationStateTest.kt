@@ -40,17 +40,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import noel.chronova.feature.account.domain.ObserveAuthState
-import noel.chronova.feature.account.domain.ObserveSessionEnded
 import noel.chronova.feature.account.domain.SignIn
 import noel.chronova.feature.account.domain.SignUp
 import noel.chronova.feature.account.domain.ConfirmSignUp
 import noel.chronova.feature.account.domain.ResendCode
 import noel.chronova.feature.account.domain.RequestPasswordReset
 import noel.chronova.feature.account.domain.ResetPassword
-import noel.chronova.feature.account.domain.ObservePendingChanges
-import noel.chronova.feature.account.domain.ObserveSyncStatus
-import noel.chronova.feature.account.domain.LastSyncedAt
 import noel.chronova.feature.account.domain.SyncAccountNow
 import noel.chronova.feature.account.domain.SignOutAndClear
 import noel.chronova.feature.account.domain.DeleteAccount
@@ -109,7 +104,9 @@ class RotationStateTest {
 
     @Test
     fun theSignInFormKeepsWhatWasTypedAndChosenAcrossARotation() {
-        val viewModel = AccountViewModel(accountUseCases(SignedOutAuth(), IdleSync()))
+        val auth = SignedOutAuth()
+        val sync = IdleSync()
+        val viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync))
         val restorer = StateRestorationTester(compose)
         restorer.setContent { AccountScreen(viewModel = viewModel, onBack = null) }
 
@@ -149,17 +146,12 @@ private class IdleSync : AccountSync {
 
 /** The use cases the app wires, over fakes. */
 private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
-    observeAuthState = ObserveAuthState(auth),
-    observeSessionEnded = ObserveSessionEnded(auth),
     signIn = SignIn(auth),
     signUp = SignUp(auth),
     confirmSignUp = ConfirmSignUp(auth),
     resendCode = ResendCode(auth),
     requestPasswordReset = RequestPasswordReset(auth),
     resetPassword = ResetPassword(auth),
-    observePendingChanges = ObservePendingChanges(sync),
-    observeSyncStatus = ObserveSyncStatus(sync),
-    lastSyncedAt = LastSyncedAt(sync),
     syncNow = SyncAccountNow(sync),
     signOutAndClear = SignOutAndClear(sync),
     deleteAccount = DeleteAccount(sync),

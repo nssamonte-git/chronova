@@ -20,6 +20,7 @@ import noel.chronova.core.model.Project
 import noel.chronova.core.model.ProjectSummary
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProjectResult
+import noel.chronova.core.domain.repository.ProjectQueries
 
 sealed interface ProjectListState {
     data object Loading : ProjectListState
@@ -39,11 +40,12 @@ data class ProjectEditorState(
 }
 
 class ProjectListViewModel(
+    projects: ProjectQueries,
     private val useCases: ProjectUseCases,
     private val today: () -> LocalDate = { LocalDate.now(ZoneId.systemDefault()) },
 ) : ViewModel() {
 
-    val state: StateFlow<ProjectListState> = useCases.observe()
+    val state: StateFlow<ProjectListState> = projects.observeProjects()
         .map<List<ProjectSummary>, ProjectListState> { ProjectListState.Loaded(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectListState.Loading)
 
@@ -112,8 +114,8 @@ class ProjectListViewModel(
     companion object {
         const val DEFAULT_LENGTH_DAYS = 7L
 
-        fun factory(useCases: () -> ProjectUseCases): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ProjectListViewModel(useCases()) }
+        fun factory(projects: ProjectQueries, useCases: () -> ProjectUseCases): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ProjectListViewModel(projects, useCases()) }
         }
     }
 }

@@ -22,8 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import noel.chronova.core.testing.FakeNotificationRepository
-import noel.chronova.feature.notifications.domain.ObserveNotifications
-import noel.chronova.feature.notifications.domain.ObserveLiveProjectIds
 import noel.chronova.feature.notifications.domain.MarkNotificationRead
 import noel.chronova.feature.notifications.domain.MarkAllNotificationsRead
 import noel.chronova.feature.notifications.domain.ClearNotifications
@@ -45,7 +43,7 @@ class NotificationsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        viewModel = NotificationsViewModel(notificationUseCases(notifications, projects, zone))
+        viewModel = NotificationsViewModel(notifications, projects, notificationUseCases(notifications, projects, zone))
     }
 
     @After
@@ -118,8 +116,6 @@ class NotificationsViewModelTest {
 
 /** The use cases the app wires, over fake repositories. */
 private fun notificationUseCases(notifications: NotificationRepository, projects: ProjectRepository, zone: ZoneId) = NotificationUseCases(
-    observe = ObserveNotifications(notifications),
-    observeLiveProjectIds = ObserveLiveProjectIds(projects),
     markRead = MarkNotificationRead(notifications),
     markAllRead = MarkAllNotificationsRead(notifications),
     clear = ClearNotifications(notifications),

@@ -69,11 +69,14 @@ data class NotificationFilter(
 }
 
 /** The notifications kept on this phone (cleared with its data on sign-out). */
-interface NotificationRepository {
-    /** The newest notifications (up to [KEEP]), newest first. */
+/** Read-only view of the notifications. ViewModels read through this; changes go through use cases. */
+interface NotificationQueries {
+    /** The newest notifications (up to [NotificationRepository.KEEP]), newest first. */
     fun observe(): Flow<List<AppNotification>>
     fun unreadCount(): Flow<Int>
+}
 
+interface NotificationRepository : NotificationQueries {
     suspend fun add(
         kind: NotificationKind,
         args: Map<String, String> = emptyMap(),

@@ -8,15 +8,6 @@ import noel.chronova.core.domain.sync.AccountSync
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.domain.sync.SyncStatus
 
-class ObserveAuthState(private val auth: AuthRepository) {
-    operator fun invoke(): StateFlow<AuthState> = auth.state
-}
-
-/** True after the server ended the session, until the next sign-in, so the sign-in page can say why. */
-class ObserveSessionEnded(private val auth: AuthRepository) {
-    operator fun invoke(): StateFlow<Boolean> = auth.sessionEnded
-}
-
 /** [remember]: stay signed in on later launches; otherwise only while the app runs. */
 class SignIn(private val auth: AuthRepository) {
     suspend operator fun invoke(email: String, password: String, remember: Boolean): AuthOutcome = auth.signIn(email, password, remember)
@@ -45,20 +36,6 @@ class ResetPassword(private val auth: AuthRepository) {
     suspend operator fun invoke(email: String, code: String, newPassword: String): AuthOutcome = auth.resetPassword(email, code, newPassword)
 }
 
-/** Changes on this phone that haven't been synced yet. */
-class ObservePendingChanges(private val sync: AccountSync) {
-    operator fun invoke(): StateFlow<Int> = sync.pendingCount
-}
-
-class ObserveSyncStatus(private val sync: AccountSync) {
-    operator fun invoke(): StateFlow<SyncStatus> = sync.status
-}
-
-/** When this account last synced on this phone, or null. */
-class LastSyncedAt(private val sync: AccountSync) {
-    operator fun invoke(): Long? = sync.lastSyncedAt()
-}
-
 /** "Sync now" on the account page. */
 class SyncAccountNow(private val sync: AccountSync) {
     operator fun invoke() = sync.syncNow()
@@ -76,17 +53,12 @@ class DeleteAccount(private val sync: AccountSync) {
 
 /** Everything the sign-in pages and the account page do. */
 class AccountUseCases(
-    val observeAuthState: ObserveAuthState,
-    val observeSessionEnded: ObserveSessionEnded,
     val signIn: SignIn,
     val signUp: SignUp,
     val confirmSignUp: ConfirmSignUp,
     val resendCode: ResendCode,
     val requestPasswordReset: RequestPasswordReset,
     val resetPassword: ResetPassword,
-    val observePendingChanges: ObservePendingChanges,
-    val observeSyncStatus: ObserveSyncStatus,
-    val lastSyncedAt: LastSyncedAt,
     val syncNow: SyncAccountNow,
     val signOutAndClear: SignOutAndClear,
     val deleteAccount: DeleteAccount,

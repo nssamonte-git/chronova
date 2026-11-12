@@ -8,21 +8,6 @@ import noel.chronova.core.domain.schedule.ApplyScheduleChanges
 import noel.chronova.core.domain.notifications.AppNotification
 import noel.chronova.core.domain.notifications.NotificationRepository
 
-/** The notifications on this phone, newest first. */
-class ObserveNotifications(private val notifications: NotificationRepository) {
-    operator fun invoke(): Flow<List<AppNotification>> = notifications.observe()
-}
-
-/** How many notifications are unread (the bell's badge). */
-class ObserveUnreadNotificationCount(private val notifications: NotificationRepository) {
-    operator fun invoke(): Flow<Int> = notifications.unreadCount()
-}
-
-/** Ids of the projects that still exist, so "Open project" isn't offered for a deleted one. */
-class ObserveLiveProjectIds(private val projects: ProjectRepository) {
-    operator fun invoke(): Flow<Set<String>> = projects.observeProjects().map { list -> list.map { it.project.id }.toSet() }
-}
-
 class MarkNotificationRead(private val notifications: NotificationRepository) {
     suspend operator fun invoke(id: Long) = notifications.markRead(id)
 }
@@ -56,8 +41,6 @@ class UndoAssistantChange(
 
 /** Everything the notifications page does. */
 class NotificationUseCases(
-    val observe: ObserveNotifications,
-    val observeLiveProjectIds: ObserveLiveProjectIds,
     val markRead: MarkNotificationRead,
     val markAllRead: MarkAllNotificationsRead,
     val clear: ClearNotifications,

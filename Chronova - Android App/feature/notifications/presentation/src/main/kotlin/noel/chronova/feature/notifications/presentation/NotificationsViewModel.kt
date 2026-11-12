@@ -18,18 +18,24 @@ import noel.chronova.core.domain.notifications.AppNotification
 import noel.chronova.core.domain.notifications.NotificationCategory
 import noel.chronova.core.domain.notifications.NotificationFilter
 import noel.chronova.feature.notifications.domain.NotificationUseCases
+import noel.chronova.core.domain.notifications.NotificationQueries
+import noel.chronova.core.domain.repository.ProjectQueries
 
 enum class NotificationsMessage { UNDONE, CANNOT_UNDO }
 
 /** A project to filter by: the ones notifications mention, named as they were then. */
 data class ProjectChoice(val id: String, val name: String)
 
-class NotificationsViewModel(private val useCases: NotificationUseCases) : ViewModel() {
+class NotificationsViewModel(
+    notifications: NotificationQueries,
+    projects: ProjectQueries,
+    private val useCases: NotificationUseCases,
+) : ViewModel() {
     private val _filter = MutableStateFlow(NotificationFilter())
     val filter: StateFlow<NotificationFilter> = _filter.asStateFlow()
 
     private val all: StateFlow<List<AppNotification>> =
-        useCases.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        notifications.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** The notifications the filters let through, in the chosen order. */
     val shown: StateFlow<List<AppNotification>> =
@@ -43,7 +49,7 @@ class NotificationsViewModel(private val useCases: NotificationUseCases) : ViewM
 
     /** Projects that still exist, so "Open project" isn't offered for a deleted one. */
     val liveProjectIds: StateFlow<Set<String>> =
-        useCases.observeLiveProjectIds().stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+        projects.observeProjects().map { list -> list.map { it.project.id }.toSet() }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     private val _message = MutableStateFlow<NotificationsMessage?>(null)
     val message: StateFlow<NotificationsMessage?> = _message.asStateFlow()
@@ -78,8 +84,9 @@ class NotificationsViewModel(private val useCases: NotificationUseCases) : ViewM
     }
 
     companion object {
-        fun factory(useCases: () -> NotificationUseCases): ViewModelProvider.Factory = viewModelFactory {
-            initializer { NotificationsViewModel(useCases()) }
-        }
+        fun factory(notifications: NotificationQueries, projects: ProjectQueries, useCases: () -> NotificationUseCases): ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer { NotificationsViewModel(notifications, projects, useCases()) }
+            }
     }
 }

@@ -9,11 +9,6 @@ import noel.chronova.core.model.Project
 import noel.chronova.core.model.ProjectSummary
 import noel.chronova.core.domain.repository.ProjectRepository
 
-/** Every project with its task count, for the list. */
-class ObserveProjects(private val repository: ProjectRepository) {
-    operator fun invoke(): Flow<List<ProjectSummary>> = repository.observeProjects()
-}
-
 sealed interface SaveProjectResult {
     data class Created(val projectId: String) : SaveProjectResult
     data object Updated : SaveProjectResult
@@ -44,7 +39,6 @@ class DeleteProject(private val repository: ProjectRepository) {
 
 /** Everything the project list does. */
 class ProjectUseCases(
-    val observe: ObserveProjects,
     val save: SaveProject,
     val delete: DeleteProject,
 )

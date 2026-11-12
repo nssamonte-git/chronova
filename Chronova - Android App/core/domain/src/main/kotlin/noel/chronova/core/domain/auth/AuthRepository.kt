@@ -35,8 +35,19 @@ enum class AuthProblem {
 }
 
 /** Sign-in for sync. Passwords go straight to the server and are never stored by the app. */
-interface AuthRepository {
+/** Read-only view of the sign-in state. ViewModels read through this; sign-in actions are use cases. */
+interface AuthQueries {
     val state: StateFlow<AuthState>
+
+    /** True after [endSession], until the next sign-in, so the sign-in page can say why. */
+    val sessionEnded: StateFlow<Boolean> get() = NEVER_ENDED
+
+    private companion object {
+        val NEVER_ENDED: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+    }
+}
+
+interface AuthRepository : AuthQueries {
 
     /** Re-reads the saved session (e.g. at start-up). */
     suspend fun refresh()
@@ -65,13 +76,8 @@ interface AuthRepository {
      */
     suspend fun endSession() {}
 
-    /** True after [endSession], until the next sign-in, so the sign-in page can say why. */
-    val sessionEnded: StateFlow<Boolean> get() = NEVER_ENDED
 
     /** A valid access token for the sync API (refreshed if needed), or null when signed out. */
     suspend fun accessToken(): String?
 
-    private companion object {
-        val NEVER_ENDED: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
-    }
 }

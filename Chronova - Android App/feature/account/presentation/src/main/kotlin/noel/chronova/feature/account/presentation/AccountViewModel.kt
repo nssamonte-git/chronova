@@ -16,6 +16,8 @@ import noel.chronova.core.domain.auth.AuthProblem
 import noel.chronova.core.domain.auth.AuthState
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.domain.sync.SyncStatus
+import noel.chronova.core.domain.auth.AuthQueries
+import noel.chronova.core.domain.sync.SyncStatusQueries
 
 /** SIGN_IN/SIGN_UP → CONFIRM (code) for new accounts; FORGOT (email) → RESET (code + new password). */
 enum class AccountMode { SIGN_IN, SIGN_UP, CONFIRM, FORGOT, RESET }
@@ -50,15 +52,19 @@ sealed interface AccountDialog {
     data object DeleteAccount : AccountDialog
 }
 
-class AccountViewModel(private val useCases: AccountUseCases) : ViewModel() {
+class AccountViewModel(
+    auth: AuthQueries,
+    private val sync: SyncStatusQueries,
+    private val useCases: AccountUseCases,
+) : ViewModel() {
 
-    val authState: StateFlow<AuthState> = useCases.observeAuthState()
+    val authState: StateFlow<AuthState> = auth.state
 
     /** The server ended the last session; the sign-in page says so. */
 
-    val sessionEnded: StateFlow<Boolean> = useCases.observeSessionEnded()
-    val pendingCount: StateFlow<Int> = useCases.observePendingChanges()
-    val syncStatus: StateFlow<SyncStatus> = useCases.observeSyncStatus()
+    val sessionEnded: StateFlow<Boolean> = auth.sessionEnded
+    val pendingCount: StateFlow<Int> = sync.pendingCount
+    val syncStatus: StateFlow<SyncStatus> = sync.status
 
     private val _dialog = MutableStateFlow<AccountDialog?>(null)
     val dialog: StateFlow<AccountDialog?> = _dialog.asStateFlow()
@@ -67,7 +73,7 @@ class AccountViewModel(private val useCases: AccountUseCases) : ViewModel() {
     private val _deleteFailure = MutableStateFlow<SyncFailure?>(null)
     val deleteFailure: StateFlow<SyncFailure?> = _deleteFailure.asStateFlow()
 
-    fun lastSyncedAt(): Long? = useCases.lastSyncedAt()
+    fun lastSyncedAt(): Long? = sync.lastSyncedAt()
 
     fun syncNow() = useCases.syncNow()
 
@@ -179,8 +185,8 @@ class AccountViewModel(private val useCases: AccountUseCases) : ViewModel() {
         const val CODE_LENGTH = 6
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
-        fun factory(useCases: () -> AccountUseCases): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountViewModel(useCases()) }
+        fun factory(auth: AuthQueries, sync: SyncStatusQueries, useCases: () -> AccountUseCases): ViewModelProvider.Factory = viewModelFactory {
+            initializer { AccountViewModel(auth, sync, useCases()) }
         }
     }
 }

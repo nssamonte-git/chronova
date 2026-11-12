@@ -51,7 +51,7 @@ fun ChronovaNavHost(
     openNotifications: Boolean = false,
     onOpened: () -> Unit = {},
 ) {
-    val auth by container.account.observeAuthState().collectAsStateWithLifecycle()
+    val auth by container.account.auth.state.collectAsStateWithLifecycle()
     when (AppGate.of(auth)) {
         AppGate.Loading -> Box(
             modifier
@@ -61,7 +61,7 @@ fun ChronovaNavHost(
         ) { CircularProgressIndicator() }
         // Signing out (or a session the server ended) lands here, and the app's screens start afresh after signing in.
         AppGate.SignIn -> AccountScreen(
-            viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.account::useCases)),
+            viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account::useCases)),
             onBack = null,
         )
         AppGate.App -> ChronovaScreens(container, modifier, openNotifications, onOpened)
@@ -71,7 +71,7 @@ fun ChronovaNavHost(
 @Composable
 private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNotifications: Boolean, onOpened: () -> Unit) {
     val navController = rememberNavController()
-    val unread by container.notifications.observeUnreadCount().collectAsStateWithLifecycle(initialValue = 0)
+    val unread by container.notifications.queries.unreadCount().collectAsStateWithLifecycle(initialValue = 0)
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
             navController.navigate(NotificationsRoute) { launchSingleTop = true }
@@ -79,7 +79,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         }
     }
     // Activity-scoped: the reconnect prompt can appear over any screen.
-    val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container.sync::useCases))
+    val sync: SyncViewModel = viewModel(factory = SyncViewModel.factory(container.sync.prompts, container.sync::useCases))
     val syncUi by sync.ui.collectAsStateWithLifecycle()
     val prompt by sync.prompt.collectAsStateWithLifecycle()
     prompt?.let {
@@ -96,7 +96,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
     NavHost(navController = navController, startDestination = ProjectListRoute, modifier = modifier) {
         composable<ProjectListRoute> {
             ProjectListScreen(
-                viewModel = viewModel(factory = ProjectListViewModel.factory(container.projects::useCases)),
+                viewModel = viewModel(factory = ProjectListViewModel.factory(container.projects.queries, container.projects::useCases)),
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
                 onOpenAccount = { navController.navigate(AccountRoute) },
                 syncUi = syncUi,
@@ -107,14 +107,14 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         }
         composable<NotificationsRoute> {
             NotificationsScreen(
-                viewModel = viewModel(factory = NotificationsViewModel.factory(container.notifications::useCases)),
+                viewModel = viewModel(factory = NotificationsViewModel.factory(container.notifications.queries, container.projects.queries, container.notifications::useCases)),
                 onBack = { navController.popBackStack() },
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
             )
         }
         composable<AccountRoute> {
             AccountScreen(
-                viewModel = viewModel(factory = AccountViewModel.factory(container.account::useCases)),
+                viewModel = viewModel(factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account::useCases)),
                 onBack = { navController.popBackStack() },
             )
         }

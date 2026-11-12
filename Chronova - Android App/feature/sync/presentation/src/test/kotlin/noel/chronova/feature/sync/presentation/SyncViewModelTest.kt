@@ -11,7 +11,6 @@ import kotlinx.coroutines.test.setMain
 import noel.chronova.core.domain.auth.AuthState
 import noel.chronova.feature.sync.domain.DismissSyncPrompt
 import noel.chronova.feature.sync.domain.ObserveSyncOverview
-import noel.chronova.feature.sync.domain.ObserveSyncPrompt
 import noel.chronova.feature.sync.domain.SyncNow
 import noel.chronova.core.domain.sync.SyncPrompt
 import noel.chronova.feature.sync.domain.SyncService
@@ -44,9 +43,9 @@ class SyncViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         viewModel = SyncViewModel(
+            sync,
             SyncUseCases(
                 observeOverview = ObserveSyncOverview(auth, sync),
-                observePrompt = ObserveSyncPrompt(sync),
                 syncNow = SyncNow(sync),
                 dismissPrompt = DismissSyncPrompt(sync),
             ),
