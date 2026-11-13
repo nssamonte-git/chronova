@@ -103,14 +103,17 @@ it('sums 24-hour voice use without an estimate until prices are set', function (
     voiceEvent('speak', 200, 'spoken', '2026-11-12 09:30', ['characters' => 30], $ben);
     voiceEvent('interpret', 502, 'provider_error', '2026-11-12 09:40', [], $ben);
     voiceEvent('interpret', 503, 'disabled', '2026-11-12 09:50', [], $ben);
+    // An image import: counted, but its tokens (partly Meta's) stay out of the voice estimate.
+    voiceEvent('import', 200, 'ok', '2026-11-12 09:55', ['input_tokens' => 5000, 'output_tokens' => 800], $ben);
     voiceEvent('interpret', 200, 'operations', '2026-11-10 09:00', ['input_tokens' => 9999]); // older than 24 h
 
     $usage = app(Metrics::class)->voiceUsage();
     expect($usage)->toBe([
-        'requests' => 7,
+        'requests' => 8,
         'users' => 2,
         'commands' => 1,
-        'error_rate' => 14.3,           // 1 provider error in 7; the kill switch isn't an error
+        'imports' => 1,
+        'error_rate' => 12.5,           // 1 provider error in 8; the kill switch isn't an error
         'audio_minutes' => 2.0,         // 90 s + 30 s, both sent to the provider
         'speech_characters' => 100,     // spoken answers only, not transcript lengths
         'input_tokens' => 1200,
@@ -150,10 +153,12 @@ it('counts voice requests per day by endpoint', function () {
     voiceEvent('interpret', 200, 'operations', '2026-11-11 08:00');
     voiceEvent('explain', 200, 'spoken', '2026-11-12 08:00');
     voiceEvent('speak', 200, 'spoken', '2026-11-12 08:00');
+    voiceEvent('import', 200, 'ok', '2026-11-11 08:00');
 
     expect(app(Metrics::class)->voicePerDay(2))->toBe([
         'transcribe' => ['2026-11-11' => 0, '2026-11-12' => 1],
         'interpret' => ['2026-11-11' => 1, '2026-11-12' => 1],
         'explain' => ['2026-11-11' => 0, '2026-11-12' => 2],
+        'import' => ['2026-11-11' => 1, '2026-11-12' => 0],
     ]);
 });

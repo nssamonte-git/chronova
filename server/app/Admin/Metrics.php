@@ -79,7 +79,7 @@ class Metrics
      * invalid answers), not the kill switch. The cost is an estimate from the
      * configured prices (config/voice.php), or null until they are all set.
      *
-     * @return array{requests: int, users: int, commands: int, error_rate: float, audio_minutes: float,
+     * @return array{requests: int, users: int, commands: int, imports: int, error_rate: float, audio_minutes: float,
      *     speech_characters: int, input_tokens: int, output_tokens: int, estimated_cost: ?float}
      */
     public function voiceUsage(): array
@@ -90,19 +90,22 @@ class Metrics
                 ->selectRaw('count(*) as requests')
                 ->selectRaw('count(distinct user_id) as users')
                 ->selectRaw("count(*) filter (where kind = 'interpret' and status = 200) as commands")
+                ->selectRaw("count(*) filter (where kind = 'import' and status = 200) as imports")
                 ->selectRaw("count(*) filter (where status >= 500 and outcome <> 'disabled') as failed")
                 ->selectRaw("coalesce(sum(audio_ms) filter (where kind = 'transcribe' and status in (200, 422)), 0) as audio_ms")
                 ->selectRaw("coalesce(sum(characters) filter (where kind in ('explain', 'speak')), 0) as speech_characters")
-                ->selectRaw('coalesce(sum(input_tokens), 0) as input_tokens')
-                ->selectRaw('coalesce(sum(cached_tokens), 0) as cached_tokens')
-                ->selectRaw('coalesce(sum(cache_write_tokens), 0) as cache_write_tokens')
-                ->selectRaw('coalesce(sum(output_tokens), 0) as output_tokens')
+                // Imports' tokens are partly Meta's, at other prices: kept out of the voice estimate.
+                ->selectRaw("coalesce(sum(input_tokens) filter (where kind <> 'import'), 0) as input_tokens")
+                ->selectRaw("coalesce(sum(cached_tokens) filter (where kind <> 'import'), 0) as cached_tokens")
+                ->selectRaw("coalesce(sum(cache_write_tokens) filter (where kind <> 'import'), 0) as cache_write_tokens")
+                ->selectRaw("coalesce(sum(output_tokens) filter (where kind <> 'import'), 0) as output_tokens")
                 ->first();
             $requests = (int) $row->requests;
             $usage = [
                 'requests' => $requests,
                 'users' => (int) $row->users,
                 'commands' => (int) $row->commands,
+                'imports' => (int) $row->imports,
                 'error_rate' => $requests === 0 ? 0.0 : round(100 * $row->failed / $requests, 1),
                 'audio_minutes' => round($row->audio_ms / 60000, 1),
                 'speech_characters' => (int) $row->speech_characters,
@@ -126,6 +129,7 @@ class Metrics
                 'transcribe' => $this->perDay((clone $since)->where('kind', 'transcribe'), 'created_at', $days),
                 'interpret' => $this->perDay((clone $since)->where('kind', 'interpret'), 'created_at', $days),
                 'explain' => $this->perDay((clone $since)->whereIn('kind', ['explain', 'speak']), 'created_at', $days),
+                'import' => $this->perDay((clone $since)->where('kind', 'import'), 'created_at', $days),
             ];
         });
     }

@@ -68,6 +68,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── sync-protocol.md          the app ↔ server sync contract
 │   ├── voice-api.md              voice endpoints, privacy, measured cost and the release checklist
 │   ├── push.md                   push notifications: devices, reminders, alerts, settings
+│   ├── import-api.md             schedules from images: contract, how it's read, privacy
 │   ├── brand/                    the logo as supplied
 │   ├── AI_USAGE_LOG.md           per-batch development log
 │   └── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it

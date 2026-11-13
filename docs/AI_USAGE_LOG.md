@@ -1383,3 +1383,31 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Docs:** DECISIONS (push notifications), README (server setup, limitations), `docs/push.md` (look, AWS, release checklist), HANDOFF and Learn baselines.
   - **Checks:** `tools/check.sh` PASS (454 unit tests, 105 screenshots, 23 lint warnings); server 420 passed, Pint clean.
 
+### Schedules from images (Meta + OpenAI)
+
+- **Your request:** upload or photograph a schedule or Gantt chart and apply it to a project's tasks and timeline. Meta's model API segments and analyses the image, then OpenAI generates the JSON.
+- **Your choices:**
+  - both a new project and adding to the open project;
+  - a preview, then Apply with Undo;
+  - OpenAI gets Meta's results only, never the photo;
+  - Meta's Standard mode (no training);
+  - the camera or an existing image.
+- **Meta's offer, researched:** the hosted Meta Model API has `sam-3.1` (segmentation: boxes and masks, no text) and `muse-spark-1.3` (a multimodal model that reads the image). You put `META_API_KEY` in `server/.env`; I checked that the line exists, not its value.
+- **Your test image:** a 7-week "Project Timeline" with nine steps. It shaped the fakes and the tests.
+- Batch 1, the server contract with fakes:
+  - **Endpoint:** `POST /v1/import/image` (multipart image ≤ 4 MB and ≤ 4096 px; `mode`, `timeZone`, `today`, and the project's name and dates when adding).
+    - Kill switch `IMPORT_ENABLED`; 5 a minute and 50 a day per user.
+    - 502 for provider failures or an untrustworthy answer; the image is held in memory only.
+  - **`App\Import`:**
+    - `ChartAnalyzer` (Meta in batch 2) and `ScheduleBuilder` (OpenAI in batch 2);
+    - `BarMatcher`: bars to rows, measured in the axis's columns, with a row's full-width background track dropped;
+    - `ImportSchema` (whole inclusive days; relative "Week n" charts as day numbers);
+    - `ImportValidator`: real dates, ≤ 300 tasks and 366 days, unique refs, links only between its own tasks and never in a loop, one-day milestones.
+  - **Fakes:** `FakeChartAnalyzer` reports your test chart as Meta would, including the pale tracks. `FakeScheduleBuilder` turns matched bars into tasks by rule. Together they read the chart as nine tasks over 49 days.
+  - **Metrics:** `voice_events` of kind `import` (counts and timing only), counted on the admin dashboard; their tokens are kept out of the voice cost estimate. The production upload limit is now 6 MB.
+  - **Docs:** `docs/import-api.md`.
+  - **Tests:** 16 endpoint, 21 validator cases and 5 bar-matcher tests, plus the metrics tests updated. Server 465 passed, Pint clean. The app is unchanged in this batch.
+  - **Fixed in the tests (mine):**
+    - Laravel built the providers even when imports were switched off; they're now resolved only when on.
+    - Two expectations were wrong: hand-rounded columns, and a 366-day span that is in fact allowed.
+

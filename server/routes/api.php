@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\VoiceController;
 use Illuminate\Support\Facades\Route;
@@ -30,4 +31,5 @@ Route::middleware(['auth:sanctum', 'abilities:sync', 'active', 'keep-signed-in']
     Route::post('voice/explain', [VoiceController::class, 'explain'])->middleware('throttle:voice');
     Route::post('voice/resolve', [VoiceController::class, 'resolve'])->middleware('throttle:voice');
     Route::post('voice/decision', [VoiceController::class, 'decision'])->middleware('throttle:voice');
+    Route::post('import/image', [ImportController::class, 'image'])->middleware('throttle:import');
 });

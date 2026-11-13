@@ -19,7 +19,7 @@ class VoiceUsageOverview extends StatsOverviewWidget
 
         return [
             Stat::make('Voice requests', number_format($usage['requests']))
-                ->description(number_format($usage['commands']).' commands from '.number_format($usage['users']).' '.str('user')->plural($usage['users'])),
+                ->description(number_format($usage['commands']).' commands, '.number_format($usage['imports']).' '.str('import')->plural($usage['imports']).' from '.number_format($usage['users']).' '.str('user')->plural($usage['users'])),
             Stat::make('Voice error rate', $usage['error_rate'].'%')
                 ->description(config('voice.enabled') ? 'Provider failures and unusable answers' : 'Voice is switched off (VOICE_ENABLED)')
                 ->color($usage['error_rate'] > 5 ? 'danger' : 'success'),

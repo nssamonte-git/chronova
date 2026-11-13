@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Import\ChartAnalyzer;
+use App\Import\FakeChartAnalyzer;
+use App\Import\FakeScheduleBuilder;
+use App\Import\ScheduleBuilder;
 use App\Push\FakePushSender;
 use App\Push\FcmPushSender;
 use App\Push\PushSender;
@@ -35,6 +39,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Voice providers: real ones only when configured; the fake needs no network or key.
+        // Schedules from images (docs/import-api.md): fakes until IMPORT_ANALYZER / IMPORT_BUILDER say otherwise.
+        $this->app->bind(ChartAnalyzer::class, fn () => match (config('import.analyzer')) {
+            default => new FakeChartAnalyzer,
+        });
+        $this->app->bind(ScheduleBuilder::class, fn () => match (config('import.builder')) {
+            default => new FakeScheduleBuilder,
+        });
         $this->app->bind(Interpreter::class, fn ($app) => match (config('voice.interpreter')) {
             'openai' => new OpenAiInterpreter($app->make(Http::class), config('voice.openai')),
             default => new FakeInterpreter,
@@ -83,5 +94,11 @@ class AppServiceProvider extends ServiceProvider
         // endpoint (a spoken command is one transcribe and one interpret).
         RateLimiter::for('voice', fn (Request $request) => Limit::perMinute(config('voice.limits.requests_per_minute'))
             ->by('voice:'.Str::afterLast($request->path(), '/').':'.$request->user()?->getKey()));
+
+        // An import is two Meta calls and one OpenAI call: a few a minute and a daily cap per user.
+        RateLimiter::for('import', fn (Request $request) => [
+            Limit::perMinute(config('import.limits.per_minute'))->by('import-minute:'.$request->user()?->getKey()),
+            Limit::perDay(config('import.limits.per_day'))->by('import-day:'.$request->user()?->getKey()),
+        ]);
     }
 }
