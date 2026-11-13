@@ -1311,4 +1311,22 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - The night-mode window colour (`values-night/colors.xml`) was only there to match the old default before Compose draws; it is removed so the first frame is light like the default.
 - **Tests:** a new `PreferencesAppearanceRepositoryTest` (light until a choice is made; a choice is kept; an unknown value reads as Light). `:core:data` device tests 8/8 on the phone.
 - DECISIONS (a revision of the dark-theme line) and README updated.
+- Batch 9, a greeting when the app opens (your request during batch 8):
+  - **App:**
+    - `AssistantViewModel.greetOnOpen()`, on the list of projects only, runs once per opening of the app (the list's ViewModel lives as long as the list). The first time ever it says the introduction, now about the whole app; after that "Welcome back! Tap me whenever you need me."
+    - It only speaks and closes; nothing is recorded. It waits while offline or signed out.
+    - Leaving the app mid-introduction plays it again when the app comes back, and closing it on purpose counts as heard.
+    - The timeline's per-project introduction is gone.
+  - **Tests:** 5 ViewModel tests replace the old 4 (introduction then welcome; the timeline doesn't greet; offline waits; leaving mid-introduction; cut short).
+    - `tools/check.sh` PASS (437 unit tests).
+  - **Phone check** (speech through ElevenLabs only, about 300 characters; the rest on the fakes):
+    - after the install the introduction played and was recorded as heard;
+    - each restart then showed and said "Welcome back! Tap me whenever you need me." and closed.
+  - **Two phone-setup hiccups:**
+    - The welcome first seemed not to play. Temporary log lines (since removed) showed `greetOnOpen` ran; the phone's port forward to the local server had dropped, so the voice request failed and only a brief caption showed. Restoring the forward fixed it.
+    - My first tap on "Light" landed while the welcome orb covered the screen; the second set it.
+  - **Clean-up:**
+    - your app is set to Light, as you asked;
+    - VoiceCheck is deleted and the deletion synced (only Jnn remains);
+    - the server is stopped, the port forward removed, and `local.properties` restored.
 

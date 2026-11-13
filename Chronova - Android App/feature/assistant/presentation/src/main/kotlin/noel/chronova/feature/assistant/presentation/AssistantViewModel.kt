@@ -135,23 +135,32 @@ class AssistantViewModel(
         }
     }
 
+    /** Greeted since the app was opened (this ViewModel lives as long as the list of projects does). */
+    private var greeted = false
+
     /**
-     * The first time this project is opened, the orb opens by itself, introduces the assistant
-     * and closes again. It only speaks: nothing is recorded and nothing of the user's is sent
-     * (only the fixed introduction, to be voiced). Offline or signed out it waits for a later visit.
+     * When the app opens on the list of projects, the orb opens by itself, greets and closes again: the
+     * very first time with a short introduction to the assistant, after that with a welcome. It only
+     * speaks: nothing is recorded and nothing of the user's is sent (only the fixed words, to be voiced).
+     * Offline or signed out it waits until it can be heard. A project's timeline doesn't greet.
      */
-    fun introduceIfFirstVisit() {
-        // The introduction is about a project's tasks: not on the list of projects.
-        val projectId = projectId ?: return
-        if (ui.value.open || state.value.availability != AssistantAvailability.READY || useCases.introduction.isDone(projectId)) return
+    fun greetOnOpen() {
+        if (projectId != null || greeted) return
+        if (ui.value.open || state.value.availability != AssistantAvailability.READY) return
+        greeted = true
+        val first = !useCases.introduction.isDone(APP_INTRODUCTION)
         conversation.stopAfterword()
-        introducing = true
+        introducing = first
         ui.update { it.copy(open = true, mode = OrbMode.Speaking, heard = null, saying = null, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
         talking = viewModelScope.launch {
             try {
-                conversation.introduce()
-                // Heard to the end: not again for this project.
-                useCases.introduction.markDone(projectId)
+                if (first) {
+                    conversation.introduce()
+                    // Heard to the end: not again.
+                    useCases.introduction.markDone(APP_INTRODUCTION)
+                } else {
+                    conversation.welcome()
+                }
             } finally {
                 introducing = false
                 ui.update { it.copy(open = false) }
@@ -164,7 +173,7 @@ class AssistantViewModel(
 
     /** Stops listening and speaking and closes the orb; nothing is applied. */
     fun close() {
-        if (introducing) projectId?.let(useCases.introduction::markDone) // skipped on purpose
+        if (introducing) useCases.introduction.markDone(APP_INTRODUCTION) // skipped on purpose
         stop()
     }
 
@@ -182,7 +191,8 @@ class AssistantViewModel(
 
     /** The app went to the background: stop listening and talking. */
     fun onLeftApp() {
-        // Not a choice to skip the introduction: it plays again on the next visit.
+        // Not a choice to skip the introduction: it plays again when the app comes back.
+        if (introducing) greeted = false
         stop()
         conversation.stopAfterword()
     }
@@ -217,6 +227,9 @@ class AssistantViewModel(
     }
 
     companion object {
+        /** The introduction is heard once per install, wherever it is first played (the list of projects). */
+        private const val APP_INTRODUCTION = "app"
+
         /** [projectId] comes from the timeline's navigation argument (the shell reads it); null for the list of projects. */
         fun factory(projectId: String?, useCases: () -> AssistantUseCases, phrases: AssistantPhrases): ViewModelProvider.Factory = viewModelFactory {
             initializer { AssistantViewModel(projectId, useCases(), phrases) }

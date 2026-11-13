@@ -18,8 +18,11 @@ import noel.chronova.core.ui.TimeFormat
 interface AssistantPhrases {
     fun greeting(): String
 
-    /** Said once per project, the first time it is opened: who the assistant is and how to use it. */
+    /** Said once, the first time the app is opened: who the assistant is and how to use it. */
     fun introduction(): String
+
+    /** Said each time the app is opened after that. */
+    fun welcome(): String
 
     /** After the clash-free alternative was turned down: whether to apply the change as asked. */
     fun applyAsAsked(): String
@@ -58,6 +61,7 @@ interface AssistantPhrases {
 class ResourcePhrases(private val resources: Resources, private val zone: ZoneId = ZoneId.systemDefault()) : AssistantPhrases {
     override fun greeting() = resources.getString(R.string.assistant_greeting)
     override fun introduction() = resources.getString(R.string.assistant_introduction)
+    override fun welcome() = resources.getString(R.string.assistant_welcome)
     override fun applyAsAsked() = resources.getString(R.string.assistant_apply_as_asked)
     override fun wasThatAYes() = resources.getString(R.string.assistant_was_that_a_yes)
     override fun nothingHeard() = resources.getString(R.string.assistant_say_again)

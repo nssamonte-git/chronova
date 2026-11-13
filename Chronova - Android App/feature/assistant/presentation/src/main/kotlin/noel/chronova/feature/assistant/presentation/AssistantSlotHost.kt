@@ -146,9 +146,9 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
             }
         },
         overlay = { zone ->
-            // First open of this project: the assistant introduces itself (once it can be heard).
+            // The app opened on the list of projects: the assistant greets (once it can be heard).
             LaunchedEffect(state.availability) {
-                if (state.availability == AssistantAvailability.READY) assistant.introduceIfFirstVisit()
+                if (state.availability == AssistantAvailability.READY) assistant.greetOnOpen()
             }
             AssistantOverlay(state = state, zone = zone, level = { micLevel.value }, onClose = assistant::close)
             if (showNotice) {

@@ -61,6 +61,9 @@ internal class AssistantConversation(
     /** The first-open introduction: only spoken; nothing is recorded and nothing of the user's is sent. */
     suspend fun introduce() = voice.say(phrases.introduction())
 
+    /** The welcome when the app is opened again; only spoken, like the introduction. */
+    suspend fun welcome() = voice.say(phrases.welcome())
+
     private sealed interface Outcome {
         data class Proposal(val plan: VoicePlan, val actions: List<VoiceAction>) : Outcome
 

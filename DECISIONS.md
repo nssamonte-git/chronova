@@ -102,6 +102,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
     - theme, reminders, sync and export (export opens the share sheet, so nothing is sent until the user picks where).
   - Writes keep the spoken yes: schedule edits, "undo that" (the assistant's own last change, previewed) and new or copied projects (Undo deletes them). Deleting a project stays manual.
   - The orb is on the timeline and the project list. From the list, only actions and new projects make sense; an edit is answered "Open a project first."
+  - Revised 2026-11-13 (user request): when the app opens on the project list, the orb greets once per opening. The very first time it gives a short introduction ("Hi, welcome to Chronova! I'm your assistant…"), after that "Welcome back! Tap me whenever you need me." It only speaks: nothing is recorded, and only the fixed words are sent to be voiced; offline or signed out it waits. A project's timeline no longer introduces itself (it would repeat the app's introduction); the record of the introduction (`voice_introduced_projects`) now holds "app".
 - How it works:
   - Apps opt in with `capabilities: ["actions"]`; older apps never receive actions or the new operations, so their answers keep their old shape.
   - Requests carry what the screen shows (`context.view`: scale, critical path, selected task, search) and the user's projects, so "this task" and "open Jnn" are understood.

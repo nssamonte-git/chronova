@@ -265,6 +265,7 @@ private class FakeSettings : AssistantSettings {
 private object FakePhrases : AssistantPhrases {
     override fun greeting() = "hello"
     override fun introduction() = "intro"
+    override fun welcome() = "welcome"
     override fun applyAsAsked() = "as asked?"
     override fun wasThatAYes() = "was that a yes?"
     override fun nothingHeard() = "say again"
@@ -350,70 +351,95 @@ class AssistantViewModelTest {
     )
 
     @Test
-    fun aProjectsFirstOpenIntroducesTheAssistantOnceWithoutListening() = runTest(dispatcher) {
+    fun theFirstOpeningOfTheAppIntroducesTheAssistantAndLaterOnesWelcomeWithoutListening() = runTest(dispatcher) {
+        viewModel = viewModelFor(null) // the list of projects
         runCurrent() // availability is worked out
-        viewModel.introduceIfFirstVisit()
+        viewModel.greetOnOpen()
         advanceUntilIdle()
 
         assertEquals(listOf("intro"), api.said)
         assertEquals(0, recorder.starts) // nothing recorded
         assertTrue(api.requests.isEmpty()) // nothing interpreted
         assertFalse(viewModel.state.value.open) // closes by itself
-        assertTrue(settings.introduced(SampleTasks.PROJECT_ID))
 
-        viewModel.introduceIfFirstVisit()
-        val again = viewModelFor(SampleTasks.PROJECT_ID) // the project opened another time
-        runCurrent()
-        again.introduceIfFirstVisit()
+        // Once per opening of the app (coming back to the list doesn't greet again).
+        viewModel.greetOnOpen()
         advanceUntilIdle()
         assertEquals(listOf("intro"), api.said)
 
-        val other = viewModelFor("another-project")
+        // The app opened another time: a welcome, not the introduction.
+        val again = viewModelFor(null)
         runCurrent()
-        other.introduceIfFirstVisit()
+        again.greetOnOpen()
         advanceUntilIdle()
-        assertEquals(listOf("intro", "intro"), api.said)
+        assertEquals(listOf("intro", "welcome"), api.said)
     }
 
     @Test
-    fun offlineTheIntroductionWaitsForALaterVisit() = runTest(dispatcher) {
-        online.value = false
+    fun aProjectsTimelineDoesntGreet() = runTest(dispatcher) {
         runCurrent()
-        viewModel.introduceIfFirstVisit()
+        viewModel.greetOnOpen()
         advanceUntilIdle()
         assertTrue(api.said.isEmpty())
-        assertFalse(settings.introduced(SampleTasks.PROJECT_ID))
+        assertFalse(viewModel.state.value.open)
     }
 
     @Test
-    fun leavingTheAppMidIntroductionPlaysItAgainNextTime() = runTest(dispatcher) {
+    fun offlineTheGreetingWaitsUntilItCanBeHeard() = runTest(dispatcher) {
+        viewModel = viewModelFor(null)
+        online.value = false
+        runCurrent()
+        viewModel.greetOnOpen()
+        advanceUntilIdle()
+        assertTrue(api.said.isEmpty())
+        online.value = true
+        runCurrent()
+        viewModel.greetOnOpen()
+        advanceUntilIdle()
+        assertEquals(listOf("intro"), api.said)
+    }
+
+    @Test
+    fun leavingTheAppMidIntroductionPlaysItAgainWhenItComesBack() = runTest(dispatcher) {
+        viewModel = viewModelFor(null)
         player.untilStopped = true
         runCurrent()
-        viewModel.introduceIfFirstVisit()
+        viewModel.greetOnOpen()
         runCurrent()
         viewModel.onLeftApp() // the app went to the background (not a rotation: the screen skips those)
         advanceUntilIdle()
         assertFalse(viewModel.state.value.open)
-        assertFalse(settings.introduced(SampleTasks.PROJECT_ID))
 
         player.untilStopped = false
-        viewModel.introduceIfFirstVisit()
+        viewModel.greetOnOpen()
         advanceUntilIdle()
         assertEquals(listOf("intro", "intro"), api.said)
-        assertTrue(settings.introduced(SampleTasks.PROJECT_ID))
+        // Heard to the end now: the next opening welcomes.
+        val again = viewModelFor(null)
+        runCurrent()
+        again.greetOnOpen()
+        advanceUntilIdle()
+        assertEquals("welcome", api.said.last())
     }
 
     @Test
     fun theIntroductionCanBeCutShort() = runTest(dispatcher) {
+        viewModel = viewModelFor(null)
         player.untilStopped = true
         runCurrent()
-        viewModel.introduceIfFirstVisit()
+        viewModel.greetOnOpen()
         runCurrent()
         assertTrue(viewModel.state.value.open) // still introducing
         viewModel.close()
         advanceUntilIdle()
         assertFalse(viewModel.state.value.open)
-        assertTrue(settings.introduced(SampleTasks.PROJECT_ID)) // not repeated next time
+        // Skipped on purpose: the next opening welcomes instead.
+        player.untilStopped = false
+        val again = viewModelFor(null)
+        runCurrent()
+        again.greetOnOpen()
+        advanceUntilIdle()
+        assertEquals("welcome", api.said.last())
     }
 
     /**
@@ -551,9 +577,6 @@ class AssistantViewModelTest {
         viewModel.appRequestDone(request.id)
         advanceUntilIdle()
         assertNull(viewModel.appRequest.value)
-        // No introduction here: it is about a project's tasks.
-        viewModel.introduceIfFirstVisit()
-        assertFalse(viewModel.state.value.open)
     }
 
     @Test
