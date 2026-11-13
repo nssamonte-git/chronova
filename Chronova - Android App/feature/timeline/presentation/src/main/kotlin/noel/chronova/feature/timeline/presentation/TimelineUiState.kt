@@ -16,6 +16,8 @@ data class TimelineUiState(
     val dependencies: List<DependencyUi> = emptyList(),
     /** The search bar while it is open; [tasks] then holds only the matches. */
     val search: TaskSearchUi? = null,
+    /** When the project's last task ends; null with no tasks. */
+    val finishMillis: Long? = null,
 ) {
     /** A search or filter narrows the list: every match gets a row, wherever it is in time. */
     val isFiltering: Boolean get() = search?.filter?.isActive == true
@@ -44,6 +46,8 @@ data class TaskEditorState(
     val forbiddenPredecessorIds: Set<String> = emptySet(),
     val problem: TaskProblemUi? = null,
     val saving: Boolean = false,
+    /** How much the task can slip, as saved; dropped once its times are changed here. */
+    val slack: SlackUi? = null,
 ) {
     val isNew: Boolean get() = taskId == null
 

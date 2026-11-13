@@ -109,10 +109,11 @@ class ProjectTimelineViewModelTest {
         val edited = before[1].copy(startMillis = at(10), endMillis = at(13))
         viewModel.commitEdit(before[1], edited)
 
-        assertEquals(listOf(edited), repository.updates.map { it.toUi() })
+        // Slack is worked out on screen, never stored.
+        assertEquals(listOf(edited.copy(slackMillis = null)), repository.updates.map { it.toUi() })
         val after = state().tasks
         assertEquals(before.map { it.id }, after.map { it.id })
-        assertEquals(edited, after[1])
+        assertEquals(edited.copy(slackMillis = after[1].slackMillis), after[1])
     }
 
     @Test
@@ -123,12 +124,12 @@ class ProjectTimelineViewModelTest {
         val synced = repository.tasks.value.single { it.id == shown.id }.copy(title = "Changed by sync")
         repository.tasks.value = repository.tasks.value.map { if (it.id == shown.id) synced else it }
         val fresh = state().tasks[1]
-        assertEquals(synced.toUi(), fresh)
+        assertEquals(synced.toUi(fresh.slackMillis), fresh)
         // The edit was worked out from the copy the user saw before the sync.
         viewModel.commitEdit(shown, shown.copy(startMillis = at(10), endMillis = at(13)))
 
         assertEquals(TimelineNotice.EditNotSaved, viewModel.notice.value)
-        assertEquals(synced.toUi(), state().tasks[1])
+        assertEquals(synced.toUi(fresh.slackMillis), state().tasks[1])
         viewModel.dismissNotice()
         assertNull(viewModel.notice.value)
     }
@@ -493,6 +494,55 @@ class ProjectTimelineViewModelTest {
 
         viewModel.undo()
         assertEquals(2, state().dependencies.size)
+    }
+
+    /** Design → Implementation and QA → Review: QA and Review are critical, the others can slip 3 h. */
+    private fun linkTheSample() {
+        repository.dependencies.value = listOf(
+            noel.chronova.core.model.TaskDependency("l1", SampleTasks.PROJECT_ID, "ui-design", "implementation"),
+            noel.chronova.core.model.TaskDependency("l2", SampleTasks.PROJECT_ID, "qa-testing", "review"),
+        )
+    }
+
+    @Test
+    fun theCriticalPathIsWorkedOutAndItsSwitchIsRememberedPerProject() = runTest {
+        val state = timeline()
+        linkTheSample()
+        assertEquals(listOf("qa-testing", "review"), state().tasks.filter { it.critical }.map { it.id })
+        assertEquals(3 * 3_600_000L, state().tasks.first { it.id == "ui-design" }.slackMillis)
+        assertEquals(at(17), state().finishMillis)
+        assertEquals(listOf(false, true), state().dependencies.map { it.critical })
+        assertEquals(false, state().config.showCriticalPath)
+
+        viewModel.setShowCriticalPath(true)
+        assertTrue(state().config.showCriticalPath)
+        assertTrue(repository.viewSettings[SampleTasks.PROJECT_ID]!!.showCriticalPath)
+        viewModel = ProjectTimelineViewModel(SampleTasks.PROJECT_ID, timelineUseCases(repository, zone), zone, today = { today })
+        assertTrue(timeline()().config.showCriticalPath)
+    }
+
+    @Test
+    fun theEditorSaysHowMuchASavedTaskCanSlipUntilItsTimesChange() = runTest {
+        timeline()
+        linkTheSample()
+        viewModel.startEditTask("implementation")
+        assertEquals(SlackUi.CanSlip(3 * 3_600_000L), viewModel.taskEditor.value?.slack)
+        viewModel.startEditTask("review")
+        assertEquals(SlackUi.OnCriticalPath(at(17)), viewModel.taskEditor.value?.slack)
+        viewModel.onTaskStartChange(at(15))
+        assertNull(viewModel.taskEditor.value?.slack)
+        viewModel.startAddTask()
+        assertNull(viewModel.taskEditor.value?.slack)
+    }
+
+    @Test
+    fun slackIsWordedInItsTwoLargestUnits() {
+        val minute = 60_000L
+        assertEquals(listOf(DurationParts.Unit.HOURS to 3, DurationParts.Unit.MINUTES to 30), DurationParts.of(210 * minute))
+        assertEquals(listOf(DurationParts.Unit.DAYS to 2, DurationParts.Unit.HOURS to 4), DurationParts.of((52 * 60 + 15) * minute))
+        assertEquals(listOf(DurationParts.Unit.DAYS to 1), DurationParts.of(24 * 60 * minute + 5 * minute))
+        assertEquals(listOf(DurationParts.Unit.MINUTES to 45), DurationParts.of(45 * minute + 59_999))
+        assertEquals(listOf(DurationParts.Unit.MINUTES to 0), DurationParts.of(0))
     }
 
     @Test

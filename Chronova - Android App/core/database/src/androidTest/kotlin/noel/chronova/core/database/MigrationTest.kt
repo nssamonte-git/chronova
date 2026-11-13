@@ -49,6 +49,9 @@ class MigrationTest {
     @Test
     fun upgradesFromVersion4() = upgradeFrom(4)
 
+    @Test
+    fun upgradesFromVersion5() = upgradeFrom(5)
+
     private fun upgradeFrom(version: Int) {
         createOldDatabase(version)
         val upgraded = ChronovaDatabase.create(context).also { db = it }
@@ -60,6 +63,8 @@ class MigrationTest {
         // v5: existing tasks are not started, have no notes and aren't milestones.
         assertEquals(listOf("0||0"), sql.strings("SELECT progress || '|' || notes || '|' || is_milestone FROM tasks"))
         if (version >= 2) assertEquals(listOf("HOURS"), sql.strings("SELECT scale FROM view_settings"))
+        // v6: a remembered view starts with the critical path off.
+        if (version >= 2) assertEquals(listOf("0"), sql.strings("SELECT critical_path FROM view_settings"))
         if (version >= 3) assertEquals(listOf("d1"), sql.strings("SELECT id FROM dependencies"))
         // Tables added after the starting version exist and start empty.
         if (version < 2) assertEquals(emptyList<String>(), sql.strings("SELECT scale FROM view_settings"))
@@ -84,8 +89,11 @@ class MigrationTest {
             for (i in 0 until setup.length()) old.execSQL(setup.getString(i))
 
             old.execSQL("INSERT INTO projects VALUES ('p1', 'Launch', '2026-03-02', '2026-03-08', 1000, 0, 1)")
-            old.execSQL("INSERT INTO tasks VALUES ('t1', 'p1', 'Design', 0, 3600000, 'BLUE', 0, 1000, 0, 1)")
-            if (version >= 2) old.execSQL("INSERT INTO view_settings VALUES ('p1', 'HOURS', 96.0, 15, 56.0)")
+            old.execSQL(
+                "INSERT INTO tasks (id, project_id, title, start_millis, end_millis, color, sort_order, updated_at, deleted, dirty) " +
+                    "VALUES ('t1', 'p1', 'Design', 0, 3600000, 'BLUE', 0, 1000, 0, 1)",
+            )
+            if (version >= 2) old.execSQL("INSERT INTO view_settings (project_id, scale, unit_width_dp, snap_minutes, row_height_dp) VALUES ('p1', 'HOURS', 96.0, 15, 56.0)")
             if (version >= 3) old.execSQL("INSERT INTO dependencies VALUES ('d1', 'p1', 't0', 't1', 1000, 0, 1)")
             old.version = version
         }
@@ -96,7 +104,7 @@ class MigrationTest {
 
     private companion object {
         const val DB_NAME = "chronova.db"
-        const val CURRENT_VERSION = 5
+        const val CURRENT_VERSION = 6
         const val SCHEMA_DIR = "noel.chronova.core.database.ChronovaDatabase"
     }
 }

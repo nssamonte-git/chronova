@@ -55,6 +55,8 @@ data class TimelineConfig(
     val unitWidthDp: Float = timeScale.defaultUnitWidthDp,
     val snapMinutes: Int = timeScale.snapOptions.first(),
     val rowHeightDp: Float = DEFAULT_ROW_HEIGHT_DP,
+    /** Highlights the tasks where any delay moves the project's finish. */
+    val showCriticalPath: Boolean = false,
 ) {
     /** Zoom relative to the scale's default, e.g. 100 for the default width. */
     val zoomPercent: Int get() = (unitWidthDp / timeScale.defaultUnitWidthDp * 100).roundToInt()
@@ -112,8 +114,15 @@ data class TimelineConfig(
          * Rebuilds a config from stored values, replacing anything out of range
          * (unknown scale, unsupported snap, zoom or row height outside the limits).
          */
-        fun restore(scaleName: String, unitWidthDp: Float, snapMinutes: Int, rowHeightDp: Float): TimelineConfig {
-            val scale = TimeScale.entries.firstOrNull { it.name == scaleName } ?: return TimelineConfig()
+        fun restore(
+            scaleName: String,
+            unitWidthDp: Float,
+            snapMinutes: Int,
+            rowHeightDp: Float,
+            showCriticalPath: Boolean = false,
+        ): TimelineConfig {
+            val scale = TimeScale.entries.firstOrNull { it.name == scaleName }
+                ?: return TimelineConfig(showCriticalPath = showCriticalPath)
             return TimelineConfig(
                 timeScale = scale,
                 unitWidthDp = unitWidthDp.takeIf { !it.isNaN() }?.coerceIn(scale.minUnitWidthDp, scale.maxUnitWidthDp)
@@ -121,6 +130,7 @@ data class TimelineConfig(
                 snapMinutes = snapMinutes.takeIf { it in scale.snapOptions } ?: scale.snapOptions.first(),
                 rowHeightDp = rowHeightDp.takeIf { !it.isNaN() }?.coerceIn(MIN_ROW_HEIGHT_DP, MAX_ROW_HEIGHT_DP)
                     ?: DEFAULT_ROW_HEIGHT_DP,
+                showCriticalPath = showCriticalPath,
             )
         }
     }

@@ -12,7 +12,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -123,6 +125,27 @@ class ProjectTimelineScreenTest {
         // Plaster now starts when Survey ends, keeping its hour, and Undo is offered.
         assertEquals(screen.at(2, 12, 30), screen.repository.tasks.value.single { it.id == "plaster" }.endMillis)
         compose.waitUntil(5_000) { exists(screen.res.getQuantityString(R.plurals.push_done, 1, 1)) }
+    }
+
+    @Test
+    fun theCriticalPathSwitchMarksTheTasksThatSetTheFinishAndIsRemembered() {
+        val plaster = screen.task("plaster", "Plaster", screen.at(2, 11), screen.at(2, 12), 1)
+        val sweep = screen.task("sweep", "Sweep", screen.at(2, 10), screen.at(2, 10, 30), 2)
+        screen.show(listOf(survey, plaster, sweep), listOf(screen.link("survey", "plaster")))
+        val critical = screen.string(R.string.task_bar_state_critical)
+        compose.onAllNodes(hasStateDescription(critical)).assertCountEquals(0)
+
+        compose.onNode(hasContentDescription("Show critical path")).performScrollTo().performClick()
+        compose.waitForIdle()
+        // Survey → Plaster set the finish; Sweep can slip an hour and a half.
+        compose.onNode(hasText("Survey") and hasStateDescription(critical)).assertExists()
+        compose.onNode(hasText("Plaster") and hasStateDescription(critical)).assertExists()
+        compose.onNode(hasText("Sweep") and hasStateDescription(critical)).assertDoesNotExist()
+        assertTrue(screen.repository.viewSettings.getValue(TimelineScreenHarness.PROJECT_ID).showCriticalPath)
+
+        // The editor says how much Sweep can slip.
+        screen.nameCell("Sweep").performClick()
+        compose.onNodeWithText(screen.res.getString(R.string.task_slack_can_slip, "1 h 30 min")).assertExists()
     }
 
     // Search and Today.

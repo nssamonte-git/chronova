@@ -160,6 +160,9 @@ fun TaskEditorSheet(
                         onPickDate = { pick(Picking.END_DATE) },
                         onPickTime = { pick(Picking.END_TIME) },
                     )
+                }
+                editor.slack?.let { SlackLine(it, zone) }
+                if (!editor.isMilestone) {
                     ProgressChoice(progress = editor.progress, onChange = onProgressChange)
                 }
                 CheckboxRow(label = stringResource(R.string.task_done), checked = editor.isDone, onCheckedChange = onDoneChange)
@@ -265,6 +268,50 @@ private fun ProgressChoice(progress: Int, onChange: (Int) -> Unit) {
             steps = 9,
             modifier = Modifier.semantics { contentDescription = label },
         )
+    }
+}
+
+/** How much the saved task can slip before the project's finish moves. */
+@Composable
+private fun SlackLine(slack: SlackUi, zone: ZoneId) {
+    val text = when (slack) {
+        is SlackUi.OnCriticalPath -> stringResource(
+            R.string.task_slack_critical,
+            TimeFormat.day(slack.finishMillis, zone) + ", " + TimeFormat.clock(slack.finishMillis, zone),
+        )
+        is SlackUi.CanSlip -> stringResource(R.string.task_slack_can_slip, durationText(slack.millis))
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (slack is SlackUi.OnCriticalPath) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** "2 d 4 h", "3 h 30 min", "45 min": the two largest units, rounded down to the minute. */
+@Composable
+private fun durationText(millis: Long): String = DurationParts.of(millis).map { (unit, amount) ->
+    when (unit) {
+        DurationParts.Unit.DAYS -> stringResource(R.string.duration_days, amount)
+        DurationParts.Unit.HOURS -> stringResource(R.string.duration_hours, amount)
+        DurationParts.Unit.MINUTES -> stringResource(R.string.duration_minutes, amount)
+    }
+}.joinToString(" ")
+
+/** A length split into its two largest whole units (at least one, so 0 is "0 min"). */
+internal object DurationParts {
+    enum class Unit { DAYS, HOURS, MINUTES }
+
+    fun of(millis: Long): List<Pair<Unit, Int>> {
+        val minutes = (millis.coerceAtLeast(0L) / 60_000L)
+        val parts = listOf(
+            Unit.DAYS to (minutes / (24 * 60)).toInt(),
+            Unit.HOURS to (minutes / 60 % 24).toInt(),
+            Unit.MINUTES to (minutes % 60).toInt(),
+        )
+        val first = parts.indexOfFirst { it.second > 0 }
+        if (first < 0) return listOf(Unit.MINUTES to 0)
+        return parts.drop(first).take(2).filter { it.second > 0 }
     }
 }
 

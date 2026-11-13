@@ -29,6 +29,8 @@ data class ViewSettingsEntity(
     @ColumnInfo(name = "unit_width_dp") val unitWidthDp: Float,
     @ColumnInfo(name = "snap_minutes") val snapMinutes: Int,
     @ColumnInfo(name = "row_height_dp") val rowHeightDp: Float,
+    /** Whether the critical path is shown (added in v6, see [MIGRATION_5_6]). */
+    @ColumnInfo(name = "critical_path", defaultValue = "0") val criticalPath: Boolean = false,
 )
 
 @Dao
@@ -56,5 +58,12 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
             )
             """.trimIndent(),
         )
+    }
+}
+
+/** v5 → v6: the remembered critical-path switch; existing projects start with it off. */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `view_settings` ADD COLUMN `critical_path` INTEGER NOT NULL DEFAULT 0")
     }
 }

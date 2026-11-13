@@ -51,6 +51,12 @@
     <string name="task_bar_state_done">Done</string>
     <string name="task_bar_state_progress">%1$d%% done</string>
     <string name="task_bar_progress">· %1$d%%</string>
+    <string name="task_bar_state_critical">On the critical path</string>
+    <string name="task_slack_critical">On the critical path: any delay moves the finish (%1$s).</string>
+    <string name="task_slack_can_slip">Can slip %1$s without delaying the finish.</string>
+    <string name="duration_days">%1$d d</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_minutes">%1$d min</string>
     <string name="task_problem_blank_title">Give the task a title.</string>
     <string name="task_problem_end_not_after_start">The task must end after it starts.</string>
     <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>

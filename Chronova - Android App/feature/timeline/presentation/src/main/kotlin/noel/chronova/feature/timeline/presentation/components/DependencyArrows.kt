@@ -20,7 +20,8 @@ import noel.chronova.feature.timeline.presentation.TaskUi
 /**
  * Finish-to-start arrows over the bar lanes, from each predecessor's end to its
  * successor's start. Violated links (the successor starts before the predecessor
- * ends) are drawn in the error colour.
+ * ends) are drawn in the error colour; with the critical path shown, links between
+ * two critical tasks are darker and thicker.
  *
  * Everything is computed in the draw phase from the shared horizontal scroll and
  * the list's first visible row, so scrolling never recomposes. Rows have equal
@@ -36,9 +37,12 @@ fun DependencyArrows(
     viewport: TimelineViewportState,
     listState: LazyListState,
     modifier: Modifier = Modifier,
+    /** The critical-path switch is on: links between two critical tasks are drawn darker and thicker. */
+    showCriticalPath: Boolean = false,
 ) {
     if (dependencies.isEmpty()) return
     val normal = MaterialTheme.colorScheme.onSurfaceVariant
+    val critical = MaterialTheme.colorScheme.onSurface
     val violated = MaterialTheme.colorScheme.error
     val rows = remember(tasks) { tasks.withIndex().associate { (index, task) -> task.id to (index to task) } }
 
@@ -49,6 +53,7 @@ fun DependencyArrows(
         val stub = 8.dp.toPx()
         val head = 6.dp.toPx()
         val stroke = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val criticalStroke = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
 
         for (link in dependencies) {
             val (fromRow, from) = rows[link.predecessorId] ?: continue
@@ -78,8 +83,13 @@ fun DependencyArrows(
                 }
                 lineTo(endX, endY)
             }
-            val color = if (link.violated) violated else normal
-            drawPath(path, color, style = stroke)
+            val onPath = showCriticalPath && link.critical
+            val color = when {
+                link.violated -> violated
+                onPath -> critical
+                else -> normal
+            }
+            drawPath(path, color, style = if (onPath) criticalStroke else stroke)
             // Arrowhead pointing right, into the successor's start.
             val arrow = Path().apply {
                 moveTo(endX, endY)

@@ -123,6 +123,9 @@ class RoomProjectRepositoryTest {
         val config = TimelineConfig().withTimeScale(TimeScale.DAYS)
         repository.saveViewSettings(projectId, config)
         assertEquals(config, repository.viewSettings(projectId))
+        val withPath = config.copy(showCriticalPath = true)
+        repository.saveViewSettings(projectId, withPath)
+        assertEquals(withPath, repository.viewSettings(projectId))
     }
 
     @Test

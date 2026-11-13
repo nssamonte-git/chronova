@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -69,8 +70,11 @@ fun TaskBar(
     done: Boolean = false,
     /** Shown after the label ("· 40%"), kept in view while the label shortens; read out by the bar's state instead. */
     progressLabel: String? = null,
+    /** The critical path is shown: [critical] bars get a red outline, the others fade back. */
+    criticalPath: CriticalMark = CriticalMark.None,
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
+    val criticalOutline = MaterialTheme.colorScheme.error
     val pulse = if (highlighted) {
         rememberInfiniteTransition(label = "highlight").animateFloat(
             initialValue = 0.55f,
@@ -81,7 +85,7 @@ fun TaskBar(
     } else {
         0f
     }
-    Box(modifier.fillMaxHeight()) {
+    Box(modifier.fillMaxHeight().alpha(criticalPath.alpha)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,6 +103,7 @@ fun TaskBar(
                         drawRect(DoneShade, size = Size(size.width * doneFraction.coerceAtMost(1f), size.height))
                     }
                 }
+                .then(if (criticalPath == CriticalMark.Critical) Modifier.border(CriticalWidth, criticalOutline, BarShape) else Modifier)
                 .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), BarShape) else Modifier)
                 .then(if (highlighted) Modifier.border(3.dp, highlightBrush(pulse), BarShape) else Modifier)
                 .padding(horizontal = if (selected) 12.dp else 8.dp),
@@ -157,9 +162,11 @@ fun MilestoneMark(
     done: Boolean,
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
+    criticalPath: CriticalMark = CriticalMark.None,
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
-    Row(modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+    val criticalOutline = MaterialTheme.colorScheme.error
+    Row(modifier.fillMaxHeight().alpha(criticalPath.alpha), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(MilestoneTouchWidth), contentAlignment = Alignment.Center) {
             Box(
                 Modifier
@@ -167,6 +174,7 @@ fun MilestoneMark(
                     .rotate(45f)
                     .shadow(if (highlighted) 8.dp else if (active) 6.dp else if (selected) 2.dp else 0.dp, DiamondShape)
                     .background(color, DiamondShape)
+                    .then(if (criticalPath == CriticalMark.Critical) Modifier.border(CriticalWidth, criticalOutline, DiamondShape) else Modifier)
                     .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), DiamondShape) else Modifier)
                     .then(if (highlighted) Modifier.border(3.dp, highlightBrush(1f), DiamondShape) else Modifier),
                 contentAlignment = Alignment.Center,
@@ -192,6 +200,17 @@ fun MilestoneMark(
         )
     }
 }
+
+/** How a bar shows the critical path: not at all (the switch is off), on it, or off it. */
+enum class CriticalMark(val alpha: Float) {
+    None(1f),
+    Critical(1f),
+
+    /** Faded back, so the critical tasks stand out. */
+    NotCritical(0.45f),
+}
+
+private val CriticalWidth = 2.5.dp
 
 /** The milestone's touch area around its diamond (a comfortable target). */
 val MilestoneTouchWidth = 48.dp

@@ -271,6 +271,7 @@ fun SchedulerTimeline(
                                     task = task,
                                     zone = state.zone,
                                     rowHeight = rowHeight,
+                                    showCriticalPath = config.showCriticalPath,
                                     onClick = { onEditTask(task.id) },
                                     modifier = Modifier
                                         .width(NameColumnWidth)
@@ -280,6 +281,7 @@ fun SchedulerTimeline(
                                     task = task,
                                     selected = task.id == state.selectedTaskId,
                                     highlighted = task.id in highlighted,
+                                    showCriticalPath = config.showCriticalPath,
                                     window = window,
                                     zone = state.zone,
                                     pxPerMinute = pxPerMinute,
@@ -302,6 +304,7 @@ fun SchedulerTimeline(
                         rowHeight = rowHeight,
                         viewport = viewport,
                         listState = listState,
+                        showCriticalPath = config.showCriticalPath,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(start = NameColumnWidth),

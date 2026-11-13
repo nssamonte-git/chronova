@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import noel.chronova.core.domain.schedule.CriticalPath
 import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
@@ -98,7 +99,8 @@ class ProjectTimelineViewModel(
         } else {
             this.schedule = schedule
             val (project, tasks, dependencies) = schedule
-            val all = tasks.map { it.toUi() }
+            val path = CriticalPath.of(tasks, dependencies)
+            val all = tasks.map { it.toUi(path.slackMillis[it.id]) }
             val shown = if (filter == null) all else all.filter(filter::matches)
             TimelineScreenState.Ready(
                 TimelineUiState(
@@ -110,7 +112,8 @@ class ProjectTimelineViewModel(
                     // A selection whose task disappeared, or that the search hides, is dropped.
                     selectedTaskId = selected?.takeIf { id -> shown.any { it.id == id } },
                     search = filter?.let { TaskSearchUi(it, matches = shown.size, total = all.size) },
-                    dependencies = tasks.associateBy { it.id }.let { byId -> dependencies.map { it.toUi(byId) } },
+                    dependencies = tasks.associateBy { it.id }.let { byId -> dependencies.map { it.toUi(byId, path::isCritical) } },
+                    finishMillis = path.finishMillis,
                 ),
             )
         }
@@ -299,6 +302,9 @@ class ProjectTimelineViewModel(
     fun setSnapMinutes(minutes: Int) = settings.setSnapMinutes(minutes)
 
     fun changeRowHeight(steps: Int) = settings.changeRowHeight(steps)
+
+    /** Shows or hides the critical path; remembered for this project on this device. */
+    fun setShowCriticalPath(show: Boolean) = settings.update { it.copy(showCriticalPath = show) }
 
     /** One pinch step: zooms at once, without saving every step of the gesture. */
     fun zoomBy(factor: Float) = settings.zoomBy(factor)

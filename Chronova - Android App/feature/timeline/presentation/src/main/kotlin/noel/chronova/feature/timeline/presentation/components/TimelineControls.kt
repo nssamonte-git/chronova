@@ -21,18 +21,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
 
 /**
- * Configuration toolbar: time scale, zoom, snap interval and row height. It scrolls
+ * Configuration toolbar: time scale, zoom, snap interval, row height and the critical-path switch. It scrolls
  * horizontally so it fits narrow phones without wrapping.
  */
 @Composable
@@ -45,6 +48,7 @@ fun TimelineControls(
     onSnap: (Int) -> Unit,
     onRowHeightStep: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    onCriticalPath: (Boolean) -> Unit = {},
 ) {
     Row(
         modifier = modifier
@@ -80,6 +84,16 @@ fun TimelineControls(
             StepperIcon(MinusIcon, "Decrease row height", config.canShrinkRows) { onRowHeightStep(-1) }
             ValueText("${config.rowHeightDp.toInt()}dp")
             StepperIcon(Icons.Filled.Add, "Increase row height", config.canGrowRows) { onRowHeightStep(+1) }
+        }
+        ControlGroup("Critical path") {
+            Switch(
+                checked = config.showCriticalPath,
+                onCheckedChange = onCriticalPath,
+                modifier = Modifier
+                    // 48 dp tall with its touch target, like the segmented buttons, so the row keeps its height.
+                    .padding(horizontal = 4.dp)
+                    .semantics { contentDescription = "Show critical path" },
+            )
         }
     }
 }

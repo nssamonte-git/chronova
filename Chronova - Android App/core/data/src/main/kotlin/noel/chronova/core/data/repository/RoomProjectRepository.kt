@@ -157,12 +157,12 @@ class RoomProjectRepository(
 
     override suspend fun viewSettings(projectId: String): TimelineConfig? =
         db.viewSettingsDao().get(projectId)?.let {
-            TimelineConfig.restore(it.scale, it.unitWidthDp, it.snapMinutes, it.rowHeightDp)
+            TimelineConfig.restore(it.scale, it.unitWidthDp, it.snapMinutes, it.rowHeightDp, it.criticalPath)
         }
 
     override suspend fun saveViewSettings(projectId: String, config: TimelineConfig) {
         db.viewSettingsDao().upsert(
-            ViewSettingsEntity(projectId, config.timeScale.name, config.unitWidthDp, config.snapMinutes, config.rowHeightDp),
+            ViewSettingsEntity(projectId, config.timeScale.name, config.unitWidthDp, config.snapMinutes, config.rowHeightDp, config.showCriticalPath),
         )
     }
 

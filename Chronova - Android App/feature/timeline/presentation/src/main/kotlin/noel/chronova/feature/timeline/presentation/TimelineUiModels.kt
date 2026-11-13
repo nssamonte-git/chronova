@@ -17,8 +17,16 @@ data class TaskUi(
     val progress: Int = 0,
     val notes: String = "",
     val isMilestone: Boolean = false,
+    /**
+     * How far the task's end could slip without moving the project's finish (see
+     * [noel.chronova.core.domain.schedule.CriticalPath]); negative when a link is broken.
+     */
+    val slackMillis: Long? = null,
 ) {
     val durationMillis: Long get() = endMillis - startMillis
+
+    /** On the critical path: any delay moves the project's finish. */
+    val critical: Boolean get() = slackMillis != null && slackMillis <= 0L
 
     val isDone: Boolean get() = progress == DONE
 
@@ -36,7 +44,22 @@ data class TaskUi(
  * A finish-to-start link: [successorId] waits for [predecessorId]. [violated]: the successor
  * starts before the predecessor ends, so the arrow is drawn as a warning.
  */
-data class DependencyUi(val predecessorId: String, val successorId: String, val violated: Boolean = false)
+data class DependencyUi(
+    val predecessorId: String,
+    val successorId: String,
+    val violated: Boolean = false,
+    /** Both ends are on the critical path. */
+    val critical: Boolean = false,
+)
+
+/** The editor's line about how much a saved task can slip. */
+sealed interface SlackUi {
+    /** Any delay moves the project's finish, at [finishMillis]. */
+    data class OnCriticalPath(val finishMillis: Long) : SlackUi
+
+    /** The task can end up to [millis] later without delaying the finish. */
+    data class CanSlip(val millis: Long) : SlackUi
+}
 
 /** Why the entered task can't be saved, as the editor words it. */
 sealed interface TaskProblemUi {

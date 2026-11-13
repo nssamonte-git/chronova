@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import noel.chronova.feature.timeline.presentation.TaskUi
 /**
  * The fixed left cell of a timeline row: colour dot (a check once done), title, and in
  * taller rows the time range (one time for a milestone). Tapping it edits the task.
+ * While the critical path is shown, a critical task gets a red mark at the start.
  */
 @Composable
 fun TaskNameCell(
@@ -39,8 +41,19 @@ fun TaskNameCell(
     rowHeight: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The critical-path switch is on: a red mark at the start of a critical task's cell. */
+    showCriticalPath: Boolean = false,
 ) {
     Box(modifier.clickable(onClickLabel = stringResource(R.string.task_edit), onClick = onClick)) {
+        if (showCriticalPath && task.critical) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 3.dp)
+                    .size(width = 3.dp, height = 20.dp)
+                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(50)),
+            )
+        }
         Row(
             modifier = Modifier
                 .align(Alignment.CenterStart)

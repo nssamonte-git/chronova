@@ -99,6 +99,7 @@ fun ProjectTimelineScreen(
                     onPinchEnd = viewModel::finishZoom,
                     onSnap = viewModel::setSnapMinutes,
                     onRowHeightStep = viewModel::changeRowHeight,
+                    onCriticalPath = viewModel::setShowCriticalPath,
                     onAddTask = viewModel::startAddTask,
                     onEditTask = viewModel::startEditTask,
                     onMarkDone = viewModel::markSelectedDone,
@@ -162,6 +163,8 @@ data class TimelineActions(
     val onPinchEnd: () -> Unit = {},
     val onSnap: (Int) -> Unit = {},
     val onRowHeightStep: (Int) -> Unit = {},
+    /** Shows or hides the critical path. */
+    val onCriticalPath: (Boolean) -> Unit = {},
     val onAddTask: () -> Unit = {},
     val onEditTask: (String) -> Unit = {},
     /** Marks the selected task done. */
@@ -314,6 +317,7 @@ internal fun TimelineContent(
                         onZoomReset = actions.onZoomReset,
                         onSnap = actions.onSnap,
                         onRowHeightStep = actions.onRowHeightStep,
+                        onCriticalPath = actions.onCriticalPath,
                     )
                 }
             }

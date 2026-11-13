@@ -77,6 +77,7 @@ internal class TaskEditor(
             isMilestone = task.isMilestone,
             predecessorIds = shown.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
             forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, schedule()?.dependencies.orEmpty()),
+            slack = slackOf(task, shown.finishMillis),
         )
     }
 
@@ -93,10 +94,10 @@ internal class TaskEditor(
 
     /** Moving the start keeps the duration, so the end moves with it. */
     fun changeStart(startMillis: Long) = _state.update {
-        it?.copy(startMillis = startMillis, endMillis = startMillis + (it.endMillis - it.startMillis), problem = null)
+        it?.copy(startMillis = startMillis, endMillis = startMillis + (it.endMillis - it.startMillis), problem = null, slack = null)
     }
 
-    fun changeEnd(endMillis: Long) = _state.update { it?.copy(endMillis = endMillis, problem = null) }
+    fun changeEnd(endMillis: Long) = _state.update { it?.copy(endMillis = endMillis, problem = null, slack = null) }
 
     fun changeColor(color: TaskColor) = _state.update { it?.copy(color = color) }
 
@@ -126,8 +127,14 @@ internal class TaskEditor(
                 endMillis = editor.startMillis,
                 progress = snapToDoneOrNot(editor.progress),
                 problem = null,
+                slack = null,
             )
-            else -> editor.copy(isMilestone = false, endMillis = editor.startMillis + DEFAULT_DURATION_MILLIS, problem = null)
+            else -> editor.copy(
+                isMilestone = false,
+                endMillis = editor.startMillis + DEFAULT_DURATION_MILLIS,
+                problem = null,
+                slack = null,
+            )
         }
     }
 
@@ -196,4 +203,13 @@ internal fun cutNotes(notes: String): String {
     if (notes.length <= NOTES_MAX_LENGTH) return notes
     val end = if (notes[NOTES_MAX_LENGTH - 1].isHighSurrogate()) NOTES_MAX_LENGTH - 1 else NOTES_MAX_LENGTH
     return notes.substring(0, end)
+}
+
+/** What the editor says about a saved task's slack; nothing when it isn't known. */
+internal fun slackOf(task: TaskUi, finishMillis: Long?): SlackUi? {
+    val slack = task.slackMillis ?: return null
+    return when {
+        task.critical -> finishMillis?.let(SlackUi::OnCriticalPath)
+        else -> SlackUi.CanSlip(slack)
+    }
 }

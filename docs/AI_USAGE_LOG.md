@@ -1124,3 +1124,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the screen test first checked the moved row's time text, which wasn't reliably on screen; it now checks the stored task and the "Pushed" message;
     - lint asked for Compose's `LocalResources` instead of reading resources through the context.
   - **Checks:** `tools/check.sh` PASS (398 unit tests, 93 screenshots, lint 0 errors / 21 warnings). Timeline device tests 22/22, twice, on the phone.
+- Batch 2, critical path:
+  - **Calculation:** `CriticalPath` in `:core:domain` (a backward pass over the scheduled dates and finish-to-start links; slack 0 or less is critical, broken links give negative slack, cycles are ignored), with 7 tests (a chain with a parallel branch, a gap before the next task, unlinked tasks, a milestone at the end, a broken link, none and one task, a cycle).
+  - **Remembered switch:** `TimelineConfig.showCriticalPath` (kept by `restore`, even for an unknown scale); Room v6 adds `view_settings.critical_path` (`MIGRATION_5_6`, `schemas/6.json`). `MigrationTest` now upgrades from v5 too, names its insert columns (positional inserts broke once columns were added) and checks the new column starts off; the repository test saves and reads the switch.
+  - **Timeline:** `TaskUi.slackMillis` and `critical`, `DependencyUi.critical` and `TimelineUiState.finishMillis`, worked out in the ViewModel's state mapping. A "Critical path" switch in the settings row; with it on, critical bars and diamonds get a red outline, the rest fade to 45%, links between critical tasks are darker and thicker, the name cell gets a red mark, and the bar's state says "On the critical path".
+  - **Editor:** `TaskEditorState.slack` ("On the critical path: any delay moves the finish (Mon 2 Mar, 17:00)" in red, or "Can slip 3 h 30 min without delaying the finish"), dropped once the times are changed in the editor.
+  - **Tests:** 3 ViewModel tests (the path and the remembered switch; the editor's slack line; slack wording), a `TimelineConfig` test, a screen test (the switch marks Survey and Plaster but not Sweep, is saved, and the editor says Sweep can slip 1 h 30 min), and screenshots of the timeline with the path on and the editor's two slack lines, each in light, large font and dark.
+  - **AI mistakes:**
+    - one `CriticalPath` test expected −2 h of slack on a broken link; the finish there is the earlier task's end, so it is −1 h;
+    - two older ViewModel tests compared whole tasks without slack; they now allow for it;
+    - the switch first made the settings row 8 dp taller, shifting every timeline screenshot; it now matches the segmented buttons' 48 dp.
+  - **Checks:** `tools/check.sh` PASS (409 unit tests, 99 screenshots, lint 0 errors / 21 warnings).
+  - **Noticed, not changed:** at the widest Days zoom-out the header's date label runs into the first hour label (it was already so).

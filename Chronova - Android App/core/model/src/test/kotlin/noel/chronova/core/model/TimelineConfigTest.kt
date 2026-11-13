@@ -84,6 +84,14 @@ class TimelineConfigTest {
     }
 
     @Test
+    fun restoreKeepsTheCriticalPathSwitchEvenWhenTheScaleIsUnknown() {
+        assertTrue(TimelineConfig.restore("DAYS", 480f, 60, 56f, showCriticalPath = true).showCriticalPath)
+        assertTrue(TimelineConfig.restore("YEARS", 1f, 1, 1f, showCriticalPath = true).showCriticalPath)
+        assertFalse(TimelineConfig.restore("DAYS", 480f, 60, 56f).showCriticalPath)
+        assertTrue(TimelineConfig(showCriticalPath = true).withTimeScale(TimeScale.WEEKS).zoomedIn().showCriticalPath)
+    }
+
+    @Test
     fun rowHeightStepsAreClamped() {
         assertEquals(64f, TimelineConfig().withRowHeightStep(1).rowHeightDp)
         assertEquals(80f, TimelineConfig().withRowHeightStep(10).rowHeightDp)

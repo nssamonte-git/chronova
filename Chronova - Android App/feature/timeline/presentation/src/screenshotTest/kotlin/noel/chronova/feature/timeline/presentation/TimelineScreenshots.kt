@@ -6,6 +6,8 @@ import java.time.ZoneOffset
 import noel.chronova.core.designsystem.ChronovaScreenshots
 import noel.chronova.core.designsystem.ChronovaTheme
 import noel.chronova.core.model.TaskColor
+import noel.chronova.core.model.TimeScale
+import noel.chronova.core.model.TimelineConfig
 
 private val zone = ZoneOffset.UTC
 private val sample = TimelineUiState.sample(zone)
@@ -33,6 +35,32 @@ fun TimelineWithProgressAndAMilestone() {
             state = sample.copy(tasks = tasks, config = sample.config.copy(rowHeightDp = 56f), selectedTaskId = "launch"),
             actions = TimelineActions(),
             now = { at(7, 30) }, // the now line
+        )
+    }
+}
+
+/**
+ * The critical path shown: UI Design → Implementation and QA Testing → Review are linked,
+ * so QA Testing and Review set the finish (red outline, darker arrow) and the others fade.
+ */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TimelineCriticalPath() {
+    val hour = 3_600_000L
+    val slack = mapOf("ui-design" to 3 * hour, "implementation" to 3 * hour, "qa-testing" to 0L, "review" to 0L)
+    ChronovaTheme {
+        TimelineContent(
+            state = sample.copy(
+                tasks = sample.tasks.map { it.copy(slackMillis = slack[it.id]) },
+                dependencies = listOf(
+                    DependencyUi("ui-design", "implementation"),
+                    DependencyUi("qa-testing", "review", critical = true),
+                ),
+                // Days at the widest zoom-out, so the whole first day (all four tasks) is on screen.
+                config = TimelineConfig(TimeScale.DAYS, unitWidthDp = TimeScale.DAYS.minUnitWidthDp, showCriticalPath = true),
+            ),
+            actions = TimelineActions(),
         )
     }
 }
@@ -115,6 +143,25 @@ fun TaskEditorProgressAndNotes() {
             color = task.color,
             progress = 40,
             notes = "Waiting on the API review.\nShip behind a flag.",
+            slack = SlackUi.CanSlip(3 * 3_600_000L + 30 * 60_000L),
+        ),
+    )
+}
+
+/** Editing a task on the critical path: the finish it holds up, in red. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TaskEditorOnTheCriticalPath() {
+    val task = sample.tasks.last()
+    Editor(
+        TaskEditorState(
+            taskId = task.id,
+            title = task.title,
+            startMillis = task.startMillis,
+            endMillis = task.endMillis,
+            color = task.color,
+            slack = SlackUi.OnCriticalPath(task.endMillis),
         ),
     )
 }

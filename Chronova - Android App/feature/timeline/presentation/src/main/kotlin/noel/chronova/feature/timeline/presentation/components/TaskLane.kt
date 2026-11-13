@@ -73,6 +73,8 @@ fun TaskLane(
     modifier: Modifier = Modifier,
     /** Just changed by the assistant. */
     highlighted: Boolean = false,
+    /** The critical-path switch is on: mark this task on or off the path. */
+    showCriticalPath: Boolean = false,
 ) {
     var preview by remember { mutableStateOf<TaskUi?>(null) }
     var dragging by remember { mutableStateOf(false) }
@@ -138,7 +140,13 @@ fun TaskLane(
         task.progress > 0 -> stringResource(R.string.task_bar_state_progress, task.progress)
         else -> null
     }
-    val state = listOfNotNull(milestoneState.takeIf { milestone }, progressState).joinToString(", ")
+    val criticalMark = when {
+        !showCriticalPath -> CriticalMark.None
+        task.critical -> CriticalMark.Critical
+        else -> CriticalMark.NotCritical
+    }
+    val criticalState = stringResource(R.string.task_bar_state_critical).takeIf { criticalMark == CriticalMark.Critical }
+    val state = listOfNotNull(milestoneState.takeIf { milestone }, progressState, criticalState).joinToString(", ")
 
     Box(modifier.clipToBounds()) {
         if (visibleEnd <= span.start || visibleStart >= span.end) return@Box // nowhere near the viewport
@@ -208,6 +216,7 @@ fun TaskLane(
                 active = dragging,
                 done = task.isDone,
                 highlighted = highlighted,
+                criticalPath = criticalMark,
                 modifier = container,
             )
         } else {
@@ -225,6 +234,7 @@ fun TaskLane(
                 } else {
                     null
                 },
+                criticalPath = criticalMark,
                 modifier = container,
             )
         }
