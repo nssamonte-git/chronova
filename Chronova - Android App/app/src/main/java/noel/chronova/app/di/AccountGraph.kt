@@ -1,6 +1,7 @@
 package noel.chronova.app.di
 
 import noel.chronova.app.AppContainer
+import noel.chronova.core.domain.appearance.AppearanceQueries
 import noel.chronova.core.domain.auth.AuthQueries
 import noel.chronova.core.domain.sync.SyncStatusQueries
 import noel.chronova.feature.account.domain.AccountUseCases
@@ -9,6 +10,7 @@ import noel.chronova.feature.account.domain.DeleteAccount
 import noel.chronova.feature.account.domain.RequestPasswordReset
 import noel.chronova.feature.account.domain.ResendCode
 import noel.chronova.feature.account.domain.ResetPassword
+import noel.chronova.feature.account.domain.SetThemeMode
 import noel.chronova.feature.account.domain.SignIn
 import noel.chronova.feature.account.domain.SignOutAndClear
 import noel.chronova.feature.account.domain.SignUp
@@ -18,6 +20,9 @@ import noel.chronova.feature.account.domain.SyncAccountNow
 class AccountGraph(private val app: AppContainer) {
     /** The sign-in state, read by the sign-in gate and the account pages. */
     val auth: AuthQueries get() = app.authRepository
+
+    /** This device's appearance (theme), read by the account page. */
+    val appearance: AppearanceQueries get() = app.appearance
 
     /** Unsynced changes, the last result and time, read by the account page. */
     val syncStatus: SyncStatusQueries get() = app.syncCoordinator
@@ -35,6 +40,7 @@ class AccountGraph(private val app: AppContainer) {
             syncNow = SyncAccountNow(sync),
             signOutAndClear = SignOutAndClear(sync),
             deleteAccount = DeleteAccount(sync),
+            setThemeMode = SetThemeMode(app.appearance),
         )
     }
 }

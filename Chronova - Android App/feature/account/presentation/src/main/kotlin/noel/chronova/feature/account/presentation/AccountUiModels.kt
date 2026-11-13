@@ -1,5 +1,6 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.ui.sync.SyncPhase
 
@@ -72,6 +73,8 @@ data class AccountPageUi(
     /** Why the last account deletion failed, if it did. */
     val deleteFailure: SyncFailure? = null,
     val lastSyncedAt: Long? = null,
+    /** System, light or dark on this device. */
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
 
 /** What each control on the account screen does. */
@@ -88,4 +91,5 @@ data class AccountActions(
     val onRequestDeleteAccount: () -> Unit = {},
     val onConfirmDialog: () -> Unit = {},
     val onDismissDialog: () -> Unit = {},
+    val onThemeModeChange: (ThemeMode) -> Unit = {},
 )

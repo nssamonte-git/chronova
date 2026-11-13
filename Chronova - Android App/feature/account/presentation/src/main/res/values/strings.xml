@@ -65,4 +65,8 @@
         <item quantity="one">%d change hasn’t synced and will be lost. Your synced projects stay in your account.</item>
         <item quantity="other">%d changes haven’t synced and will be lost. Your synced projects stay in your account.</item>
     </plurals>
+    <string name="account_theme">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
 </resources>

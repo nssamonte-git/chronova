@@ -18,14 +18,22 @@ import noel.chronova.core.ui.sync.toSyncPhase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import noel.chronova.core.domain.appearance.AppearanceQueries
 import noel.chronova.core.domain.auth.AuthQueries
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.domain.sync.SyncStatusQueries
 
 class AccountViewModel(
     auth: AuthQueries,
     private val sync: SyncStatusQueries,
     private val useCases: AccountUseCases,
+    appearance: AppearanceQueries,
 ) : ViewModel() {
+
+    /** System, light or dark on this device. */
+    val themeMode: StateFlow<ThemeMode> = appearance.themeMode
+
+    fun setThemeMode(mode: ThemeMode) = useCases.setThemeMode(mode)
 
     val authState: StateFlow<AccountAuthUi> = auth.state.map { it.toUi() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, auth.state.value.toUi())
@@ -156,8 +164,13 @@ class AccountViewModel(
         const val CODE_LENGTH = 6
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
-        fun factory(auth: AuthQueries, sync: SyncStatusQueries, useCases: () -> AccountUseCases): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountViewModel(auth, sync, useCases()) }
+        fun factory(
+            auth: AuthQueries,
+            sync: SyncStatusQueries,
+            appearance: AppearanceQueries,
+            useCases: () -> AccountUseCases,
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { AccountViewModel(auth, sync, useCases(), appearance) }
         }
     }
 }

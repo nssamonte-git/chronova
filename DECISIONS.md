@@ -77,6 +77,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 ## 2026-11-12: Branding
 
 - Decision: the supplied logo (`docs/brand/chronova-logo.webp`) is used as is, not redrawn: `tools/brand/generate.py` cuts the adaptive, themed and launch-screen icons and the admin logo and favicons from it. The app stays light-themed; the admin panel is dark-only in the logo's colours.
+- Revised 2026-11-13 (user choice): the app has a dark theme as well. It follows the phone by default, with a System / Light / Dark choice on the account page, stored on the device only (`chronova_appearance` preferences, kept when signing out). Dark uses slate surfaces (every Material surface container is set, so sheets and menus stay slate) and the same brand and task colours, so white bar labels stay readable. `MainActivity` re-applies edge-to-edge so the system bar icons follow the app's theme. Every screenshot test is also taken in dark.
 - Reason: user choices (image as is; dark-only admin).
 - Constraint: regenerate brand images with the script rather than editing them; the icon art must stay inside the adaptive icon's 66 dp safe circle.
 

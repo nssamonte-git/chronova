@@ -1,5 +1,8 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.domain.appearance.AppearanceRepository
+import noel.chronova.core.model.ThemeMode
+import noel.chronova.feature.account.domain.SetThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,12 +86,22 @@ class AccountViewModelTest {
     private lateinit var viewModel: AccountViewModel
     private lateinit var sync: FakeAccountSync
 
+    private val appearance = TestAppearance()
+
+    @Test
+    fun theThemeChoiceIsReadAndSaved() {
+        assertEquals(ThemeMode.SYSTEM, viewModel.themeMode.value)
+        viewModel.setThemeMode(ThemeMode.DARK)
+        assertEquals(ThemeMode.DARK, appearance.themeMode.value)
+        assertEquals(ThemeMode.DARK, viewModel.themeMode.value)
+    }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         auth = FakeAuth()
         sync = FakeAccountSync()
-        viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync))
+        viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance), appearance)
     }
 
     @After
@@ -225,7 +238,7 @@ class AccountViewModelTest {
 }
 
 /** The use cases the app wires, over fakes. */
-private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance()) = AccountUseCases(
     signIn = SignIn(auth),
     signUp = SignUp(auth),
     confirmSignUp = ConfirmSignUp(auth),
@@ -235,4 +248,15 @@ private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUs
     syncNow = SyncAccountNow(sync),
     signOutAndClear = SignOutAndClear(sync),
     deleteAccount = DeleteAccount(sync),
+    setThemeMode = SetThemeMode(appearance),
 )
+
+/** In-memory appearance choice. */
+private class TestAppearance : AppearanceRepository {
+    override val themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+
+    override fun setThemeMode(mode: ThemeMode) {
+        themeMode.value = mode
+    }
+}
+

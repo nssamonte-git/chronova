@@ -1,5 +1,8 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.model.ThemeMode
+import noel.chronova.core.testing.FakeAppearanceRepository
+import noel.chronova.feature.account.domain.SetThemeMode
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -50,6 +53,7 @@ class AccountScreenTest {
     private val res = InstrumentationRegistry.getInstrumentation().targetContext.resources
     private lateinit var auth: FakeAuthRepository
     private val sync = FakeAccountSync()
+    private val appearance = FakeAppearanceRepository()
 
     private fun show(state: AuthState) {
         auth = FakeAuthRepository(state)
@@ -66,7 +70,9 @@ class AccountScreenTest {
                 syncNow = SyncAccountNow(sync),
                 signOutAndClear = SignOutAndClear(sync),
                 deleteAccount = DeleteAccount(sync),
+                setThemeMode = SetThemeMode(appearance),
             ),
+            appearance,
         )
         compose.setContent { ChronovaTheme { AccountScreen(viewModel, onBack = {}) } }
     }
@@ -176,6 +182,15 @@ class AccountScreenTest {
     }
 
     // Signed in: the account and its sync line.
+
+    @Test
+    fun theThemeChoiceIsSavedForThisDevice() {
+        show(AuthState.SignedIn("user-1", "ana@example.com"))
+        compose.onNodeWithText(string(R.string.account_theme)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.theme_dark)).performClick()
+        compose.waitForIdle()
+        assertEquals(ThemeMode.DARK, appearance.themeMode.value)
+    }
 
     @Test
     fun signedInShowsTheAccountAndWhenItLastSynced() {

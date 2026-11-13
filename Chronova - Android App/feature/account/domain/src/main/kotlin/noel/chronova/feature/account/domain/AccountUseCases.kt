@@ -62,4 +62,5 @@ class AccountUseCases(
     val syncNow: SyncAccountNow,
     val signOutAndClear: SignOutAndClear,
     val deleteAccount: DeleteAccount,
+    val setThemeMode: SetThemeMode,
 )

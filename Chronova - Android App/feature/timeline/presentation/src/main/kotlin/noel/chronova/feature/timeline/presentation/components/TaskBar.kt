@@ -211,7 +211,7 @@ private fun ResizeGrip(color: Color, modifier: Modifier = Modifier) {
         modifier
             .size(HandleWidth, HandleHeight)
             .shadow(1.dp, HandleShape)
-            .background(Color.White, HandleShape)
+            .background(MaterialTheme.colorScheme.surface, HandleShape)
             .border(2.dp, color, HandleShape),
     )
 }

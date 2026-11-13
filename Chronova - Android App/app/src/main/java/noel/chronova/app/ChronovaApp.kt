@@ -17,7 +17,9 @@ import noel.chronova.app.di.ProjectsGraph
 import noel.chronova.app.di.SyncGraph
 import noel.chronova.app.di.TimelineGraph
 import noel.chronova.core.data.connectivity.onlineFlow
+import noel.chronova.core.data.appearance.PreferencesAppearanceRepository
 import noel.chronova.core.data.repository.PreferencesFirstLaunchFlag
+import noel.chronova.core.domain.appearance.AppearanceRepository
 import noel.chronova.core.data.repository.RoomProjectRepository
 import noel.chronova.core.database.ChronovaDatabase
 import noel.chronova.core.domain.auth.AuthRepository
@@ -63,6 +65,9 @@ class AppContainer(context: Context) {
         database,
         PreferencesFirstLaunchFlag(context.getSharedPreferences("chronova", Context.MODE_PRIVATE)),
     )
+
+    /** This device's look (System / Light / Dark); its own preferences file, kept when signing out. */
+    val appearance: AppearanceRepository = PreferencesAppearanceRepository(context.getSharedPreferences("chronova_appearance", Context.MODE_PRIVATE))
 
     val backendConfig: BackendConfig = BackendConfig.fromBuildConfig()
 

@@ -1,5 +1,9 @@
 package noel.chronova.feature.account.presentation
 
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import noel.chronova.core.model.ThemeMode
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
@@ -77,8 +81,9 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
     val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
     val phase by viewModel.syncPhase.collectAsStateWithLifecycle()
     val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     AccountContent(
-        page = AccountPageUi(authState, form, dialog, sessionEnded, pending, phase, deleteFailure, viewModel.lastSyncedAt()),
+        page = AccountPageUi(authState, form, dialog, sessionEnded, pending, phase, deleteFailure, viewModel.lastSyncedAt(), themeMode),
         actions = remember(viewModel) {
             AccountActions(
                 onEmailChange = viewModel::onEmailChange,
@@ -93,6 +98,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                 onRequestDeleteAccount = viewModel::requestDeleteAccount,
                 onConfirmDialog = viewModel::confirmDialog,
                 onDismissDialog = viewModel::dismissDialog,
+                onThemeModeChange = viewModel::setThemeMode,
             )
         },
         onBack = onBack,
@@ -183,6 +189,7 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
     Button(onClick = actions.onSyncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(CoreUiR.string.sync_now))
     }
+    ThemeChoice(page.themeMode, actions.onThemeModeChange)
     OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
     }
@@ -195,6 +202,36 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+/** System / Light / Dark for this device. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeChoice(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.account_theme), style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            ThemeMode.entries.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = mode == selected,
+                    onClick = { onSelect(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                    icon = {},
+                ) {
+                    Text(
+                        stringResource(
+                            when (mode) {
+                                ThemeMode.SYSTEM -> R.string.theme_system
+                                ThemeMode.LIGHT -> R.string.theme_light
+                                ThemeMode.DARK -> R.string.theme_dark
+                            },
+                        ),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 }
 

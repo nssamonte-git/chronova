@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -45,7 +46,7 @@ import noel.chronova.feature.timeline.presentation.TaskSearchUi
 /**
  * Search and filter bar under the top bar: a title search, chips for not done /
  * done / milestones and for the four colours, how many tasks match, and Clear.
- * The text field takes focus when the bar opens.
+ * The text field takes focus when the bar opens (not in previews).
  */
 @Composable
 fun TaskSearchBar(
@@ -60,7 +61,9 @@ fun TaskSearchBar(
     val filter = search.filter
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    // Not in previews and screenshots: a focused field's blinking cursor would make them flaky.
+    val preview = LocalInspectionMode.current
+    LaunchedEffect(Unit) { if (!preview) focus.requestFocus() }
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
             OutlinedTextField(

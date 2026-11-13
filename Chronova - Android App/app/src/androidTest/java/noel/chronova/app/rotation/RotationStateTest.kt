@@ -1,5 +1,8 @@
 package noel.chronova.app.rotation
 
+import noel.chronova.core.domain.appearance.AppearanceRepository
+import noel.chronova.core.model.ThemeMode
+import noel.chronova.feature.account.domain.SetThemeMode
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
@@ -106,7 +109,8 @@ class RotationStateTest {
     fun theSignInFormKeepsWhatWasTypedAndChosenAcrossARotation() {
         val auth = SignedOutAuth()
         val sync = IdleSync()
-        val viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync))
+        val appearance = TestAppearance()
+        val viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance), appearance)
         val restorer = StateRestorationTester(compose)
         restorer.setContent { AccountScreen(viewModel = viewModel, onBack = null) }
 
@@ -145,7 +149,7 @@ private class IdleSync : AccountSync {
 }
 
 /** The use cases the app wires, over fakes. */
-private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUseCases(
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance()) = AccountUseCases(
     signIn = SignIn(auth),
     signUp = SignUp(auth),
     confirmSignUp = ConfirmSignUp(auth),
@@ -155,4 +159,15 @@ private fun accountUseCases(auth: AuthRepository, sync: AccountSync) = AccountUs
     syncNow = SyncAccountNow(sync),
     signOutAndClear = SignOutAndClear(sync),
     deleteAccount = DeleteAccount(sync),
+    setThemeMode = SetThemeMode(appearance),
 )
+
+/** In-memory appearance choice. */
+private class TestAppearance : AppearanceRepository {
+    override val themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+
+    override fun setThemeMode(mode: ThemeMode) {
+        themeMode.value = mode
+    }
+}
+

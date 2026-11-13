@@ -20,7 +20,7 @@ class ChronovaThemeTest {
     @Test
     fun themeUsesTheBrandColours() {
         lateinit var scheme: ColorScheme
-        compose.setContent { ChronovaTheme { scheme = MaterialTheme.colorScheme } }
+        compose.setContent { ChronovaTheme(darkTheme = false) { scheme = MaterialTheme.colorScheme } }
         compose.waitForIdle()
         assertEquals(ChronovaBlue, scheme.primary)
         assertEquals(ChronovaGreen, scheme.secondary)
@@ -34,19 +34,38 @@ class ChronovaThemeTest {
     }
 
     @Test
-    fun everyTaskColourIsItsOwnBrandColour() {
-        lateinit var colors: Map<TaskColor, Color>
-        compose.setContent { ChronovaTheme { colors = TaskColor.entries.associateWith { it.toColor() } } }
+    fun darkKeepsTheBrandColoursOnSlate() {
+        lateinit var scheme: ColorScheme
+        compose.setContent { ChronovaTheme(darkTheme = true) { scheme = MaterialTheme.colorScheme } }
         compose.waitForIdle()
-        assertEquals(
-            mapOf(
-                TaskColor.BLUE to ChronovaBlue,
-                TaskColor.GREEN to ChronovaGreen,
-                TaskColor.PURPLE to ChronovaPurple,
-                TaskColor.AMBER to ChronovaAmber,
-            ),
-            colors,
+        assertEquals(ChronovaBlue, scheme.primary)
+        assertEquals(ChronovaGreen, scheme.secondary)
+        assertEquals(ChronovaPurple, scheme.tertiary)
+        assertEquals(ChronovaDarkBackground, scheme.background)
+        assertEquals(ChronovaDarkSurface, scheme.surface)
+        assertEquals(ChronovaDarkText, scheme.onSurface)
+        // Sheets and menus use the containers: slate too, not Material's default dark greys.
+        assertEquals(ChronovaDarkSurfaceLow, scheme.surfaceContainerLow)
+        assertEquals(ChronovaDarkSurfaceContainer, scheme.surfaceContainer)
+    }
+
+    @Test
+    fun everyTaskColourIsItsOwnBrandColourInBothThemes() {
+        lateinit var light: Map<TaskColor, Color>
+        lateinit var dark: Map<TaskColor, Color>
+        compose.setContent {
+            ChronovaTheme(darkTheme = false) { light = TaskColor.entries.associateWith { it.toColor() } }
+            ChronovaTheme(darkTheme = true) { dark = TaskColor.entries.associateWith { it.toColor() } }
+        }
+        compose.waitForIdle()
+        val brand = mapOf(
+            TaskColor.BLUE to ChronovaBlue,
+            TaskColor.GREEN to ChronovaGreen,
+            TaskColor.PURPLE to ChronovaPurple,
+            TaskColor.AMBER to ChronovaAmber,
         )
-        assertEquals(TaskColor.entries.size, colors.values.toSet().size)
+        assertEquals(brand, light)
+        assertEquals(brand, dark)
+        assertEquals(TaskColor.entries.size, light.values.toSet().size)
     }
 }
