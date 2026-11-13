@@ -221,6 +221,19 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun aTaskThatEndsBeforeItStartsKeepsTheEditorOpen() = runTest {
+        timeline()
+        viewModel.startEditTask("review") // 16:00–17:00
+        viewModel.onTaskEndChange(at(15))
+        viewModel.saveTask()
+        assertEquals(TaskProblemUi.EndNotAfterStart, viewModel.taskEditor.value?.problem)
+        assertTrue(repository.updates.isEmpty())
+        // Picking another end clears the problem.
+        viewModel.onTaskEndChange(at(18))
+        assertNull(viewModel.taskEditor.value?.problem)
+    }
+
+    @Test
     fun editTask_savesTitleTimesAndColour() = runTest {
         val state = timeline()
         viewModel.startEditTask("review")

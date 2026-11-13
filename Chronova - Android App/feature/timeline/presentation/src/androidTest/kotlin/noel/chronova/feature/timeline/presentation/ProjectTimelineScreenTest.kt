@@ -170,6 +170,19 @@ class ProjectTimelineScreenTest {
     }
 
     @Test
+    fun aTaskThatEndsBeforeItStartsIsRefused() {
+        val call = screen.task("call", "Call", screen.at(2, 10), screen.at(2, 11), 0)
+        screen.show(listOf(call))
+        screen.nameCell("Call").performClick()
+        // The time picker reports the chosen end through this intent; its dial isn't a stable test target.
+        compose.runOnIdle { screen.viewModel.onTaskEndChange(screen.at(2, 9)) }
+        screen.button(screen.string(CoreUiR.string.save)).performClick()
+        compose.onNodeWithText(screen.string(R.string.task_problem_end_not_after_start)).assertIsDisplayed()
+        compose.onNodeWithText(screen.string(R.string.task_edit)).assertIsDisplayed() // the sheet stays open
+        assertEquals(listOf(call), screen.repository.tasks.value)
+    }
+
+    @Test
     fun aTaskOutsideTheProjectIsRefused() {
         // Starts the evening before the project's first day.
         val early = screen.task("early", "Prep", screen.at(1, 23), screen.at(2, 1), 0)

@@ -53,6 +53,9 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
 
     fun link(predecessor: String, successor: String) = TaskDependency("dep-$predecessor-$successor", PROJECT_ID, predecessor, successor)
 
+    /** The screen's ViewModel, once [show] has run; tests use it where a picker would call it. */
+    lateinit var viewModel: ProjectTimelineViewModel
+
     /** Shows the screen; [config] is the project's saved view settings (hours at the default zoom unless given). */
     fun show(
         tasks: List<SchedulerTask>,
@@ -64,7 +67,7 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
             it.viewSettings[PROJECT_ID] = config
         }
         val apply = ApplyScheduleChanges(repository, zone)
-        val viewModel = ProjectTimelineViewModel(
+        viewModel = ProjectTimelineViewModel(
             PROJECT_ID,
             TimelineUseCases(
                 observeSchedule = ObserveProjectSchedule(repository),

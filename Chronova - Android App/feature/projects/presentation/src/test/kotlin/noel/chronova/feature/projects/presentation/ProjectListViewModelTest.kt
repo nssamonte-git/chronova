@@ -77,6 +77,16 @@ class ProjectListViewModelTest {
     }
 
     @Test
+    fun aProjectThatEndsBeforeItStartsIsRefused() = runTest {
+        viewModel.startCreate()
+        viewModel.onNameChange("Kitchen")
+        viewModel.onRangeChange(SampleTasks.REFERENCE_DATE.plusDays(5), SampleTasks.REFERENCE_DATE)
+        viewModel.saveEditor()
+        assertEquals(ProjectProblemUi.EndBeforeStart, viewModel.editor.value?.problem)
+        assertEquals(1, repository.projects.value.size)
+    }
+
+    @Test
     fun edit_cannotShrinkPastExistingTasks() = runTest {
         viewModel.startEdit(noel.chronova.core.model.ProjectSummary(SampleTasks.project, 4).toUi())
         // All sample tasks are on the first day, so dropping that day excludes all four.

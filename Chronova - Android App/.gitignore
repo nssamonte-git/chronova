@@ -13,3 +13,8 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release signing keys stay out of git (releases are signed by hand; see HANDOFF).
+*.jks
+*.keystore
+keystore.properties
