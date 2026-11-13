@@ -102,6 +102,19 @@ class OkHttpVoiceApiTest {
             api.interpret("token-1", "show days", context).actions,
         )
         server.takeRequest()
+        reply(
+            200,
+            """{"revision":"r1","result":"actions","operations":[],"question":null,"reason":null,"alternative":null,
+               "actions":[{"type":"search","query":null,"colors":["green"],"kinds":["not_done","milestone"]},{"type":"open_task","taskId":"t1"}]}""",
+        )
+        assertEquals(
+            listOf(
+                ProposedAction("search", query = null, colors = listOf("green"), kinds = listOf("not_done", "milestone")),
+                ProposedAction("open_task", taskId = "t1"),
+            ),
+            api.interpret("token-1", "green tasks", context).actions,
+        )
+        server.takeRequest()
         // An answer without actions (an older server) has none.
         reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
         assertEquals(emptyList<ProposedAction>(), api.interpret("token-1", "delete design", context).actions)

@@ -171,9 +171,9 @@ fun SchedulerTimeline(
                 val visibleRows = listState.layoutInfo.visibleItemsInfo.map { it.index }
                 if (row >= 0 && row !in visibleRows) listState.animateScrollToItem(row)
                 val startX = TimelineMath.timeToX(task.startMillis, window.startMillis, pxPerMinute)
-                val endX = TimelineMath.timeToX(task.endMillis, window.startMillis, pxPerMinute)
                 val width = viewport.viewportWidth
-                if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
+                // Unless its start is already well in view (not cut off at either edge), put it 20% in from the left.
+                if (width > 0f && (startX < viewport.scrollX || startX > viewport.scrollX + width * 0.8f)) {
                     viewport.animateScrollTo(startX - width * 0.2f)
                 }
             }
@@ -217,7 +217,9 @@ fun SchedulerTimeline(
                         }?.let { bringIntoView(it) }
                     }
                     // View settings are done by the screen, above the grid.
-                    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath -> Unit
+                    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath,
+                    is AssistantViewAction.Search, AssistantViewAction.ClearSearch, is AssistantViewAction.OpenTask,
+                    -> Unit
                 }
                 request.onHandled()
             }

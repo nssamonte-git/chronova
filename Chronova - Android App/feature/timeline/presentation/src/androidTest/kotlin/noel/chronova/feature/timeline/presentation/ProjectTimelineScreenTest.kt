@@ -1,5 +1,6 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.ui.assistant.ViewColor
 import noel.chronova.core.ui.assistant.ViewZoom
 import noel.chronova.core.ui.assistant.ViewScale
 import androidx.compose.ui.test.onFirst
@@ -204,6 +205,27 @@ class ProjectTimelineScreenTest {
         // Remembered for the project, as the settings row does.
         assertEquals(config(), screen.repository.viewSettings[TimelineScreenHarness.PROJECT_ID])
         compose.onNode(hasText("Survey") and hasStateDescription(screen.string(R.string.task_bar_state_critical))).assertExists()
+    }
+
+    @Test
+    fun theAssistantCanSearchClearTheSearchAndOpenATask() {
+        val plaster = screen.task("plaster", "Plaster", screen.at(2, 11), screen.at(2, 12), 1)
+        screen.show(listOf(survey, plaster))
+        fun timeline() = (screen.viewModel.state.value as TimelineScreenState.Ready).timeline
+        fun asked(action: AssistantViewAction, count: Int) {
+            screen.ask(action)
+            compose.waitUntil(5_000) { screen.handledRequests.size == count }
+            compose.waitForIdle()
+        }
+        // Survey is blue, Plaster green: the green chip lists only Plaster, with the bar open.
+        asked(AssistantViewAction.Search(null, setOf(ViewColor.GREEN), emptySet()), 1)
+        assertEquals(listOf("Plaster"), timeline().tasks.map { it.title })
+        compose.onNode(hasSetTextAction()).assertIsDisplayed()
+        asked(AssistantViewAction.ClearSearch, 2)
+        assertEquals(listOf("Survey", "Plaster"), timeline().tasks.map { it.title })
+        asked(AssistantViewAction.OpenTask("plaster"), 3)
+        compose.onNodeWithText(screen.string(R.string.task_edit)).assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasText("Plaster")).assertIsDisplayed()
     }
 
     // Search and Today.

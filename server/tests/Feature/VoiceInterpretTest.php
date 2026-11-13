@@ -263,6 +263,11 @@ it('understands the "go to" actions with the fake interpreter, for apps that can
     'bigger rows' => ['make the rows bigger', ['type' => 'row_height', 'size' => 'bigger']],
     'the critical path' => ['show the critical path', ['type' => 'critical_path', 'on' => true]],
     'no critical path' => ['hide the critical path', ['type' => 'critical_path', 'on' => false]],
+    'search words' => ['search for design', ['type' => 'search', 'query' => 'design', 'colors' => [], 'kinds' => []]],
+    'search chips' => ["show only green tasks that aren't done", ['type' => 'search', 'query' => null, 'colors' => ['green'], 'kinds' => ['not_done']]],
+    'milestones' => ['show the milestones', ['type' => 'search', 'query' => null, 'colors' => [], 'kinds' => ['milestone']]],
+    'clear the search' => ['clear the search', ['type' => 'clear_search']],
+    'open a task' => ['open review', ['type' => 'open_task', 'taskId' => 't3']],
 ]);
 
 it('tells an app from before actions to update instead of sending it any', function () {
@@ -292,7 +297,7 @@ it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
         ->and(ProposalSchema::jsonSchema()['properties']['result']['enum'])->toContain('actions')
-        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path'])
+        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path', 'search', 'clear_search', 'open_task'])
         ->and(OpenAiInterpreter::instructions())->toContain('go_to_today')->toContain('show_task')->toContain('result "actions"');
 });
 
@@ -326,6 +331,11 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'a zoom with no direction' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'zoom', 'direction' => null]]]],
     'a row size as a number' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'row_height', 'size' => 2]]]],
     'critical path as text' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'critical_path', 'on' => 'yes']]]],
+    'a search for nothing' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => '  ', 'colors' => [], 'kinds' => []]]]],
+    'an unknown colour' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => null, 'colors' => ['red'], 'kinds' => []]]]],
+    'a colour twice' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => null, 'colors' => ['blue', 'blue'], 'kinds' => []]]]],
+    'a query too long' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => str_repeat('a', 101), 'colors' => [], 'kinds' => []]]]],
+    'open an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_task', 'taskId' => 't9']]]],
     'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
     'actions with nothing to do' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]],
     'actions answer with operations' => [['result' => 'actions', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],

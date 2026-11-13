@@ -11,7 +11,8 @@ use DateTimeImmutable;
  * "extend QA by 1 day", "rename QA to Testing", "delete review", "mark review done",
  * "... and everything after it"; and the actions "go to today", "go to tomorrow",
  * "go to 2026-11-14", "show review", "show days", "zoom in", "reset the zoom", "bigger rows",
- * "show the critical path", "hide the critical path".
+ * "show the critical path", "hide the critical path", "search for design", "show only green tasks
+ * that aren't done", "show milestones", "clear the search", "open review".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -77,6 +78,19 @@ final class FakeInterpreter implements Interpreter
             (bool) preg_match('/^(make the rows |)(bigger|smaller)( rows)?$/', $text, $m) => [['type' => 'row_height', 'size' => $m[2]]],
             (bool) preg_match('/^(show|hide) the critical path$/', $text, $m) => [['type' => 'critical_path', 'on' => $m[1] === 'show']],
             (bool) preg_match('/^(go to|show|show me|jump to|take me to) (\d{4}-\d{2}-\d{2}|tomorrow)$/', $text, $m) => [['type' => 'go_to_date', 'date' => $this->day($m[2], $context['today'])]],
+            (bool) preg_match('/^search for (.+)$/', $text, $m) => [['type' => 'search', 'query' => $m[1], 'colors' => [], 'kinds' => []]],
+            (bool) preg_match('/^show (only )?(the )?(blue|green|purple|amber)? ?(tasks|milestones)( that are done| that aren\'t done)?$/', $text, $m) => [[
+                'type' => 'search', 'query' => null,
+                'colors' => ($m[3] ?? '') === '' ? [] : [$m[3]],
+                'kinds' => array_values(array_filter([
+                    $m[4] === 'milestones' ? 'milestone' : null,
+                    match ($m[5] ?? '') {
+                        ' that are done' => 'done', ' that aren\'t done' => 'not_done', default => null
+                    },
+                ])),
+            ]],
+            (bool) preg_match('/^(clear|close) the search$/', $text) => [['type' => 'clear_search']],
+            $task !== null && (bool) preg_match('/^(open|edit) /', $text) => [['type' => 'open_task', 'taskId' => $task['id']]],
             $task !== null && (bool) preg_match('/^(show|show me|find|where is|go to) /', $text) => [['type' => 'show_task', 'taskId' => $task['id']]],
             default => null,
         };

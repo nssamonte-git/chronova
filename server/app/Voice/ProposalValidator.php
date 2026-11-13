@@ -22,6 +22,8 @@ final class ProposalValidator
 
     private const MAX_TEXT = 500;
 
+    private const MAX_QUERY = 100;
+
     public const MAX_ACTIONS = 5;
 
     private const REQUIRED_KEYS = ['result', 'operations', 'question', 'reason'];
@@ -96,10 +98,24 @@ final class ProposalValidator
                     return null;
                 }
             }
+            if ($action['type'] === 'search') {
+                $action['query'] = $action['query'] === null || trim($action['query']) === '' ? null : trim($action['query']);
+                // A search for nothing would show everything: that's clear_search.
+                if ($action['query'] === null && $action['colors'] === [] && $action['kinds'] === []) {
+                    return null;
+                }
+            }
             $clean[] = $action;
         }
 
         return $clean;
+    }
+
+    /** A list of distinct values from $allowed (possibly empty). */
+    private function choices(mixed $value, array $allowed): bool
+    {
+        return is_array($value) && array_is_list($value) && count($value) === count(array_unique($value))
+            && array_diff($value, $allowed) === [];
     }
 
     /** The checked list, or null if it is empty, too long or has a bad operation. */
@@ -169,6 +185,9 @@ final class ProposalValidator
             'direction' => in_array($value, ProposalSchema::ZOOMS, true),
             'size' => in_array($value, ProposalSchema::ROW_SIZES, true),
             'on' => is_bool($value),
+            'query' => $value === null || (is_string($value) && mb_strlen(trim($value)) <= self::MAX_QUERY),
+            'colors' => $this->choices($value, ProposalSchema::COLORS),
+            'kinds' => $this->choices($value, ProposalSchema::KINDS),
             default => false,
         };
     }

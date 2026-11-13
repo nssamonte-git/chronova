@@ -37,5 +37,8 @@ enum class TaskKind {
     }
 }
 
-/** The open search bar: the filter, and how many of the project's tasks match it. */
-data class TaskSearchUi(val filter: TaskFilter, val matches: Int, val total: Int)
+/**
+ * The open search bar: the filter, and how many of the project's tasks match it. [typing]: it was
+ * opened to type in (its field takes focus and the keyboard opens), not set by the assistant.
+ */
+data class TaskSearchUi(val filter: TaskFilter, val matches: Int, val total: Int, val typing: Boolean = true)

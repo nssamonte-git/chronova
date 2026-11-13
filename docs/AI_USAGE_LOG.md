@@ -1191,4 +1191,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - "show days", "zoom in", "make the rows bigger" and "show the critical path" each closed the orb and changed the view (Days, 125%, 64 dp, Beta outlined in red with its mark).
     - All four were still so after leaving the project and opening it again.
     - The orb opened exactly once per command this time.
+- Batch 3, search and the editor:
+  - **Server:** the actions `search` (`query`, `colors`, `kinds`; at least one of them, and no colour or kind twice), `clear_search` and `open_task`.
+    - The prompt says when to use `show_task` (one named task) or `search` (a kind of task or a word).
+    - The fake interpreter knows "search for …", "show (only) (the) <colour> tasks/milestones (that are done / that aren't done)", "clear the search" and "open/edit <task>".
+    - 10 new tests; 357 passed, Pint clean (it reformatted one `match`).
+  - **App:**
+    - The domain and `:core:ui` search actions, with the task colours and the search bar's kinds.
+    - A new timeline intent `searchFor` sets the whole search at once, replacing any earlier one. `clear_search` closes the bar; `open_task` opens the task's editor.
+    - Spoken lines: "Here's what matches.", "Showing every task.", "Here's Beta to edit."
+  - **Tests:** handler (search, clear, open, 4 bad ones), API fields, a timeline ViewModel test (the whole search at once, replacing, opened without the keyboard), and a screen test (green chip, clear, open Plaster's editor).
+    - `tools/check.sh` PASS (419 unit tests). Timeline device tests 26/26 on the phone.
+  - **Phone check** on VoiceCheck, with a green task Gamma added: "show only green tasks" listed only Gamma ("1 of 2 tasks"); "clear the search" listed both again; "open beta" opened Beta's editor.
+  - **Found on the phone, fixed:**
+    - The voice search opened the keyboard over the timeline, because the search bar always takes focus when it opens. It now does so only when opened to type in (`TaskSearchUi.typing`).
+    - The match was left cut off at the screen's edge. Scrolling to a task (a search's first match, "show", the assistant's highlight) happened only when none of it was on screen; it now happens unless the task's start is well in view.
+    - After both fixes, on the phone: the green search showed Gamma's bar 20% in, with no keyboard.
 

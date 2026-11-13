@@ -28,6 +28,11 @@ final class ProposalSchema
 
     public const ROW_SIZES = ['bigger', 'smaller'];
 
+    /** The search bar's chips: task colours and kinds. */
+    public const COLORS = ['blue', 'green', 'purple', 'amber'];
+
+    public const KINDS = ['not_done', 'done', 'milestone'];
+
     public const DATE = '^\d{4}-\d{2}-\d{2}$';
 
     public const TIME = '^\d{2}:\d{2}$';
@@ -71,6 +76,13 @@ final class ProposalSchema
             'zoom' => ['direction' => ['type' => 'string', 'enum' => self::ZOOMS]],
             'row_height' => ['size' => ['type' => 'string', 'enum' => self::ROW_SIZES]],
             'critical_path' => ['on' => ['type' => 'boolean']],
+            'search' => [
+                'query' => ['type' => ['string', 'null']],
+                'colors' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => self::COLORS]],
+                'kinds' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => self::KINDS]],
+            ],
+            'clear_search' => [],
+            'open_task' => ['taskId' => ['type' => 'string']],
         ];
     }
 

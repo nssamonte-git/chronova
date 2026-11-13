@@ -111,6 +111,7 @@ fun ProjectTimelineScreen(
                     onToggleColorFilter = viewModel::toggleColorFilter,
                     onToggleKindFilter = viewModel::toggleKindFilter,
                     onClearSearch = viewModel::clearSearch,
+                    onSearch = viewModel::searchFor,
                     onPush = viewModel::pushDependents,
                     onPushOfferShown = viewModel::dismissPushOffer,
                     onPushBlockedShown = viewModel::dismissPushBlocked,
@@ -178,6 +179,8 @@ data class TimelineActions(
     val onToggleColorFilter: (TaskColor) -> Unit = {},
     val onToggleKindFilter: (TaskKind) -> Unit = {},
     val onClearSearch: () -> Unit = {},
+    /** The whole search at once: words and chips (the assistant's search). */
+    val onSearch: (query: String, colors: Set<TaskColor>, kinds: Set<TaskKind>) -> Unit = { _, _, _ -> },
     /** Push the offered dependents; the offer or the "can't push" message was seen. */
     val onPush: () -> Unit = {},
     val onPushOfferShown: () -> Unit = {},
@@ -243,7 +246,8 @@ internal fun TimelineContent(
         snackbarHost.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
         actions.onPushBlockedShown()
     }
-    // The assistant asked for a view setting (scale, zoom, rows, critical path): as if the settings row was used.
+    // The assistant asked for a view setting (scale, zoom, rows, critical path), a search or a task's editor:
+    // as if the settings row, the search bar or the task's name had been used.
     val viewSetting = assistant.viewRequest?.takeIf { it.action.isViewSetting() }
     val currentActions by rememberUpdatedState(actions)
     LaunchedEffect(viewSetting?.key) {
@@ -257,6 +261,13 @@ internal fun TimelineContent(
             }
             is AssistantViewAction.RowHeight -> currentActions.onRowHeightStep(if (action.bigger) 1 else -1)
             is AssistantViewAction.CriticalPath -> currentActions.onCriticalPath(action.on)
+            is AssistantViewAction.Search -> currentActions.onSearch(
+                action.query.orEmpty(),
+                action.colors.mapTo(mutableSetOf()) { TaskColor.valueOf(it.name) },
+                action.kinds.mapTo(mutableSetOf()) { TaskKind.valueOf(it.name) },
+            )
+            AssistantViewAction.ClearSearch -> currentActions.onCloseSearch()
+            is AssistantViewAction.OpenTask -> currentActions.onEditTask(action.taskId)
             else -> Unit
         }
         request.onHandled()
@@ -428,8 +439,10 @@ private fun TimelineContentPreview() {
     }
 }
 
-/** A change to how the timeline is shown, rather than where it is scrolled to. */
+/** Done by the screen (how the timeline is shown, the search, the editor), rather than by scrolling the grid. */
 private fun AssistantViewAction.isViewSetting(): Boolean = when (this) {
-    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath -> true
+    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath,
+    is AssistantViewAction.Search, AssistantViewAction.ClearSearch, is AssistantViewAction.OpenTask,
+    -> true
     AssistantViewAction.GoToToday, is AssistantViewAction.GoToDate, is AssistantViewAction.ShowTask -> false
 }

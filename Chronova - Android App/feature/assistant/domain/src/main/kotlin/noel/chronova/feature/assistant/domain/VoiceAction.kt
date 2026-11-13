@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.TaskColor
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import noel.chronova.core.domain.schedule.ScheduleState
@@ -18,6 +19,10 @@ data class ProposedAction(
     val size: String? = null,
     /** `critical_path`: show it or hide it. */
     val on: Boolean? = null,
+    /** `search`: words in task titles (or null), and the colour and kind chips. */
+    val query: String? = null,
+    val colors: List<String>? = null,
+    val kinds: List<String>? = null,
 )
 
 /**
@@ -39,6 +44,15 @@ sealed interface VoiceAction {
 
     enum class ZoomStep { IN, OUT, RESET }
 
+    /** Lists only the matching tasks, as the search bar does: [colors] any of them, each of [kinds]. */
+    data class Search(val query: String?, val colors: Set<TaskColor>, val kinds: Set<SearchKind>) : VoiceAction
+    data object ClearSearch : VoiceAction
+
+    /** Opens the task's editor. */
+    data class OpenTask(val taskId: String, val title: String) : VoiceAction
+
+    enum class SearchKind { NOT_DONE, DONE, MILESTONE }
+
     companion object {
         /** The action for [proposed] on [state], or null if it is malformed or names a task that isn't there. */
         fun from(proposed: ProposedAction, state: ScheduleState): VoiceAction? = try {
@@ -54,10 +68,22 @@ sealed interface VoiceAction {
                     else -> null
                 }
                 "critical_path" -> proposed.on?.let(::CriticalPath)
+                "search" -> search(proposed)
+                "clear_search" -> ClearSearch
+                "open_task" -> state.tasks.firstOrNull { it.id == proposed.taskId }?.let { OpenTask(it.id, it.title) }
                 else -> null
             }
         } catch (_: DateTimeParseException) {
             null
+        }
+
+        /** Null for a chip this app doesn't have, or a search for nothing. */
+        private fun search(proposed: ProposedAction): Search? {
+            val colors = proposed.colors.orEmpty().map { name -> TaskColor.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: return null }
+            val kinds = proposed.kinds.orEmpty().map { name -> SearchKind.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: return null }
+            val query = proposed.query?.trim()?.ifEmpty { null }
+            if (query == null && colors.isEmpty() && kinds.isEmpty()) return null
+            return Search(query, colors.toSet(), kinds.toSet())
         }
     }
 }

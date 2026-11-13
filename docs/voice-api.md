@@ -90,6 +90,9 @@ Actions (every field is always present):
 | `zoom` | `direction` (`in`/`out`/`reset`) | One zoom step, or back to 100% |
 | `row_height` | `size` (`bigger`/`smaller`) | One row-height step |
 | `critical_path` | `on` (boolean) | Shows or hides the critical path |
+| `search` | `query` (words in titles, ≤ 100 characters, or null), `colors` (`blue`/`green`/`purple`/`amber`), `kinds` (`not_done`/`done`/`milestone`) | Opens the search bar (without the keyboard) listing only the matches: any of the colours, each of the kinds; never empty (that's `clear_search`) |
+| `clear_search` | | Closes the search: every task again |
+| `open_task` | `taskId` | Opens the task's editor |
 
 Operations (every field is always present):
 

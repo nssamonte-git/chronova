@@ -294,6 +294,24 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun aWholeSearchCanBeSetAtOnce() = runTest {
+        val state = timeline()
+        viewModel.selectTask("ui-design")
+        viewModel.searchFor("", setOf(TaskColor.PURPLE, TaskColor.AMBER), setOf(TaskKind.NOT_DONE))
+        assertEquals(listOf("QA Testing", "Review"), state().tasks.map { it.title })
+        assertEquals(TaskFilter("", setOf(TaskColor.PURPLE, TaskColor.AMBER), setOf(TaskKind.NOT_DONE)), state().search?.filter)
+        assertNull(state().selectedTaskId) // the search hides it
+        assertEquals(false, state().search?.typing) // opened without the keyboard
+        // A new one replaces it rather than adding to it.
+        viewModel.searchFor("impl", emptySet(), emptySet())
+        assertEquals(listOf("Implementation"), state().tasks.map { it.title })
+        // Opened by hand, it is for typing.
+        viewModel.closeSearch()
+        viewModel.openSearch()
+        assertEquals(true, state().search?.typing)
+    }
+
+    @Test
     fun aSelectedTaskTheSearchHidesIsUnselected() = runTest {
         val state = timeline()
         viewModel.selectTask("review")

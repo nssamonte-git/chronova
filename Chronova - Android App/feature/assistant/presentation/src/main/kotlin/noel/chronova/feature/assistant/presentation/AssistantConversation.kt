@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.ViewKind
+import noel.chronova.core.ui.assistant.ViewColor
 import noel.chronova.core.ui.assistant.ViewZoom
 import noel.chronova.core.ui.assistant.ViewScale
 import noel.chronova.core.ui.assistant.AssistantViewAction
@@ -289,4 +291,11 @@ internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
     is VoiceAction.Zoom -> AssistantViewAction.Zoom(ViewZoom.valueOf(step.name))
     is VoiceAction.RowHeight -> AssistantViewAction.RowHeight(bigger)
     is VoiceAction.CriticalPath -> AssistantViewAction.CriticalPath(on)
+    is VoiceAction.Search -> AssistantViewAction.Search(
+        query,
+        colors.mapTo(mutableSetOf()) { ViewColor.valueOf(it.name) },
+        kinds.mapTo(mutableSetOf()) { ViewKind.valueOf(it.name) },
+    )
+    VoiceAction.ClearSearch -> AssistantViewAction.ClearSearch
+    is VoiceAction.OpenTask -> AssistantViewAction.OpenTask(taskId)
 }

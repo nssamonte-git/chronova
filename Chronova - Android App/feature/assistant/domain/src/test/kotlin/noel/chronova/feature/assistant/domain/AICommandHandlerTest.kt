@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -71,6 +72,37 @@ class AICommandHandlerTest {
             ProposedAction("zoom"),
             ProposedAction("row_height", size = "huge"),
             ProposedAction("critical_path"),
+        )) {
+            assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(context, state, actions(bad)))
+        }
+    }
+
+    @Test
+    fun searchClearAndOpenATask() {
+        val handled = handler.handle(
+            context,
+            state,
+            actions(
+                ProposedAction("search", query = "  design ", colors = listOf("green", "blue"), kinds = listOf("not_done")),
+                ProposedAction("clear_search"),
+                ProposedAction("open_task", taskId = "review"),
+            ),
+        )
+        assertEquals(
+            HandledProposal.Act(
+                listOf(
+                    VoiceAction.Search("design", setOf(TaskColor.GREEN, TaskColor.BLUE), setOf(VoiceAction.SearchKind.NOT_DONE)),
+                    VoiceAction.ClearSearch,
+                    VoiceAction.OpenTask("review", "Review"),
+                ),
+            ),
+            handled,
+        )
+        for (bad in listOf(
+            ProposedAction("search", query = " ", colors = emptyList(), kinds = emptyList()),
+            ProposedAction("search", colors = listOf("red")),
+            ProposedAction("search", kinds = listOf("overdue")),
+            ProposedAction("open_task", taskId = "gone"),
         )) {
             assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(context, state, actions(bad)))
         }

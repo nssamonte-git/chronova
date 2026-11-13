@@ -47,6 +47,9 @@
     <string name="assistant_rows_smaller">Rows are smaller.</string>
     <string name="assistant_critical_path_on">Here’s the critical path: the tasks that would delay the finish.</string>
     <string name="assistant_critical_path_off">Critical path hidden.</string>
+    <string name="assistant_showing_matches">Here’s what matches.</string>
+    <string name="assistant_showing_all">Showing every task.</string>
+    <string name="assistant_opening_task">Here’s %1$s to edit.</string>
     <string name="assistant_schedule_changed">The schedule changed in the meantime, so nothing was changed. Try again.</string>
     <string name="assistant_unknown_task">I couldn’t find that task.</string>
     <string name="assistant_task_blank_title">A task needs a name.</string>

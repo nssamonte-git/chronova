@@ -84,6 +84,9 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         )
         is VoiceAction.RowHeight -> resources.getString(if (action.bigger) R.string.assistant_rows_bigger else R.string.assistant_rows_smaller)
         is VoiceAction.CriticalPath -> resources.getString(if (action.on) R.string.assistant_critical_path_on else R.string.assistant_critical_path_off)
+        is VoiceAction.Search -> resources.getString(R.string.assistant_showing_matches)
+        VoiceAction.ClearSearch -> resources.getString(R.string.assistant_showing_all)
+        is VoiceAction.OpenTask -> resources.getString(R.string.assistant_opening_task, action.title)
     }
 
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String {

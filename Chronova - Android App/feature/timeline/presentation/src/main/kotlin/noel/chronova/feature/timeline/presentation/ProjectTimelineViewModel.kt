@@ -47,6 +47,9 @@ class ProjectTimelineViewModel(
     /** The open search bar's filter, or null when it is closed. Never saved: it ends with the screen. */
     private val search = MutableStateFlow<TaskFilter?>(null)
 
+    /** The bar was opened to type in, not set by the assistant (set before [search] changes, so the state reads it). */
+    private var searchTyping = true
+
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
 
     /** The last change set that can be undone, offered until [dismissUndo]. */
@@ -111,7 +114,7 @@ class ProjectTimelineViewModel(
                     config = config,
                     // A selection whose task disappeared, or that the search hides, is dropped.
                     selectedTaskId = selected?.takeIf { id -> shown.any { it.id == id } },
-                    search = filter?.let { TaskSearchUi(it, matches = shown.size, total = all.size) },
+                    search = filter?.let { TaskSearchUi(it, matches = shown.size, total = all.size, typing = searchTyping) },
                     dependencies = tasks.associateBy { it.id }.let { byId -> dependencies.map { it.toUi(byId, path::isCritical) } },
                     finishMillis = path.finishMillis,
                 ),
@@ -209,7 +212,9 @@ class ProjectTimelineViewModel(
     // The search bar (see [TaskFilter]).
 
     fun openSearch() {
-        if (search.value == null) search.value = TaskFilter()
+        if (search.value != null) return
+        searchTyping = true
+        search.value = TaskFilter()
     }
 
     /** Closing the bar shows every task again. */
@@ -224,6 +229,16 @@ class ProjectTimelineViewModel(
     fun toggleKindFilter(kind: TaskKind) = updateSearch { it.copy(kinds = it.kinds.toggled(kind)) }
 
     fun clearSearch() = updateSearch { TaskFilter() }
+
+    /** Opens the search with these words and chips all at once (the assistant's search). */
+    fun searchFor(query: String, colors: Set<TaskColor>, kinds: Set<TaskKind>) {
+        // An open bar keeps how it was opened; a new one opens without the keyboard.
+        if (search.value == null) {
+            searchTyping = false
+            search.value = TaskFilter()
+        }
+        updateSearch { TaskFilter(query, colors, kinds) }
+    }
 
     private fun updateSearch(change: (TaskFilter) -> TaskFilter) {
         val next = change(search.value ?: return)

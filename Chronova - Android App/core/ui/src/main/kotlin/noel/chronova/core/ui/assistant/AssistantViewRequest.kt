@@ -31,7 +31,21 @@ sealed interface AssistantViewAction {
     data class Zoom(val step: ViewZoom) : AssistantViewAction
     data class RowHeight(val bigger: Boolean) : AssistantViewAction
     data class CriticalPath(val on: Boolean) : AssistantViewAction
+
+    /** Open the search bar with these words and chips, listing only the matches. */
+    data class Search(val query: String?, val colors: Set<ViewColor>, val kinds: Set<ViewKind>) : AssistantViewAction
+
+    /** Close the search: every task again. */
+    data object ClearSearch : AssistantViewAction
+
+    /** Open the task's editor. */
+    data class OpenTask(val taskId: String) : AssistantViewAction
 }
+
+/** The search bar's colour chips (the task colours) and its kind chips. */
+enum class ViewColor { BLUE, GREEN, PURPLE, AMBER }
+
+enum class ViewKind { NOT_DONE, DONE, MILESTONE }
 
 enum class ViewScale { HOURS, DAYS, WEEKS, MONTHS }
 

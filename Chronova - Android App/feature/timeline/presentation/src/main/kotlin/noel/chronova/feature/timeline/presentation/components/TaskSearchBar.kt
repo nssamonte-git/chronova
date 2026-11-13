@@ -46,7 +46,8 @@ import noel.chronova.feature.timeline.presentation.TaskSearchUi
 /**
  * Search and filter bar under the top bar: a title search, chips for not done /
  * done / milestones and for the four colours, how many tasks match, and Clear.
- * The text field takes focus when the bar opens (not in previews).
+ * The text field takes focus when the bar opens to be typed in (not in previews, and not when the
+ * assistant opened it: the keyboard would cover the matches).
  */
 @Composable
 fun TaskSearchBar(
@@ -63,7 +64,7 @@ fun TaskSearchBar(
     val focusManager = LocalFocusManager.current
     // Not in previews and screenshots: a focused field's blinking cursor would make them flaky.
     val preview = LocalInspectionMode.current
-    LaunchedEffect(Unit) { if (!preview) focus.requestFocus() }
+    LaunchedEffect(Unit) { if (!preview && search.typing) focus.requestFocus() }
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
             OutlinedTextField(
