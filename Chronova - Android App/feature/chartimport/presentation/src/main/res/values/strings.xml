@@ -42,7 +42,7 @@
     </plurals>
 
     <string name="import_problem_offline">You’re offline. Reading an image needs a connection.</string>
-    <string name="import_problem_not_schedule">That doesn’t look like a schedule. Try a photo of a Gantt chart, a timeline or a table of tasks with dates.</string>
+    <string name="import_problem_not_schedule">That doesn’t look like a schedule</string>
     <string name="import_problem_unreadable">No tasks with dates could be read. Try a sharper, straighter photo with the whole chart in it.</string>
     <string name="import_problem_bad_image">That image couldn’t be used. Try another one.</string>
     <string name="import_problem_no_camera">No camera app was found. Choose an image instead.</string>

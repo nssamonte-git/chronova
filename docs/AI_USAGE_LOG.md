@@ -1516,3 +1516,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Tests:** 1 new `TimeFormat` test (whole days, one day, timed, another zone). A new screenshot, `TimelineMonthsWholeDays` (×3), shows months across 1 Dec with whole-day rows. The 3 `TimelineCriticalPath` references were re-recorded: "06:00" no longer overlaps the date.
 - **Checks:** `tools/check.sh` PASS: 473 unit tests, 126 screenshots.
 
+### Import: the "not a schedule" message
+
+- **Your request:** an image without tasks or a schedule should get an error message about it. That case already showed a message; you asked for it to read just "That doesn't look like a schedule", and it now does.
+- **Dropped:** I had started showing the reader's own reason in a box beneath it. You said the simple message is enough for now, so that was reverted before committing.
+- **Note:** the local server ran the fake reader during this work, and the fake "sees" the 7-week chart in any image. Only the real reader can say an image isn't a schedule (it did for the landscape in batch 6).
+- **Checks:** the sheet's 8 ViewModel tests pass; the `ImportNotASchedule` screenshots were re-recorded.
+
