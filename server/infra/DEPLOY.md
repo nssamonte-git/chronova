@@ -13,6 +13,7 @@ phone / browser ──HTTPS──▶ CloudFront ──VPC origin (private)──
 - **No NAT gateway**: tasks run in public subnets so they can pull the image and call AWS APIs, but their security group only accepts the load balancer.
 - **Secrets** (`APP_KEY`, database credentials) are generated into Secrets Manager and injected at start. Email goes through **SES** with the task role.
 - **Voice editing** is off until you turn it on (`-c voice=on`, below). Its provider keys live in a `VoiceKeys` secret that only the web container can read.
+- **Schedules from images** are off until you turn them on (`-c import=on`, below); the Meta key goes in the same secret as the voice keys, read only by the web container.
 - **Push notifications** (Firebase Cloud Messaging) are off until you turn them on (`-c push=on`, below). The service-account key lives in a `PushKey` secret that the web, worker and scheduler containers read.
 - `dev` deletes the database with the stack; `prod` keeps it (`Retain`), runs Multi-AZ, enables deletion protection and keeps 14 days of backups.
 
@@ -68,11 +69,13 @@ The app's assistant (`../../docs/voice-api.md`) uses OpenAI and ElevenLabs. It i
 1. **Put the keys in the secret** (never in code, `cdk.json` or the command history of a shared machine). Read them from a prompt so they stay out of your shell history:
 
    ```bash
-   read -rs OPENAI && read -rs ELEVENLABS
+   read -rs OPENAI && read -rs ELEVENLABS && read -rs META
    aws secretsmanager put-secret-value --profile chronova --secret-id <VoiceKeysSecret> \
-     --secret-string "$(jq -cn --arg o "$OPENAI" --arg e "$ELEVENLABS" '{openai: $o, elevenlabs: $e}')"
-   unset OPENAI ELEVENLABS
+     --secret-string "$(jq -cn --arg o "$OPENAI" --arg e "$ELEVENLABS" --arg m "$META" '{openai: $o, elevenlabs: $e, meta: $m}')"
+   unset OPENAI ELEVENLABS META
    ```
+
+   The secret holds all three providers' keys (`meta` is for schedules from images, below); writing it replaces the whole JSON, so always give all three (an empty string for one you don't use).
 
    Use keys limited to what this needs (an OpenAI project key; an ElevenLabs key with speech-to-text and text-to-speech only) and set spending limits at both providers.
 2. **Deploy with voice on**: add `-c voice=on` to the `cdk deploy` command (and keep it on later deploys). The web container then gets `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` from the secret; no other container does.
@@ -81,6 +84,16 @@ The app's assistant (`../../docs/voice-api.md`) uses OpenAI and ElevenLabs. It i
 **Kill switch**: deploy again with `-c voice=off` (a few minutes, while tasks roll). Faster stopgaps: revoke the key at the provider, or lower the per-user limit (`VOICE_REQUESTS_PER_MINUTE`). **Rotating a key**: put the new value in the secret, then force a new deployment of the web service (`aws ecs update-service --force-new-deployment …`) — tasks read secrets only when they start.
 
 **Usage**: the admin dashboard shows 24-hour voice requests, error rate, audio minutes, characters spoken and tokens, and a 14-day chart. For a cost estimate, set `VOICE_PRICE_OPENAI_INPUT`, `VOICE_PRICE_OPENAI_OUTPUT` (per million tokens), `VOICE_PRICE_TRANSCRIPTION_HOUR` and `VOICE_PRICE_SPEECH_1K_CHARS` (dollars) from the providers' current pricing pages in the stack's `environment` — none are assumed. Rough volume per spoken command: ~2–10 s of audio, ~1–2 K model tokens over two calls, ~80–150 characters of speech.
+
+## Schedules from images
+
+Reading a photo or image of a chart (`../../docs/import-api.md`) uses Meta (Muse Spark and SAM 3.1, Standard mode: Meta doesn't train on the images) and OpenAI. It is deployed **off** (`IMPORT_ENABLED=false`: every import answers 503) until you turn it on:
+
+1. **Put the Meta key in the `VoiceKeys` secret** as `meta`, with the OpenAI key as `openai` (the command above). Use a Meta Model API key with a spending limit.
+2. **Deploy with imports on**: add `-c import=on` (and keep it on later deploys). The web container then gets `META_API_KEY` and `OPENAI_API_KEY`; no other container does, and ElevenLabs's key only comes with `-c voice=on`.
+3. **Before real users**: the privacy policy and Play Data safety form must say that photos the user chooses go to Meta to be read, and what is read from them (text, not the image) goes to OpenAI; neither is kept by Chronova.
+
+CloudFront waits up to 60 s for an answer (the import's Meta and OpenAI calls usually take far less); longer needs a CloudFront quota increase. Each user may import 5 times a minute and 50 times a day (`IMPORT_REQUESTS_PER_MINUTE`, `IMPORT_REQUESTS_PER_DAY`). **Kill switch**: deploy again with `-c import=off`.
 
 ## Push notifications
 

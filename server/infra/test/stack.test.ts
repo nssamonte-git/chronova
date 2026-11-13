@@ -2,8 +2,8 @@ import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { ChronovaStack } from '../lib/chronova-stack';
 
-const synth = (stage: string, voice?: boolean, push?: boolean) =>
-  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com', voice, push }));
+const synth = (stage: string, voice?: boolean, push?: boolean, imports?: boolean) =>
+  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com', voice, push, import: imports }));
 const containersOf = (template: Template) =>
   Object.values(template.findResources('AWS::ECS::TaskDefinition')).flatMap(
     (r) => r.Properties.ContainerDefinitions as Array<Record<string, any>>,
@@ -119,7 +119,7 @@ describe('containers', () => {
 describe('voice', () => {
   it('keeps a secret for the provider keys, created without real values', () => {
     dev.hasResourceProperties('AWS::SecretsManager::Secret', {
-      GenerateSecretString: Match.objectLike({ SecretStringTemplate: '{"openai":"","elevenlabs":""}', GenerateStringKey: 'placeholder' }),
+      GenerateSecretString: Match.objectLike({ SecretStringTemplate: '{"openai":"","elevenlabs":"","meta":""}', GenerateStringKey: 'placeholder' }),
     });
     dev.hasOutput('VoiceKeysSecret', Match.anyValue());
   });
@@ -176,5 +176,37 @@ describe('push', () => {
       expect(Object.keys(env)).not.toContain('FCM_CREDENTIALS_JSON');
       expect(secretNamesOf(container).includes('FCM_CREDENTIALS_JSON')).toBe(['web', 'worker', 'scheduler'].includes(container.Command[0]));
     }
+  });
+});
+
+describe('import', () => {
+  it('is off by default: switched off, fake providers, no Meta key anywhere', () => {
+    for (const container of containersOf(dev)) {
+      expect(envOf(container)).toMatchObject({ IMPORT_ENABLED: 'false', IMPORT_ANALYZER: 'fake', IMPORT_BUILDER: 'fake' });
+      expect(secretNamesOf(container)).not.toContain('META_API_KEY');
+    }
+  });
+
+  it('when on, gives the Meta and OpenAI keys to the web container only, and not ElevenLabs\'s', () => {
+    const on = synth('dev', false, false, true);
+    for (const container of containersOf(on)) {
+      expect(envOf(container)).toMatchObject({ IMPORT_ENABLED: 'true', IMPORT_ANALYZER: 'meta', IMPORT_BUILDER: 'openai' });
+      const names = secretNamesOf(container);
+      const web = container.Command[0] === 'web';
+      expect(names.includes('META_API_KEY')).toBe(web);
+      expect(names.includes('OPENAI_API_KEY')).toBe(web);
+      expect(names).not.toContain('ELEVENLABS_API_KEY');
+    }
+    const web = containersOf(on).find((c) => c.Command[0] === 'web')!;
+    const meta = (web.Secrets as Array<{ Name: string; ValueFrom: unknown }>).find((s) => s.Name === 'META_API_KEY')!;
+    expect(JSON.stringify(meta.ValueFrom)).toContain(':meta::');
+  });
+
+  it('lets CloudFront wait a minute for the app', () => {
+    dev.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        Origins: Match.arrayWith([Match.objectLike({ VpcOriginConfig: Match.objectLike({ OriginReadTimeout: 60 }) })]),
+      }),
+    });
   });
 });

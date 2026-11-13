@@ -14,12 +14,15 @@ const voice: string = app.node.tryGetContext('voice') ?? 'off';
 if (voice !== 'on' && voice !== 'off') throw new Error(`Invalid voice: ${voice} (use -c voice=on or -c voice=off)`);
 const push: string = app.node.tryGetContext('push') ?? 'off';
 if (push !== 'on' && push !== 'off') throw new Error(`Invalid push: ${push} (use -c push=on or -c push=off)`);
+const imports: string = app.node.tryGetContext('import') ?? 'off';
+if (imports !== 'on' && imports !== 'off') throw new Error(`Invalid import: ${imports} (use -c import=on or -c import=off)`);
 
 new ChronovaStack(app, `Chronova-${stage}`, {
   stage,
   mailFrom,
   voice: voice === 'on',
   push: push === 'on',
+  import: imports === 'on',
   alarmEmail: app.node.tryGetContext('alarmEmail'),
   // Account and region come from the deploying credentials/profile.
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },

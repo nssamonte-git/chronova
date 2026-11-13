@@ -1466,4 +1466,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - The screenshots first rendered the sheet's content without its surface (black text in dark mode); fixed in the screenshot wrapper.
     - Lint found a string that should be a plural.
     - Platform `ExifInterface` is suppressed with its reason (reliable from API 24; the minimum is 26; the AndroidX copy would be a new dependency).
+- Batch 5, AWS (not deployed):
+  - **The switch:** `-c import=on|off`, off by default: `IMPORT_ENABLED=false` and fake providers, so every import answers 503.
+  - **When on:** `IMPORT_ANALYZER=meta`, `IMPORT_BUILDER=openai`, and only the web container gets `META_API_KEY` and `OPENAI_API_KEY`, from the provider-keys secret (`VoiceKeys` now also holds `meta`). ElevenLabs's key still comes only with voice on.
+  - **Timeout:** CloudFront's origin read timeout goes to 60 s, the most without a quota request.
+  - **DEPLOY.md:** the secret command now writes all three keys, since writing it replaces the whole JSON; plus how to turn imports on and off, and the privacy and Data-safety items.
+  - **Checks:** 22 infra tests (3 new), `tsc` clean, synth with `import=on` and `push=on` succeeds; neither `.env` nor the Firebase key is in `cdk.out`.
 

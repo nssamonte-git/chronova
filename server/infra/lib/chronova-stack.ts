@@ -36,6 +36,11 @@ export interface ChronovaStackProps extends StackProps {
    * in the PushKey secret first (DEPLOY.md). Off, the server records pushes and sends none.
    */
   readonly push?: boolean;
+  /**
+   * Schedules from images (docs/import-api.md) with the real providers: Meta reads the image, OpenAI
+   * builds the schedule. Off by default: put the Meta key (and the OpenAI key) in the VoiceKeys secret first.
+   */
+  readonly import?: boolean;
 }
 
 /**
@@ -100,17 +105,19 @@ export class ChronovaStack extends Stack {
       generateSecretString: { passwordLength: 32, excludePunctuation: true, includeSpace: false },
     });
 
-    // Voice provider keys, as JSON {"openai": "...", "elevenlabs": "..."}. Created with empty values;
-    // the real keys are put in by hand (never in code or the template) — see DEPLOY.md.
+    // Model provider keys, as JSON {"openai": "...", "elevenlabs": "...", "meta": "..."} (voice and
+    // imports). Created with empty values; the real keys are put in by hand (never in code or the
+    // template) — see DEPLOY.md.
     const voiceKeys = new secretsmanager.Secret(this, 'VoiceKeys', {
-      description: 'Chronova voice provider keys: {"openai": "...", "elevenlabs": "..."}',
+      description: 'Chronova model provider keys: {"openai": "...", "elevenlabs": "...", "meta": "..."}',
       generateSecretString: {
-        secretStringTemplate: JSON.stringify({ openai: '', elevenlabs: '' }),
+        secretStringTemplate: JSON.stringify({ openai: '', elevenlabs: '', meta: '' }),
         generateStringKey: 'placeholder',
         excludePunctuation: true,
       },
     });
     const voiceOn = props.voice ?? false;
+    const importOn = props.import ?? false;
 
     // The Firebase service account (docs/push.md): the whole key file's JSON, put in by hand
     // (never in code or the template) — see DEPLOY.md. Created with a placeholder.
@@ -155,6 +162,10 @@ export class ChronovaStack extends Stack {
       VOICE_INTERPRETER: voiceOn ? 'openai' : 'fake',
       VOICE_EXPLAINER: voiceOn ? 'openai' : 'fake',
       VOICE_SPEECH: voiceOn ? 'elevenlabs' : 'fake',
+      // Off: every import answers 503 and the app says it's switched off. On: Meta and OpenAI.
+      IMPORT_ENABLED: importOn ? 'true' : 'false',
+      IMPORT_ANALYZER: importOn ? 'meta' : 'fake',
+      IMPORT_BUILDER: importOn ? 'openai' : 'fake',
       // Off: pushes are recorded, not sent (the app's own reminder alarm still works). On: Firebase.
       PUSH_SENDER: pushOn ? 'fcm' : 'fake',
     };
@@ -171,14 +182,13 @@ export class ChronovaStack extends Stack {
       ? { ...baseSecrets, FCM_CREDENTIALS_JSON: ecs.Secret.fromSecretsManager(pushKey) }
       : baseSecrets;
 
-    // The web container alone calls the providers.
-    const webSecrets: Record<string, ecs.Secret> = voiceOn
-      ? {
-          ...secrets,
-          OPENAI_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'openai'),
-          ELEVENLABS_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'elevenlabs'),
-        }
-      : secrets;
+    // The web container alone calls the model providers, and gets only the keys it uses.
+    const webSecrets: Record<string, ecs.Secret> = {
+      ...secrets,
+      ...(voiceOn || importOn ? { OPENAI_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'openai') } : {}),
+      ...(voiceOn ? { ELEVENLABS_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'elevenlabs') } : {}),
+      ...(importOn ? { META_API_KEY: ecs.Secret.fromSecretsManager(voiceKeys, 'meta') } : {}),
+    };
 
     const sendMail = new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],
@@ -282,6 +292,8 @@ export class ChronovaStack extends Stack {
     const origin = origins.VpcOrigin.withApplicationLoadBalancer(alb, {
       protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
       httpPort: 80,
+      // Reading an image (Meta, then OpenAI) can take most of a minute; 60 s is the most without a quota request.
+      readTimeout: Duration.seconds(60),
     });
     const distribution = new cloudfront.Distribution(this, 'Cdn', {
       comment: `Chronova ${props.stage}`,
