@@ -38,6 +38,10 @@ gradlePlugin {
             id = "chronova.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
         }
+        register("androidScreenshots") {
+            id = "chronova.android.screenshots"
+            implementationClass = "AndroidScreenshotConventionPlugin"
+        }
         register("androidRoom") {
             id = "chronova.android.room"
             implementationClass = "AndroidRoomConventionPlugin"

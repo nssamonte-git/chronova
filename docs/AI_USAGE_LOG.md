@@ -919,3 +919,14 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Signing stays manual, by your choice: you sign releases yourself in Android Studio, so the build has no signing config and no key or password went through me. `*.jks`, `*.keystore` and `keystore.properties` are now git-ignored in the Android project (checked with `git check-ignore` on a sample path for each). HANDOFF and `Learn/04-validation.md` say how to sign and to keep the key outside the repo and backed up.
   - New tests for "must end after it starts": `ProjectTimelineViewModelTest` (task end before start → `EndNotAfterStart`, nothing saved, picking another end clears it), `ProjectListViewModelTest` (project end before start → `EndBeforeStart`, nothing saved), and a timeline screen test (the message shows and the sheet stays open). The tests set the end through the ViewModel call the time picker makes, because the dial isn't a stable test target; the timeline harness now exposes its ViewModel for that.
   - Checks: 332 unit tests, lint 0 errors / 21 warnings, module graph and UI-model checks OK, build gate passes. On the phone, timeline screen tests 18/18; the first run was cut short when the phone disconnected and was rerun.
+- Screenshot tests, at your request (plan: shared UI + every screen, phone and 1.5× font). Batch A, setup proved on `:core:ui`:
+  - **Tool:** Google's Compose Preview Screenshot Testing through AGP 9.5 test suites (experimental), engine `0.0.1-alpha17` (published 30 Oct 2026, two weeks old; checked on Google's Maven). It renders `@PreviewTest` previews on the JVM and compares them with reference PNGs kept in the repo.
+  - **Setup:**
+    - two experimental flags in `gradle.properties`;
+    - catalog entries for the engine;
+    - a `chronova.android.screenshots` convention plugin that creates the suite;
+    - a shared `@ChronovaScreenshots` multi-preview in `:core:designsystem` (phone, and 1.5× font).
+  - **Getting it to build:** the engine needs Android resources in unit tests, and needs unit-test setup on every variant, release included. The plugin turns both on, and skips running release unit tests so `test` doesn't run them twice.
+  - **First previews:** the sync line in 4 states and the sync button with 5, 99+ and syncing, giving 2 previews and 4 images. Checked by eye: they render correctly.
+  - **Found, not fixed:** the "99+" badge on the sync button is cut off at the button's edge, at normal size and more at large font. The badge sits inside the icon button, which crops its content; likely real on the phone too.
+  - **Checks:** `testDebugScreenshotTestDefaultTestSuite` passes on an unchanged tree; 332 unit tests, lint 0 errors, module graph and UI-model checks OK, build gate passes.
