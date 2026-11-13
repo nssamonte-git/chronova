@@ -1472,4 +1472,38 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Timeout:** CloudFront's origin read timeout goes to 60 s, the most without a quota request.
   - **DEPLOY.md:** the secret command now writes all three keys, since writing it replaces the whole JSON; plus how to turn imports on and off, and the privacy and Data-safety items.
   - **Checks:** 22 infra tests (3 new), `tsc` clean, synth with `import=on` and `push=on` succeeds; neither `.env` nor the Firebase key is in `cdk.out`.
+- Batch 6, real Meta and OpenAI (your approval), tuning, and the phone:
+  - **Test images:**
+    - your chart, found at `~/Downloads/Timeline-Diagram-Infographic-Template.png`. It is a third-party template with a studio's name and contact details, so it stays out of the repository and was used from the session's scratchpad;
+    - three I generated: the chart tilted 5° in perspective and blurred; a kitchen table with dates, % done and an "After" column; a landscape.
+    - I took no real camera photo, since it would have captured your surroundings and sent them to Meta.
+  - **First real run:** your chart came back "unreadable" in 30 s. Muse Spark had read it almost perfectly, but SAM found nothing for "gantt chart bar".
+  - **Tuning, from what the real calls showed:**
+    - **SAM's phrase:** "bar" works (it also finds the pale tracks, often in pieces); "gantt chart bar" found nothing, and "rounded rectangle" found nothing on the tilted image.
+    - **Colour:** `BoxColours` measures each box's saturation (PHP GD, now in the server image). A row keeps the strongly coloured boxes.
+    - **Geometry:** Muse Spark's pixel positions drifted by ~30 px between runs, and rows are 55 px apart, so `BarMatcher` takes the rows (boxes grouped by height) and the axis (full-width tracks) from SAM when they line up.
+    - **Muse Spark** also reports which axis labels each bar spans. It got all nine right every time, even tilted, and OpenAI reconciles the two.
+    - **Reasoning effort:** `minimal` read as well as the default and took ~14 s instead of ~30 s; Meta's timeout is now 40 s.
+    - **Prompts:** a row with a seen span counts as a task; an "After" column gives links.
+  - **Results after tuning:**
+    - your chart: 9 of 9 on the right days, 20 s;
+    - tilted: 9 of 9, 21 s;
+    - table: 6 of 6, all 6 links, 13 s;
+    - landscape: "Not a schedule", 5 s.
+
+    12 real imports in all; a successful one averaged 16.5 s. Meta's part is about 1.4¢ an import; OpenAI's isn't priced locally.
+  - **On the phone** (your app data backed up first; the server run with the real providers just for this):
+    - the camera opened and returned without uploading;
+    - your chart, picked through the system photo picker, became a 9-task "Project Timeline" starting today in 19 s, with the new picture button on its timeline;
+    - on Jnn (one week), the kitchen table's six tasks arrived unticked as outside the project, and ticking one explained it doesn't fit;
+    - your chart on Jnn added only Step 1, and Undo removed it.
+    - Each time the photo picker was offered I chose it just once, leaving "Don't ask again" off.
+  - **Clean-up:**
+    - the test project deleted in the app (a tombstone waits for your next sync);
+    - the two test images removed from the phone and its media index;
+    - the temporary sign-in revoked; the server stopped; the port forward removed.
+    - The two "Imported" entries stay on the notifications page.
+  - **Noticed, not changed (they predate this work):** in the months view, the "30 Nov" tick label overlaps "Dec 2026"; whole-day tasks show "00:00 – 00:00" under their names.
+  - **Tests:** server 480 passed (new: colour, drift, tracks, `BoxColours` on a real image), Pint clean. The app is unchanged since its last PASS.
+  - **My mistakes:** `php artisan tinker <file>` waits at its prompt afterwards (stopped; `--execute` instead); one tap meant for the app chooser landed in the picker and chose the table instead of the chart (still a valid test).
 

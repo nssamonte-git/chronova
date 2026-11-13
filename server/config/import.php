@@ -11,7 +11,7 @@ return [
     'enabled' => (bool) env('IMPORT_ENABLED', true),
 
     // "meta" in production (Muse Spark reads the chart, SAM 3.1 finds its bars); "fake" answers with a
-    // fixed reading of the test chart (tests/Fixtures/import/project-timeline.png), no network.
+    // fixed reading of the test chart (a third-party template, not in the repository), no network.
     'analyzer' => env('IMPORT_ANALYZER', 'fake'),
 
     // "openai" in production; "fake" turns the matched bars into tasks by rule.
@@ -25,10 +25,14 @@ return [
         'segmenter_model' => env('IMPORT_META_SEGMENTER_MODEL', 'sam-3.1'),
         // SAM finds one concept per request, named by a short noun phrase.
         'segment_phrases' => [
-            'bar' => env('IMPORT_META_BAR_PHRASE', 'gantt chart bar'),
+            // Measured on real charts: "gantt chart bar" finds nothing, "bar" finds bars and the tracks behind them.
+            'bar' => env('IMPORT_META_BAR_PHRASE', 'bar'),
             'milestone' => env('IMPORT_META_MILESTONE_PHRASE', 'diamond shape'),
         ],
-        'timeout' => (int) env('IMPORT_META_TIMEOUT', 30),
+        // Muse Spark reasons before answering: measured on real charts, "minimal" read as well as the
+        // default and took ~14 s instead of ~30 s.
+        'reasoning_effort' => env('IMPORT_META_REASONING_EFFORT', 'minimal'),
+        'timeout' => (int) env('IMPORT_META_TIMEOUT', 40),
     ],
 
     // The OpenAI key and model are the voice assistant's (config/voice.php); its own timeout.

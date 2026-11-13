@@ -18,10 +18,10 @@ it('measures each row\'s bar in the axis\' columns, dropping the full-width trac
     $chart = BarMatcher::match((new FakeChartAnalyzer)->analyze('', 'image/png', 1640, 1050));
 
     expect($chart['axis'])->toBe(['unit' => 'week', 'labels' => ['WEEK 1', 'WEEK 2', 'WEEK 3', 'WEEK 4', 'WEEK 5', 'WEEK 6', 'WEEK 7'], 'columns' => 7])
-        // Columns are 188 px (the labels' median spacing); column 0 starts at 366 - 94 = 272.
-        ->and($chart['rows'][0])->toMatchArray(['label' => 'STEP 1: Initial Client Consult', 'bars' => [[0.01, 0.99]]])
-        ->and($chart['rows'][1]['bars'])->toBe([[0.01, 1.99]])
-        ->and($chart['rows'][8]['bars'])->toBe([[6.0, 6.98]]);
+        // The full-width tracks give the axis (274 to 1584 px), split into its 7 labels' columns.
+        ->and($chart['rows'][0])->toMatchArray(['label' => 'STEP 1: Initial Client Consult', 'bars' => [[0.0, 0.99]], 'seen' => ['from' => 'WEEK 1', 'to' => 'WEEK 1']])
+        ->and($chart['rows'][1]['bars'])->toBe([[0.0, 1.99]])
+        ->and($chart['rows'][8]['bars'])->toBe([[6.02, 7.0]]);
 });
 
 it('puts a shape on the row whose band holds its centre, in reading order', function () {
@@ -58,7 +58,34 @@ it('ignores rows and links it cannot read', function () {
 
     expect(BarMatcher::match($analysis))->toMatchArray([
         'kind' => 'other', 'title' => '',
-        'rows' => [['label' => 'Fine', 'text' => '', 'bars' => [], 'milestones' => []]],
+        'rows' => [['label' => 'Fine', 'text' => '', 'bars' => [], 'milestones' => [], 'seen' => ['from' => '', 'to' => '']]],
         'links' => [['from' => 'a', 'to' => 'b']],
     ]);
+});
+
+it('keeps a row\'s strongly coloured bar and drops the pale track pieces beside it', function () {
+    $chart = BarMatcher::match(chartWith(
+        [['label' => 'One', 'y' => 100], ['label' => 'Two', 'y' => 200]],
+        [
+            bar(100, 200, 100) + ['saturation' => 0.9], bar(200, 400, 100) + ['saturation' => 0.15],  // bar, then the track's rest
+            bar(100, 250, 200) + ['saturation' => 0.12], bar(250, 350, 200) + ['saturation' => 0.45], // track's start, then a paler bar
+            bar(250, 351, 200) + ['saturation' => 0.44],                                             // SAM finding it twice
+        ],
+    ));
+
+    expect($chart['rows'][0]['bars'])->toBe([[0.0, 1.0]])
+        ->and($chart['rows'][1]['bars'])->toBe([[1.5, 2.5]]);
+});
+
+it('takes the rows from the shapes when Muse Spark\'s positions drift, and the axis from full-width tracks', function () {
+    // Muse Spark put the rows ~30 px low (the real centres are 100 and 160), and its labels ~20 px right.
+    $labels = [['text' => 'W1', 'x' => 170], ['text' => 'W2', 'x' => 270], ['text' => 'W3', 'x' => 370]];
+    $chart = BarMatcher::match(chartWith(
+        [['label' => 'One', 'y' => 130], ['label' => 'Two', 'y' => 190]],
+        [bar(100, 400, 100), bar(100, 200, 100), bar(100, 400, 160), bar(300, 400, 160)],
+        $labels,
+    ));
+
+    expect($chart['rows'][0]['bars'])->toBe([[0.0, 1.0]])
+        ->and($chart['rows'][1]['bars'])->toBe([[2.0, 3.0]]);
 });

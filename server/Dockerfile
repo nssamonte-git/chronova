@@ -6,7 +6,7 @@
 FROM composer:2.10.3 AS composer
 
 FROM dunglas/frankenphp:1.13.4-php8.4.27-bookworm AS base
-RUN install-php-extensions pdo_pgsql intl zip opcache pcntl bcmath
+RUN install-php-extensions pdo_pgsql intl zip opcache pcntl bcmath gd
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY docker/php/production.ini $PHP_INI_DIR/conf.d/zz-chronova.ini
 WORKDIR /app

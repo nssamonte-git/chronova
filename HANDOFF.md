@@ -14,7 +14,7 @@ Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Andro
 - `HANDOFF.md`, `DECISIONS.md` and `Learn/` are shared in git (user decision, 2026-11-13): keep them free of secrets, keys and personal data, and commit their updates with the change they describe. The rest of the AI kit (`AGENTS.md`, `CURRENT_TASK.md`, `PROJECT_CONTEXT.md`, `manifest.yaml`, the relationship map files, `scripts/`, `learning-inbox/`, `md-templates/`) stays local-only through `.git/info/exclude`; never `git add -f` it. Don't mention the kit in the README.
 - Log only AI mistakes and human actions that actually happened. Never report a build, test, or device check that wasn't run.
 - No new dependencies without approval. Versions are pinned exactly and were at least two weeks old when chosen (check release dates, not tag rebuild dates).
-- Never deploy to AWS, push, call the real voice providers, or send anything to real users without the user's explicit approval. Provider keys live only in `server/.env` (git-ignored); the Firebase service-account key only in `server/storage/credentials/` (git- and Docker-ignored, mode 600): never read, print or commit it. Device checks that change phone settings must read and restore them (mobile data was off).
+- Never deploy to AWS, push, call the real voice providers, or send anything to real users without the user's explicit approval. Provider keys (OpenAI, ElevenLabs, Meta) live only in `server/.env` (git-ignored); the Firebase service-account key only in `server/storage/credentials/` (git- and Docker-ignored, mode 600): never read, print or commit it. Device checks that change phone settings must read and restore them (mobile data was off).
 
 ## Invariants
 
@@ -26,17 +26,18 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 - The timeline has one scroll position (`TimelineViewportState`) and measures nothing at full width; rows list only on-screen tasks. A drag is recomputed from the gesture-start task (`pointerInput` keyed on the task id); pinch consumes every move until all fingers lift.
 - Rotation recreates `MainActivity`: keep flags in `rememberSaveable` or a ViewModel, and check `isChangingConfigurations` before treating `ON_STOP` as "the user left".
 - Push (`docs/push.md`): data messages only, worded by the app; reminders are posted once between push and alarm (`ReminderLog`), and an "account changed" push signs out only after the server answers 401.
+- Schedules from images (`docs/import-api.md`): the image goes to Meta only, OpenAI gets Meta's results; the app previews and writes only on Apply, with Undo.
 - Voice: the server only proposes, the app plans against current data and writes only on a spoken yes; keys stay on the server and no audio or words are stored.
 
 ## Validation
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: `tools/check.sh` (repository root) runs everything (454 unit tests, lint, both architecture checks, 105 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 101 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
+- App: `tools/check.sh` (repository root) runs everything (472 unit tests, lint, both architecture checks, 123 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 101 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
-- Server: `cd server && docker compose up -d && composer test && composer lint` (420 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (19 tests).
+- Server: `cd server && docker compose up -d && composer test && composer lint` (480 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (22 tests).
 
 ## On-Demand Context
 

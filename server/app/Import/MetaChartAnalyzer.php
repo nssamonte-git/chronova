@@ -64,6 +64,10 @@ final class MetaChartAnalyzer implements ChartAnalyzer
                 $shapes[] = ['kind' => $kind] + $box;
             }
         }
+        // SAM finds the pale tracks behind the bars too; their colour tells them apart.
+        foreach (BoxColours::saturations($image, $shapes) as $i => $saturation) {
+            $shapes[$i]['saturation'] = $saturation;
+        }
 
         $usage = $read['usage'] ?? [];
 
@@ -100,6 +104,7 @@ final class MetaChartAnalyzer implements ChartAnalyzer
             ]],
             // A reasoning model: its thinking shares this budget.
             'max_tokens' => 8000,
+            'reasoning_effort' => $this->config['reasoning_effort'],
         ];
     }
 

@@ -75,7 +75,7 @@ function fakeProviders(?array $reading = null, ?array $bars = null, ?array $sche
     Http::fake(function (Request $request) use ($reading, $bars, $schedule) {
         return match (true) {
             $request->url() === META.'/chat/completions' => Http::response(museAnswer($reading ?? metaReading())),
-            $request->url() === META.'/responses' && $request['input'][0]['content'][0]['text'] === 'gantt chart bar' => Http::response(samAnswer($bars ?? [[100, 90, 195, 110], [205, 190, 300, 210]])),
+            $request->url() === META.'/responses' && $request['input'][0]['content'][0]['text'] === 'bar' => Http::response(samAnswer($bars ?? [[100, 90, 195, 110], [205, 190, 300, 210]])),
             $request->url() === META.'/responses' => Http::response(samAnswer([])),
             str_starts_with($request->url(), 'https://api.openai.com/') => Http::response(openAiSchedule($schedule ?? builtSchedule())),
         };
@@ -109,9 +109,10 @@ it('reads with Muse Spark, segments with SAM, and builds with OpenAI from Meta\'
         && $r['model'] === 'muse-spark-1.3'
         && str_starts_with($r['messages'][1]['content'][1]['image_url']['url'], 'data:image/jpeg;base64,')
         && $r['messages'][1]['content'][0]['text'] === 'The image is 500×300 pixels.'
-        && $r['response_format']['json_schema']['strict'] === true);
+        && $r['response_format']['json_schema']['strict'] === true
+        && $r['reasoning_effort'] === 'minimal');
     // SAM: one concept per request, the image as a data URL, nothing stored.
-    foreach (['gantt chart bar', 'diamond shape'] as $phrase) {
+    foreach (['bar', 'diamond shape'] as $phrase) {
         Http::assertSent(fn (Request $r) => $r->url() === META.'/responses' && $r['model'] === 'sam-3.1'
             && $r['input'][0]['content'][0] === ['type' => 'input_text', 'text' => $phrase]
             && str_starts_with($r['input'][0]['content'][1]['image_url'], 'data:image/jpeg;base64,')
@@ -130,7 +131,7 @@ it('reads with Muse Spark, segments with SAM, and builds with OpenAI from Meta\'
             && $r['text']['format']['schema'] === ImportSchema::jsonSchema()
             && $r['prompt_cache_key'] === 'chronova-import-rules'
             // (0.0 travels as JSON 0, so loosely.)
-            && $data['chart']['rows'][0] == ['label' => '1. Pack', 'text' => '', 'bars' => [[0, 0.95]], 'milestones' => []]
+            && $data['chart']['rows'][0] == ['label' => '1. Pack', 'text' => '', 'bars' => [[0, 0.95]], 'milestones' => [], 'seen' => ['from' => '', 'to' => '']]
             && $data['mode'] === 'new_project' && $data['project'] === null;
     });
 });
