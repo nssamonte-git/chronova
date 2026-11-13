@@ -93,12 +93,11 @@ fun ProjectEditorSheet(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Filled.DateRange, contentDescription = null)
+            val days = dayCount(editor.startDate, editor.endDate)
+            // While the end is before the start there is no length to show (the banner says why).
+            val length = if (days > 0) "  ·  " + pluralStringResource(R.plurals.day_count, days, days) else ""
             Text(
-                text = TimeFormat.dateRange(editor.startDate, editor.endDate) + "  ·  " + pluralStringResource(
-                    R.plurals.day_count,
-                    dayCount(editor.startDate, editor.endDate),
-                    dayCount(editor.startDate, editor.endDate),
-                ),
+                text = TimeFormat.dateRange(editor.startDate, editor.endDate) + length,
                 modifier = Modifier.padding(start = 8.dp),
             )
         }

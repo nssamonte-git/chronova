@@ -1727,3 +1727,34 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the import sheet in Jnn shows the new tip.
   - Human-side event: the USB link dropped for a moment, so one tap of mine was lost and the next opened Notifications instead. Nothing was marked read, and I went back.
 - **Not verified:** the assistant's first-use notice was not seen on the phone (it shows once and was already accepted there); it has no screenshot.
+
+### Screen review and polish (items 1–12)
+
+- **Your requests:** check the other screens for anything else to polish; then fix items 1–12 of the list.
+- **Review:** all 48 previewed screens and states in light, dark and 1.5× text (contact sheets of the references). I reported 14 items; 13 (the title truncating when a task is selected) and 14 (the name column at large text, a layout change) were left for you.
+- **Fixed:**
+  1. **Timeline header:** dates are drawn first and other labels give way, so "01:00" no longer runs into "Mon 2 Mar" at large text.
+  2. **Narrow bars:** a bar too narrow for a letter (under 24 dp inside) no longer shows a lone "." label.
+  3. **Empty states:** notifications, timeline and no-match now have a short title and a body line. The timeline ones sit on a patch of page with side margins, so grid lines don't cross the text.
+  4. **Project editor:** shows no day count while the end is before the start (it showed "-9 days").
+  5. **Image import results:** each has a sheet title ("Tasks added", "Nothing was added") and a banner. "Not a schedule" and "unreadable" also show the photo tip. `InlineBanner` gained a `Success` kind (the theme's success colours, a check icon).
+  6. **Create-account page:** says "Create an account…" (the sign-in page's text is unchanged).
+  7. **Email-code page:** the button says "Confirm"; the title still says "Confirm your email".
+  8. **Progress slider:** no tick dots; it still snaps to tens.
+  9. **Import notifications:** show the add-image icon (moved to the design system and shared with the timeline's button) instead of the microphone.
+  10. **Assistant change preview:** a same-day move reads "Review: 16:00 – 17:00 → 15:00 – 16:00 · Thu 12 Nov"; other dates now include the month.
+  11. **Import buttons:** "Take photo" and "Choose image" stack full-width at large text (font scale above 1.2).
+  12. **Project card:** a project with no tasks says "No tasks yet" instead of "0 tasks".
+- **My mistakes, caught by the tests:**
+  - **Narrow bars:** the first version of item 2 removed the label, so a narrow bar lost its name for TalkBack. The full device run failed on it: `theAssistantCanChangeTheViewAsTheSettingsRowWould` could not find "Survey" (1 of 110 failed). The label is now kept but not drawn. The timeline's device tests then passed 26 of 26.
+  - **Kotlin syntax:** I first wrote the icon choice with a guard syntax Kotlin doesn't accept, and rewrote it before building.
+- **Tests changed:** the project-card test expects "No tasks yet"; the account test presses "Confirm".
+- **Checks:**
+  - `tools/check.sh` PASS: 483 unit tests, 144 screenshots (47 re-recorded and viewed), lint 0 errors, both architecture checks;
+  - device tests: the full run had 109 of 110 passing (the failure above). After the fix, the timeline module's 26 passed and its screenshots matched; the other 12 modules were not rerun, since the fix touched only the timeline.
+- **On the phone:**
+  - installed over the app; data as before (Jnn, 31 unsynced, 35 unread);
+  - import notifications show the image icon;
+  - nothing was marked read or changed, and the app is back on the project list.
+  - Human-side event: the USB link dropped once after the install and came back after an adb restart.
+- **Not verified on the phone:** the other changed screens, which need an empty project, a failed import or signing out. They are covered by the screenshots and device tests only. The spoken assistant lines still say "3 p.m." while the preview uses 24-hour times (that text is written on the server).

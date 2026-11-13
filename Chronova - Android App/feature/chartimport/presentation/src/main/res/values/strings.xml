@@ -42,8 +42,9 @@
     </plurals>
 
     <string name="import_problem_offline">You’re offline. Reading an image needs a connection.</string>
-    <string name="import_problem_not_schedule">That doesn’t look like a schedule</string>
-    <string name="import_problem_unreadable">No tasks with dates could be read. Try a sharper, straighter photo with the whole chart in it.</string>
+    <string name="import_problem_title">Nothing was added</string>
+    <string name="import_problem_not_schedule">That doesn’t look like a schedule or Gantt chart.</string>
+    <string name="import_problem_unreadable">No tasks with dates could be read from the image.</string>
     <string name="import_problem_bad_image">That image couldn’t be used. Try another one.</string>
     <string name="import_problem_no_camera">No camera app was found. Choose an image instead.</string>
     <string name="import_problem_too_many">That’s a lot of images for now. Try again later.</string>
@@ -63,6 +64,7 @@
     <string name="import_plan_does_not_fit">“%1$s” doesn’t fit the project’s dates.</string>
     <string name="import_plan_changed">The project changed in the meantime. Try again.</string>
 
+    <string name="import_done_title">Tasks added</string>
     <plurals name="import_done_body">
         <item quantity="one">%1$d task added to %2$s.</item>
         <item quantity="other">%1$d tasks added to %2$s.</item>

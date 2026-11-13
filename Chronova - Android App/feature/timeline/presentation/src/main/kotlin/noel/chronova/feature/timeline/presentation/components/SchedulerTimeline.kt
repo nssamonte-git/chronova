@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -281,14 +282,16 @@ fun SchedulerTimeline(
                             .columnDivider(colors.outlineVariant),
                     )
                     if (shownTasks.isEmpty()) {
-                        // Over the grid, right of the name column; the full sentence is the title, so it reads as before.
+                        // Over the grid, right of the name column, on a patch of page so the grid lines
+                        // don't run through the text.
                         EmptyState(
-                            title = stringResource(
-                                if (state.isFiltering) R.string.tasks_no_match else R.string.tasks_empty,
-                            ),
+                            title = stringResource(if (state.isFiltering) R.string.tasks_no_match_title else R.string.tasks_empty_title),
+                            body = stringResource(if (state.isFiltering) R.string.tasks_no_match else R.string.tasks_empty),
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(start = NameColumnWidth),
+                                .padding(start = NameColumnWidth + 16.dp, end = 16.dp)
+                                .clip(MaterialTheme.shapes.large)
+                                .background(MaterialTheme.colorScheme.background),
                         )
                     }
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {

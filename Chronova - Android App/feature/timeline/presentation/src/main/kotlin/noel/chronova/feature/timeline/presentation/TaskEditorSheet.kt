@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -237,6 +238,8 @@ private fun ProgressChoice(progress: Int, onChange: (Int) -> Unit) {
             onValueChange = { onChange(it.roundToInt()) },
             valueRange = 0f..100f,
             steps = 9,
+            // Still snaps to tens, without the row of tick dots along the track.
+            colors = SliderDefaults.colors(activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
             modifier = Modifier.semantics { contentDescription = label },
         )
     }

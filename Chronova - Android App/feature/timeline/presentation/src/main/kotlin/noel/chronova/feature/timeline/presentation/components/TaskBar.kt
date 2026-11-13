@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -115,34 +116,39 @@ fun TaskBar(
                 .padding(horizontal = if (selected) 12.dp else 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (done) {
-                    Icon(
-                        Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(end = 4.dp).size(16.dp),
-                    )
-                }
-                Text(
-                    text = label,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (progressLabel != null) {
+            // Too narrow for even a letter and "…": the label is kept (TalkBack and tests still
+            // find the bar by its name) but not drawn, rather than a lone "." on the bar.
+            BoxWithConstraints(contentAlignment = Alignment.CenterStart) {
+                val drawn = maxWidth >= MinLabelWidth
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(if (drawn) 1f else 0f)) {
+                    if (done) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(end = 4.dp).size(16.dp),
+                        )
+                    }
                     Text(
-                        text = progressLabel,
+                        text = label,
                         color = Color.White,
                         style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
-                        modifier = Modifier
-                            .padding(start = 4.dp)
-                            .clearAndSetSemantics {},
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
+                    if (progressLabel != null) {
+                        Text(
+                            text = progressLabel,
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .clearAndSetSemantics {},
+                        )
+                    }
                 }
             }
         }
@@ -221,6 +227,9 @@ enum class CriticalMark(val alpha: Float) {
 }
 
 private val CriticalWidth = 2.5.dp
+
+/** Below this, inside its padding, a bar shows no label. */
+private val MinLabelWidth = 24.dp
 
 /** The milestone's touch area around its diamond (a comfortable target). */
 val MilestoneTouchWidth = 48.dp

@@ -164,7 +164,10 @@ internal fun NotificationsContent(
             HorizontalDivider()
             if (page.shown.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyState(title = stringResource(if (page.isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered))
+                    EmptyState(
+                        title = stringResource(if (page.isEmpty) R.string.notifications_empty_title else R.string.notifications_empty_filtered_title),
+                        body = stringResource(if (page.isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered),
+                    )
                 }
             } else {
                 LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -322,10 +325,12 @@ private fun CategoryIcon(kind: NotificationKind) {
     }
     Box(Modifier.size(40.dp).background(container, CircleShape), contentAlignment = Alignment.Center) {
         val icon = Modifier.size(20.dp)
-        when (kind.category) {
-            NotificationCategory.SYNC -> Icon(SyncIcon, contentDescription = null, tint = tint, modifier = icon)
-            NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint, modifier = icon)
-            NotificationCategory.ACCOUNT -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint, modifier = icon)
+        when {
+            // An import is filed with the assistant's changes, but shows the image it came from.
+            kind == NotificationKind.IMPORTED -> Icon(painterResource(DesignR.drawable.ic_add_photo), contentDescription = null, tint = tint, modifier = icon)
+            kind.category == NotificationCategory.SYNC -> Icon(SyncIcon, contentDescription = null, tint = tint, modifier = icon)
+            kind.category == NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint, modifier = icon)
+            else -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint, modifier = icon)
         }
     }
 }

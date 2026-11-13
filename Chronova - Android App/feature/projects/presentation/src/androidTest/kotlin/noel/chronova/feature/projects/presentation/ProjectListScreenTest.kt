@@ -116,7 +116,7 @@ class ProjectListScreenTest {
         // A one-day project shows a single date.
         compose.onNodeWithText("Garden").assertIsDisplayed()
         compose.onNodeWithText(TimeFormat.dateRange(empty.startDate, empty.endDate)).assertIsDisplayed()
-        compose.onNodeWithText(res.getQuantityString(R.plurals.task_count, 0, 0)).assertIsDisplayed()
+        compose.onNodeWithText(res.getString(R.string.project_no_tasks)).assertIsDisplayed()
 
         compose.onNodeWithText(res.getString(R.string.projects_empty)).assertDoesNotExist()
     }

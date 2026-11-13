@@ -297,7 +297,11 @@ private fun ProjectCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
+                val tasks = if (summary.taskCount == 0) {
+                    stringResource(R.string.project_no_tasks)
+                } else {
+                    pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
+                }
                 Text(
                     text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
                     style = MaterialTheme.typography.labelMedium.numeric(),

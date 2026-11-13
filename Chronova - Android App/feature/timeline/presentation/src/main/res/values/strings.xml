@@ -8,7 +8,8 @@
     <string name="task_ends">Ends</string>
     <string name="task_deleted">Task deleted</string>
     <string name="task_edit_selected">Edit selected task</string>
-    <string name="tasks_empty">No tasks yet. Tap Add task to schedule one.</string>
+    <string name="tasks_empty_title">No tasks yet</string>
+    <string name="tasks_empty">Tap Add task to schedule one.</string>
     <plurals name="push_offer">
         <item quantity="one">%2$d task now starts before “%1$s” ends</item>
         <item quantity="other">%2$d tasks now start before “%1$s” ends</item>
@@ -35,7 +36,8 @@
     <string name="filter_not_done">Not done</string>
     <string name="filter_done">Done</string>
     <string name="filter_milestones">Milestones</string>
-    <string name="tasks_no_match">No tasks match. Clear the search to see them all.</string>
+    <string name="tasks_no_match_title">No tasks match</string>
+    <string name="tasks_no_match">Clear the search to see them all.</string>
     <string name="today_go">Go to today</string>
     <string name="today_before">Today is before this project. It starts on %1$s.</string>
     <string name="today_after">Today is after this project. It ended on %1$s.</string>

@@ -160,7 +160,7 @@ class AccountScreenTest {
 
         // A short code is caught before asking the server.
         field(R.string.account_code).performTextInput("123")
-        submit(R.string.account_confirm)
+        submit(R.string.account_confirm_action)
         compose.onNodeWithText(
             res.getQuantityString(R.plurals.account_problem_code, AccountViewModel.CODE_LENGTH, AccountViewModel.CODE_LENGTH),
         ).assertIsDisplayed()
@@ -168,7 +168,7 @@ class AccountScreenTest {
         // The full code confirms the account.
         auth.outcome = AuthOutcome.Done
         field(R.string.account_code).performTextInput("456")
-        submit(R.string.account_confirm)
+        submit(R.string.account_confirm_action)
         compose.waitUntil(5_000) { auth.calls.size == 2 }
         assertEquals("confirm ana@example.com 123456", auth.calls.last())
     }

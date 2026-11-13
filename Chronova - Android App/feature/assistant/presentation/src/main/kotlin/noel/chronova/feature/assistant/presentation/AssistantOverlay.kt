@@ -229,12 +229,24 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
         val parts = mutableListOf<String>()
         if (item.renamed) parts += stringResource(R.string.assistant_preview_renamed, item.titleBefore, item.title)
         if (item.moved) {
-            parts += stringResource(
-                R.string.assistant_preview_moved,
-                item.title,
-                range(item.startBefore, item.endBefore, zone),
-                range(item.start, item.end, zone),
-            )
+            val day = TimeFormat.day(item.start, zone)
+            parts += if (withinDay(item.startBefore, item.endBefore, day, zone) && withinDay(item.start, item.end, day, zone)) {
+                // Same day before and after: the day once, after the times ("16:00 – 17:00 → 15:00 – 16:00 · Thu 12 Nov").
+                stringResource(
+                    R.string.assistant_preview_moved_same_day,
+                    item.title,
+                    clockRange(item.startBefore, item.endBefore, zone),
+                    clockRange(item.start, item.end, zone),
+                    day,
+                )
+            } else {
+                stringResource(
+                    R.string.assistant_preview_moved,
+                    item.title,
+                    range(item.startBefore, item.endBefore, zone),
+                    range(item.start, item.end, zone),
+                )
+            }
         }
         if (item.progressed) {
             parts += when (item.progress) {
@@ -255,11 +267,19 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
     is ProposalLineUi.Unlinked -> stringResource(R.string.assistant_preview_unlinked, item.predecessor, item.successor)
 }
 
-/** "Thu 12 09:00 – 11:00", "Thu 12 09:00 – Fri 13 17:00" across days, or "Fri 13 17:00" for a milestone. */
+/** Starts and ends (or, for a milestone, is) on [day]. */
+private fun withinDay(start: Long, end: Long, day: String, zone: ZoneId): Boolean =
+    TimeFormat.day(start, zone) == day && TimeFormat.day(maxOf(start, end - 1), zone) == day
+
+/** "09:00 – 11:00", or "17:00" for a milestone. */
+private fun clockRange(start: Long, end: Long, zone: ZoneId): String =
+    if (start == end) TimeFormat.clock(start, zone) else TimeFormat.range(start, end, zone)
+
+/** "Thu 12 Nov 09:00 – 11:00", "Thu 12 Nov 09:00 – Fri 13 Nov 17:00" across days, or "Fri 13 Nov 17:00" for a milestone. */
 private fun range(start: Long, end: Long, zone: ZoneId): String {
-    val startDay = TimeFormat.shortDay(start, zone)
+    val startDay = TimeFormat.day(start, zone)
     if (start == end) return "$startDay ${TimeFormat.clock(start, zone)}"
-    val endDay = TimeFormat.shortDay(end - 1, zone)
+    val endDay = TimeFormat.day(end - 1, zone)
     return if (startDay == endDay) {
         "$startDay ${TimeFormat.range(start, end, zone)}"
     } else {

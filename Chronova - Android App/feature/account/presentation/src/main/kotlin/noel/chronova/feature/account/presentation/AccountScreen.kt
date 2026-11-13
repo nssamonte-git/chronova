@@ -360,7 +360,8 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
                 AccountMode.CONFIRM -> R.string.account_confirm_body
                 AccountMode.FORGOT -> R.string.account_forgot_body
                 AccountMode.RESET -> R.string.account_reset_body
-                else -> if (required) R.string.account_required else R.string.account_why
+                AccountMode.SIGN_UP -> if (required) R.string.account_create_required else R.string.account_create_why
+                AccountMode.SIGN_IN -> if (required) R.string.account_required else R.string.account_why
             },
         ),
     )
@@ -455,7 +456,8 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
         if (form.busy) {
             CircularProgressIndicator(Modifier.padding(2.dp).widthIn(max = 20.dp), strokeWidth = 2.dp)
         } else {
-            Text(stringResource(title))
+            // The button says what it does; on the code page the title already says "Confirm your email".
+            Text(stringResource(if (form.mode == AccountMode.CONFIRM) R.string.account_confirm_action else title))
         }
     }
     when (form.mode) {

@@ -88,6 +88,7 @@
     <string name="assistant_not_linked">“%2$s” doesn’t depend on “%1$s”.</string>
     <string name="assistant_does_not_fit">Pushing the tasks after it would run past the project’s end (%1$s).</string>
     <string name="assistant_preview_moved">%1$s: %2$s → %3$s</string>
+    <string name="assistant_preview_moved_same_day">%1$s: %2$s → %3$s · %4$s</string>
     <string name="assistant_preview_renamed">Rename “%1$s” to “%2$s”</string>
     <string name="assistant_preview_added">Add “%1$s”: %2$s</string>
     <string name="assistant_preview_added_milestone">Add milestone “%1$s”: %2$s</string>

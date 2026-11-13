@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.ZoneOffset
 import kotlinx.coroutines.launch
+import noel.chronova.core.designsystem.R as DesignR
 import noel.chronova.core.designsystem.ChronovaTheme
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
@@ -423,7 +424,7 @@ private fun TimelineTopBar(
             // Only while nothing is selected, so a 360 dp bar never holds more than four buttons.
             if (onImportImage != null && selectedTaskId == null) {
                 IconButton(onClick = onImportImage) {
-                    Icon(painterResource(R.drawable.ic_add_photo), contentDescription = stringResource(R.string.timeline_import_image))
+                    Icon(painterResource(DesignR.drawable.ic_add_photo), contentDescription = stringResource(R.string.timeline_import_image))
                 }
             }
             IconButton(onClick = onSearch) {

@@ -2,7 +2,7 @@
 <resources>
     <string name="app_tagline">Shape Your Time</string>
     <string name="projects_empty_title">Plan your first project</string>
-    <string name="projects_empty">No projects yet. Tap New project to plan one.</string>
+    <string name="projects_empty">Tap New project to plan one.</string>
     <string name="project_new">New project</string>
     <string name="project_edit">Edit project</string>
     <string name="project_name">Project name</string>
@@ -27,6 +27,7 @@
         <item quantity="one">%1$s · %2$d done</item>
         <item quantity="other">%1$s · %2$d done</item>
     </plurals>
+    <string name="project_no_tasks">No tasks yet</string>
     <plurals name="task_count">
         <item quantity="one">%d task</item>
         <item quantity="other">%d tasks</item>

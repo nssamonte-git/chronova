@@ -13,8 +13,10 @@
     <string name="notifications_mark_all_read">Mark all as read</string>
     <string name="notifications_clear">Clear all</string>
     <string name="notifications_more">More actions</string>
-    <string name="notifications_empty">No notifications yet. Syncs, the assistant’s changes and account events show up here.</string>
-    <string name="notifications_empty_filtered">Nothing matches these filters.</string>
+    <string name="notifications_empty_title">No notifications yet</string>
+    <string name="notifications_empty">Syncs, the assistant’s changes and account events show up here.</string>
+    <string name="notifications_empty_filtered_title">Nothing matches these filters</string>
+    <string name="notifications_empty_filtered">Try fewer filters to see more.</string>
     <string name="notifications_undo">Undo</string>
     <string name="notifications_open_project">Open project</string>
     <string name="notifications_undone">Change undone</string>

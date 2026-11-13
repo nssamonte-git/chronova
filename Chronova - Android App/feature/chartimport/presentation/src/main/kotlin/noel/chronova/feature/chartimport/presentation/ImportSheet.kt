@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -155,9 +156,17 @@ private fun Title(newProject: Boolean, projectName: String) {
 private fun Choose(state: ImportSheetUi.Choose, actions: ImportActions) {
     Title(state.newProject, state.projectName)
     Text(stringResource(R.string.import_choose_body), style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        Button(onClick = actions.takePhoto, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.import_take_photo)) }
-        OutlinedButton(onClick = actions.chooseImage, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.import_choose_image)) }
+    // Side by side at normal text; stacked, full width, once large text would wrap a label.
+    if (LocalDensity.current.fontScale > 1.2f) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = actions.takePhoto, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.import_take_photo)) }
+            OutlinedButton(onClick = actions.chooseImage, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.import_choose_image)) }
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = actions.takePhoto, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.import_take_photo)) }
+            OutlinedButton(onClick = actions.chooseImage, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.import_choose_image)) }
+        }
     }
     Text(
         stringResource(R.string.import_tip),
@@ -283,8 +292,9 @@ private fun TaskRow(row: ImportRowUi, onToggle: () -> Unit) {
 
 @Composable
 private fun Problem(problem: ImportProblemUi, actions: ImportActions) {
-    Text(
-        stringResource(
+    SheetTitle(stringResource(R.string.import_problem_title))
+    InlineBanner(
+        text = stringResource(
             when (problem) {
                 ImportProblemUi.Offline -> R.string.import_problem_offline
                 ImportProblemUi.NotASchedule -> R.string.import_problem_not_schedule
@@ -298,8 +308,12 @@ private fun Problem(problem: ImportProblemUi, actions: ImportActions) {
                 ImportProblemUi.Unavailable -> R.string.import_problem_unavailable
             },
         ),
-        style = MaterialTheme.typography.bodyLarge,
+        kind = BannerKind.Error,
     )
+    // A picture that wasn't read: what helps next time.
+    if (problem == ImportProblemUi.NotASchedule || problem == ImportProblemUi.Unreadable) {
+        Text(stringResource(R.string.import_tip), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
         TextButton(onClick = actions.close) { Text(stringResource(R.string.import_close)) }
         if (problem != ImportProblemUi.ProjectGone && problem != ImportProblemUi.SwitchedOff && problem != ImportProblemUi.SignInAgain) {
@@ -310,9 +324,10 @@ private fun Problem(problem: ImportProblemUi, actions: ImportActions) {
 
 @Composable
 private fun Done(done: ImportDoneUi, actions: ImportActions) {
-    Text(
+    SheetTitle(stringResource(R.string.import_done_title))
+    InlineBanner(
         pluralStringResource(R.plurals.import_done_body, done.taskCount, done.taskCount, done.projectName),
-        style = MaterialTheme.typography.bodyLarge,
+        kind = if (done.undone == true) BannerKind.Info else BannerKind.Success,
     )
     when (done.undone) {
         true -> Text(stringResource(R.string.import_undone), style = MaterialTheme.typography.bodyMedium)

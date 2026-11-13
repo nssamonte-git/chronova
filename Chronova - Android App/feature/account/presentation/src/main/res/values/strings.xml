@@ -20,6 +20,9 @@
     <string name="account_no_server">Signing in isn’t available in this version of Chronova. Your projects are saved on this device and work fully offline.</string>
     <string name="account_required">Sign in to use Chronova. Your projects are kept in your account and still work on this device without a connection.</string>
     <string name="account_why">Sign in to sync your projects between devices. Without an account everything stays on this device.</string>
+    <string name="account_create_required">Create an account to use Chronova. Your projects are kept in your account and still work on this device without a connection.</string>
+    <string name="account_create_why">Create an account to sync your projects between devices. Without one, everything stays on this device.</string>
+    <string name="account_confirm_action">Confirm</string>
     <string name="account_confirm_body">Enter the code we emailed you.</string>
     <string name="account_email">Email</string>
     <string name="account_remember_me">Remember me</string>

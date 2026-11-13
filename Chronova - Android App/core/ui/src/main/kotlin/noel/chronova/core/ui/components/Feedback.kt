@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
@@ -39,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import noel.chronova.core.designsystem.ChronovaTheme
 
 /** What a banner is for; it picks the colours and the icon. */
-enum class BannerKind { Info, Warning, Error }
+enum class BannerKind { Info, Success, Warning, Error }
 
 /**
  * A message in a tinted box, inside a page or a sheet: something to check, something that went
@@ -57,6 +58,7 @@ fun InlineBanner(
     val extended = ChronovaTheme.extended
     val (container, onContainer) = when (kind) {
         BannerKind.Info -> colors.primaryContainer to colors.onPrimaryContainer
+        BannerKind.Success -> extended.successContainer to extended.onSuccessContainer
         BannerKind.Warning -> extended.warningContainer to extended.onWarningContainer
         BannerKind.Error -> colors.errorContainer to colors.onErrorContainer
     }
@@ -69,7 +71,11 @@ fun InlineBanner(
     ) {
         CompositionLocalProvider(LocalContentColor provides onContainer) {
             Icon(
-                if (kind == BannerKind.Info) Icons.Filled.Info else Icons.Filled.Warning,
+                when (kind) {
+                    BannerKind.Info -> Icons.Filled.Info
+                    BannerKind.Success -> Icons.Filled.CheckCircle
+                    BannerKind.Warning, BannerKind.Error -> Icons.Filled.Warning
+                },
                 contentDescription = null,
                 modifier = Modifier.padding(top = 1.dp).size(18.dp),
             )
