@@ -1548,3 +1548,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### Handoff refreshed
 
 - At your request: HANDOFF now names push and schedules-from-images in the server summary, makes the approval rule cover all three model providers (OpenAI, ElevenLabs, Meta) with the fakes as the default, adds the import geometry rule, the 106 device tests (Learn too), and links `docs/push.md` and `docs/import-api.md`. The local-only CURRENT_TASK was rewritten: current status, renumbered next steps, resolved items dropped, phone and server notes as they are now.
+
+## UI polish: the "Aurora" design pass
+
+- **Your request:** a plan to polish the app's UI components, with a design that fits the app; then that the design must fit both the dark and the light theme. You approved the plan.
+- **Your choices:** a logo-led look ("Aurora": the logo's navy and its cyan → blue → violet gradient), Inter bundled as the typeface, and visual changes only on the timeline (no geometry, gesture or scroll changes).
+- **How I looked:** I read the 126 screenshot references and the logo, and a sub-agent listed where the Compose code repeats itself (sheets, date pickers, empty states, hardcoded colours and gutters).
+
+### Phase 1: colours, type, shapes, spacing (`:core:designsystem`)
+
+- **Colour:** both colour schemes rewritten from the logo. Light sets every surface-container role now, so the task editor and export sheets, menus and the Milestone switch are no longer Material's lavender. Dark is the logo's navy with lighter accents.
+- **Task colours** are four fixed tones in both themes instead of theme roles (dark's lighter accents would wash out a bar's white label). The names, and so the synced data, are unchanged.
+- **Extended colours** (`ChronovaTheme.extended`): the aurora gradient, warning and success colours, and the few values that differ by theme (tint strength, glow, weekend shade).
+- **Type:** Inter 4.1, three weights, on Material 3's sizes; titles and labels are SemiBold in the scale, which is why Account, Notifications and the sheets now have the same title weight as the project list. `numeric()` gives equal-width digits.
+- **Shapes and spacing:** `ChronovaShapes`, `ChronovaSpacing`.
+- **Changed from the plan, after measuring:**
+  - `outline` is `#8A94B2` / `#6373A6`, not the plan's `#C9D0E2` / `#3A4670`: those measured 1.5:1 and 2.0:1 against the surface, below the 3:1 the plan itself asks of field borders.
+  - Task green is `#0B8577` (4.5:1 under white), not `#0E9F8E` (3.3:1).
+  - Shapes are 8 / 10 / 16 / 20 / 28 rather than 6 / 10 / 16 / 24 / 32: Material draws sheets and dialogs with the largest one, and 32 was too round for them.
+  - Inter is three weights, not four: I had told you about 300 KB, and four full files are 1.4 MB. The three Latin-subset files are 227 KB; Medium was dropped and labels use SemiBold.
+- **Where the font came from:** not downloaded. The files and `OFL.txt` were copied from your CSC project (`mobile/assets/fonts/inter`), whose README records them as subsets of the official Inter 4.1 release. I did not re-verify them against that release.
+- **My mistake, caught before committing:** the dark preview's background colour is part of each dark screenshot's file name, so changing it left the 42 old dark references beside the new ones, and the first dark images I looked at were the stale ones. The old files are deleted; DECISIONS notes the trap.
+- **Tests:** the theme's device test was rewritten for the new palette and gained contrast checks for both themes and for white labels on every task colour. It compiles (`assembleDebugAndroidTest`); it was not run, no device or emulator was used.
+- **Checks:** `tools/check.sh` PASS: 468 unit tests, 129 screenshots (126 re-recorded, 3 new for the type scale), lint 0 errors and 23 warnings, both architecture checks. I looked at the theme, timeline, task editor and project list images in light and dark. Nothing was checked on a phone.

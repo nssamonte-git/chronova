@@ -36,19 +36,58 @@ class ChronovaThemeTest {
     }
 
     @Test
-    fun darkKeepsTheBrandColoursOnSlate() {
+    fun darkUsesLighterAccentsOnTheLogosNavy() {
         lateinit var scheme: ColorScheme
         compose.setContent { ChronovaTheme(darkTheme = true) { scheme = MaterialTheme.colorScheme } }
         compose.waitForIdle()
-        assertEquals(ChronovaBlue, scheme.primary)
-        assertEquals(ChronovaGreen, scheme.secondary)
-        assertEquals(ChronovaPurple, scheme.tertiary)
+        assertEquals(ChronovaDarkBlue, scheme.primary)
+        assertEquals(ChronovaDarkGreen, scheme.secondary)
+        assertEquals(ChronovaDarkPurple, scheme.tertiary)
         assertEquals(ChronovaDarkBackground, scheme.background)
         assertEquals(ChronovaDarkSurface, scheme.surface)
         assertEquals(ChronovaDarkText, scheme.onSurface)
-        // Sheets and menus use the containers: slate too, not Material's default dark greys.
+        // Sheets and menus use the containers: navy too, not Material's default dark greys.
         assertEquals(ChronovaDarkSurfaceLow, scheme.surfaceContainerLow)
         assertEquals(ChronovaDarkSurfaceContainer, scheme.surfaceContainer)
+    }
+
+    @Test
+    fun lightSheetsAndMenusUseTheAppsNeutrals() {
+        lateinit var scheme: ColorScheme
+        compose.setContent { ChronovaTheme(darkTheme = false) { scheme = MaterialTheme.colorScheme } }
+        compose.waitForIdle()
+        // Not Material's default lavender containers.
+        assertEquals(ChronovaSurfaceLow, scheme.surfaceContainerLow)
+        assertEquals(ChronovaSurfaceContainer, scheme.surfaceContainer)
+        assertEquals(ChronovaSurfaceHighest, scheme.surfaceContainerHighest)
+    }
+
+    @Test
+    fun textAndAccentsAreReadableInBothThemes() {
+        lateinit var light: ColorScheme
+        lateinit var dark: ColorScheme
+        compose.setContent {
+            ChronovaTheme(darkTheme = false) { light = MaterialTheme.colorScheme }
+            ChronovaTheme(darkTheme = true) { dark = MaterialTheme.colorScheme }
+        }
+        compose.waitForIdle()
+        for (scheme in listOf(light, dark)) {
+            // Text: WCAG AA, 4.5:1.
+            assertTrue(contrast(scheme.onSurface, scheme.surface) >= 4.5f)
+            assertTrue(contrast(scheme.onSurfaceVariant, scheme.surfaceContainerHighest) >= 4.5f)
+            assertTrue(contrast(scheme.onPrimary, scheme.primary) >= 4.5f)
+            assertTrue(contrast(scheme.primary, scheme.background) >= 4.5f)
+            assertTrue(contrast(scheme.onPrimaryContainer, scheme.primaryContainer) >= 4.5f)
+            assertTrue(contrast(scheme.onErrorContainer, scheme.errorContainer) >= 4.5f)
+            // Field borders: 3:1.
+            assertTrue(contrast(scheme.outline, scheme.surface) >= 3f)
+        }
+    }
+
+    @Test
+    fun whiteBarLabelsAreReadableOnEveryTaskColour() {
+        // Bar labels are bold: WCAG's 3:1 for large text.
+        TaskColor.entries.forEach { assertTrue(it.name, contrast(Color.White, it.toColor()) >= 3f) }
     }
 
     @Test
@@ -81,6 +120,7 @@ class ChronovaThemeTest {
             ChronovaTheme(darkTheme = true) { dark = TaskColor.entries.associateWith { it.toColor() } }
         }
         compose.waitForIdle()
+        // Dark's accents are lighter than the task tones; bars must not follow them.
         val brand = mapOf(
             TaskColor.BLUE to ChronovaBlue,
             TaskColor.GREEN to ChronovaGreen,

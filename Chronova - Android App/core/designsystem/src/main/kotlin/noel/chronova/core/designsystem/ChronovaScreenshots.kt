@@ -15,7 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
     widthDp = 360,
     heightDp = 760,
     showBackground = true,
-    backgroundColor = 0xFF0B1120,
+    backgroundColor = 0xFF070B1A,
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
 )
 annotation class ChronovaScreenshots

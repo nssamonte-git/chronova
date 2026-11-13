@@ -1,17 +1,15 @@
 package noel.chronova.core.designsystem
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import noel.chronova.core.model.TaskColor
 
-/** Maps semantic task colors onto the theme; amber has no Material 3 role. */
-@Composable
-@ReadOnlyComposable
+/**
+ * A task's colour on screen. The four tones are the same in light and dark (they are not theme
+ * roles: dark's accents are lighter, and would wash out a bar's white label).
+ */
 fun TaskColor.toColor(): Color = when (this) {
-    TaskColor.BLUE -> MaterialTheme.colorScheme.primary
-    TaskColor.GREEN -> MaterialTheme.colorScheme.secondary
-    TaskColor.PURPLE -> MaterialTheme.colorScheme.tertiary
+    TaskColor.BLUE -> ChronovaBlue
+    TaskColor.GREEN -> ChronovaGreen
+    TaskColor.PURPLE -> ChronovaPurple
     TaskColor.AMBER -> ChronovaAmber
 }
