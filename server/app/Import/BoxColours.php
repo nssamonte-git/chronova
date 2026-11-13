@@ -17,7 +17,8 @@ final class BoxColours
      */
     public static function saturations(string $image, array $boxes): array
     {
-        $gd = $boxes === [] ? false : @imagecreatefromstring($image);
+        // Only data GD recognises: imagecreatefromstring() warns about anything else.
+        $gd = $boxes === [] || @getimagesizefromstring($image) === false ? false : @imagecreatefromstring($image);
         if (! $gd instanceof GdImage) {
             return array_fill(0, count($boxes), null);
         }

@@ -1506,4 +1506,5 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Noticed, not changed (they predate this work):** in the months view, the "30 Nov" tick label overlaps "Dec 2026"; whole-day tasks show "00:00 – 00:00" under their names.
   - **Tests:** server 480 passed (new: colour, drift, tracks, `BoxColours` on a real image), Pint clean. The app is unchanged since its last PASS.
   - **My mistakes:** `php artisan tinker <file>` waits at its prompt afterwards (stopped; `--execute` instead); one tap meant for the app chooser landed in the picker and chose the table instead of the chart (still a valid test).
+  - **Server image:** `docker compose --profile test run --build test` with GD added built and passed: 479 tests, plus 1 warning from my own `BoxColours` test, where `imagecreatefromstring()` warned about non-image data in the container's PHP. It now checks the format first; the unit tests in the image pass with no warning (34), and locally 480 pass.
 
