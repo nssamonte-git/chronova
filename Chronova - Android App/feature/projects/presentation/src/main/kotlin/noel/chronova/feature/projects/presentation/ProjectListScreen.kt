@@ -130,7 +130,7 @@ fun ProjectListScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProjectListContent(
+internal fun ProjectListContent(
     state: ProjectListState,
     onOpenProject: (String) -> Unit,
     onCreate: () -> Unit,

@@ -142,7 +142,7 @@ data class TimelineActions(
 )
 
 @Composable
-private fun TimelineContent(
+internal fun TimelineContent(
     state: TimelineUiState,
     actions: TimelineActions,
     modifier: Modifier = Modifier,

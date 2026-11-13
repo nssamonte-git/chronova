@@ -3,6 +3,7 @@
 plugins {
     id("chronova.android.library")
     id("chronova.android.compose")
+    id("chronova.android.screenshots")
 }
 
 android {

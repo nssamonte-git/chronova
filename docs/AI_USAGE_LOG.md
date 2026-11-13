@@ -930,3 +930,17 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **First previews:** the sync line in 4 states and the sync button with 5, 99+ and syncing, giving 2 previews and 4 images. Checked by eye: they render correctly.
   - **Found, not fixed:** the "99+" badge on the sync button is cut off at the button's edge, at normal size and more at large font. The badge sits inside the icon button, which crops its content; likely real on the phone too.
   - **Checks:** `testDebugScreenshotTestDefaultTestSuite` passes on an unchanged tree; 332 unit tests, lint 0 errors, module graph and UI-model checks OK, build gate passes.
+- Screenshot tests, batch B (everything already previewable):
+  - **New previews:**
+    - `:core:designsystem`: theme colour roles and task colours;
+    - projects: the list with three projects, the empty list, and the project sheet new and with "ends before it starts";
+    - timeline: the sample timeline, an empty project, and the task sheet adding and with "must end after it starts";
+    - sync: the reconnect prompt signed in and signed out;
+    - assistant: the overlay asking about a change with a clash and an alternative, and listening.
+  - **Main-code changes:** `ProjectListContent` and `TimelineContent` went from private to internal. `AssistantOrb` uses its existing fallback when `LocalInspectionMode` is on, so previews never start the 3D engine; nothing changes on the phone. The sync suite gets `:core:designsystem` for the theme.
+  - **Result:** 30 reference images across 6 modules (15 previews × phone and 1.5× font), checked by eye. The bottom sheets and dialogs render, and the timeline shows only the tasks in view, as the app does.
+  - **Two notes, neither fixed:** at large font the assistant's captions reach their 260 dp scroll limit (by design); the project sheet shows "-9 days" for a range the picker can't produce.
+  - **AI mistakes:**
+    - a zsh loop expanded `$m:u` as an uppercase modifier and built wrong task names; fixed with `${m}`;
+    - the sync previews first failed to compile without the design system.
+  - **Checks:** every screenshot suite passed twice in a row with `--rerun-tasks`; 332 unit tests, lint 0 errors, module graph and UI-model checks OK.

@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,7 +49,9 @@ fun AssistantOrb(
     fallback: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val orb = remember { OrbEngine.get(context) }
+    // Previews and screenshot tests can't run the 3D engine: they get the fallback.
+    val inspection = LocalInspectionMode.current
+    val orb = remember { if (inspection) null else OrbEngine.get(context) }
     if (orb == null) {
         Box(modifier, contentAlignment = Alignment.Center) { fallback() }
         return

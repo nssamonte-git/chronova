@@ -2,10 +2,15 @@
 plugins {
     id("chronova.android.library")
     id("chronova.android.compose")
+    id("chronova.android.screenshots")
 }
 
 android {
     namespace = "noel.chronova.feature.sync.presentation"
+    // The prompt itself uses only Material; its screenshots are taken in the app's theme.
+    testOptions.screenshotTests.named("screenshotTest") {
+        dependencies { implementation(projects.core.designsystem) }
+    }
 }
 
 dependencies {
