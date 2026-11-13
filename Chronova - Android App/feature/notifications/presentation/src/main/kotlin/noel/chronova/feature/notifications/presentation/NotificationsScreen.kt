@@ -5,6 +5,8 @@ import android.os.Build
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -256,13 +258,19 @@ private fun Item(
 ) {
     val unread = stringResource(R.string.notifications_unread)
     val rail = MaterialTheme.colorScheme.primary
+    // Read: the row settles back into the page and its rail fades, rather than jumping.
+    val background by animateColorAsState(
+        if (notification.read) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainer,
+        label = "notificationRow",
+    )
+    val railAlpha by animateFloatAsState(if (notification.read) 0f else 1f, label = "notificationRail")
     Row(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             // Unread: a raised row with a rail at its start, rather than a wash of the accent colour.
-            .background(if (notification.read) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainer)
-            .drawBehind { if (!notification.read) drawRect(rail, size = Size(3.dp.toPx(), size.height)) }
+            .background(background)
+            .drawBehind { if (railAlpha > 0f) drawRect(rail.copy(alpha = railAlpha), size = Size(3.dp.toPx(), size.height)) }
             .padding(horizontal = ChronovaSpacing.screenGutter, vertical = ChronovaSpacing.m)
             .semantics(mergeDescendants = true) { if (!notification.read) contentDescription = "$unread. ${text.title}. ${text.body}" },
         verticalAlignment = Alignment.Top,

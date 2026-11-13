@@ -2,6 +2,7 @@ package noel.chronova.feature.export.presentation
 
 import android.content.ClipData
 import android.content.Intent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -127,13 +128,16 @@ fun ExportSheet(
 @Composable
 private fun FormatRow(format: ExportFormat, selected: Boolean, onSelect: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    // Each choice is a card; the chosen one is outlined in the accent colour and tinted.
+    // Each choice is a card; the chosen one is outlined in the accent colour and tinted, and
+    // the outline and tint move smoothly from one card to the next.
+    val container by animateColorAsState(if (selected) colors.primaryContainer.copy(alpha = 0.45f) else colors.surface, label = "formatContainer")
+    val outline by animateColorAsState(if (selected) colors.primary else colors.outlineVariant, label = "formatOutline")
     Row(
         Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            .background(if (selected) colors.primaryContainer.copy(alpha = 0.45f) else colors.surface)
-            .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, MaterialTheme.shapes.medium)
+            .background(container)
+            .border(if (selected) 2.dp else 1.dp, outline, MaterialTheme.shapes.medium)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
             .padding(horizontal = ChronovaSpacing.m, vertical = ChronovaSpacing.m),
         verticalAlignment = Alignment.CenterVertically,

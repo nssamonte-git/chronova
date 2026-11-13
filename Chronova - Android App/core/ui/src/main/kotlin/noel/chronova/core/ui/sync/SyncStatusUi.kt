@@ -1,5 +1,11 @@
 package noel.chronova.core.ui.sync
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -12,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -65,12 +72,16 @@ fun SyncStatusLine(ui: SyncUi, onClick: () -> Unit) {
     val text = syncStatusText(ui) ?: return
     val isError = ui.phase is SyncPhase.Failed
     val extended = ChronovaTheme.extended
-    val dot = when {
-        isError -> MaterialTheme.colorScheme.error
-        ui.phase == SyncPhase.Syncing -> MaterialTheme.colorScheme.primary
-        ui.pending > 0 -> extended.warning
-        else -> extended.success
-    }
+    // The dot changes colour smoothly and the words cross-fade, so a finished sync is seen to happen.
+    val dot by animateColorAsState(
+        when {
+            isError -> MaterialTheme.colorScheme.error
+            ui.phase == SyncPhase.Syncing -> MaterialTheme.colorScheme.primary
+            ui.pending > 0 -> extended.warning
+            else -> extended.success
+        },
+        label = "syncDot",
+    )
     Row(
         Modifier
             .fillMaxWidth()
@@ -80,11 +91,17 @@ fun SyncStatusLine(ui: SyncUi, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(ChronovaSpacing.s),
     ) {
         StatusDot(dot)
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AnimatedContent(
+            targetState = text to isError,
+            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+            label = "syncStatus",
+        ) { (words, error) ->
+            Text(
+                text = words,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

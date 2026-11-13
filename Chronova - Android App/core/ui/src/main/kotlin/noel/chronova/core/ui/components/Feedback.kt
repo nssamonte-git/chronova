@@ -1,5 +1,7 @@
 package noel.chronova.core.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,11 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import noel.chronova.core.designsystem.ChronovaTheme
@@ -121,15 +129,29 @@ fun StatusDot(color: Color, modifier: Modifier = Modifier) {
     Box(modifier.size(8.dp).background(color, CircleShape))
 }
 
-/** How far along something is: a thin track filled with the logo's gradient. Decorative; say the number in text. */
+/**
+ * How far along something is: a thin track filled with the logo's gradient. Decorative; say
+ * the number in text. It fills from empty the first time it is shown and glides to a new value
+ * after that (at once when the phone's animations are off, and in previews).
+ */
 @Composable
 fun ProgressMeter(fraction: Float, modifier: Modifier = Modifier) {
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val fill = ChronovaTheme.extended.auroraHorizontal
+    // Saved, so a card scrolled away and back doesn't fill again.
+    var shown by rememberSaveable { mutableStateOf(false) }
+    val preview = LocalInspectionMode.current
+    LaunchedEffect(Unit) { shown = true }
+    val animated = animateFloatAsState(
+        targetValue = if (shown || preview) fraction.coerceIn(0f, 1f) else 0f,
+        animationSpec = tween(durationMillis = 600),
+        label = "progress",
+    )
     Canvas(modifier) {
         val radius = CornerRadius(size.height / 2f)
         drawRoundRect(track, cornerRadius = radius)
-        val width = size.width * fraction.coerceIn(0f, 1f)
+        // Read here, in the draw phase: the bar redraws as it moves without recomposing its card.
+        val width = size.width * animated.value
         // At least a dot once anything is done, so 5% of a short track still shows.
         if (width > 0f) drawRoundRect(fill, size = Size(width.coerceAtLeast(size.height), size.height), cornerRadius = radius)
     }

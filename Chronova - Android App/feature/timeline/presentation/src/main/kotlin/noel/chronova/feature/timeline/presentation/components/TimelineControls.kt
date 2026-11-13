@@ -2,7 +2,6 @@ package noel.chronova.feature.timeline.presentation.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,13 +13,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,12 +31,14 @@ import noel.chronova.core.designsystem.ChronovaSpacing
 import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
+import noel.chronova.core.ui.components.ChoiceChips
 import noel.chronova.core.ui.components.horizontalFadingEdges
 import noel.chronova.feature.timeline.presentation.R
 
 /**
- * Configuration toolbar: time scale, zoom, snap interval, row height and the critical-path switch. It scrolls
- * horizontally so it fits narrow phones without wrapping.
+ * Configuration toolbar: time scale, zoom, snap interval, row height and the critical-path switch,
+ * each with its name beside it, on one line. It scrolls horizontally so it fits narrow phones
+ * without wrapping.
  */
 @Composable
 fun TimelineControls(
@@ -63,11 +60,11 @@ fun TimelineControls(
             .horizontalFadingEdges(scroll)
             .horizontalScroll(scroll)
             .padding(horizontal = ChronovaSpacing.screenGutter, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(ChronovaSpacing.xl),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         ControlGroup(stringResource(R.string.controls_scale)) {
-            SegmentedChoice(
+            ChoiceChips(
                 options = TimeScale.entries,
                 selected = config.timeScale,
                 label = { scaleLabel(it) },
@@ -81,7 +78,7 @@ fun TimelineControls(
             StepperIcon(Icons.Filled.Refresh, stringResource(R.string.controls_zoom_reset), config.zoomPercent != 100, onZoomReset)
         }
         ControlGroup(stringResource(R.string.controls_snap)) {
-            SegmentedChoice(
+            ChoiceChips(
                 options = config.timeScale.snapOptions,
                 selected = config.snapMinutes,
                 label = { snapLabel(it) },
@@ -99,7 +96,7 @@ fun TimelineControls(
                 checked = config.showCriticalPath,
                 onCheckedChange = onCriticalPath,
                 modifier = Modifier
-                    // 48 dp tall with its touch target, like the segmented buttons, so the row keeps its height.
+                    // 48 dp tall with its touch target, like the chips, so the row keeps its height.
                     .padding(horizontal = 4.dp)
                     .semantics { contentDescription = description },
             )
@@ -107,39 +104,17 @@ fun TimelineControls(
     }
 }
 
+/** A group's name and its controls on one line, so the toolbar is one row tall. */
 @Composable
 private fun ControlGroup(label: String, content: @Composable () -> Unit) {
-    Column {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.padding(end = ChronovaSpacing.s),
         )
-        Row(verticalAlignment = Alignment.CenterVertically) { content() }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun <T> SegmentedChoice(
-    options: List<T>,
-    selected: T,
-    label: @Composable (T) -> String,
-    onSelect: (T) -> Unit,
-) {
-    SingleChoiceSegmentedButtonRow(Modifier.padding(vertical = 4.dp)) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = option == selected,
-                onClick = { onSelect(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                icon = {}, // no checkmark: keeps the toolbar compact on phones
-                modifier = Modifier.height(40.dp),
-            ) {
-                Text(label(option), style = MaterialTheme.typography.labelLarge)
-            }
-        }
+        content()
     }
 }
 

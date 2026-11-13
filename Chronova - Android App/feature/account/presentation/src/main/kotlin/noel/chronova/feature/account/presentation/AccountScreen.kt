@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,16 +33,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -76,6 +73,8 @@ import noel.chronova.core.model.ReminderLead
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.ui.R as CoreUiR
 import noel.chronova.core.ui.components.BannerKind
+import noel.chronova.core.ui.components.ChoiceChips
+import noel.chronova.core.ui.components.ChronovaCard
 import noel.chronova.core.ui.components.ChronovaTopBar
 import noel.chronova.core.ui.components.ChronovaTopBarTitle
 import noel.chronova.core.ui.components.ConfirmDialog
@@ -157,8 +156,9 @@ internal fun AccountContent(
                 Modifier
                     .widthIn(max = 480.dp)
                     .fillMaxWidth()
-                    .padding(ChronovaSpacing.sheetGutter),
-                verticalArrangement = Arrangement.spacedBy(ChronovaSpacing.l),
+                    // Cards reach nearer the edges than a form's fields do.
+                    .padding(if (page.auth is AccountAuthUi.SignedIn) ChronovaSpacing.screenGutter else ChronovaSpacing.sheetGutter),
+                verticalArrangement = Arrangement.spacedBy(if (page.auth is AccountAuthUi.SignedIn) ChronovaSpacing.m else ChronovaSpacing.l),
             ) {
                 if (onBack == null) {
                     Image(
@@ -191,28 +191,42 @@ private fun Explanation(text: String) {
 @Composable
 private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions, now: () -> Long) {
     val phase = page.syncPhase
-    Text(stringResource(R.string.account_signed_in_as, email), style = MaterialTheme.typography.titleMedium)
-    Explanation(stringResource(R.string.account_signed_in_body))
-
-    val ui = SyncUi(configured = true, signedIn = true, pending = page.pending, phase = phase)
-    val status = syncStatusText(ui) ?: lastSyncedText(page.lastSyncedAt, now())
-    if (phase is SyncPhase.Failed) {
-        InlineBanner(status, kind = BannerKind.Error)
-    } else {
-        Text(status, style = MaterialTheme.typography.bodyMedium.numeric(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // Who is signed in, and the way out.
+    AccountCard {
+        Text(stringResource(R.string.account_signed_in_as, email), style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.account_sign_out))
+        }
     }
-    Button(onClick = actions.onSyncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(CoreUiR.string.sync_now))
+    // Sync: how it works, where it stands, and the button.
+    AccountCard {
+        SectionHeader(stringResource(R.string.account_sync))
+        Explanation(stringResource(R.string.account_signed_in_body))
+        val ui = SyncUi(configured = true, signedIn = true, pending = page.pending, phase = phase)
+        val status = syncStatusText(ui) ?: lastSyncedText(page.lastSyncedAt, now())
+        if (phase is SyncPhase.Failed) {
+            InlineBanner(status, kind = BannerKind.Error)
+        } else {
+            Text(status, style = MaterialTheme.typography.bodyMedium.numeric(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Button(onClick = actions.onSyncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(CoreUiR.string.sync_now))
+        }
     }
-    ThemeChoice(page.themeMode, actions.onThemeModeChange)
-    ReminderChoice(page.reminderLead, actions.onReminderLeadChange)
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.account_sign_out))
-    }
+    AccountCard { ThemeChoice(page.themeMode, actions.onThemeModeChange) }
+    AccountCard { ReminderChoice(page.reminderLead, actions.onReminderLeadChange) }
+    // Apart from the cards: it is not a setting, and it can't be undone.
     DestructiveTextButton(stringResource(R.string.account_delete), actions.onRequestDeleteAccount, Modifier.fillMaxWidth())
     page.deleteFailure?.let {
         InlineBanner(stringResource(R.string.account_delete_failed, syncFailureText(it)), kind = BannerKind.Error)
+    }
+}
+
+/** One group of the signed-in page: a card with its content in a column. */
+@Composable
+private fun AccountCard(content: @Composable ColumnScope.() -> Unit) {
+    ChronovaCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(ChronovaSpacing.l), verticalArrangement = Arrangement.spacedBy(ChronovaSpacing.m), content = content)
     }
 }
 
@@ -273,32 +287,25 @@ private fun reminderLabel(lead: ReminderLead): String = stringResource(
 )
 
 /** System / Light / Dark for this device. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeChoice(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(ChronovaSpacing.xs)) {
         SectionHeader(stringResource(R.string.account_theme))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            ThemeMode.entries.forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = mode == selected,
-                    onClick = { onSelect(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
-                    icon = {},
-                ) {
-                    Text(
-                        stringResource(
-                            when (mode) {
-                                ThemeMode.SYSTEM -> R.string.theme_system
-                                ThemeMode.LIGHT -> R.string.theme_light
-                                ThemeMode.DARK -> R.string.theme_dark
-                            },
-                        ),
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
+        ChoiceChips(
+            options = ThemeMode.entries,
+            selected = selected,
+            label = { mode ->
+                stringResource(
+                    when (mode) {
+                        ThemeMode.SYSTEM -> R.string.theme_system
+                        ThemeMode.LIGHT -> R.string.theme_light
+                        ThemeMode.DARK -> R.string.theme_dark
+                    },
+                )
+            },
+            onSelect = onSelect,
+            fillWidth = true,
+        )
     }
 }
 

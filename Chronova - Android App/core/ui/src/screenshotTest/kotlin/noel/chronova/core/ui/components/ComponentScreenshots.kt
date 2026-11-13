@@ -110,3 +110,16 @@ fun FadingRow() = ChronovaTheme {
         }
     }
 }
+
+/** One choice of a few: as wide as their words in a toolbar, sharing the width on a page. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun ChoiceChipRows() = ChronovaTheme {
+    Surface(color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ChoiceChips(options = listOf("Hours", "Days", "Weeks"), selected = "Days", label = { it }, onSelect = {})
+            ChoiceChips(options = listOf("System", "Light", "Dark"), selected = "Light", label = { it }, onSelect = {}, fillWidth = true)
+        }
+    }
+}
