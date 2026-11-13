@@ -1758,3 +1758,18 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - nothing was marked read or changed, and the app is back on the project list.
   - Human-side event: the USB link dropped once after the install and came back after an adb restart.
 - **Not verified on the phone:** the other changed screens, which need an empty project, a failed import or signing out. They are covered by the screenshots and device tests only. The spoken assistant lines still say "3 p.m." while the preview uses 24-hour times (that text is written on the server).
+
+### Items 13 and 14: the timeline title and the name column
+
+- **Your request:** fix 13 and 14 too.
+- **13, title room while a task is selected:** the bar now holds Edit and a "More options" menu. The menu has Mark done (only while the task isn't done), Search tasks, and Show or Hide timeline settings. With nothing selected the bar is unchanged (add from image, search, settings). In the preview "Sample proj…" now reads "Sample project". The menu item says "Mark done"; it was "Mark selected task done" as a button label. My first attempt kept the check button beside Edit and More; the title still cut off, so Mark done moved into the menu.
+- **14, name column at large text:** the column grows with the phone's text size, at 60% of the text's growth (128 dp at normal size, 166 dp at 1.5×, at most 205 dp). Names and times read in full at 1.5× ("Implemen…" is the longest cut in the previews). At normal size nothing changes, which the phone confirms. This is the row-geometry change the original plan left out; you asked for it here.
+- **Checks:**
+  - `tools/check.sh` PASS: 483 unit tests, 144 screenshots (9 timeline references re-recorded and viewed), lint 0 errors, both architecture checks;
+  - device tests on the managed emulator: timeline 26 and app 11, 0 failed.
+- **On the phone:**
+  - installed over the app; data as before (Jnn, 31 unsynced);
+  - selecting a bar shows Edit and More, and the menu lists Mark done, Search tasks and Hide timeline settings. I opened the menu and closed it without choosing anything.
+  - My Back presses went one too far and closed the app; I reopened it on the project list.
+  - Not my doing: the unread count went from 35 to 36 after this launch; the app added a notification by itself, and nothing was read or created by me.
+- **Not verified:** the name column at large text on the phone (I left its text size alone); the other device-test modules were not rerun, since only the timeline changed.

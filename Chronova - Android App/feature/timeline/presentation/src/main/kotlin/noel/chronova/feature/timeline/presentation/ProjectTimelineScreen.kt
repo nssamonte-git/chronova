@@ -10,9 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,6 +27,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,8 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.ZoneOffset
 import kotlinx.coroutines.launch
-import noel.chronova.core.designsystem.R as DesignR
 import noel.chronova.core.designsystem.ChronovaTheme
+import noel.chronova.core.designsystem.R as DesignR
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.ui.R as CoreUiR
@@ -411,11 +415,6 @@ private fun TimelineTopBar(
         onBack = onBack,
         backDescription = stringResource(R.string.timeline_back),
         actions = {
-            if (selectedTaskId != null && !selectedIsDone) {
-                IconButton(onClick = onMarkDone) {
-                    Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.task_mark_done))
-                }
-            }
             if (selectedTaskId != null) {
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))
@@ -427,19 +426,51 @@ private fun TimelineTopBar(
                     Icon(painterResource(DesignR.drawable.ic_add_photo), contentDescription = stringResource(R.string.timeline_import_image))
                 }
             }
-            IconButton(onClick = onSearch) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = stringResource(if (searchOpen) R.string.search_close else R.string.search_open),
-                    tint = if (searchOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onToggleControls) {
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = stringResource(if (controlsVisible) R.string.timeline_settings_hide else R.string.timeline_settings_show),
-                    tint = if (controlsVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            val searchLabel = stringResource(if (searchOpen) R.string.search_close else R.string.search_open)
+            val settingsLabel = stringResource(if (controlsVisible) R.string.timeline_settings_hide else R.string.timeline_settings_show)
+            if (selectedTaskId == null) {
+                IconButton(onClick = onSearch) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = searchLabel,
+                        tint = if (searchOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onToggleControls) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = settingsLabel,
+                        tint = if (controlsVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                // A task is selected: Edit, then a menu with Mark done, search and settings, so the
+                // bar holds two buttons and the project's name keeps its room.
+                var menuOpen by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.timeline_more))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        if (!selectedIsDone) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.task_mark_done)) },
+                                leadingIcon = { Icon(Icons.Filled.Check, contentDescription = null) },
+                                onClick = { menuOpen = false; onMarkDone() },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(searchLabel) },
+                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                            onClick = { menuOpen = false; onSearch() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(settingsLabel) },
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            onClick = { menuOpen = false; onToggleControls() },
+                        )
+                    }
+                }
             }
         },
     )

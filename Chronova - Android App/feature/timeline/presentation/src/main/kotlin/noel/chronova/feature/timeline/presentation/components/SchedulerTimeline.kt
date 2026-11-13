@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
 import java.time.Instant
@@ -69,6 +70,12 @@ import noel.chronova.feature.timeline.presentation.TaskUi
 import noel.chronova.feature.timeline.presentation.TimelineUiState
 
 private val NameColumnWidth = 128.dp
+
+/**
+ * The name column grows with the phone's text size, more slowly than the text (at 1.5×, 166 dp
+ * instead of 128), so names and times stay readable and the chart keeps most of the width.
+ */
+private fun nameColumnWidth(fontScale: Float): Dp = NameColumnWidth * (1f + (fontScale - 1f).coerceIn(0f, 1f) * 0.6f)
 private val HeaderHeight = 44.dp
 
 /**
@@ -134,10 +141,11 @@ fun SchedulerTimeline(
     val currentOnZoomEnd by rememberUpdatedState(onZoomEnd)
 
     val colors = MaterialTheme.colorScheme
+    val nameColumn = nameColumnWidth(density.fontScale)
     // Time always flows left-to-right, even in RTL locales.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier.background(colors.surface)) {
-            val viewportWidthPx = max(0, constraints.maxWidth - with(density) { NameColumnWidth.roundToPx() }).toFloat()
+            val viewportWidthPx = max(0, constraints.maxWidth - with(density) { nameColumn.roundToPx() }).toFloat()
             // Keeps the centre time fixed across zoom/scale changes and clamps the scroll.
             SideEffect { viewport.onGeometry(contentWidthPx, viewportWidthPx, pxPerMinute) }
 
@@ -224,7 +232,7 @@ fun SchedulerTimeline(
                         pxPerMinute = pxPerMinute,
                         viewport = viewport,
                         modifier = Modifier
-                            .width(NameColumnWidth)
+                            .width(nameColumn)
                             .fillMaxHeight()
                             .columnDivider(colors.outlineVariant)
                             .padding(horizontal = 12.dp),
@@ -240,7 +248,7 @@ fun SchedulerTimeline(
                     )
                 }
 
-                val nameColumnPx = with(density) { NameColumnWidth.toPx() }
+                val nameColumnPx = with(density) { nameColumn.toPx() }
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -272,12 +280,12 @@ fun SchedulerTimeline(
                         nowOffsetMillis = (nowMillis - window.startMillis).takeIf { nowMillis in window.startMillis until window.endMillis },
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = NameColumnWidth),
+                            .padding(start = nameColumn),
                     )
                     // The name column's divider runs the full height, below the last row too.
                     Box(
                         Modifier
-                            .width(NameColumnWidth)
+                            .width(nameColumn)
                             .fillMaxHeight()
                             .columnDivider(colors.outlineVariant),
                     )
@@ -289,7 +297,7 @@ fun SchedulerTimeline(
                             body = stringResource(if (state.isFiltering) R.string.tasks_no_match else R.string.tasks_empty),
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(start = NameColumnWidth + 16.dp, end = 16.dp)
+                                .padding(start = nameColumn + 16.dp, end = 16.dp)
                                 .clip(MaterialTheme.shapes.large)
                                 .background(MaterialTheme.colorScheme.background),
                         )
@@ -309,7 +317,7 @@ fun SchedulerTimeline(
                                     showCriticalPath = config.showCriticalPath,
                                     onClick = { onEditTask(task.id) },
                                     modifier = Modifier
-                                        .width(NameColumnWidth)
+                                        .width(nameColumn)
                                         .fillMaxHeight(),
                                 )
                                 TaskLane(
@@ -342,7 +350,7 @@ fun SchedulerTimeline(
                         showCriticalPath = config.showCriticalPath,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = NameColumnWidth),
+                            .padding(start = nameColumn),
                     )
                     // Today: now 20% in from the left, or the nearer end of the project when today is outside it.
                     SmallFloatingActionButton(
