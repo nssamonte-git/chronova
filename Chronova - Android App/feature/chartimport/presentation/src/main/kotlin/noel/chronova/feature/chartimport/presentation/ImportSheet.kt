@@ -160,7 +160,7 @@ private fun Choose(state: ImportSheetUi.Choose, actions: ImportActions) {
         OutlinedButton(onClick = actions.chooseImage, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.import_choose_image)) }
     }
     Text(
-        stringResource(R.string.import_privacy),
+        stringResource(R.string.import_tip),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

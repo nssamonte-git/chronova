@@ -1707,3 +1707,23 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the snap chips carry the spoken labels "15 minutes", "30 minutes", "1 hour" (read from the phone's accessibility tree).
 - **How:** I only scrolled the toolbar, which was already showing. No chip, stepper or switch was tapped, nothing was synced or marked read, and I went back to the project list.
 - **Not verified:** TalkBack was not turned on, so the labels were read from the tree, not heard.
+
+### Provider and backend wording removed from the app
+
+- **Your requests:** check every screen for provider wording and remove it, for a pre-production client build; then, while I was working: say nothing about API usage or the backend, and use notes that simply describe the feature.
+- **Found:** two strings named providers: the image-import note (Meta, OpenAI) and the assistant's first-use notice (ElevenLabs, OpenAI). Five messages mentioned "the server". Nothing in Kotlin, and the server sends the app only error codes, never provider text.
+- **Now:**
+  - the import note is a tip, "Works best with a clear, straight photo of the whole chart." (resource renamed `import_tip`);
+  - the assistant notice says what it does: it reads back the change, asks first, and you can undo;
+  - the server mentions became "something went wrong", "can't connect" and "check your internet connection";
+  - the account-deletion warning no longer says "from the server".
+- **My first draft** said "AI services" and "Chronova doesn't keep the image/recordings". That was replaced after your second message. While drafting I checked the server: transcription logging is only off with an enterprise ElevenLabs option, so a flat "recordings aren't kept" would not have been true.
+- **Decision recorded:** DECISIONS.md now says the app's text describes features only, and that the privacy policy and Data safety form must cover the providers and the 90-day history instead. The app now discloses neither in its own text, so those documents are needed before release.
+- **Checks:**
+  - `tools/check.sh` PASS: 483 unit tests, 144 screenshots (the image-import sheet's 3 re-recorded and viewed), lint 0 errors, both architecture checks;
+  - no test referred to the old wording.
+- **On the phone:**
+  - installed over the app; data as before;
+  - the import sheet in Jnn shows the new tip.
+  - Human-side event: the USB link dropped for a moment, so one tap of mine was lost and the next opened Notifications instead. Nothing was marked read, and I went back.
+- **Not verified:** the assistant's first-use notice was not seen on the phone (it shows once and was already accepted there); it has no screenshot.

@@ -7,7 +7,7 @@
     <string name="import_choose_body">Photograph a schedule or Gantt chart, or choose an image of one. Chronova reads its tasks and dates, and you check them before anything changes.</string>
     <string name="import_take_photo">Take photo</string>
     <string name="import_choose_image">Choose image</string>
-    <string name="import_privacy">The image is read by Meta; only what it reads (not the image) goes to OpenAI to build the tasks. Neither is kept by Chronova.</string>
+    <string name="import_tip">Works best with a clear, straight photo of the whole chart.</string>
 
     <string name="import_reading">Reading the chart…</string>
     <string name="import_reading_body">This can take up to a minute.</string>

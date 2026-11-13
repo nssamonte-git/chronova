@@ -6,7 +6,7 @@
     <string name="account_sign_out_body">Your projects stay in your account and are removed from this device.</string>
     <string name="account_delete">Delete account</string>
     <string name="account_delete_title">Delete your account?</string>
-    <string name="account_delete_body">Your account and all synced projects are deleted from the server, and this device’s copy is removed. This can’t be undone.</string>
+    <string name="account_delete_body">Your account and all your synced projects are deleted, along with the copy on this device. This can’t be undone.</string>
     <string name="account_delete_confirm">Delete everything</string>
     <string name="account_delete_failed">Couldn’t delete the account. %1$s</string>
     <string name="account_title">Account &amp; sync</string>
@@ -47,7 +47,7 @@
     <string name="auth_account_disabled">This account has been disabled. Contact support.</string>
     <string name="auth_code_expired">That code has expired. Send a new one.</string>
     <string name="auth_too_many">Too many attempts. Wait a few minutes and try again.</string>
-    <string name="auth_network">Can’t reach the server. Check your connection.</string>
+    <string name="auth_network">Can’t connect. Check your internet connection.</string>
     <string name="auth_unknown">Something went wrong. Please try again.</string>
     <plurals name="account_password_rules">
         <item quantity="one">At least %d character, with upper- and lower-case letters and a number.</item>

@@ -19,7 +19,7 @@
     <string name="assistant_needs_connection">The assistant needs an internet connection.</string>
     <string name="assistant_needs_sign_in">Sign in on the Account page to use the assistant.</string>
     <string name="assistant_notice_title">Talk to Chronova</string>
-    <string name="assistant_notice_body">Say what to change, like \u201cpush build by two hours\u201d. Chronova reads back what it will do and asks before changing anything. Recordings and this project\u2019s task names go to ElevenLabs to write down what you said; your words and the task names and times go to OpenAI to work out and explain the changes. Your requests and answers are kept for 90 days so Chronova can learn what you prefer; they are deleted with your account.</string>
+    <string name="assistant_notice_body">Say what to change, like \u201cpush build by two hours\u201d. Chronova reads back what it will do and asks before changing anything, and you can undo any change.</string>
     <string name="assistant_notice_continue">Continue</string>
     <string name="assistant_state_listening">Chronova assistant, listening</string>
     <string name="assistant_state_thinking">Chronova assistant, thinking</string>
@@ -110,5 +110,5 @@
         <item quantity="one">%d task changed</item>
         <item quantity="other">%d tasks changed</item>
     </plurals>
-    <string name="assistant_cant_reach_server">Can’t reach the server</string>
+    <string name="assistant_cant_reach_server">Can’t connect right now</string>
 </resources>

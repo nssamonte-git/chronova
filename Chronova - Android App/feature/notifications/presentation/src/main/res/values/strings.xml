@@ -36,7 +36,7 @@
     <string name="notif_sync_failed_offline">You were offline. Your changes are safe on this device.</string>
     <string name="notif_sync_failed_busy">Another of your devices was syncing. Try again in a moment.</string>
     <string name="notif_sync_failed_sign_in">Sign in again to sync.</string>
-    <string name="notif_sync_failed_server">The server had a problem. Try again later.</string>
+    <string name="notif_sync_failed_server">Something went wrong. Try again later.</string>
     <string name="notif_waiting">Changes waiting to sync</string>
     <plurals name="notif_waiting_body">
         <item quantity="one">%d change on this device hasn’t synced yet.</item>

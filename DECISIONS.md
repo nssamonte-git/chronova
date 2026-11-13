@@ -109,6 +109,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Revised 2026-11-13 (user choices): voice also drives the app (see Voice actions). Look-only requests run at once without a yes; writes still need one.
 - Reason: user choices (providers as in the brief, always preview then confirm with a spoken explanation, dependents via voice only, on for everyone, task names sent to the transcriber); a model can only propose allowed operations on listed tasks.
 - Constraint: real providers only with the user's approval; the privacy policy and Play Data safety form must cover ElevenLabs and OpenAI before release (`docs/voice-api.md`).
+- Revised 2026-11-14 (user choice, client handoff): the app's own text describes features only. It names no provider and says nothing about APIs, servers or data handling (the assistant's first-use notice and the image-import note included); provider names, what is sent and the 90-day history belong in the privacy policy and the Play Data safety form, which must exist before release.
 
 ## 2026-11-13: Voice actions
 
