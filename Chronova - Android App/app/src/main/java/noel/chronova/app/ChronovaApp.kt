@@ -1,5 +1,11 @@
 package noel.chronova.app
 
+import noel.chronova.feature.push.domain.RegisterDevice
+import noel.chronova.feature.push.data.OkHttpPushApi
+import noel.chronova.feature.push.data.FirebasePushTokens
+import kotlinx.coroutines.flow.distinctUntilChanged
+import noel.chronova.feature.push.domain.PushMessage
+import noel.chronova.feature.push.data.PushHost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -52,7 +58,7 @@ import noel.chronova.feature.sync.data.SyncEngine
 import noel.chronova.feature.sync.data.keepOnlyFor
 import noel.chronova.feature.sync.data.remote.OkHttpSyncApi
 
-class ChronovaApp : Application(), ReminderHost {
+class ChronovaApp : Application(), ReminderHost, PushHost {
     val container: AppContainer by lazy { AppContainer(this) }
 
     override val reminderEngine: ReminderEngine get() = container.reminderEngine
@@ -73,6 +79,26 @@ class ChronovaApp : Application(), ReminderHost {
                 container.reminderEngine.reschedule()
             }
         }
+        // The server can push to this device while signed in: registered at each start (time zone
+        // included), on sign-in (another account too) and when the reminder choice changes.
+        container.appScope.launch {
+            combine(container.authRepository.state, container.reminderSettings.lead) { auth, lead ->
+                (auth as? AuthState.SignedIn)?.userId to lead
+            }.distinctUntilChanged().collectLatest { (userId, _) ->
+                if (userId != null) container.registerDevice()
+            }
+        }
+    }
+
+    /** Firebase gave this device a new token: the server needs it to keep reaching the device. */
+    override fun onPushToken(token: String) {
+        container.appScope.launch { container.registerDevice(token) }
+    }
+
+    /** A push from the server (docs/push.md); one this app doesn't understand is ignored. */
+    override fun onPushMessage(data: Map<String, String>) {
+        val message = PushMessage.parse(data) ?: return
+        container.appScope.launch { container.handlePush(message) }
     }
 
     private companion object {
@@ -163,6 +189,21 @@ class AppContainer(context: Context) {
     val account = AccountGraph(this)
     val assistant = AssistantGraph(this, context)
     val export = ExportGraph(this, context)
+
+    /** Tells the server how to push to this device (Firebase token, time zone, reminder choice). */
+    val registerDevice = RegisterDevice(
+        auth = authRepository,
+        api = OkHttpPushApi(backendConfig.apiUrl.ifBlank { "https://localhost" }, httpClient),
+        tokens = FirebasePushTokens(),
+        settings = reminderSettings,
+    )
+
+    /** Acts on a push from the server (reminders and alerts arrive in the next steps of this work). */
+    suspend fun handlePush(message: PushMessage) {
+        when (message) {
+            is PushMessage.Reminder, PushMessage.SyncAvailable, PushMessage.SignedIn, PushMessage.AccountChanged -> Unit
+        }
+    }
 
     /** Posts task reminders from one alarm (see [ChronovaApp] for what reschedules it). */
     val reminderEngine = ReminderEngine(

@@ -1345,4 +1345,14 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **`App\Push`:** `PushSender` with `FcmPushSender` (HTTP v1, with a JWT signed by PHP's openssl, so no new package; the access token cached) and `FakePushSender` (the default), chosen by `PUSH_SENDER`. `Pusher` forgets devices whose token FCM no longer knows.
   - **Docs:** `docs/push.md`.
   - **Tests:** 14 new: registration and its rules, removal by sign-out, expiry and account deletion, the sender choice, the signed JWT and message shape (with a throwaway RSA key), pruning unregistered tokens, and missing credentials. 407 passed; Pint clean after it reordered imports.
+- Batch 2, Firebase in the app and device registration:
+  - **Build:** the Firebase BOM 35.1.0 (only `firebase-messaging`) and the google-services plugin 4.5.0. Both are the newest at least two weeks old; 35.2.0 and 4.6.0 came out on 11 Nov, so lint now lists them, 23 version warnings.
+  - **`google-services.json`** is in the app module; the security gate skips it by design.
+  - **`:feature:push`:**
+    - domain: `PushMessage` (reminder, sync available, signed in, account changed; malformed or unknown → ignored) and `RegisterDevice` (signed in only; token, time zone and reminder choice; failures wait for the next trigger);
+    - data: `ChronovaMessagingService` (not exported), `FirebasePushTokens` and `OkHttpPushApi` (`PUT /v1/devices`).
+  - **Privacy:** Firebase makes no token until a signed-in app asks; analytics is off.
+  - **`ChronovaApp`:** registers at start, on sign-in and on a changed reminder choice, and when Firebase hands over a new token. It hands pushes to `handlePush`, which acts on them from batch 3.
+  - **Tests:** 7 domain and 2 API tests. `tools/check.sh` PASS (444 unit tests).
+  - **Phone check** (your data backed up first): opening the app registered a real Firebase token (142 characters) with the local server, with Asia/Manila and reminders off.
 

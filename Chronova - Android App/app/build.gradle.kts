@@ -4,6 +4,8 @@ plugins {
     id("chronova.android.application")
     id("chronova.android.compose")
     alias(libs.plugins.kotlin.serialization)
+    // Reads google-services.json (Firebase project chronova-ece3c) for push notifications.
+    alias(libs.plugins.google.services)
 }
 
 /**
@@ -74,6 +76,8 @@ dependencies {
     implementation(projects.feature.export.presentation)
     implementation(projects.feature.reminders.domain)
     implementation(projects.feature.reminders.data)
+    implementation(projects.feature.push.domain)
+    implementation(projects.feature.push.data)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)

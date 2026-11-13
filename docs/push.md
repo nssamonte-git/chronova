@@ -28,3 +28,16 @@ Task reminders and account and sync alerts reach the phone through Firebase Clou
 | `FCM_BASE_URL` | `https://fcm.googleapis.com/v1` | |
 
 The service-account key is a private key: never in git, never in the app.
+
+## The app
+
+- **Modules:** `:feature:push:domain` (pure Kotlin: `PushMessage.parse`, `RegisterDevice`) and `:feature:push:data` (`ChronovaMessagingService`, `FirebasePushTokens`, `OkHttpPushApi`). The app module applies the google-services plugin, which reads `app/google-services.json` (Firebase project `chronova-ece3c`).
+- **When the device registers:**
+  - while signed in, at each start, on sign-in (another account too), when the reminder choice changes, and when Firebase hands over a new token;
+  - best effort: a failure waits for the next trigger.
+  - Signing out needs nothing: the server forgets the device with the sign-in.
+- **Firebase on the phone:**
+  - It makes no token until the app asks, so a signed-out app makes none (`firebase_messaging_auto_init_enabled=false`).
+  - Analytics is off and not included; only messaging is.
+- **Messages:** the service hands them to the Application (`PushHost`); a message the app doesn't understand is ignored.
+
