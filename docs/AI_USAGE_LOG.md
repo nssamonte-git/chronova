@@ -1330,3 +1330,19 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - VoiceCheck is deleted and the deletion synced (only Jnn remains);
     - the server is stopped, the port forward removed, and `local.properties` restored.
 
+### Reminders and notifications through Firebase Cloud Messaging
+
+- At your request, with your choices:
+  - the server pushes reminders to every signed-in device from synced tasks, and the phone's own alarm stays as a backup for changes not synced yet, never posting twice;
+  - the server also pushes "changed on another device", "new sign-in" and "password changed / signed out";
+  - the service-account key is yours, used from the server only.
+- You provided `google-services.json` and the service-account key. At your request I moved them into the project:
+  - the key to `server/storage/credentials/firebase-service-account.json`, which git and the Docker build now ignore, readable only by your user. I didn't open or print it;
+  - `google-services.json` to the app module.
+- Batch 1, server devices and a push sender:
+  - **`devices` table:** token, platform, time zone and reminder setting, tied to the sign-in, so signing out, a password reset, expiry or deleting the account removes it.
+  - **Endpoints:** `PUT /v1/devices` (one device per sign-in; a token follows whoever signed in last) and `DELETE /v1/devices`.
+  - **`App\Push`:** `PushSender` with `FcmPushSender` (HTTP v1, with a JWT signed by PHP's openssl, so no new package; the access token cached) and `FakePushSender` (the default), chosen by `PUSH_SENDER`. `Pusher` forgets devices whose token FCM no longer knows.
+  - **Docs:** `docs/push.md`.
+  - **Tests:** 14 new: registration and its rules, removal by sign-out, expiry and account deletion, the sender choice, the signed JWT and message shape (with a throwaway RSA key), pruning unregistered tokens, and missing credentials. 407 passed; Pint clean after it reordered imports.
+

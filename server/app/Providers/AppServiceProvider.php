@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Push\FakePushSender;
+use App\Push\FcmPushSender;
+use App\Push\PushSender;
 use App\Voice\ElevenLabsSpeaker;
 use App\Voice\ElevenLabsTranscriber;
 use App\Voice\Explainer;
@@ -47,6 +50,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(Speaker::class, fn ($app) => match (config('voice.speech')) {
             'elevenlabs' => new ElevenLabsSpeaker($app->make(Http::class), config('voice.elevenlabs')),
             default => new FakeSpeaker,
+        });
+        // Push notifications: Firebase only when configured; the fake records what would be sent.
+        $this->app->singleton(PushSender::class, fn ($app) => match (config('push.sender')) {
+            'fcm' => new FcmPushSender($app->make(Http::class), $app->make('cache.store'), config('push.fcm')),
+            default => new FakePushSender,
         });
     }
 

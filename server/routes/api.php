@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\VoiceController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,8 @@ Route::middleware(['auth:sanctum', 'abilities:sync', 'active', 'keep-signed-in']
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('account', [AccountController::class, 'destroy']);
+    Route::put('devices', [DeviceController::class, 'update'])->middleware('throttle:sync');
+    Route::delete('devices', [DeviceController::class, 'destroy']);
     Route::post('sync', SyncController::class)->middleware('throttle:sync');
     Route::post('voice/transcribe', [VoiceController::class, 'transcribe'])->middleware('throttle:voice');
     Route::post('voice/interpret', [VoiceController::class, 'interpret'])->middleware('throttle:voice');

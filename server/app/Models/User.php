@@ -68,4 +68,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(EmailCode::class);
     }
+
+    /** Phones that can be sent push notifications. */
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
 }

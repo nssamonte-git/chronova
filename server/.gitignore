@@ -29,3 +29,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Firebase service-account key for push (never committed; Secrets Manager in AWS).
+/storage/credentials/
