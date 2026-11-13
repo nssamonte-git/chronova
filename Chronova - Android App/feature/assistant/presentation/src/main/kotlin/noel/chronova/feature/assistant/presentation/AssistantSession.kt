@@ -45,21 +45,27 @@ internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boole
         views.update { pending -> pending.filterNot { it.id == id } }
     }
 
-    /** Where to go (another screen), once it has said so; the shell navigates and calls [navigated]. */
-    val navigation = MutableStateFlow<NavigationUi?>(null)
+    /** The app's to do (go elsewhere, a setting, sync, export), in order, until the shell has done each. */
+    val appRequests = MutableStateFlow<List<AppRequestUi>>(emptyList())
 
-    fun navigate(action: VoiceAction) {
-        navigation.value = when (action) {
-            is VoiceAction.OpenProject -> NavigationUi.OpenProject(++viewIds, action.projectId)
-            VoiceAction.GoToProjects -> NavigationUi.Projects(++viewIds)
-            VoiceAction.OpenNotifications -> NavigationUi.Notifications(++viewIds)
-            VoiceAction.OpenAccount -> NavigationUi.Account(++viewIds)
+    fun request(action: VoiceAction) {
+        val id = ++viewIds
+        val request = when (action) {
+            is VoiceAction.OpenProject -> AppRequestUi.OpenProject(id, action.projectId)
+            VoiceAction.GoToProjects -> AppRequestUi.Projects(id)
+            VoiceAction.OpenNotifications -> AppRequestUi.Notifications(id)
+            VoiceAction.OpenAccount -> AppRequestUi.Account(id)
+            is VoiceAction.SetTheme -> AppRequestUi.Theme(id, action.theme)
+            is VoiceAction.SetReminders -> AppRequestUi.Reminders(id, action.lead)
+            VoiceAction.SyncNow -> AppRequestUi.Sync(id)
+            is VoiceAction.Export -> AppRequestUi.Export(id, action.projectId, action.projectName, action.format.name, action.notes)
             else -> return
         }
+        appRequests.update { it + request }
     }
 
-    fun navigated(id: Long) {
-        navigation.update { it?.takeUnless { request -> request.id == id } }
+    fun requestDone(id: Long) {
+        appRequests.update { pending -> pending.filterNot { it.id == id } }
     }
 }
 

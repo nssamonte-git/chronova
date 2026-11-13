@@ -220,6 +220,10 @@ internal data class ActionDto(
     val colors: List<String>? = null,
     val kinds: List<String>? = null,
     val projectId: String? = null,
+    val theme: String? = null,
+    val lead: String? = null,
+    val format: String? = null,
+    val notes: Boolean? = null,
 )
 
 @Serializable
@@ -279,7 +283,7 @@ internal fun InterpretResponseDto.toDomain() = Proposal(
     question = question,
     reason = reason,
     alternative = alternative?.map { it.toDomain() },
-    actions = actions.map { ProposedAction(it.type, it.date, it.taskId, it.scale, it.direction, it.size, it.on, it.query, it.colors, it.kinds, it.projectId) },
+    actions = actions.map { ProposedAction(it.type, it.date, it.taskId, it.scale, it.direction, it.size, it.on, it.query, it.colors, it.kinds, it.projectId, it.theme, it.lead, it.format, it.notes) },
 )
 
 internal fun OperationDto.toDomain() = ProposedOperation(

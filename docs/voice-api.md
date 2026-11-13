@@ -97,6 +97,10 @@ Actions (every field is always present):
 | `search` | `query` (words in titles, ≤ 100 characters, or null), `colors` (`blue`/`green`/`purple`/`amber`), `kinds` (`not_done`/`done`/`milestone`) | Opens the search bar (without the keyboard) listing only the matches: any of the colours, each of the kinds; never empty (that's `clear_search`) |
 | `clear_search` | | Closes the search: every task again |
 | `open_task` | `taskId` | Opens the task's editor |
+| `set_theme` | `theme` (`system`/`light`/`dark`) | Sets the app's appearance, and says how to switch back |
+| `set_reminders` | `lead` (`off`/`at_start`/`15_min`/`1_hour`/`1_day`) | Sets the task reminders (asks for the notification permission when needed, Android 13+) |
+| `sync_now` | | Syncs now |
+| `export` | `projectId` (from `context.projects`), `format` (`pdf`/`csv`/`calendar`), `notes` (boolean) | Exports the project and opens the share sheet; nothing is sent until the user picks where |
 | `open_project` | `projectId` (from `context.projects`) | Opens that project's timeline |
 | `go_to_projects` | | Back to the list of projects |
 | `open_notifications` | | Opens the notifications page |

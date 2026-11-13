@@ -90,8 +90,9 @@ internal class AssistantConversation(
                 when (val outcome = interpret(request)) {
                     is Outcome.Act -> return act(outcome.actions)
                     is Outcome.Proposal -> {
-                        // Shown at once; leaving the screen mid-question isn't done.
-                        session.show(outcome.actions.takeWhile { !it.leavesScreen }.map { it.toViewAction() })
+                        // Done at once, before asking; leaving the screen mid-question isn't done.
+                        session.show(outcome.actions.filter { it.forTheScreen }.map { it.toViewAction() })
+                        outcome.actions.filter { !it.forTheScreen && !it.leavesScreen }.forEach(session::request)
                         val plan = outcome.plan
                         val alternative = plan.alternative
                         val heard = propose(plan) ?: return declined()
@@ -255,14 +256,13 @@ internal class AssistantConversation(
      */
     private fun act(actions: List<VoiceAction>) {
         session.ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
-        val here = actions.takeWhile { !it.leavesScreen }
-        val leave = actions.firstOrNull { it.leavesScreen }
-        session.show(here.map { it.toViewAction() })
+        session.show(actions.filter { it.forTheScreen }.map { it.toViewAction() })
         session.explaining.value = true
         session.afterword = session.scope.launch {
             try {
-                voice.sayAside(phrases.showing(leave ?: actions.last()))
-                leave?.let(session::navigate)
+                voice.sayAside(phrases.showing(actions.last()))
+                // Settings, sync, export and leaving the screen are the app's, once said.
+                actions.filter { !it.forTheScreen }.forEach(session::request)
             } finally {
                 session.explaining.value = false
             }
@@ -315,9 +315,10 @@ internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
     )
     VoiceAction.ClearSearch -> AssistantViewAction.ClearSearch
     is VoiceAction.OpenTask -> AssistantViewAction.OpenTask(taskId)
-    // Leaving the screen is the shell's (see [AssistantSession.navigate]); never shown here.
-    is VoiceAction.OpenProject, VoiceAction.GoToProjects, VoiceAction.OpenNotifications, VoiceAction.OpenAccount ->
-        error("$this leaves the screen")
+    // The app's (see [AssistantSession.request]); never shown by a screen.
+    is VoiceAction.OpenProject, VoiceAction.GoToProjects, VoiceAction.OpenNotifications, VoiceAction.OpenAccount,
+    is VoiceAction.SetTheme, is VoiceAction.SetReminders, VoiceAction.SyncNow, is VoiceAction.Export,
+    -> error("$this is the app's to do")
 }
 
 /** What the screen shows, in the domain's terms. */

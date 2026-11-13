@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskColor
 import java.time.LocalDate
@@ -23,8 +25,15 @@ data class ProposedAction(
     val query: String? = null,
     val colors: List<String>? = null,
     val kinds: List<String>? = null,
-    /** `open_project`. */
+    /** `open_project`, `export`. */
     val projectId: String? = null,
+    /** `set_theme`: system, light or dark. */
+    val theme: String? = null,
+    /** `set_reminders`: off, at_start, 15_min, 1_hour or 1_day. */
+    val lead: String? = null,
+    /** `export`: pdf, csv or calendar, and whether notes go in. */
+    val format: String? = null,
+    val notes: Boolean? = null,
 )
 
 /**
@@ -53,6 +62,14 @@ sealed interface VoiceAction {
     /** Opens the task's editor. */
     data class OpenTask(val taskId: String, val title: String) : VoiceAction
 
+    // The app's: settings, sync and export (done by the shell, once said).
+    data class SetTheme(val theme: ThemeMode) : VoiceAction
+    data class SetReminders(val lead: ReminderLead) : VoiceAction
+    data object SyncNow : VoiceAction
+    data class Export(val projectId: String, val projectName: String, val format: ExportKind, val notes: Boolean) : VoiceAction
+
+    enum class ExportKind { PDF, CSV, CALENDAR }
+
     // Leaving the screen (nothing follows these).
     data class OpenProject(val projectId: String, val name: String) : VoiceAction
     data object GoToProjects : VoiceAction
@@ -61,6 +78,9 @@ sealed interface VoiceAction {
 
     /** Leaves the screen. */
     val leavesScreen: Boolean get() = this is OpenProject || this == GoToProjects || this == OpenNotifications || this == OpenAccount
+
+    /** Done by the screen it was asked on (scrolling, the view, the search); the rest is the app's. */
+    val forTheScreen: Boolean get() = !leavesScreen && this !is SetTheme && this !is SetReminders && this != SyncNow && this !is Export
 
     enum class SearchKind { NOT_DONE, DONE, MILESTONE }
 
@@ -85,6 +105,14 @@ sealed interface VoiceAction {
                 "search" -> search(proposed)
                 "clear_search" -> ClearSearch
                 "open_task" -> tasks.firstOrNull { it.id == proposed.taskId }?.let { OpenTask(it.id, it.title) }
+                "set_theme" -> ThemeMode.entries.firstOrNull { it.name.equals(proposed.theme, ignoreCase = true) }?.let(::SetTheme)
+                "set_reminders" -> LEADS[proposed.lead]?.let(::SetReminders)
+                "sync_now" -> SyncNow
+                "export" -> {
+                    val project = projects.firstOrNull { it.id == proposed.projectId }
+                    val format = ExportKind.entries.firstOrNull { it.name.equals(proposed.format, ignoreCase = true) }
+                    if (project == null || format == null || proposed.notes == null) null else Export(project.id, project.name, format, proposed.notes)
+                }
                 "open_project" -> projects.firstOrNull { it.id == proposed.projectId }?.let { OpenProject(it.id, it.name) }
                 "go_to_projects" -> GoToProjects
                 "open_notifications" -> OpenNotifications
@@ -94,6 +122,15 @@ sealed interface VoiceAction {
         } catch (_: DateTimeParseException) {
             null
         }
+
+        /** The API's names for reminder times. */
+        private val LEADS = mapOf(
+            "off" to ReminderLead.OFF,
+            "at_start" to ReminderLead.AT_START,
+            "15_min" to ReminderLead.MINUTES_15,
+            "1_hour" to ReminderLead.HOUR_1,
+            "1_day" to ReminderLead.DAY_1,
+        )
 
         /** Null for a chip this app doesn't have, or a search for nothing. */
         private fun search(proposed: ProposedAction): Search? {

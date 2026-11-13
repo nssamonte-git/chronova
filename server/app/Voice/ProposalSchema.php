@@ -36,6 +36,13 @@ final class ProposalSchema
     /** Screens the app can ask from: a project's timeline, or the list of projects. */
     public const SCREENS = ['timeline', 'projects'];
 
+    /** App settings and exports, as actions name them. */
+    public const THEMES = ['system', 'light', 'dark'];
+
+    public const LEADS = ['off', 'at_start', '15_min', '1_hour', '1_day'];
+
+    public const FORMATS = ['pdf', 'csv', 'calendar'];
+
     /** Actions that leave the screen; nothing can follow them. */
     public const NAVIGATIONS = ['open_project', 'go_to_projects', 'open_notifications', 'open_account'];
 
@@ -91,6 +98,15 @@ final class ProposalSchema
             ],
             'clear_search' => [],
             'open_task' => ['taskId' => ['type' => 'string']],
+            // App settings, sync and export: done at once, and said aloud.
+            'set_theme' => ['theme' => ['type' => 'string', 'enum' => self::THEMES]],
+            'set_reminders' => ['lead' => ['type' => 'string', 'enum' => self::LEADS]],
+            'sync_now' => [],
+            'export' => [
+                'projectId' => ['type' => 'string'],
+                'format' => ['type' => 'string', 'enum' => self::FORMATS],
+                'notes' => ['type' => 'boolean'],
+            ],
             // Leaving the screen: these come last.
             'open_project' => ['projectId' => ['type' => 'string']],
             'go_to_projects' => [],

@@ -1,7 +1,16 @@
 package noel.chronova.app.navigation
 
-import androidx.navigation.NavHostController
-import noel.chronova.feature.assistant.presentation.NavigationUi
+import noel.chronova.feature.export.domain.ExportFormat
+import noel.chronova.core.model.ReminderLead
+import androidx.core.app.NotificationManagerCompat
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.os.Build
+import android.Manifest
+import noel.chronova.feature.assistant.presentation.AppRequestUi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -116,6 +125,42 @@ private fun ChronovaScreens(
             onLater = sync::dismissPrompt,
         )
     }
+    // What the assistant asked the app to do: go elsewhere, a setting, sync, an export.
+    var voiceExport by remember { mutableStateOf<AppRequestUi.Export?>(null) }
+    val context = LocalContext.current
+    val askForNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val doRequest: (AppRequestUi) -> Unit = { request ->
+        when (request) {
+            is AppRequestUi.OpenProject -> navController.navigate(ProjectTimelineRoute(request.projectId)) { launchSingleTop = true }
+            is AppRequestUi.Projects -> navController.popBackStack(ProjectListRoute, inclusive = false)
+            is AppRequestUi.Notifications -> navController.navigate(NotificationsRoute) { launchSingleTop = true }
+            is AppRequestUi.Account -> navController.navigate(AccountRoute) { launchSingleTop = true }
+            is AppRequestUi.Theme -> container.account.useCases().setThemeMode(request.theme)
+            is AppRequestUi.Reminders -> {
+                container.account.useCases().setReminderLead(request.lead)
+                // As on the account page: reminders need the notification permission (Android 13+).
+                val allowed = NotificationManagerCompat.from(context).areNotificationsEnabled()
+                if (request.lead != ReminderLead.OFF && !allowed && Build.VERSION.SDK_INT >= 33) {
+                    askForNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            is AppRequestUi.Sync -> sync.syncNow()
+            is AppRequestUi.Export -> voiceExport = request
+        }
+    }
+    voiceExport?.let { request ->
+        val export: ExportViewModel = viewModel(
+            key = "voice-export-${request.id}",
+            factory = ExportViewModel.factory(request.projectId, request.projectName, container.export::exportProject),
+        )
+        // The sheet shows what is being exported; the share sheet opens once the file is written.
+        LaunchedEffect(request.id) {
+            export.chooseFormat(ExportFormat.valueOf(request.format))
+            export.setIncludeNotes(request.notes)
+            export.export()
+        }
+        ExportScreen(viewModel = export, onDismiss = { voiceExport = null })
+    }
     NavHost(navController = navController, startDestination = ProjectListRoute, modifier = modifier) {
         composable<ProjectListRoute> {
             // The project being exported (its sheet); kept across rotation.
@@ -126,7 +171,7 @@ private fun ChronovaScreens(
                 key = "assistant-projects",
                 factory = AssistantViewModel.factory(null, container.assistant::useCases, container.assistant.phrases),
             )
-            AssistantNavigation(assistant, navController)
+            AssistantRequests(assistant, doRequest)
             ProjectListScreen(
                 assistant = rememberAssistantSlot(assistant),
                 viewModel = viewModel(factory = ProjectListViewModel.factory(container.projects.queries, container.projects::useCases)),
@@ -166,7 +211,7 @@ private fun ChronovaScreens(
             val assistant: AssistantViewModel = viewModel(
                 factory = AssistantViewModel.factory(route.projectId, container.assistant::useCases, container.assistant.phrases),
             )
-            AssistantNavigation(assistant, navController)
+            AssistantRequests(assistant, doRequest)
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container.timeline::useCases)),
                 // The timeline knows the assistant only through this slot.
@@ -177,18 +222,14 @@ private fun ChronovaScreens(
     }
 }
 
-/** Goes where the assistant was asked to go (it has already said so), once per request. */
+/** Does what the assistant asked the app to do (it has already said so), once per request, in order. */
 @Composable
-private fun AssistantNavigation(assistant: AssistantViewModel, navController: NavHostController) {
-    val request by assistant.navigation.collectAsStateWithLifecycle()
+private fun AssistantRequests(assistant: AssistantViewModel, doRequest: (AppRequestUi) -> Unit) {
+    val request by assistant.appRequest.collectAsStateWithLifecycle()
+    val currentDo by rememberUpdatedState(doRequest)
     LaunchedEffect(request?.id) {
-        val shown = request ?: return@LaunchedEffect
-        assistant.navigated(shown.id)
-        when (shown) {
-            is NavigationUi.OpenProject -> navController.navigate(ProjectTimelineRoute(shown.projectId)) { launchSingleTop = true }
-            is NavigationUi.Projects -> navController.popBackStack(ProjectListRoute, inclusive = false)
-            is NavigationUi.Notifications -> navController.navigate(NotificationsRoute) { launchSingleTop = true }
-            is NavigationUi.Account -> navController.navigate(AccountRoute) { launchSingleTop = true }
-        }
+        val asked = request ?: return@LaunchedEffect
+        assistant.appRequestDone(asked.id)
+        currentDo(asked)
     }
 }

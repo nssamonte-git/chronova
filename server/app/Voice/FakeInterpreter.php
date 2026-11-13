@@ -14,7 +14,8 @@ use DateTimeImmutable;
  * "show the critical path", "hide the critical path", "search for design", "show only green tasks
  * that aren't done", "show milestones", "clear the search", "open review"; "undo that"; "this" or "it"
  * for the selected task; two of these joined by "and"; and "open <project>", "go back to my projects",
- * "show notifications", "open my account".
+ * "show notifications", "open my account"; "dark theme", "remind me 15 minutes before", "turn off reminders",
+ * "sync now", "export this as a pdf (without notes)".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -133,7 +134,7 @@ final class FakeInterpreter implements Interpreter
         };
     }
 
-    /** Leaving the screen: "open <project>", "go back to my projects", "show notifications", "open my account". */
+    /** App-level actions: leaving the screen, settings, sync and export. */
     private function navigation(string $text, array $context): ?array
     {
         foreach ($context['projects'] ?? [] as $project) {
@@ -142,7 +143,27 @@ final class FakeInterpreter implements Interpreter
             }
         }
 
+        if (preg_match('/^export (this|it|(.+?)) as (a |an )?(pdf|csv|spreadsheet|calendar)( file)?( without notes)?$/', $text, $m)) {
+            $project = $m[1] === 'this' || $m[1] === 'it'
+                ? ['id' => $context['projectId'] ?? null]
+                : collect($context['projects'] ?? [])->first(fn ($p) => mb_strtolower($p['name']) === $m[2]);
+            if (($project['id'] ?? null) !== null) {
+                $format = $m[4] === 'spreadsheet' ? 'csv' : $m[4];
+
+                return ['type' => 'export', 'projectId' => $project['id'], 'format' => $format, 'notes' => ($m[6] ?? '') === ''];
+            }
+        }
+
         return match (true) {
+            (bool) preg_match('/^(use the |switch to |turn on )?(dark|light) (theme|mode)$/', $text, $m) => ['type' => 'set_theme', 'theme' => $m[2]],
+            (bool) preg_match('/^(follow the phone|use the system theme|system theme)$/', $text) => ['type' => 'set_theme', 'theme' => 'system'],
+            (bool) preg_match('/^turn off (the )?reminders$/', $text) => ['type' => 'set_reminders', 'lead' => 'off'],
+            (bool) preg_match('/^remind me (when (each|a) task starts|at the start)$/', $text) => ['type' => 'set_reminders', 'lead' => 'at_start'],
+            (bool) preg_match('/^remind me (15 minutes|fifteen minutes|an hour|a day) before$/', $text, $m) => ['type' => 'set_reminders',
+                'lead' => match ($m[1]) {
+                    'an hour' => '1_hour', 'a day' => '1_day', default => '15_min'
+                }],
+            (bool) preg_match('/^sync( now)?$/', $text) => ['type' => 'sync_now'],
             (bool) preg_match('/^(go back to|go to|show|show me) (my |the )?projects$/', $text) => ['type' => 'go_to_projects'],
             (bool) preg_match('/^(open|show|show me) (my |the )?notifications$/', $text) => ['type' => 'open_notifications'],
             (bool) preg_match('/^(open|show|show me) (my |the )?(account|settings)$/', $text) => ['type' => 'open_account'],

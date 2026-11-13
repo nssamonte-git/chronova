@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.ui.assistant.AssistantViewAction
 
 /** One line of what the assistant proposes to change, as the orb shows it. Times are epoch millis. */
@@ -41,12 +43,21 @@ sealed interface WarningUi {
 /** Something the assistant asked the screen to show; [id] tells one from the next. */
 data class ViewRequestUi(val id: Long, val action: AssistantViewAction)
 
-/** Another screen the assistant was asked to go to; [id] tells one request from the next. */
-sealed interface NavigationUi {
+/**
+ * Something for the app's shell to do, once the assistant has said it: go to another screen, change
+ * a setting, sync or export. [id] tells one request from the next.
+ */
+sealed interface AppRequestUi {
     val id: Long
 
-    data class OpenProject(override val id: Long, val projectId: String) : NavigationUi
-    data class Projects(override val id: Long) : NavigationUi
-    data class Notifications(override val id: Long) : NavigationUi
-    data class Account(override val id: Long) : NavigationUi
+    data class OpenProject(override val id: Long, val projectId: String) : AppRequestUi
+    data class Projects(override val id: Long) : AppRequestUi
+    data class Notifications(override val id: Long) : AppRequestUi
+    data class Account(override val id: Long) : AppRequestUi
+    data class Theme(override val id: Long, val theme: ThemeMode) : AppRequestUi
+    data class Reminders(override val id: Long, val lead: ReminderLead) : AppRequestUi
+    data class Sync(override val id: Long) : AppRequestUi
+
+    /** [format] is the export's PDF, CSV or CALENDAR; [notes]: whether notes go in. */
+    data class Export(override val id: Long, val projectId: String, val projectName: String, val format: String, val notes: Boolean) : AppRequestUi
 }

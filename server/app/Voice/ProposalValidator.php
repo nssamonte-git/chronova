@@ -193,6 +193,10 @@ final class ProposalValidator
     {
         return match ($name) {
             'projectId' => is_string($value) && in_array($value, $projectIds, true),
+            'theme' => in_array($value, ProposalSchema::THEMES, true),
+            'lead' => in_array($value, ProposalSchema::LEADS, true),
+            'format' => in_array($value, ProposalSchema::FORMATS, true),
+            'notes' => is_bool($value),
             'taskId', 'predecessorId', 'successorId' => is_string($value) && in_array($value, $taskIds, true),
             'predecessorIds' => is_array($value) && array_is_list($value) && count($value) === count(array_unique($value))
                 && array_diff($value, $taskIds) === [],

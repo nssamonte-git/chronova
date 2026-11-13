@@ -145,6 +145,20 @@ class OkHttpVoiceApiTest {
         )
         assertTrue(body, !body.contains("projectId\""))
         assertEquals(listOf(ProposedAction("open_project", projectId = "p2")), proposal.actions)
+        reply(
+            200,
+            """{"result":"actions","operations":[],"actions":[{"type":"set_theme","theme":"dark"},{"type":"set_reminders","lead":"1_hour"},
+               {"type":"export","projectId":"p2","format":"csv","notes":false}]}""",
+        )
+        assertEquals(
+            listOf(
+                ProposedAction("set_theme", theme = "dark"),
+                ProposedAction("set_reminders", lead = "1_hour"),
+                ProposedAction("export", projectId = "p2", format = "csv", notes = false),
+            ),
+            api.interpretOnList("token-1", "dark", ListContext("UTC", LocalDate.of(2026, 11, 13), LocalDateTime.of(2026, 11, 13, 9, 30), projects)).actions,
+        )
+        server.takeRequest()
     }
 
     @Test

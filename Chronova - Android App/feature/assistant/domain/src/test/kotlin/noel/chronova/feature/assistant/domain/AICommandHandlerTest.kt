@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import java.time.LocalDate
@@ -138,6 +140,41 @@ class AICommandHandlerTest {
         )
         assertTrue(VoiceAction.OpenAccount.leavesScreen)
         assertTrue(!VoiceAction.GoToToday.leavesScreen)
+    }
+
+    @Test
+    fun settingsSyncAndExport() {
+        val withProjects = context.copy(projects = listOf(ProjectRef(SampleTasks.PROJECT_ID, SampleTasks.project.name, SampleTasks.project.startDate, SampleTasks.project.endDate)))
+        assertEquals(
+            HandledProposal.Act(
+                listOf(
+                    VoiceAction.SetTheme(ThemeMode.SYSTEM),
+                    VoiceAction.SetReminders(ReminderLead.DAY_1),
+                    VoiceAction.SyncNow,
+                    VoiceAction.Export(SampleTasks.PROJECT_ID, SampleTasks.project.name, VoiceAction.ExportKind.CALENDAR, notes = true),
+                ),
+            ),
+            handler.handle(
+                withProjects,
+                state,
+                actions(
+                    ProposedAction("set_theme", theme = "system"),
+                    ProposedAction("set_reminders", lead = "1_day"),
+                    ProposedAction("sync_now"),
+                    ProposedAction("export", projectId = SampleTasks.PROJECT_ID, format = "calendar", notes = true),
+                ),
+            ),
+        )
+        for (bad in listOf(
+            ProposedAction("set_theme", theme = "sepia"),
+            ProposedAction("set_reminders", lead = "2_hours"),
+            ProposedAction("export", projectId = "gone", format = "pdf", notes = true),
+            ProposedAction("export", projectId = SampleTasks.PROJECT_ID, format = "docx", notes = true),
+            ProposedAction("export", projectId = SampleTasks.PROJECT_ID, format = "pdf"),
+        )) {
+            assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(withProjects, state, actions(bad)))
+        }
+        assertTrue(!VoiceAction.SyncNow.forTheScreen && VoiceAction.GoToToday.forTheScreen)
     }
 
     @Test

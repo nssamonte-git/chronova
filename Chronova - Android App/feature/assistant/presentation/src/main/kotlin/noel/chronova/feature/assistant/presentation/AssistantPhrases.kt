@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.model.TimeScale
 import java.time.format.DateTimeFormatter
 import noel.chronova.feature.assistant.domain.VoiceAction
@@ -96,6 +98,31 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         VoiceAction.GoToProjects -> resources.getString(R.string.assistant_showing_projects)
         VoiceAction.OpenNotifications -> resources.getString(R.string.assistant_showing_notifications)
         VoiceAction.OpenAccount -> resources.getString(R.string.assistant_showing_account)
+        is VoiceAction.SetTheme -> resources.getString(
+            when (action.theme) {
+                ThemeMode.SYSTEM -> R.string.assistant_theme_system
+                ThemeMode.LIGHT -> R.string.assistant_theme_light
+                ThemeMode.DARK -> R.string.assistant_theme_dark
+            },
+        )
+        is VoiceAction.SetReminders -> resources.getString(
+            when (action.lead) {
+                ReminderLead.OFF -> R.string.assistant_reminders_off
+                ReminderLead.AT_START -> R.string.assistant_reminders_at_start
+                ReminderLead.MINUTES_15 -> R.string.assistant_reminders_15_min
+                ReminderLead.HOUR_1 -> R.string.assistant_reminders_1_hour
+                ReminderLead.DAY_1 -> R.string.assistant_reminders_1_day
+            },
+        )
+        VoiceAction.SyncNow -> resources.getString(R.string.assistant_syncing)
+        is VoiceAction.Export -> resources.getString(
+            when (action.format) {
+                VoiceAction.ExportKind.PDF -> R.string.assistant_exporting_pdf
+                VoiceAction.ExportKind.CSV -> R.string.assistant_exporting_csv
+                VoiceAction.ExportKind.CALENDAR -> R.string.assistant_exporting_calendar
+            },
+            action.projectName,
+        )
     }
 
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String {

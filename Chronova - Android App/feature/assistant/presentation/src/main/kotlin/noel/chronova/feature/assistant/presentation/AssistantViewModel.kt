@@ -73,10 +73,12 @@ class AssistantViewModel(
     /** The screen has shown request [id]. */
     fun viewShown(id: Long) = session.shown(id)
 
-    /** Another screen it was asked to go to, until the shell calls [navigated]. */
-    val navigation: StateFlow<NavigationUi?> = session.navigation.asStateFlow()
+    /** The next thing for the shell to do (go elsewhere, a setting, sync, export), until it calls [appRequestDone]. */
+    val appRequest: StateFlow<AppRequestUi?> = session.appRequests
+        .map { it.firstOrNull() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    fun navigated(id: Long) = session.navigated(id)
+    fun appRequestDone(id: Long) = session.requestDone(id)
 
     /** What the screen shows now; sent with the next request. */
     fun onView(view: AssistantViewState) {

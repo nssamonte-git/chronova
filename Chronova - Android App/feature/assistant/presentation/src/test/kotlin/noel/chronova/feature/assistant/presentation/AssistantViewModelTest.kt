@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
 import noel.chronova.feature.assistant.domain.ListContext
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.ui.assistant.AssistantViewState
@@ -524,19 +526,20 @@ class AssistantViewModelTest {
     fun onTheListOfProjectsItGoesWhereItIsAskedOnceItHasSaidSo() = runTest(dispatcher) {
         viewModel = viewModelFor(null)
         api.answerOnList = { _, _ -> Proposal(null, "actions", emptyList(), null, null, actions = listOf(ProposedAction("open_project", projectId = SampleTasks.PROJECT_ID))) }
-        var navigationWhenSaying: NavigationUi? = null
-        api.onExplain = { if (it is ExplainRequest.Question && it.text.startsWith("showing OpenProject")) navigationWhenSaying = viewModel.navigation.value }
+        var requestWhenSaying: AppRequestUi? = null
+        api.onExplain = { if (it is ExplainRequest.Question && it.text.startsWith("showing OpenProject")) requestWhenSaying = viewModel.appRequest.value }
         says("open the sample")
         talk()
 
         // Only the projects were sent (no project is open), with their names as words to listen for.
         assertEquals(listOf(SampleTasks.project.name), api.listRequests.single().projects.map { it.name })
         assertEquals(listOf(SampleTasks.project.name), api.keyterms.first())
-        assertNull(navigationWhenSaying) // said first
-        val request = viewModel.navigation.value as NavigationUi.OpenProject
+        assertNull(requestWhenSaying) // said first
+        val request = viewModel.appRequest.value as AppRequestUi.OpenProject
         assertEquals(SampleTasks.PROJECT_ID, request.projectId)
-        viewModel.navigated(request.id)
-        assertNull(viewModel.navigation.value)
+        viewModel.appRequestDone(request.id)
+        advanceUntilIdle()
+        assertNull(viewModel.appRequest.value)
         // No introduction here: it is about a project's tasks.
         viewModel.introduceIfFirstVisit()
         assertFalse(viewModel.state.value.open)
@@ -550,8 +553,58 @@ class AssistantViewModelTest {
         says("go to today and then back to my projects")
         talk()
         assertEquals(AssistantViewAction.GoToToday, viewModel.view.value?.action)
-        assertTrue(viewModel.navigation.value is NavigationUi.Projects)
+        assertTrue(viewModel.appRequest.value is AppRequestUi.Projects)
         assertEquals("showing GoToProjects", api.said.last())
+    }
+
+    @Test
+    fun settingsSyncAndExportAreTheAppsToDoInOrderOnceSaid() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(
+                c.revision, "actions", emptyList(), null, null,
+                actions = listOf(
+                    ProposedAction("set_theme", theme = "dark"),
+                    ProposedAction("set_reminders", lead = "15_min"),
+                    ProposedAction("sync_now"),
+                    ProposedAction("export", projectId = SampleTasks.PROJECT_ID, format = "pdf", notes = false),
+                ),
+            )
+        }
+        says("dark theme, reminders, sync and export")
+        talk()
+        assertNull(viewModel.view.value) // nothing for the screen
+        val done = mutableListOf<AppRequestUi>()
+        while (true) {
+            val next = viewModel.appRequest.value ?: break
+            done += next
+            viewModel.appRequestDone(next.id)
+            advanceUntilIdle()
+        }
+        assertEquals(
+            listOf(
+                AppRequestUi.Theme(done[0].id, ThemeMode.DARK),
+                AppRequestUi.Reminders(done[1].id, ReminderLead.MINUTES_15),
+                AppRequestUi.Sync(done[2].id),
+                AppRequestUi.Export(done[3].id, SampleTasks.PROJECT_ID, SampleTasks.project.name, "PDF", notes = false),
+            ),
+            done,
+        )
+    }
+
+    @Test
+    fun aSettingThatComesWithAChangeIsDoneBeforeAskingButLeavingIsNot() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(
+                c.revision, "operations", listOf(ProposedOperation("shift_task", taskId = "review", amount = 1, unit = "hours")), null, null,
+                actions = listOf(ProposedAction("set_theme", theme = "light"), ProposedAction("open_account")),
+            )
+        }
+        says("light theme and push review by an hour", "no")
+        talk()
+        assertEquals(ThemeMode.LIGHT, (viewModel.appRequest.value as AppRequestUi.Theme).theme)
+        viewModel.appRequestDone(viewModel.appRequest.value!!.id)
+        advanceUntilIdle()
+        assertNull(viewModel.appRequest.value) // not the account page: it was asking about a change
     }
 
     @Test

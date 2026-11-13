@@ -1247,4 +1247,27 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - "show my notifications" opened Notifications, listing the batch 4 voice changes;
     - "open settings" opened Account & sync;
     - one server check per orb opening: no extra openings.
+- Batch 6, settings, sync and export:
+  - **Server:**
+    - The actions `set_theme` (`theme`), `set_reminders` (`lead`), `sync_now` and `export` (`projectId`, `format`, `notes`).
+    - The prompt gives their phrasings, and says an export of "this" is the open project.
+    - The fake interpreter knows "(switch to) dark/light mode/theme", "follow the phone", "remind me … before", "turn off reminders", "sync now" and "export this/<project> as a pdf/csv/spreadsheet/calendar (without notes)".
+    - 11 new tests; 387 passed, Pint clean.
+  - **App:**
+    - Domain actions for theme, reminders, sync and export, with their own export kinds. The assistant doesn't import the export feature.
+    - These are the app's to do, like leaving the screen: the single navigation request became an ordered queue (`AppRequestUi`), handed over once the assistant has said what it is doing. With a change to ask about, settings are done at once but leaving the screen isn't.
+    - The shell does them:
+      - theme and reminders through the account use cases (asking for the notification permission on Android 13+, as the account page does);
+      - sync through the app's `SyncViewModel`, so the screen shows it syncing;
+      - export through the existing export sheet, started with the spoken format and notes, which opens the share sheet.
+    - The plan had suggested a domain `AppControls` port. Requests from the screen were simpler and reuse the ViewModels that already show these.
+    - Spoken lines include "Dark theme on. Say "light theme" to switch back." and "Reminders 15 minutes before each task."
+  - **Tests:** handler (all four, 5 bad ones), API fields, 2 ViewModel tests (four requests in order, once said; with a change, the setting is done but leaving isn't).
+    - `tools/check.sh` PASS (432 unit tests).
+  - **Phone check**, with the fake interpreter:
+    - "light theme" switched the app to light at once, and "follow the phone" put it back (dark, System).
+    - "remind me fifteen minutes before" showed as "15 minutes before" on the account page, and "turn off reminders" put it back to Off.
+    - "sync now" synced: "3 changes not synced" became "All changes synced".
+    - "export this as a pdf" opened the share sheet with VoiceCheck.pdf (370 KB, a valid PDF). I cancelled it, so nothing was sent.
+    - Your appearance (System) and reminders (Off) are as they were.
 

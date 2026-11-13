@@ -373,11 +373,23 @@ it('goes back to the projects or to another project from a timeline', function (
     interpret('open the kitchen project', ['projects' => $projects], ['actions'])->assertOk()->assertJson(['actions' => [['type' => 'open_project', 'projectId' => 'p2']]]);
 });
 
+it('changes settings, syncs and exports by voice', function (string $words, array $action) {
+    interpret($words, ['projects' => listContext()['projects']], ['actions'])->assertOk()->assertJson(['result' => 'actions', 'actions' => [$action]]);
+})->with([
+    'dark theme' => ['switch to dark mode', ['type' => 'set_theme', 'theme' => 'dark']],
+    'the phone\'s theme' => ['follow the phone', ['type' => 'set_theme', 'theme' => 'system']],
+    'reminders' => ['remind me 15 minutes before', ['type' => 'set_reminders', 'lead' => '15_min']],
+    'no reminders' => ['turn off reminders', ['type' => 'set_reminders', 'lead' => 'off']],
+    'sync' => ['sync now', ['type' => 'sync_now']],
+    'export this' => ['export this as a pdf', ['type' => 'export', 'projectId' => 'p1', 'format' => 'pdf', 'notes' => true]],
+    'export another' => ['export kitchen as a spreadsheet without notes', ['type' => 'export', 'projectId' => 'p2', 'format' => 'csv', 'notes' => false]],
+]);
+
 it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
         ->and(ProposalSchema::jsonSchema()['properties']['result']['enum'])->toContain('actions')
-        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path', 'search', 'clear_search', 'open_task', 'open_project', 'go_to_projects', 'open_notifications', 'open_account'])
+        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path', 'search', 'clear_search', 'open_task', 'set_theme', 'set_reminders', 'sync_now', 'export', 'open_project', 'go_to_projects', 'open_notifications', 'open_account'])
         ->and(OpenAiInterpreter::instructions())->toContain('go_to_today')->toContain('show_task')->toContain('result "actions"');
 });
 
@@ -418,6 +430,10 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'open an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_task', 'taskId' => 't9']]]],
     'undo with something else' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change'], ['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
     'undo with a field' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
+    'an unknown theme' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'set_theme', 'theme' => 'sepia']]]],
+    'an unknown reminder time' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'set_reminders', 'lead' => '2_hours']]]],
+    'an export of an unknown project' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'export', 'projectId' => 'p9', 'format' => 'pdf', 'notes' => true]]]],
+    'an export as a word file' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'export', 'projectId' => 'p1', 'format' => 'docx', 'notes' => true]]]],
     'an unknown project' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_project', 'projectId' => 'p9']]]],
     'something after leaving the screen' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_account'], ['type' => 'go_to_today']]]],
     'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
