@@ -58,6 +58,12 @@
     <string name="notif_clash">Applied with a clash</string>
     <string name="notif_clash_overlap">“%1$s” overlaps “%2$s”</string>
     <string name="notif_clash_link">“%1$s” starts before “%2$s” ends</string>
+    <string name="notif_imported">Imported into %1$s</string>
+    <string name="notif_imported_any">Imported from an image</string>
+    <plurals name="notif_imported_body">
+        <item quantity="one">%d task added from an image</item>
+        <item quantity="other">%d tasks added from an image</item>
+    </plurals>
     <string name="notif_signed_in">Signed in</string>
     <string name="notif_signed_in_body">As %1$s on this phone</string>
     <string name="notif_session_ended">Session ended</string>

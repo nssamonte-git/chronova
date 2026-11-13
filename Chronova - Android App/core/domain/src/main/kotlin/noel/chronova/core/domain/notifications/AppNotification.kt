@@ -32,6 +32,9 @@ enum class NotificationKind(val category: NotificationCategory, val important: B
     /** The assistant applied a change the user accepted despite its clashes: "summary", "clashes". */
     ASSISTANT_CLASH(NotificationCategory.ASSISTANT),
 
+    /** Tasks read from an image of a chart were added (to a new project or the open one): "count". */
+    IMPORTED(NotificationCategory.ASSISTANT),
+
     /** "email". */
     SIGNED_IN(NotificationCategory.ACCOUNT),
 

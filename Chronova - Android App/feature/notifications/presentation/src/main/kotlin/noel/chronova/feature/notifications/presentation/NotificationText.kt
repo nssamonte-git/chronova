@@ -53,6 +53,10 @@ fun notificationText(notification: NotificationUi, resources: Resources): Notifi
                 args["second"].orEmpty(),
             ) + " · " + resources.getQuantityString(R.plurals.notif_assistant_body, count("count"), count("count"), tasks()),
         )
+        NotificationKind.IMPORTED -> NotificationText(
+            notification.projectName?.let { resources.getString(R.string.notif_imported, it) } ?: resources.getString(R.string.notif_imported_any),
+            resources.getQuantityString(R.plurals.notif_imported_body, count("count"), count("count")),
+        )
         NotificationKind.SIGNED_IN -> NotificationText(
             resources.getString(R.string.notif_signed_in),
             resources.getString(R.string.notif_signed_in_body, args["email"].orEmpty()),

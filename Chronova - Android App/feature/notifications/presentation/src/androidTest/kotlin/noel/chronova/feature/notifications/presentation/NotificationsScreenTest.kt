@@ -96,6 +96,7 @@ class NotificationsScreenTest {
                 NotificationKind.ASSISTANT_CLASH -> res.getString(R.string.notif_clash) to
                     res.getString(R.string.notif_clash_link, "Paint", "Build") + " · " +
                     res.getQuantityString(R.plurals.notif_assistant_body, 1, 1, "Paint")
+                NotificationKind.IMPORTED -> res.getString(R.string.notif_imported, "Office move") to res.getQuantityString(R.plurals.notif_imported_body, 9, 9)
                 NotificationKind.SIGNED_IN -> res.getString(R.string.notif_signed_in) to res.getString(R.string.notif_signed_in_body, "ana@example.com")
                 NotificationKind.SESSION_ENDED -> res.getString(R.string.notif_session_ended) to res.getString(CoreUiR.string.account_session_ended)
                 NotificationKind.PASSWORD_CHANGED -> res.getString(R.string.notif_password_changed) to res.getString(R.string.notif_password_changed_body)
@@ -112,6 +113,7 @@ class NotificationsScreenTest {
             NotificationKind.ASSISTANT_CLASH,
             mapOf("count" to "1", "tasks" to "Paint", "clash" to "link", "first" to "Paint", "second" to "Build"),
         )
+        add(NotificationKind.IMPORTED, mapOf("count" to "9"), "office", "Office move")
         add(NotificationKind.SIGNED_IN, mapOf("email" to "ana@example.com"))
         add(NotificationKind.SESSION_ENDED)
         add(NotificationKind.PASSWORD_CHANGED)

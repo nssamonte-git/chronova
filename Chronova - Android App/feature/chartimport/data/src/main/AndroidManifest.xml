@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- The camera app writes a photo for an import into the app's cache (cache/import), through
+             a content URI it is granted for that one capture. Its own class: the export's provider
+             already uses FileProvider's name. -->
+        <provider
+            android:name="noel.chronova.feature.chartimport.data.ChartImportFileProvider"
+            android:authorities="${applicationId}.imports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/import_paths" />
+        </provider>
+    </application>
+</manifest>

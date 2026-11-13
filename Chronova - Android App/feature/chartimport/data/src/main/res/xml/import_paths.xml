@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the import folder in the cache, where photos for imports are taken. -->
+<paths>
+    <cache-path name="import" path="import/" />
+</paths>

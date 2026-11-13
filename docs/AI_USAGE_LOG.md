@@ -1426,4 +1426,22 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the SAM box parser.
   - **Checks:** server 476 passed, Pint clean. App unchanged.
   - **My mistake:** one test compared `0.0` strictly after a JSON round trip, where it comes back as `0`.
+- Batch 3, the app's domain and data (`:feature:chartimport:{domain,data}`; "import" is a Kotlin keyword, so not `:feature:import`):
+  - **Domain (pure Kotlin):**
+    - `ImportedSchedule` (the server's answer);
+    - `ImportPreview` (rows on calendar days, which fit the open project, the default ticks and a new project's days);
+    - `PlanImport`: tasks from 00:00 of their first day to 24:00 of their last, milestones at 09:00, the next colours and row order, links only between ticked tasks, checked with `TaskRules`, `ProjectRules` and `DependencyRules`;
+    - `ApplyImport` (`createProjectWithSchedule` for a new project; `ApplyScheduleChanges` with Undo when adding);
+    - `UndoImport`;
+    - `ReadChart`, which needs a session and sends the zone, today and the open project.
+    - A new notification kind, `IMPORTED` ("Imported into Office move · 9 tasks added from an image"); adding to a project keeps Undo on the notifications page.
+  - **Data:**
+    - `OkHttpImportApi` (multipart; errors mapped to kinds; an answer it can't read counts as unavailable);
+    - `AndroidChartImages`: photos in `cache/import`, shared with the camera app through its own `ChartImportFileProvider`, since the export's provider already uses FileProvider's name. Each image is turned upright from EXIF, decoded at a power-of-two step and scaled to 2048 px, then re-encoded as JPEG, which drops the location. No new library: platform `ExifInterface`, min SDK 26.
+  - **Tests:** 7 domain tests on your chart (relative days from a chosen start, links to unticked rows dropped, calendar dates, a milestone at 09:00, adding to a 4-week project unticks weeks 5–7, refusals, apply / record / undo, reading needs a session); 3 API tests; 5 device tests on the phone (OK 5, test app uninstalled): a 4000×1000 photo tagged "rotate 90" with a GPS location comes out 512×2048 with neither.
+  - **Checks:** `tools/check.sh` PASS: 464 unit tests, 105 screenshots, the module graph with the new modules.
+  - **My mistakes:**
+    - The bounds-only decode returns null by design, and my `?: return null` treated that as "no image", failing 3 device tests. Fixed.
+    - The phone disconnected mid-run; you reconnected it.
+    - A multipart header I guessed at in a test.
 
