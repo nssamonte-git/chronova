@@ -68,7 +68,6 @@ import noel.chronova.core.designsystem.R as DesignR
 import noel.chronova.core.ui.R as CoreUiR
 
 /** Everything that happened (sync, assistant, account), with filters and sorting. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, onOpenProject: (String) -> Unit) {
     val shown by viewModel.shown.collectAsStateWithLifecycle()
@@ -78,7 +77,6 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, o
     val live by viewModel.liveProjectIds.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val resources = LocalResources.current
 
     // Android 13+: important notifications also reach the shade once allowed; asked once, here.
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -98,28 +96,59 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, o
         }
     }
 
+    NotificationsContent(
+        page = NotificationsPageUi(shown, filter, isEmpty, choices, live),
+        actions = remember(viewModel, onBack, onOpenProject) {
+            NotificationsActions(
+                onBack = onBack,
+                onOpenProject = onOpenProject,
+                onMarkRead = viewModel::markRead,
+                onUndo = viewModel::undo,
+                onMarkAllRead = viewModel::markAllRead,
+                onClear = viewModel::clear,
+                onSetCategory = viewModel::setCategory,
+                onToggleUnreadOnly = viewModel::toggleUnreadOnly,
+                onSetProject = viewModel::setProject,
+                onToggleOrder = viewModel::toggleOrder,
+            )
+        },
+        snackbar = snackbar,
+    )
+}
+
+/** The notifications page without its ViewModel: what it shows, and what each control does. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun NotificationsContent(
+    page: NotificationsPageUi,
+    actions: NotificationsActions,
+    snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    /** The time "5 minutes ago" is counted from; fixed in screenshots. */
+    now: () -> Long = System::currentTimeMillis,
+) {
+    val resources = LocalResources.current
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.notifications_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = actions.onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreUiR.string.back))
                     }
                 },
                 actions = {
                     var open by remember { mutableStateOf(false) }
-                    IconButton(onClick = { open = true }, enabled = !isEmpty) {
+                    IconButton(onClick = { open = true }, enabled = !page.isEmpty) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.notifications_more))
                     }
                     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.notifications_mark_all_read)) },
-                            onClick = { open = false; viewModel.markAllRead() },
+                            onClick = { open = false; actions.onMarkAllRead() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.notifications_clear)) },
-                            onClick = { open = false; viewModel.clear() },
+                            onClick = { open = false; actions.onClear() },
                         )
                     }
                 },
@@ -129,12 +158,12 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, o
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Filters(filter.category, filter.unreadOnly, filter.projectId, filter.newestFirst, choices, viewModel)
+            Filters(page.filter.category, page.filter.unreadOnly, page.filter.projectId, page.filter.newestFirst, page.choices, actions)
             HorizontalDivider()
-            if (shown.isEmpty()) {
+            if (page.shown.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        stringResource(if (isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered),
+                        stringResource(if (page.isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -142,16 +171,17 @@ fun NotificationsScreen(viewModel: NotificationsViewModel, onBack: () -> Unit, o
                 }
             } else {
                 LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-                    items(shown, key = { it.id }) { notification ->
+                    items(page.shown, key = { it.id }) { notification ->
                         Item(
                             notification,
                             text = notificationText(notification, resources),
-                            canOpen = notification.projectId != null && notification.projectId in live,
-                            onClick = { viewModel.markRead(notification.id) },
-                            onUndo = { viewModel.undo(notification) },
+                            canOpen = notification.projectId != null && notification.projectId in page.liveProjectIds,
+                            now = now(),
+                            onClick = { actions.onMarkRead(notification.id) },
+                            onUndo = { actions.onUndo(notification) },
                             onOpen = {
-                                viewModel.markRead(notification.id)
-                                notification.projectId?.let(onOpenProject)
+                                actions.onMarkRead(notification.id)
+                                notification.projectId?.let(actions.onOpenProject)
                             },
                         )
                         HorizontalDivider()
@@ -169,7 +199,7 @@ private fun Filters(
     projectId: String?,
     newestFirst: Boolean,
     choices: List<ProjectChoice>,
-    viewModel: NotificationsViewModel,
+    actions: NotificationsActions,
 ) {
     Row(
         Modifier
@@ -186,9 +216,9 @@ private fun Filters(
             NotificationCategory.ACCOUNT to R.string.notifications_account,
         )
         categories.forEach { (value, label) ->
-            FilterChip(selected = category == value, onClick = { viewModel.setCategory(value) }, label = { Text(stringResource(label)) })
+            FilterChip(selected = category == value, onClick = { actions.onSetCategory(value) }, label = { Text(stringResource(label)) })
         }
-        FilterChip(selected = unreadOnly, onClick = viewModel::toggleUnreadOnly, label = { Text(stringResource(R.string.notifications_unread_only)) })
+        FilterChip(selected = unreadOnly, onClick = actions.onToggleUnreadOnly, label = { Text(stringResource(R.string.notifications_unread_only)) })
         Box {
             var open by remember { mutableStateOf(false) }
             FilterChip(
@@ -201,16 +231,16 @@ private fun Filters(
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.notifications_all_projects)) },
-                    onClick = { open = false; viewModel.setProject(null) },
+                    onClick = { open = false; actions.onSetProject(null) },
                 )
                 choices.forEach { choice ->
-                    DropdownMenuItem(text = { Text(choice.name) }, onClick = { open = false; viewModel.setProject(choice.id) })
+                    DropdownMenuItem(text = { Text(choice.name) }, onClick = { open = false; actions.onSetProject(choice.id) })
                 }
             }
         }
         FilterChip(
             selected = !newestFirst,
-            onClick = viewModel::toggleOrder,
+            onClick = actions.onToggleOrder,
             label = { Text(stringResource(if (newestFirst) R.string.notifications_newest_first else R.string.notifications_oldest_first)) },
         )
     }
@@ -221,6 +251,7 @@ private fun Item(
     notification: NotificationUi,
     text: NotificationText,
     canOpen: Boolean,
+    now: Long,
     onClick: () -> Unit,
     onUndo: () -> Unit,
     onOpen: () -> Unit,
@@ -251,7 +282,6 @@ private fun Item(
                 }
             }
             Text(text.body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val now = System.currentTimeMillis()
             val time = if (now - notification.createdAt < DateUtils.MINUTE_IN_MILLIS) {
                 stringResource(R.string.notifications_just_now)
             } else {

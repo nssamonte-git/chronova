@@ -1,5 +1,8 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.domain.sync.SyncFailure
+import noel.chronova.core.ui.sync.SyncPhase
+
 /** Where sign-in stands, as the account screen shows it. */
 sealed interface AccountAuthUi {
     /** This build has no sync backend; the app is offline-only. */
@@ -56,3 +59,33 @@ sealed interface AccountDialog {
     data class SignOut(val unsynced: Int) : AccountDialog
     data object DeleteAccount : AccountDialog
 }
+
+/** Everything the account screen shows. */
+data class AccountPageUi(
+    val auth: AccountAuthUi = AccountAuthUi.SignedOut,
+    val form: AccountForm = AccountForm(),
+    val dialog: AccountDialog? = null,
+    /** The server ended the last session; the sign-in page says so. */
+    val sessionEnded: Boolean = false,
+    val pending: Int = 0,
+    val syncPhase: SyncPhase = SyncPhase.Idle,
+    /** Why the last account deletion failed, if it did. */
+    val deleteFailure: SyncFailure? = null,
+    val lastSyncedAt: Long? = null,
+)
+
+/** What each control on the account screen does. */
+data class AccountActions(
+    val onEmailChange: (String) -> Unit = {},
+    val onCodeChange: (String) -> Unit = {},
+    val onPasswordChange: (String) -> Unit = {},
+    val onRememberChange: (Boolean) -> Unit = {},
+    val onSubmit: () -> Unit = {},
+    val onSetMode: (AccountMode) -> Unit = {},
+    val onResendCode: () -> Unit = {},
+    val onSyncNow: () -> Unit = {},
+    val onRequestSignOut: () -> Unit = {},
+    val onRequestDeleteAccount: () -> Unit = {},
+    val onConfirmDialog: () -> Unit = {},
+    val onDismissDialog: () -> Unit = {},
+)

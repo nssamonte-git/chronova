@@ -944,3 +944,16 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - a zsh loop expanded `$m:u` as an uppercase modifier and built wrong task names; fixed with `${m}`;
     - the sync previews first failed to compile without the design system.
   - **Checks:** every screenshot suite passed twice in a row with `--rerun-tasks`; 332 unit tests, lint 0 errors, module graph and UI-model checks OK.
+- Screenshot tests, batches C and D:
+  - **Splits:** `NotificationsScreen` and `AccountScreen` are now thin wrappers over stateless `NotificationsContent` and `AccountContent`. Page state (`NotificationsPageUi`, `AccountPageUi`) and callbacks (`NotificationsActions`, `AccountActions`) live in the features' UI model files. Each content composable takes a `now` clock (real time by default) for its relative times, so screenshots can fix it. The permission request, snackbar handling and ViewModel wiring stay in the wrappers.
+  - **New previews:** notifications (a mixed list with Undo and Open project, unread only, empty) and account (sign-in page with the logo, create account refused, confirm code, signed in with a failed sync, sign-out dialog). That's 16 more images; checked by eye.
+  - **Totals:** 46 reference images across 8 modules (23 previews × phone and 1.5× font).
+  - **Docs:** HANDOFF, `Learn/04-validation.md` and DECISIONS cover how to run, update and read the screenshot tests (local files).
+  - **Checks:**
+    - the notifications (8) and account (10) on-device screen tests passed unchanged after the split;
+    - full validation now includes every screenshot suite: 332 unit tests, lint 0 errors, module graph and UI-model checks OK, all screenshot suites passing;
+    - a planted 4 dp padding change in the sync line failed the `:core:ui` suite (2 of 4 mismatched), and with the file restored it passed again.
+  - **AI mistakes:**
+    - the first edit of the account wrapper also deleted the line it had just added (`sessionEnded`); the compiler caught it;
+    - one validation run returned 127 because its script was edited while running; rerun clean;
+    - a too-broad grep hid the first planted run's result ("build-logic" matched "BUILD"); rerun with the exit code.

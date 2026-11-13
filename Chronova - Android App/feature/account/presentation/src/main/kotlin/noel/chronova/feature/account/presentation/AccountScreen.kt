@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +73,43 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
     val dialog by viewModel.dialog.collectAsStateWithLifecycle()
-    dialog?.let { AccountConfirmDialog(it, onConfirm = viewModel::confirmDialog, onDismiss = viewModel::dismissDialog) }
+    val sessionEnded by viewModel.sessionEnded.collectAsStateWithLifecycle()
+    val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val phase by viewModel.syncPhase.collectAsStateWithLifecycle()
+    val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
+    AccountContent(
+        page = AccountPageUi(authState, form, dialog, sessionEnded, pending, phase, deleteFailure, viewModel.lastSyncedAt()),
+        actions = remember(viewModel) {
+            AccountActions(
+                onEmailChange = viewModel::onEmailChange,
+                onCodeChange = viewModel::onCodeChange,
+                onPasswordChange = viewModel::onPasswordChange,
+                onRememberChange = viewModel::onRememberChange,
+                onSubmit = viewModel::submit,
+                onSetMode = viewModel::setMode,
+                onResendCode = viewModel::resendCode,
+                onSyncNow = { viewModel.syncNow() },
+                onRequestSignOut = viewModel::requestSignOut,
+                onRequestDeleteAccount = viewModel::requestDeleteAccount,
+                onConfirmDialog = viewModel::confirmDialog,
+                onDismissDialog = viewModel::dismissDialog,
+            )
+        },
+        onBack = onBack,
+    )
+}
+
+/** The account screen without its ViewModel. [onBack] null: the sign-in page that opens the app. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AccountContent(
+    page: AccountPageUi,
+    actions: AccountActions,
+    onBack: (() -> Unit)?,
+    /** The time "last synced 5 minutes ago" is counted from; fixed in screenshots. */
+    now: () -> Long = System::currentTimeMillis,
+) {
+    page.dialog?.let { AccountConfirmDialog(it, onConfirm = actions.onConfirmDialog, onDismiss = actions.onDismissDialog) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -113,13 +150,13 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                             .align(Alignment.CenterHorizontally),
                     )
                 }
-                when (val state = authState) {
+                when (val state = page.auth) {
                     AccountAuthUi.NotConfigured -> Explanation(
                         stringResource(if (onBack == null) R.string.account_no_server else R.string.account_not_configured),
                     )
                     AccountAuthUi.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-                    is AccountAuthUi.SignedIn -> SignedIn(state.email, viewModel)
-                    AccountAuthUi.SignedOut -> SignInForm(form, viewModel, required = onBack == null)
+                    is AccountAuthUi.SignedIn -> SignedIn(state.email, page, actions, now)
+                    AccountAuthUi.SignedOut -> SignInForm(page.form, page.sessionEnded, actions, required = onBack == null)
                 }
             }
         }
@@ -132,29 +169,27 @@ private fun Explanation(text: String) {
 }
 
 @Composable
-private fun SignedIn(email: String, viewModel: AccountViewModel) {
-    val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
-    val phase by viewModel.syncPhase.collectAsStateWithLifecycle()
-    val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
+private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions, now: () -> Long) {
+    val phase = page.syncPhase
     Text(stringResource(R.string.account_signed_in_as, email), style = MaterialTheme.typography.titleMedium)
     Explanation(stringResource(R.string.account_signed_in_body))
 
-    val ui = SyncUi(configured = true, signedIn = true, pending = pending, phase = phase)
+    val ui = SyncUi(configured = true, signedIn = true, pending = page.pending, phase = phase)
     Text(
-        syncStatusText(ui) ?: lastSyncedText(viewModel.lastSyncedAt()),
+        syncStatusText(ui) ?: lastSyncedText(page.lastSyncedAt, now()),
         style = MaterialTheme.typography.bodyMedium,
         color = if (phase is SyncPhase.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Button(onClick = viewModel::syncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
+    Button(onClick = actions.onSyncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(CoreUiR.string.sync_now))
     }
-    OutlinedButton(onClick = viewModel::requestSignOut, modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
     }
-    TextButton(onClick = viewModel::requestDeleteAccount, modifier = Modifier.fillMaxWidth()) {
+    TextButton(onClick = actions.onRequestDeleteAccount, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
     }
-    deleteFailure?.let {
+    page.deleteFailure?.let {
         Text(
             stringResource(R.string.account_delete_failed, syncFailureText(it)),
             color = MaterialTheme.colorScheme.error,
@@ -164,13 +199,13 @@ private fun SignedIn(email: String, viewModel: AccountViewModel) {
 }
 
 @Composable
-private fun lastSyncedText(at: Long?): String =
+private fun lastSyncedText(at: Long?, now: Long): String =
     if (at == null) {
         stringResource(R.string.sync_never)
     } else {
         stringResource(
             R.string.sync_last,
-            DateUtils.getRelativeTimeSpanString(at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString(),
+            DateUtils.getRelativeTimeSpanString(at, now, DateUtils.MINUTE_IN_MILLIS).toString(),
         )
     }
 
@@ -202,7 +237,7 @@ private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, o
 }
 
 @Composable
-private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required: Boolean) {
+private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: AccountActions, required: Boolean) {
     val title = when (form.mode) {
         AccountMode.SIGN_IN -> R.string.account_sign_in
         AccountMode.SIGN_UP -> R.string.account_create
@@ -211,7 +246,6 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
         AccountMode.RESET -> R.string.account_reset_title
     }
     Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
-    val sessionEnded by viewModel.sessionEnded.collectAsStateWithLifecycle()
     if (required && sessionEnded && form.mode == AccountMode.SIGN_IN) {
         Text(stringResource(CoreUiR.string.account_session_ended), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
     }
@@ -231,7 +265,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
 
     OutlinedTextField(
         value = form.email,
-        onValueChange = viewModel::onEmailChange,
+        onValueChange = actions.onEmailChange,
         label = { Text(stringResource(R.string.account_email)) },
         singleLine = true,
         enabled = !needsCode && !form.busy,
@@ -244,7 +278,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
     if (needsCode) {
         OutlinedTextField(
             value = form.code,
-            onValueChange = viewModel::onCodeChange,
+            onValueChange = actions.onCodeChange,
             label = { Text(stringResource(R.string.account_code)) },
             singleLine = true,
             enabled = !form.busy,
@@ -253,7 +287,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
                 keyboardType = KeyboardType.NumberPassword,
                 imeAction = if (needsPassword) ImeAction.Next else ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { viewModel.submit() }),
+            keyboardActions = KeyboardActions(onDone = { actions.onSubmit() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentType = ContentType.SmsOtpCode },
@@ -264,7 +298,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
         var showPassword by rememberSaveable { mutableStateOf(false) }
         OutlinedTextField(
             value = form.password,
-            onValueChange = viewModel::onPasswordChange,
+            onValueChange = actions.onPasswordChange,
             label = { Text(stringResource(if (form.mode == AccountMode.RESET) R.string.account_new_password else R.string.account_password)) },
             supportingText = if (choosingPassword) {
                 { Text(pluralStringResource(R.plurals.account_password_rules, AccountViewModel.MIN_PASSWORD, AccountViewModel.MIN_PASSWORD)) }
@@ -284,7 +318,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
                 }
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { viewModel.submit() }),
+            keyboardActions = KeyboardActions(onDone = { actions.onSubmit() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
@@ -298,7 +332,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .toggleable(value = form.remember, enabled = !form.busy, role = Role.Checkbox, onValueChange = viewModel::onRememberChange),
+                .toggleable(value = form.remember, enabled = !form.busy, role = Role.Checkbox, onValueChange = actions.onRememberChange),
         ) {
             Checkbox(checked = form.remember, onCheckedChange = null, enabled = !form.busy)
             Spacer(Modifier.width(8.dp))
@@ -316,7 +350,7 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
         )
     }
 
-    Button(onClick = viewModel::submit, enabled = !form.busy, modifier = Modifier.fillMaxWidth()) {
+    Button(onClick = actions.onSubmit, enabled = !form.busy, modifier = Modifier.fillMaxWidth()) {
         if (form.busy) {
             CircularProgressIndicator(Modifier.padding(2.dp).widthIn(max = 20.dp), strokeWidth = 2.dp)
         } else {
@@ -325,20 +359,20 @@ private fun SignInForm(form: AccountForm, viewModel: AccountViewModel, required:
     }
     when (form.mode) {
         AccountMode.SIGN_IN -> {
-            TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_UP) }, enabled = !form.busy) {
+            TextButton(onClick = { actions.onSetMode(AccountMode.SIGN_UP) }, enabled = !form.busy) {
                 Text(stringResource(R.string.account_no_account))
             }
-            TextButton(onClick = { viewModel.setMode(AccountMode.FORGOT) }, enabled = !form.busy) {
+            TextButton(onClick = { actions.onSetMode(AccountMode.FORGOT) }, enabled = !form.busy) {
                 Text(stringResource(R.string.account_forgot))
             }
         }
-        AccountMode.FORGOT, AccountMode.RESET -> TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
+        AccountMode.FORGOT, AccountMode.RESET -> TextButton(onClick = { actions.onSetMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
             Text(stringResource(R.string.account_back_to_sign_in))
         }
-        AccountMode.SIGN_UP -> TextButton(onClick = { viewModel.setMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
+        AccountMode.SIGN_UP -> TextButton(onClick = { actions.onSetMode(AccountMode.SIGN_IN) }, enabled = !form.busy) {
             Text(stringResource(R.string.account_have_account))
         }
-        AccountMode.CONFIRM -> TextButton(onClick = viewModel::resendCode, enabled = !form.busy) {
+        AccountMode.CONFIRM -> TextButton(onClick = actions.onResendCode, enabled = !form.busy) {
             Text(stringResource(R.string.account_resend))
         }
     }
