@@ -17,6 +17,9 @@ class Task extends SyncRecord
 
     protected function casts(): array
     {
-        return parent::casts() + ['start_millis' => 'integer', 'end_millis' => 'integer', 'sort_order' => 'integer'];
+        return parent::casts() + [
+            'start_millis' => 'integer', 'end_millis' => 'integer', 'sort_order' => 'integer',
+            'progress' => 'integer', 'milestone' => 'boolean',
+        ];
     }
 }

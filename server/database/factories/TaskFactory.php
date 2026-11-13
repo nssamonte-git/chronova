@@ -23,6 +23,9 @@ class TaskFactory extends Factory
             'end_millis' => 1_772_449_200_000,
             'color' => 'BLUE',
             'sort_order' => 0,
+            'progress' => 0,
+            'notes' => '',
+            'milestone' => false,
             'client_updated_at' => 1_772_400_000_000,
             'seq' => 1,
         ];

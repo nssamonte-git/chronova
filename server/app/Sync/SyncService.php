@@ -27,6 +27,12 @@ class SyncService
     private const MODELS = ['project' => Project::class, 'task' => Task::class, 'dependency' => Dependency::class];
 
     /**
+     * Columns for fields added after the first release: a push that leaves the field out
+     * (an older app) keeps the stored value instead of clearing it; a tombstone still clears it.
+     */
+    private const KEEP_WHEN_ABSENT = ['task' => ['progress', 'notes']];
+
+    /**
      * @param  array{cursor: int, changes: list<array>}  $request  as returned by SyncRequestParser
      * @return array{response: array, stale: int}
      */
@@ -89,13 +95,17 @@ class SyncService
         ];
         $columns = array_keys($row);
         $updates = array_diff($columns, ['user_id', 'client_id', 'created_at']);
+        $keep = self::KEEP_WHEN_ABSENT[$change['entity']] ?? [];
+        $set = fn ($c) => in_array($c, $keep, true)
+            ? "$c = case when excluded.deleted then null else coalesce(excluded.$c, $table.$c) end"
+            : "$c = excluded.$c";
         $sql = sprintf(
             'insert into %1$s (%2$s) values (%3$s) on conflict (user_id, client_id) do update set %4$s '.
             'where %1$s.client_updated_at < excluded.client_updated_at returning id',
             $table,
             implode(', ', $columns),
             implode(', ', array_fill(0, count($columns), '?')),
-            implode(', ', array_map(fn ($c) => "$c = excluded.$c", $updates)),
+            implode(', ', array_map($set, $updates)),
         );
 
         return DB::select($sql, array_values($row)) !== [];
@@ -117,6 +127,9 @@ class SyncService
                 'end_millis' => $data['endMillis'] ?? null,
                 'color' => $data['color'] ?? null,
                 'sort_order' => $data['sortOrder'] ?? null,
+                'progress' => $data['progress'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'milestone' => $data['milestone'] ?? null,
             ],
             'dependency' => [
                 'project_client_id' => $data['projectId'] ?? null,
@@ -176,6 +189,9 @@ class SyncService
                 'endMillis' => $record->end_millis,
                 'color' => $record->color,
                 'sortOrder' => $record->sort_order,
+                'progress' => $record->progress ?? 0,
+                'notes' => $record->notes ?? '',
+                'milestone' => $record->milestone ?? false,
             ],
             $record instanceof Dependency => [
                 'projectId' => $record->project_client_id,

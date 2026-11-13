@@ -27,6 +27,7 @@ POST /v1/sync   Authorization: Bearer <access token>
 6. **Tombstones:** deletes are `deleted: true` with no `data`; they replace the stored record under rule 1 and are pulled like any change.
 7. **Isolation:** a user only ever reads and writes their own records. Record ids are only unique per user (e.g. every device seeds `sample-project`).
 8. **At most 500 changes per request.** Unknown fields are dropped, never stored.
+9. **Fields added later are optional on push.** A task pushed without `progress` or `notes` (an app that predates them) keeps the stored values instead of clearing them; without `milestone` it is not a milestone (such an app can't make one). A tombstone still clears everything. Pulls always carry every field, with the defaults (`0`, `""`, `false`) for records stored before the field existed.
 
 ## Field rules
 
@@ -34,11 +35,11 @@ POST /v1/sync   Authorization: Bearer <access token>
 |---|---|
 | all | `id`: 1–64 characters `[A-Za-z0-9_-]`; `updatedAt`: integer ≥ 0; `deleted`: boolean |
 | project | `name` 1–200 chars (not blank); `startDate`, `endDate` `YYYY-MM-DD`, end ≥ start |
-| task | `projectId` (id); `title` 1–200 chars; `startMillis`, `endMillis` integers ≥ 0, end > start; `color` `[A-Z]{1,20}`; `sortOrder` integer ≥ 0 |
+| task | `projectId` (id); `title` 1–200 chars; `startMillis`, `endMillis` integers ≥ 0; `color` `[A-Z]{1,20}`; `sortOrder` integer ≥ 0; `milestone` boolean (optional, default false): a milestone has end = start, any other task end > start; `progress` integer 0–100 (optional; a milestone must state it, as 0 or 100); `notes` string of at most 2,000 characters, may be empty (optional) |
 | dependency | `projectId`, `predecessorId`, `successorId` (ids); predecessor ≠ successor |
 
 ## Conformance scenarios
 
 Every server implementation is tested against these (the Jest suite at tag `serverless-backend-v1`, `backend/test/sync-core.test.ts`, is the reference):
 
-stores pushed changes and returns them with a cursor · pulls only what changed after the cursor · last write wins, ties keep the server copy · returns the server copy of a stale push even when behind the cursor · clamps future edit times · stores tombstones without data · keeps users apart · pages large pulls · serialises concurrent syncs · rejects invalid requests without storing anything · accepts an empty pull · rejects malformed input (cursor, changes type, too many, entity, id, updatedAt, dates, times, self-dependency) · drops unknown fields.
+stores pushed changes and returns them with a cursor · pulls only what changed after the cursor · last write wins, ties keep the server copy · returns the server copy of a stale push even when behind the cursor · clamps future edit times · stores tombstones without data · keeps users apart · pages large pulls · serialises concurrent syncs · rejects invalid requests without storing anything · accepts an empty pull · rejects malformed input (cursor, changes type, too many, entity, id, updatedAt, dates, times, progress, notes, milestone, self-dependency) · drops unknown fields · stores progress, notes and milestones · keeps progress and notes an older app leaves out · pulls older records with the defaults · clears them with a tombstone.

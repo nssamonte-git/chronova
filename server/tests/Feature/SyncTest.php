@@ -25,10 +25,27 @@ function project(string $id, int $updatedAt, string $name = 'Launch'): array
         'data' => ['name' => $name, 'startDate' => '2026-03-02', 'endDate' => '2026-03-04']];
 }
 
-function task(string $id, int $updatedAt, string $title = 'Design'): array
+function task(string $id, int $updatedAt, string $title = 'Design', array $extra = []): array
 {
     return ['entity' => 'task', 'id' => $id, 'deleted' => false, 'updatedAt' => $updatedAt,
-        'data' => ['projectId' => 'p1', 'title' => $title, 'startMillis' => 1000, 'endMillis' => 2000, 'color' => 'BLUE', 'sortOrder' => 0]];
+        'data' => ['projectId' => 'p1', 'title' => $title, 'startMillis' => 1000, 'endMillis' => 2000, 'color' => 'BLUE', 'sortOrder' => 0,
+            'progress' => 0, 'notes' => '', 'milestone' => false, ...$extra]];
+}
+
+/** A task as an app from before progress, notes and milestones sends it. */
+function oldTask(string $id, int $updatedAt, string $title = 'Design'): array
+{
+    $task = task($id, $updatedAt, $title);
+    unset($task['data']['progress'], $task['data']['notes'], $task['data']['milestone']);
+
+    return $task;
+}
+
+/** A task change with these data fields (for rejection cases). */
+function taskWith(array $data): array
+{
+    return ['changes' => [['entity' => 'task', 'id' => 't', 'deleted' => false, 'updatedAt' => 1,
+        'data' => [...task('t', 1)['data'], ...$data]]]];
 }
 
 /** Syncs as $user and returns the decoded 200 response. */
@@ -155,11 +172,53 @@ it('rejects malformed input', function (array $body, string $error) {
         'data' => ['name' => 'A', 'startDate' => '2026-03-04', 'endDate' => '2026-03-02']]]], 'changes[0]: invalid endDate'],
     'times' => [['changes' => [['entity' => 'task', 'id' => 't', 'deleted' => false, 'updatedAt' => 1,
         'data' => ['projectId' => 'p', 'title' => 'T', 'startMillis' => 2000, 'endMillis' => 1000, 'color' => 'BLUE', 'sortOrder' => 0]]]], 'changes[0]: invalid times'],
+    'progress range' => [taskWith(['progress' => 101]), 'changes[0]: invalid progress'],
+    'progress type' => [taskWith(['progress' => '50']), 'changes[0]: invalid progress'],
+    'notes too long' => [taskWith(['notes' => str_repeat('a', 2001)]), 'changes[0]: invalid notes'],
+    'notes type' => [taskWith(['notes' => null]), 'changes[0]: invalid notes'],
+    'milestone type' => [taskWith(['milestone' => 1]), 'changes[0]: invalid milestone'],
+    'milestone with a length' => [taskWith(['milestone' => true]), 'changes[0]: invalid times'],
+    'zero length, not a milestone' => [taskWith(['endMillis' => 1000]), 'changes[0]: invalid times'],
+    'milestone half done' => [taskWith(['milestone' => true, 'endMillis' => 1000, 'progress' => 50]), 'changes[0]: invalid progress'],
+    'milestone without progress' => [(function () {
+        $body = taskWith(['milestone' => true, 'endMillis' => 1000]);
+        unset($body['changes'][0]['data']['progress']);
+
+        return $body;
+    })(), 'changes[0]: invalid progress'],
     'blank name' => [['changes' => [['entity' => 'project', 'id' => 'p', 'deleted' => false, 'updatedAt' => 1,
         'data' => ['name' => '   ', 'startDate' => '2026-03-02', 'endDate' => '2026-03-02']]]], 'changes[0]: invalid name'],
     'self link' => [['changes' => [['entity' => 'dependency', 'id' => 'd', 'deleted' => false, 'updatedAt' => 1,
         'data' => ['projectId' => 'p', 'predecessorId' => 'a', 'successorId' => 'a']]]], 'changes[0]: a task cannot depend on itself'],
 ]);
+
+it('stores progress, notes and milestones', function () {
+    $milestone = task('m1', NOW - 5, 'Launch', ['endMillis' => 1000, 'milestone' => true, 'progress' => 100]);
+    $body = syncAs($this->alice, ['changes' => [task('t1', NOW - 5, 'Build', ['progress' => 40, 'notes' => "Line 1\nLine 2"]), $milestone]]);
+
+    expect($body['changes'][0])->toBe(task('t1', NOW - 5, 'Build', ['progress' => 40, 'notes' => "Line 1\nLine 2"]))
+        ->and($body['changes'][1])->toBe($milestone);
+});
+
+it('keeps progress and notes when an older app leaves them out', function () {
+    syncAs($this->alice, ['changes' => [task('t1', NOW - 10, 'Build', ['progress' => 60, 'notes' => 'Keep me'])]]);
+    $body = syncAs($this->alice, ['changes' => [oldTask('t1', NOW - 5, 'Renamed')]]);
+
+    expect($body['results'][0]['status'])->toBe('applied')
+        ->and($body['changes'][0])->toBe(task('t1', NOW - 5, 'Renamed', ['progress' => 60, 'notes' => 'Keep me']));
+});
+
+it('pulls tasks stored without the newer fields with their defaults', function () {
+    expect(syncAs($this->alice, ['changes' => [oldTask('t1', NOW - 5)]])['changes'][0])->toBe(task('t1', NOW - 5));
+});
+
+it('clears progress and notes with a tombstone', function () {
+    syncAs($this->alice, ['changes' => [task('t1', NOW - 10, 'Build', ['progress' => 60, 'notes' => 'Private'])]]);
+    syncAs($this->alice, ['changes' => [['entity' => 'task', 'id' => 't1', 'deleted' => true, 'updatedAt' => NOW - 5]]]);
+
+    $row = Task::where('client_id', 't1')->sole();
+    expect($row->progress)->toBeNull()->and($row->notes)->toBeNull()->and($row->milestone)->toBeNull();
+});
 
 it('accepts an empty pull', function () {
     expect(syncAs($this->alice, []))->toBe(['results' => [], 'changes' => [], 'cursor' => '0', 'hasMore' => false]);

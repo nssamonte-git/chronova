@@ -15,6 +15,8 @@ class SyncRequestParser
 
     private const MAX_TEXT = 200;
 
+    public const MAX_NOTES = 2000;
+
     private const ID = '/^[A-Za-z0-9_-]{1,64}$/';
 
     private const DATE = '/^\d{4}-\d{2}-\d{2}$/';
@@ -116,8 +118,27 @@ class SyncRequestParser
         if (! $this->isText($data['title'])) {
             return 'invalid title';
         }
-        if (! $this->isMillis($data['startMillis']) || ! $this->isMillis($data['endMillis']) || $data['endMillis'] <= $data['startMillis']) {
+        // Added later, so optional: an app that predates them leaves them out
+        // (progress and notes then keep the stored value; see SyncService).
+        if (array_key_exists('milestone', $data) && ! is_bool($data['milestone'])) {
+            return 'invalid milestone';
+        }
+        $milestone = $data['milestone'] ?? false;
+        $start = $data['startMillis'];
+        $end = $data['endMillis'];
+        if (! $this->isMillis($start) || ! $this->isMillis($end) || ($milestone ? $end !== $start : $end <= $start)) {
             return 'invalid times';
+        }
+        if (array_key_exists('progress', $data)) {
+            $progress = $data['progress'];
+            if (! is_int($progress) || $progress < 0 || $progress > 100 || ($milestone && $progress !== 0 && $progress !== 100)) {
+                return 'invalid progress';
+            }
+        } elseif ($milestone) {
+            return 'invalid progress'; // a milestone's progress (0 or 100) must be stated
+        }
+        if (array_key_exists('notes', $data) && (! is_string($data['notes']) || mb_strlen($data['notes']) > self::MAX_NOTES)) {
+            return 'invalid notes';
         }
         if (! is_string($data['color']) || ! preg_match('/^[A-Z]{1,20}$/', $data['color'])) {
             return 'invalid color';
@@ -129,7 +150,8 @@ class SyncRequestParser
         return [
             'projectId' => $data['projectId'], 'title' => $data['title'], 'startMillis' => $data['startMillis'],
             'endMillis' => $data['endMillis'], 'color' => $data['color'], 'sortOrder' => $data['sortOrder'],
-        ];
+            'milestone' => $milestone,
+        ] + array_intersect_key($data, ['progress' => true, 'notes' => true]);
     }
 
     private function dependency(array $data): array|string
