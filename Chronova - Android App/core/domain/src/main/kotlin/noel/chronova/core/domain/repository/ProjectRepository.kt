@@ -25,6 +25,12 @@ interface ProjectRepository : ProjectQueries {
 
     suspend fun updateProject(project: Project)
 
+    /**
+     * Creates [project] with its [tasks] and [links] in one transaction (all or nothing),
+     * every row marked for sync. Ids are the caller's; used to copy a project.
+     */
+    suspend fun createProjectWithSchedule(project: Project, tasks: List<SchedulerTask>, links: List<TaskDependency>)
+
     /** Deletes the project and its tasks (as tombstones until synced). */
     suspend fun deleteProject(projectId: String)
 

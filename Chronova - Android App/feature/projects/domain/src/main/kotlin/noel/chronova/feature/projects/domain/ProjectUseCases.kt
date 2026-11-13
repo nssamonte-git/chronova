@@ -41,4 +41,5 @@ class DeleteProject(private val repository: ProjectRepository) {
 class ProjectUseCases(
     val save: SaveProject,
     val delete: DeleteProject,
+    val copy: CopyProject,
 )

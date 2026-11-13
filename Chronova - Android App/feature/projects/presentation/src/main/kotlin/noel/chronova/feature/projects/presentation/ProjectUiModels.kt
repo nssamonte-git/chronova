@@ -21,4 +21,13 @@ sealed interface ProjectProblemUi {
 
     /** Shrinking the range would leave [count] tasks outside it. */
     data class ExcludesTasks(val count: Int) : ProjectProblemUi
+
+    /** The project being copied was deleted meanwhile (e.g. by a sync). */
+    data object SourceGone : ProjectProblemUi
+}
+
+/** A project a new one can start from: its tasks and links are copied, keeping its length. */
+data class ProjectSourceUi(val id: String, val name: String, val startDate: LocalDate, val endDate: LocalDate) {
+    /** Days after its first day (0 for a one-day project). */
+    val extraDays: Long get() = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate)
 }

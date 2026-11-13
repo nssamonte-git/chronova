@@ -41,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -74,6 +75,8 @@ fun ProjectListScreen(
     val pendingDelete by viewModel.pendingDelete.collectAsStateWithLifecycle()
     val openProject by viewModel.openProject.collectAsStateWithLifecycle()
 
+    val copyName = stringResource(R.string.project_copy_name) // "Copy of %1$s", filled per project
+
     // A project was just created: go straight into it.
     LaunchedEffect(openProject) {
         openProject?.let { id ->
@@ -87,6 +90,7 @@ fun ProjectListScreen(
         onOpenProject = onOpenProject,
         onCreate = viewModel::startCreate,
         onEdit = viewModel::startEdit,
+        onDuplicate = { project -> viewModel.startDuplicate(project, copyName.format(project.name)) },
         onDelete = viewModel::requestDelete,
         onOpenAccount = onOpenAccount,
         syncUi = syncUi,
@@ -102,6 +106,7 @@ fun ProjectListScreen(
             onRangeChange = viewModel::onRangeChange,
             onSave = viewModel::saveEditor,
             onDismiss = viewModel::dismissEditor,
+            onStartFrom = viewModel::onStartFrom,
         )
     }
     pendingDelete?.let { target ->
@@ -134,6 +139,7 @@ internal fun ProjectListContent(
     onOpenProject: (String) -> Unit,
     onCreate: () -> Unit,
     onEdit: (ProjectRowUi) -> Unit,
+    onDuplicate: (ProjectRowUi) -> Unit,
     onDelete: (ProjectRowUi) -> Unit,
     onOpenAccount: () -> Unit,
     syncUi: SyncUi,
@@ -211,6 +217,7 @@ internal fun ProjectListContent(
                                         summary = summary,
                                         onClick = { onOpenProject(summary.id) },
                                         onEdit = { onEdit(summary) },
+                                        onDuplicate = { onDuplicate(summary) },
                                         onDelete = { onDelete(summary) },
                                     )
                                 }
@@ -223,7 +230,7 @@ internal fun ProjectListContent(
 }
 
 @Composable
-private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -232,7 +239,7 @@ private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -
     ) {
         Row(verticalAlignment = Alignment.Top) {
             ProjectCardText(summary, Modifier.weight(1f))
-            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDelete = onDelete)
+            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onDelete = onDelete)
         }
     }
 }
@@ -262,7 +269,7 @@ private fun ProjectCardText(summary: ProjectRowUi, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.padding(4.dp)) {
         IconButton(onClick = { expanded = true }) {
@@ -275,6 +282,14 @@ private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDelete: () ->
                 onClick = {
                     expanded = false
                     onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.duplicate)) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_copy), contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onDuplicate()
                 },
             )
             DropdownMenuItem(
@@ -300,6 +315,7 @@ private fun ProjectListPreview() {
             onOpenProject = {},
             onCreate = {},
             onEdit = {},
+            onDuplicate = {},
             onDelete = {},
             onOpenAccount = {},
             syncUi = SyncUi(),

@@ -53,6 +53,12 @@ class FakeProjectRepository(
         projects.value = projects.value.map { if (it.id == project.id) project else it }
     }
 
+    override suspend fun createProjectWithSchedule(project: Project, tasks: List<SchedulerTask>, links: List<TaskDependency>) {
+        projects.value = projects.value + project
+        this.tasks.value = this.tasks.value + tasks
+        dependencies.value = dependencies.value + links
+    }
+
     override suspend fun deleteProject(projectId: String) {
         projects.value = projects.value.filterNot { it.id == projectId }
         tasks.value = tasks.value.filterNot { it.projectId == projectId }

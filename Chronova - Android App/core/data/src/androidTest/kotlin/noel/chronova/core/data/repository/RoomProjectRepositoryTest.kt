@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import noel.chronova.core.database.ChronovaDatabase
 import noel.chronova.core.domain.SampleTasks
+import noel.chronova.core.model.Project
+import noel.chronova.core.model.SchedulerTask
+import noel.chronova.core.model.TaskDependency
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
@@ -59,6 +62,27 @@ class RoomProjectRepositoryTest {
         assertEquals(setOf(first, second), dirtyTasks.map { it.id }.toSet())
         assertTrue(dirtyTasks.all { it.updatedAt == 2_000L })
         assertEquals(1_000L, db.syncDao().dirtyProjects().single().updatedAt)
+    }
+
+    @Test
+    fun aCopiedProjectIsWrittenWholeOrNotAtAll() = runTest {
+        val project = Project("copy", "Copy", LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 11))
+        val design = SchedulerTask("t1", "copy", "Design", 0L, 3_600_000L, notes = "Kept")
+        val build = SchedulerTask("t2", "copy", "Build", 3_600_000L, 7_200_000L, sortOrder = 1)
+        repository.createProjectWithSchedule(project, listOf(design, build), listOf(TaskDependency("l1", "copy", "t1", "t2")))
+
+        assertEquals(project, repository.observeProject("copy").first())
+        assertEquals(listOf(design, build), repository.observeTasks("copy").first())
+        assertEquals(listOf("l1"), repository.observeDependencies("copy").first().map { it.id })
+        assertEquals(3, db.syncDao().dirtyTasks().size + db.syncDao().dirtyDependencies().size)
+
+        // A task pointing at a project that doesn't exist breaks the foreign key: nothing is kept.
+        val broken = SchedulerTask("t3", "nowhere", "Lost", 0L, 3_600_000L)
+        val failed = runCatching {
+            repository.createProjectWithSchedule(project.copy(id = "copy2"), listOf(broken), emptyList())
+        }
+        assertTrue(failed.isFailure)
+        assertNull(repository.observeProject("copy2").first())
     }
 
     @Test

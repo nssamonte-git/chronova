@@ -55,6 +55,15 @@ class RoomProjectRepository(
         db.projectDao().upsert(project.copy(name = project.name.trim()).toEntity(clock()))
     }
 
+    override suspend fun createProjectWithSchedule(project: Project, tasks: List<SchedulerTask>, links: List<TaskDependency>) {
+        val now = clock()
+        db.withTransaction {
+            db.projectDao().upsert(project.toEntity(now))
+            db.taskDao().upsertAll(tasks.map { it.toEntity(now) })
+            db.dependencyDao().upsertAll(links.map { it.toEntity(now) })
+        }
+    }
+
     override suspend fun deleteProject(projectId: String) {
         val now = clock()
         db.withTransaction {

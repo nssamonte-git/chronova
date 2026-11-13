@@ -27,6 +27,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 ### Beyond the take-home
 
 - **Projects**: create, rename, set an inclusive date range (up to 366 days; can't shrink past existing tasks), delete.
+- **Duplicate and "Start from"**: any project can be a template. "Duplicate" in a project's menu, or "Start from" in the new-project sheet, copies its tasks and links to a new start date, keeping the length and each task's local time of day (across daylight-saving changes too). The copy starts with nothing done; notes, colours and milestones are kept.
 - **Tasks**: add, edit (title, colour, start/end date and time), delete with undo.
 - **Progress, notes and milestones**: each task has a percent complete (a slider in steps of 10, a Done box, or the ✓ in the top bar for the selected task, with Undo); the done part of a bar is shaded, done tasks get a check, and project cards say how many tasks are done. Free-text notes (up to 2,000 characters) stay on the task: they sync, but never go to the voice providers or the staff admin panel. A milestone is a moment rather than a span (the editor's Milestone switch): it is drawn as a diamond, can be dragged and linked like any task, is never resized, and is either done or not.
 - **Scales**: Hours, Days, Weeks, Months; ticks follow the real calendar (DST days, month lengths) and whole-day snapping follows local midnights.

@@ -15,6 +15,11 @@ data class ProjectEditorState(
     val endDate: LocalDate,
     val problem: ProjectProblemUi? = null,
     val saving: Boolean = false,
+    /** When set, the new project is a copy of this one (its length is kept, so only the start is picked). */
+    val copyFrom: ProjectSourceUi? = null,
+    /** Projects a new one can start from ("Start from"); empty when editing. */
+    val sources: List<ProjectSourceUi> = emptyList(),
 ) {
     val isNew: Boolean get() = projectId == null
+    val isCopy: Boolean get() = copyFrom != null
 }

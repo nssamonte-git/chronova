@@ -13,6 +13,13 @@
     <string name="account_open">Account and sync</string>
     <string name="create">Create</string>
     <string name="edit">Edit</string>
+    <string name="duplicate">Duplicate</string>
+    <string name="project_copy_name">Copy of %1$s</string>
+    <string name="project_copy_title">Copy “%1$s”</string>
+    <string name="project_copy_hint">Its tasks and links are copied to the new dates, with nothing done yet; notes are kept.</string>
+    <string name="project_start_from">Start from: %1$s</string>
+    <string name="project_start_blank">Blank</string>
+    <string name="problem_source_gone">That project no longer exists.</string>
     <plurals name="task_count_done">
         <item quantity="one">%1$s · %2$d done</item>
         <item quantity="other">%1$s · %2$d done</item>

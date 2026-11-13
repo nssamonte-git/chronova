@@ -39,6 +39,11 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Voice (user choice): the assistant can set progress ("mark design done", `set_progress`) and add milestones (`create_milestone`); the interpret context carries each task's `progress` and `milestone` (optional, for older apps), never its notes. A milestone moves like a task but has no length to change, and never counts as overlapping a task (a moment during work isn't a clash); dependency clashes still count.
 - Reason: progress and milestones are the basic Gantt features the app lacked; the three changes share one migration and one sync-contract change.
 
+## 2026-11-13: Projects as templates
+
+- Decision (user choices): there is no separate template store; any project can be the starting point of another. "Duplicate" (project menu) and "Start from" (new-project sheet) run `CopyProject`: the copy keeps the source's length and starts on the chosen date; tasks move by whole calendar days in the zone (`CalendarDays.shift`), so local times survive DST, and a task DST would make invalid keeps its length instead; progress resets to 0; titles, notes, colours, row order, milestones and links are kept, with new ids. The project, its tasks and links are written in one Room transaction (`createProjectWithSchedule`) and sync like any other new rows.
+- Reason: templates without a new kind of stored or synced data.
+
 ## 2026-11-11: Offline first, sync on request
 
 - Decision: Room on the phone is the working copy; every write stamps `updatedAt` and marks the row dirty, and deletes are tombstones until synced. Sync never starts on its own: coming back online with unsynced changes shows a prompt, and only "Sync now" (prompt, button, account screen) runs `SyncEngine`. Conflicts: last write wins per record by edit time (server clock as ceiling, ties to the server); a stale push gets the winning copy back. Contract: `docs/sync-protocol.md`.

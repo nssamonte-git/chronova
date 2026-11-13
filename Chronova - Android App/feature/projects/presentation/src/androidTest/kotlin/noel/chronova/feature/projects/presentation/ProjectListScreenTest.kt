@@ -21,6 +21,7 @@ import noel.chronova.core.model.TaskColor
 import noel.chronova.core.testing.FakeProjectRepository
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.ui.sync.SyncUi
+import noel.chronova.feature.projects.domain.CopyProject
 import noel.chronova.feature.projects.domain.DeleteProject
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProject
@@ -60,7 +61,7 @@ class ProjectListScreenTest {
         repository = FakeProjectRepository(projects, tasks)
         viewModel = ProjectListViewModel(
             repository,
-            ProjectUseCases(save = SaveProject(repository, zone), delete = DeleteProject(repository)),
+            ProjectUseCases(save = SaveProject(repository, zone), delete = DeleteProject(repository), copy = CopyProject(repository, zone)),
             today = { today },
         )
         compose.setContent {
@@ -123,6 +124,23 @@ class ProjectListScreenTest {
         show(emptyList())
         compose.onNodeWithText(res.getString(R.string.projects_empty)).assertIsDisplayed()
         newProjectButton().assertIsDisplayed()
+    }
+
+    @Test
+    fun duplicatingAProjectCopiesItsTasksAndOpensTheCopy() {
+        show(listOf(office), listOf(task("a", "office", 0), task("b", "office", 1)))
+        compose.onNodeWithContentDescription(res.getString(R.string.project_actions, "Office move")).performClick()
+        compose.onNodeWithText(res.getString(R.string.duplicate)).performClick()
+        compose.onNodeWithText(res.getString(R.string.project_copy_title, "Office move")).assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasText("Copy of Office move")).assertIsDisplayed()
+
+        button(res.getString(R.string.create)).performClick()
+        compose.waitForIdle()
+        val copy = repository.projects.value.single { it.name == "Copy of Office move" }
+        assertEquals(today, copy.startDate) // the copy starts today and keeps the 19-day length
+        assertEquals(today.plusDays(18), copy.endDate)
+        assertEquals(2, repository.tasks.value.count { it.projectId == copy.id })
+        assertEquals(listOf(copy.id), opened)
     }
 
     @Test

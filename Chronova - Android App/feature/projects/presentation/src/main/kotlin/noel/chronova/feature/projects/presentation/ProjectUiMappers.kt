@@ -20,3 +20,5 @@ internal fun ProjectProblem.toUi(): ProjectProblemUi = when (this) {
     is ProjectProblem.TooLong -> ProjectProblemUi.TooLong(maxDays)
     is ProjectProblem.ExcludesTasks -> ProjectProblemUi.ExcludesTasks(count)
 }
+
+internal fun ProjectRowUi.toSource() = ProjectSourceUi(id, name, startDate, endDate)

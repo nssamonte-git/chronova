@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -19,6 +20,7 @@ import org.junit.Before
 import org.junit.Test
 import noel.chronova.feature.projects.domain.SaveProject
 import noel.chronova.feature.projects.domain.DeleteProject
+import noel.chronova.feature.projects.domain.CopyProject
 import noel.chronova.core.domain.repository.ProjectRepository
 import java.time.ZoneId
 
@@ -49,6 +51,55 @@ class ProjectListViewModelTest {
         assertTrue(editor.isNew)
         assertEquals(today, editor.startDate)
         assertEquals(today.plusDays(6), editor.endDate)
+    }
+
+    /** The list, collected so the sheet can offer its projects to start from. */
+    private fun kotlinx.coroutines.test.TestScope.listed(): List<ProjectRowUi> {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect {} }
+        return (viewModel.state.value as ProjectListState.Loaded).projects
+    }
+
+    @Test
+    fun duplicate_copiesToTheChosenStartAndOpensTheCopy() = runTest {
+        val sample = listed().single()
+        viewModel.startDuplicate(sample, "Copy of Sample project")
+        val editor = viewModel.editor.value!!
+        assertTrue(editor.isCopy)
+        assertEquals(today, editor.startDate)
+        assertEquals(today.plusDays(2), editor.endDate) // the sample runs three days
+
+        viewModel.onRangeChange(today.plusDays(7), today.plusDays(30)) // a copy keeps its length
+        assertEquals(today.plusDays(9), viewModel.editor.value!!.endDate)
+        viewModel.saveEditor()
+
+        val copy = repository.projects.value.single { it.name == "Copy of Sample project" }
+        assertEquals(today.plusDays(7) to today.plusDays(9), copy.startDate to copy.endDate)
+        assertEquals(4, repository.tasks.value.count { it.projectId == copy.id })
+        assertEquals(copy.id, viewModel.openProject.value)
+        assertNull(viewModel.editor.value)
+    }
+
+    @Test
+    fun startFrom_switchesANewProjectToACopyAndBack() = runTest {
+        listed()
+        viewModel.startCreate()
+        assertEquals(listOf("Sample project"), viewModel.editor.value!!.sources.map { it.name })
+
+        viewModel.onStartFrom(SampleTasks.PROJECT_ID)
+        assertEquals(today.plusDays(2), viewModel.editor.value!!.endDate)
+        assertEquals("Sample project", viewModel.editor.value!!.copyFrom?.name)
+
+        viewModel.onStartFrom(null)
+        assertNull(viewModel.editor.value!!.copyFrom)
+    }
+
+    @Test
+    fun copyingAProjectThatWasDeletedMeanwhileSaysSo() = runTest {
+        val sample = listed().single()
+        viewModel.startDuplicate(sample, "Copy")
+        repository.projects.value = emptyList()
+        viewModel.saveEditor()
+        assertEquals(ProjectProblemUi.SourceGone, viewModel.editor.value?.problem)
     }
 
     @Test
@@ -129,4 +180,5 @@ class ProjectListViewModelTest {
 private fun projectUseCases(repository: ProjectRepository, zone: ZoneId) = ProjectUseCases(
     save = SaveProject(repository, zone),
     delete = DeleteProject(repository),
+    copy = CopyProject(repository, zone),
 )

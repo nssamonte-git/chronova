@@ -21,6 +21,7 @@ private fun ProjectList(state: ProjectListState, sync: SyncUi) = ChronovaTheme {
         onOpenProject = {},
         onCreate = {},
         onEdit = {},
+        onDuplicate = {},
         onDelete = {},
         onOpenAccount = {},
         syncUi = sync,
@@ -49,6 +50,24 @@ fun ProjectListEmpty() = ProjectList(ProjectListState.Loaded(emptyList()), SyncU
 fun ProjectEditorNew() = ChronovaTheme {
     ProjectEditorSheet(
         editor = ProjectEditorState(null, "Kitchen", LocalDate.of(2026, 11, 20), LocalDate.of(2026, 11, 26)),
+        onNameChange = {},
+        onRangeChange = { _, _ -> },
+        onSave = {},
+        onDismiss = {},
+    )
+}
+
+/** Copying a project: "Start from" names it, only the start is picked, and the length is kept. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun ProjectEditorCopy() = ChronovaTheme {
+    val office = ProjectSourceUi("office", "Office move", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 20))
+    ProjectEditorSheet(
+        editor = ProjectEditorState(
+            null, "Copy of Office move", LocalDate.of(2026, 12, 7), LocalDate.of(2026, 12, 25),
+            copyFrom = office, sources = listOf(office),
+        ),
         onNameChange = {},
         onRangeChange = { _, _ -> },
         onSave = {},
