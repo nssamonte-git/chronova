@@ -106,8 +106,11 @@ internal class TaskEditor(
 
     fun changeDone(done: Boolean) = _state.update { it?.copy(progress = if (done) TaskUi.DONE else 0, problem = null) }
 
-    /** Longer notes are cut at the limit, so the field never holds what can't be saved. */
-    fun changeNotes(notes: String) = _state.update { it?.copy(notes = notes.take(NOTES_MAX_LENGTH), problem = null) }
+    /**
+     * Longer notes are cut at the limit, so the field never holds what can't be saved;
+     * the cut never splits a character made of two UTF-16 units (e.g. an emoji).
+     */
+    fun changeNotes(notes: String) = _state.update { it?.copy(notes = cutNotes(notes), problem = null) }
 
     /**
      * A milestone is a moment: switching it on drops the end (and keeps only done or
@@ -186,3 +189,9 @@ internal class TaskEditor(
 
 /** The longest notes the editor takes (the save rule's limit). */
 internal const val NOTES_MAX_LENGTH = TaskRules.MAX_NOTES_LENGTH
+
+internal fun cutNotes(notes: String): String {
+    if (notes.length <= NOTES_MAX_LENGTH) return notes
+    val end = if (notes[NOTES_MAX_LENGTH - 1].isHighSurrogate()) NOTES_MAX_LENGTH - 1 else NOTES_MAX_LENGTH
+    return notes.substring(0, end)
+}

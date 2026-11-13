@@ -251,6 +251,13 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun cuttingNotesNeverSplitsAnEmoji() {
+        val notes = "x".repeat(1_999) + "\uD83D\uDE80" + "more" // a rocket across the limit
+        assertEquals("x".repeat(1_999), cutNotes(notes))
+        assertEquals("x".repeat(2_000), cutNotes("x".repeat(2_001)))
+    }
+
+    @Test
     fun markDone_savesThroughTheApplyPathAndOffersUndo() = runTest {
         val state = timeline()
         viewModel.selectTask("review")
