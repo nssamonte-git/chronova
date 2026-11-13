@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -29,7 +31,8 @@ import androidx.compose.ui.unit.dp
  * Pick one of a few short options ("Hours / Days / Weeks / Months"): a row of chips, each as
  * wide as its word, the chosen one filled. The fill and the text change colour smoothly when
  * the choice moves. With [fillWidth] the chips share the row's width equally (a setting on a
- * page); without it they take only the room they need (a toolbar).
+ * page); without it they take only the room they need (a toolbar). [spoken] gives TalkBack
+ * the option in words when its label is an abbreviation ("15m" is read as "15 minutes").
  */
 @Composable
 fun <T> ChoiceChips(
@@ -39,6 +42,7 @@ fun <T> ChoiceChips(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     fillWidth: Boolean = false,
+    spoken: (@Composable (T) -> String)? = null,
 ) {
     Row(
         (if (fillWidth) modifier.fillMaxWidth() else modifier).selectableGroup(),
@@ -46,13 +50,19 @@ fun <T> ChoiceChips(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         options.forEach { option ->
-            ChoiceChip(label(option), selected = option == selected, fillWidth = fillWidth, onClick = { onSelect(option) })
+            ChoiceChip(
+                text = label(option),
+                spoken = spoken?.invoke(option),
+                selected = option == selected,
+                fillWidth = fillWidth,
+                onClick = { onSelect(option) },
+            )
         }
     }
 }
 
 @Composable
-private fun RowScope.ChoiceChip(text: String, selected: Boolean, fillWidth: Boolean, onClick: () -> Unit) {
+private fun RowScope.ChoiceChip(text: String, spoken: String?, selected: Boolean, fillWidth: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val container by animateColorAsState(if (selected) colors.secondaryContainer else Color.Transparent, label = "chipContainer")
     val content by animateColorAsState(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant, label = "chipContent")
@@ -69,6 +79,7 @@ private fun RowScope.ChoiceChip(text: String, selected: Boolean, fillWidth: Bool
             .background(container)
             .border(1.dp, border, shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .then(if (spoken != null) Modifier.semantics { contentDescription = spoken } else Modifier)
             // Sharing a row's width, a chip's size is already set: keep the room for its word
             // (at 1.5× text "System" didn't fit with the wider padding).
             .padding(horizontal = if (fillWidth) 6.dp else 14.dp),

@@ -11,7 +11,7 @@
     <string name="problem_blank_name">Give the project a name.</string>
     <string name="problem_end_before_start">The project can’t end before it starts.</string>
     <string name="project_delete_body_empty">The project will be deleted.</string>
-    <string name="account_open">Account and sync</string>
+    <string name="account_open">Account &amp; sync</string>
     <string name="create">Create</string>
     <string name="edit">Edit</string>
     <string name="duplicate">Duplicate</string>
@@ -44,8 +44,8 @@
         <item quantity="other">%d tasks fall outside these dates. Move them first or keep a wider range.</item>
     </plurals>
     <plurals name="problem_too_long">
-        <item quantity="one">A project can span at most %d day.</item>
-        <item quantity="other">A project can span at most %d days.</item>
+        <item quantity="one">A project can last at most %d day.</item>
+        <item quantity="other">A project can last at most %d days.</item>
     </plurals>
     <plurals name="notifications_open">
         <item quantity="one">Notifications, %d unread</item>

@@ -97,4 +97,11 @@ class TimelineConfigTest {
         assertEquals(80f, TimelineConfig().withRowHeightStep(10).rowHeightDp)
         assertEquals(40f, TimelineConfig().withRowHeightStep(-10).rowHeightDp)
     }
+
+    @Test
+    fun rowHeightIsShownAsAShareOfTheDefault() {
+        assertEquals(100, TimelineConfig().rowHeightPercent)
+        assertEquals(71, TimelineConfig(rowHeightDp = TimelineConfig.MIN_ROW_HEIGHT_DP).rowHeightPercent)
+        assertEquals(143, TimelineConfig(rowHeightDp = TimelineConfig.MAX_ROW_HEIGHT_DP).rowHeightPercent)
+    }
 }

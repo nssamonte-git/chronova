@@ -75,10 +75,10 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
 
     override fun failure(kind: VoiceApiException.Kind) = resources.getString(
         when (kind) {
-            VoiceApiException.Kind.UNAUTHORIZED -> R.string.assistant_signed_out
+            VoiceApiException.Kind.UNAUTHORIZED -> R.string.assistant_needs_sign_in
             VoiceApiException.Kind.DISABLED -> R.string.assistant_disabled
             VoiceApiException.Kind.RATE_LIMITED -> R.string.assistant_rate_limited
-            VoiceApiException.Kind.NETWORK -> R.string.assistant_offline
+            VoiceApiException.Kind.NETWORK -> R.string.assistant_needs_connection
             VoiceApiException.Kind.TOO_LONG -> R.string.assistant_too_long
             VoiceApiException.Kind.UNAVAILABLE, VoiceApiException.Kind.REJECTED -> R.string.assistant_unavailable
         },

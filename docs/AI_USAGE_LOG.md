@@ -1659,3 +1659,39 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Human action:** the phone showed as "unauthorized" at first; it became available after about two minutes (the USB debugging prompt was accepted on the phone).
 - **Checked after the install:** the app opens on the project list in Light, still signed in, with the same data as before: project "Jnn" with 5 tasks, 31 changes not synced, 35 unread notifications. The first install date is unchanged (11 Nov), so the app's data was kept.
 - **Not done:** nothing was tapped in the app beyond opening it; no sync, no settings changed. The code is the same as the last phone check (`cb3766f`); the only commit since then changed `tools/check.sh`.
+
+## Copy review for the client handoff
+
+### Review
+
+- **Your request:** check what can be polished in the app for a client handoff, especially prompts, notes and labels.
+- **What I read:** every string resource (10 files), the hard-coded text in Kotlin, the sample project, the app ID and version, the Firebase package binding (package name only), and the launch and window colours.
+- **Decisions left with you and the client (not changed):** the app ID `noel.chronova.app` (permanent once published, and the Firebase config is bound to it); the provider names and the 90-day retention wording in the assistant and import notices (need the client's privacy policy and legal sign-off); "Contact support." has no contact to point to; no privacy policy, terms or licences (the Inter font's OFL) in the app; British or US spelling.
+
+### Copy fixes
+
+- **Your request:** fix the copy.
+- **One wording per idea:**
+  - "this device" everywhere ("this phone" was in 8 strings);
+  - one "Can't undo: those tasks have changed since." (there were three versions);
+  - one "A project can last at most N days." (three versions);
+  - "That project no longer exists." (two versions);
+  - "in the meantime" (two strings said "meanwhile");
+  - the assistant says a task needs a "title", as the editor labels it;
+  - the account button's spoken label matches the page title, "Account & sync".
+- **Awkward or developer wording:**
+  - "Sign in (Account) to use the assistant" is now "Sign in on the Account page to use the assistant";
+  - two exact duplicate assistant strings were merged into the snackbar ones;
+  - the no-server messages no longer say "Install a version that is" or "this build".
+- **Labels:**
+  - row height shows as a percentage of the usual height, like zoom (`100%`), instead of `56dp`; `TimelineConfig.rowHeightPercent` has a unit test;
+  - the snap chips keep "15m / 1h / 1d / 1w" on screen, but TalkBack now reads "15 minutes", "1 hour" and so on. `ChoiceChips` takes an optional spoken label for that.
+- **My mistake in the review:** I had called "Sync failed: another device is syncing, try again shortly" a comma splice "unlike its siblings"; the server-problem line uses the same pattern, so I left both as they are.
+- **Checks:**
+  - `tools/check.sh` PASS: 483 unit tests, 144 screenshots, lint 0 errors and 23 warnings, both architecture checks;
+  - 6 references were re-recorded (the sign-in page and the notifications list, in light, dark and large font) and I viewed them before and after;
+  - device tests for the timeline (26) and core/ui (9) passed on the managed emulator, after the chips' semantics changed.
+- **Not verified:**
+  - TalkBack was not turned on, so the spoken snap labels are checked only by the semantics change and the passing tests, not heard;
+  - no screenshot shows the row-height value (the toolbar previews show its start);
+  - the new build was not installed on the phone.

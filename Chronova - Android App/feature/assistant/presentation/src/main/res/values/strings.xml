@@ -17,7 +17,7 @@
     <string name="assistant_goodbye">I\u2019ll stop listening now. Tap the orb when you need me.</string>
     <string name="assistant_nothing_changed">Okay, nothing changed.</string>
     <string name="assistant_needs_connection">The assistant needs an internet connection.</string>
-    <string name="assistant_needs_sign_in">Sign in (Account) to use the assistant.</string>
+    <string name="assistant_needs_sign_in">Sign in on the Account page to use the assistant.</string>
     <string name="assistant_notice_title">Talk to Chronova</string>
     <string name="assistant_notice_body">Say what to change, like \u201cpush build by two hours\u201d. Chronova reads back what it will do and asks before changing anything. Recordings and this project\u2019s task names go to ElevenLabs to write down what you said; your words and the task names and times go to OpenAI to work out and explain the changes. Your requests and answers are kept for 90 days so Chronova can learn what you prefer; they are deleted with your account.</string>
     <string name="assistant_notice_continue">Continue</string>
@@ -26,8 +26,6 @@
     <string name="assistant_state_speaking">Chronova assistant, speaking</string>
     <string name="assistant_tap_to_close">Tap outside the orb to stop</string>
     <string name="assistant_too_long">That was too long for one change. Try a shorter instruction.</string>
-    <string name="assistant_signed_out">Sign in (Account) to use the assistant.</string>
-    <string name="assistant_offline">You’re offline. The assistant needs an internet connection.</string>
     <string name="assistant_disabled">The assistant is switched off right now.</string>
     <string name="assistant_rate_limited">Too many requests. Wait a minute and try again.</string>
     <string name="assistant_unavailable">The assistant isn’t available right now. Try again later.</string>
@@ -81,7 +79,7 @@
     <string name="assistant_opening_task">Here’s %1$s to edit.</string>
     <string name="assistant_schedule_changed">The schedule changed in the meantime, so nothing was changed. Try again.</string>
     <string name="assistant_unknown_task">I couldn’t find that task.</string>
-    <string name="assistant_task_blank_title">A task needs a name.</string>
+    <string name="assistant_task_blank_title">A task needs a title.</string>
     <string name="assistant_task_end_before_start">“%1$s” would end before it starts.</string>
     <string name="assistant_task_outside">“%1$s” would fall outside the project’s dates.</string>
     <string name="assistant_task_bad_progress">“%1$s” is a milestone: it’s either done or not done.</string>

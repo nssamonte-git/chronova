@@ -49,7 +49,7 @@
     <string name="import_problem_too_many">That’s a lot of images for now. Try again later.</string>
     <string name="import_problem_switched_off">Reading images is switched off for now.</string>
     <string name="import_problem_sign_in">Sign in again to read images.</string>
-    <string name="import_problem_project_gone">This project is no longer here.</string>
+    <string name="import_problem_project_gone">That project no longer exists.</string>
     <string name="import_problem_unavailable">The image couldn’t be read right now. Try again in a moment.</string>
     <string name="import_try_another">Try another image</string>
 
@@ -57,11 +57,11 @@
     <string name="import_plan_blank_name">Give the project a name.</string>
     <string name="import_plan_end_before_start">The project can’t end before it starts.</string>
     <plurals name="import_plan_too_long">
-        <item quantity="one">A project can be at most %d day long.</item>
-        <item quantity="other">A project can be at most %d days long.</item>
+        <item quantity="one">A project can last at most %d day.</item>
+        <item quantity="other">A project can last at most %d days.</item>
     </plurals>
     <string name="import_plan_does_not_fit">“%1$s” doesn’t fit the project’s dates.</string>
-    <string name="import_plan_changed">The project changed meanwhile. Try again.</string>
+    <string name="import_plan_changed">The project changed in the meantime. Try again.</string>
 
     <plurals name="import_done_body">
         <item quantity="one">%1$d task added to %2$s.</item>
@@ -69,7 +69,7 @@
     </plurals>
     <string name="import_undo">Undo</string>
     <string name="import_undone">Undone.</string>
-    <string name="import_undo_failed">Couldn’t undo: those tasks were changed since.</string>
+    <string name="import_undo_failed">Can’t undo: those tasks have changed since.</string>
     <string name="import_open_project">Open project</string>
     <string name="import_close">Done</string>
 </resources>

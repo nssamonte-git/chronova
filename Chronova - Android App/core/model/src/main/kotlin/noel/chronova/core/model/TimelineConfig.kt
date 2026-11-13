@@ -61,6 +61,9 @@ data class TimelineConfig(
     /** Zoom relative to the scale's default, e.g. 100 for the default width. */
     val zoomPercent: Int get() = (unitWidthDp / timeScale.defaultUnitWidthDp * 100).roundToInt()
 
+    /** Row height relative to the default, e.g. 100 for 56 dp: shown like zoom, not in dp. */
+    val rowHeightPercent: Int get() = (rowHeightDp / DEFAULT_ROW_HEIGHT_DP * 100).roundToInt()
+
     val canZoomIn: Boolean get() = unitWidthDp < timeScale.maxUnitWidthDp
     val canZoomOut: Boolean get() = unitWidthDp > timeScale.minUnitWidthDp
     val canGrowRows: Boolean get() = rowHeightDp < MAX_ROW_HEIGHT_DP

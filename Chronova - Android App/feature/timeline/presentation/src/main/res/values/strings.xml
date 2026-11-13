@@ -67,7 +67,7 @@
     </plurals>
     <string name="task_problem_bad_progress">A milestone is either done or not done.</string>
     <string name="task_depends_on">Depends on (must finish first)</string>
-    <string name="edit_not_saved">This task changed meanwhile, so the edit wasn’t saved. Try again.</string>
+    <string name="edit_not_saved">This task changed in the meantime, so the edit wasn’t saved. Try again.</string>
     <string name="add">Add</string>
     <plurals name="task_problem_too_short">
         <item quantity="one">A task must last at least %d minute.</item>
@@ -89,7 +89,7 @@
     <string name="controls_zoom_value">%1$d%%</string>
     <string name="controls_row_height_less">Decrease row height</string>
     <string name="controls_row_height_more">Increase row height</string>
-    <string name="controls_row_height_value">%1$ddp</string>
+    <string name="controls_row_height_value">%1$d%%</string>
     <string name="scale_hours">Hours</string>
     <string name="scale_days">Days</string>
     <string name="scale_weeks">Weeks</string>
@@ -98,5 +98,21 @@
     <string name="snap_hours">%1$dh</string>
     <string name="snap_days">%1$dd</string>
     <string name="snap_weeks">%1$dw</string>
+    <plurals name="snap_minutes_spoken">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="snap_hours_spoken">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="snap_days_spoken">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="snap_weeks_spoken">
+        <item quantity="one">%d week</item>
+        <item quantity="other">%d weeks</item>
+    </plurals>
     <string name="task_color">Colour</string>
 </resources>

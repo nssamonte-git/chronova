@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -83,11 +84,13 @@ fun TimelineControls(
                 selected = config.snapMinutes,
                 label = { snapLabel(it) },
                 onSelect = onSnap,
+                spoken = { snapSpoken(it) },
             )
         }
         ControlGroup(stringResource(R.string.controls_row_height)) {
             StepperIcon(MinusIcon, stringResource(R.string.controls_row_height_less), config.canShrinkRows) { onRowHeightStep(-1) }
-            ValueText(stringResource(R.string.controls_row_height_value, config.rowHeightDp.toInt()))
+            // As a share of the usual height, like zoom (100% is the default 56 dp row).
+            ValueText(stringResource(R.string.controls_row_height_value, config.rowHeightPercent))
             StepperIcon(Icons.Filled.Add, stringResource(R.string.controls_row_height_more), config.canGrowRows) { onRowHeightStep(+1) }
         }
         ControlGroup(stringResource(R.string.controls_critical_path)) {
@@ -152,6 +155,15 @@ private fun snapLabel(minutes: Int): String = when {
     minutes % (24 * 60) == 0 -> stringResource(R.string.snap_days, minutes / (24 * 60))
     minutes % 60 == 0 -> stringResource(R.string.snap_hours, minutes / 60)
     else -> stringResource(R.string.snap_minutes, minutes)
+}
+
+/** The same steps in words, for TalkBack: "15 minutes", "1 hour", "1 day", "1 week". */
+@Composable
+private fun snapSpoken(minutes: Int): String = when {
+    minutes % (7 * 24 * 60) == 0 -> (minutes / (7 * 24 * 60)).let { pluralStringResource(R.plurals.snap_weeks_spoken, it, it) }
+    minutes % (24 * 60) == 0 -> (minutes / (24 * 60)).let { pluralStringResource(R.plurals.snap_days_spoken, it, it) }
+    minutes % 60 == 0 -> (minutes / 60).let { pluralStringResource(R.plurals.snap_hours_spoken, it, it) }
+    else -> pluralStringResource(R.plurals.snap_minutes_spoken, minutes, minutes)
 }
 
 /** Material "remove" glyph; defined locally because it is only in the large extended icon set. */

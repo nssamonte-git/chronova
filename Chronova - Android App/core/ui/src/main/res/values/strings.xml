@@ -17,12 +17,12 @@
         <item quantity="other">%d changes on this device only. Sign in to sync.</item>
     </plurals>
     <string name="back">Back</string>
-    <string name="account_session_ended">Your session has ended. Sign in again to carry on; your projects on this phone are still here.</string>
+    <string name="account_session_ended">Your session has ended. Sign in again to carry on; your projects on this device are still here.</string>
     <string name="app_name">Chronova</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="ok">OK</string>
     <string name="undo">Undo</string>
-    <string name="undo_not_possible">Can’t undo: those tasks were changed again since.</string>
+    <string name="undo_not_possible">Can’t undo: those tasks have changed since.</string>
 </resources>
