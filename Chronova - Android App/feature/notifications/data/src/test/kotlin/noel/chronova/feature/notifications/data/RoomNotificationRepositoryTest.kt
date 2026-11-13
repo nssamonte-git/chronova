@@ -99,6 +99,25 @@ class RoomNotificationRepositoryTest {
     }
 
     @Test
+    fun undoKeepsProgressNotesAndMilestones() = runTest {
+        val milestone = before.copy(id = "m1", endMillis = 1_000, progress = 100, isMilestone = true)
+        val undo = listOf(
+            ScheduleChange.UpdateTask(after.copy(progress = 100, notes = "Done\nfor now"), before.copy(progress = 40)),
+            ScheduleChange.DeleteTask(milestone),
+        )
+        repository.add(NotificationKind.ASSISTANT_APPLIED, projectId = "p1", undo = undo)
+        assertEquals(undo, repository.undo(repository.observe().first().single().id))
+    }
+
+    @Test
+    fun anUndoStoredBeforeProgressReadsTheDefaults() = runTest {
+        val oldJson = "[{\"type\":\"delete\",\"task\":{\"id\":\"t1\",\"projectId\":\"p1\",\"title\":\"Build\"," +
+            "\"startMillis\":1000,\"endMillis\":2000,\"color\":\"GREEN\",\"sortOrder\":3}}]"
+        dao.insert(NotificationEntity(kind = NotificationKind.ASSISTANT_APPLIED.name, args = "{}", projectId = "p1", projectName = null, createdAt = now, read = false, undo = oldJson))
+        assertEquals(listOf(ScheduleChange.DeleteTask(before)), repository.undo(repository.observe().first().single().id))
+    }
+
+    @Test
     fun readingClearingAndPruning() = runTest {
         repository.add(NotificationKind.SIGNED_IN)
         now += 31L * 86_400_000L

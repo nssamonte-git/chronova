@@ -10,7 +10,8 @@ interface ProjectDao {
     @Query(
         """
         SELECT p.id, p.name, p.start_date, p.end_date,
-               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.deleted = 0) AS task_count
+               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.deleted = 0) AS task_count,
+               (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.deleted = 0 AND t.progress = 100) AS done_count
         FROM projects p
         WHERE p.deleted = 0
         ORDER BY p.start_date DESC, p.name COLLATE NOCASE

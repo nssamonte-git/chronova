@@ -62,7 +62,7 @@ object ScheduleChanges {
             } ?: continue
             val task = tasksById[written.id] ?: continue // deleted later in the same list
             if (task.projectId != state.project.id) return ChangeProblem.Stale(setOf(task.id))
-            TaskRules.validate(task.title, task.startMillis, task.endMillis, window)
+            TaskRules.validate(task, window)
                 ?.let { return ChangeProblem.InvalidTask(task.id, it) }
         }
         for (change in changes) {

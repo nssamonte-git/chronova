@@ -40,10 +40,10 @@ class RoomProjectRepository(
         db.projectDao().observeProject(projectId).map { it?.toDomain() }
 
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
-        db.taskDao().observeTasks(projectId).map { rows -> rows.map { it.toDomain() } }
+        db.taskDao().observeTasks(projectId).map { rows -> rows.mapNotNull { it.toDomain() } }
 
     override suspend fun tasksOf(projectId: String): List<SchedulerTask> =
-        db.taskDao().tasks(projectId).map { it.toDomain() }
+        db.taskDao().tasks(projectId).mapNotNull { it.toDomain() }
 
     override suspend fun createProject(name: String, startDate: LocalDate, endDate: LocalDate): String {
         val project = Project(newId(), name.trim(), startDate, endDate)
@@ -70,6 +70,9 @@ class RoomProjectRepository(
         startMillis: Long,
         endMillis: Long,
         color: TaskColor,
+        progress: Int,
+        notes: String,
+        isMilestone: Boolean,
     ): String = db.withTransaction {
         val task = SchedulerTask(
             id = newId(),
@@ -79,6 +82,9 @@ class RoomProjectRepository(
             endMillis = endMillis,
             color = color,
             sortOrder = (db.taskDao().maxSortOrder(projectId) ?: -1) + 1,
+            progress = progress,
+            notes = notes,
+            isMilestone = isMilestone,
         )
         db.taskDao().upsert(task.toEntity(clock()))
         task.id
@@ -93,7 +99,7 @@ class RoomProjectRepository(
     private suspend fun readSchedule(projectId: String): ScheduleState? = db.projectDao().project(projectId)?.let { project ->
         ScheduleState(
             project = project.toDomain(),
-            tasks = db.taskDao().tasks(projectId).map { it.toDomain() },
+            tasks = db.taskDao().tasks(projectId).mapNotNull { it.toDomain() },
             links = db.dependencyDao().live(projectId).map { it.toDomain() },
         )
     }

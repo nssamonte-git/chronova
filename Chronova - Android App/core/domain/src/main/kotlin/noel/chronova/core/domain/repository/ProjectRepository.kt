@@ -35,6 +35,9 @@ interface ProjectRepository : ProjectQueries {
         startMillis: Long,
         endMillis: Long,
         color: TaskColor,
+        progress: Int = 0,
+        notes: String = "",
+        isMilestone: Boolean = false,
     ): String
 
     /** Saves an edited task (from the task editor). */

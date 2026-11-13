@@ -66,6 +66,8 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
                 TaskProblem.EndNotAfterStart -> resources.getString(R.string.assistant_task_end_before_start, problem.title)
                 is TaskProblem.TooShort -> resources.getQuantityString(R.plurals.assistant_task_too_short, rule.minMinutes, problem.title, rule.minMinutes)
                 TaskProblem.OutsideProject -> resources.getString(R.string.assistant_task_outside, problem.title)
+                is TaskProblem.NotesTooLong -> resources.getQuantityString(R.plurals.assistant_task_notes_too_long, rule.maxLength, problem.title, rule.maxLength)
+                TaskProblem.BadProgress -> resources.getString(R.string.assistant_task_bad_progress, problem.title)
             }
             is CommandProblem.WouldCycle -> resources.getString(R.string.assistant_would_cycle, title(problem.predecessorId), title(problem.successorId))
             is CommandProblem.AlreadyLinked -> resources.getString(R.string.assistant_already_linked, title(problem.predecessorId), title(problem.successorId))

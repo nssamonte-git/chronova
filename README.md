@@ -114,7 +114,7 @@ Gradle modules in three layers, with manual dependency injection in the shell (`
 :core:model                   Project, SchedulerTask, TaskDependency, TimelineConfig            (pure Kotlin)
 :core:timeline                time ↔ pixels, calendar ticks, snap grids, edits, hit testing, viewport math   (pure Kotlin)
 :core:domain                  repository and auth/sync contracts, rules, ScheduleChange, ApplyScheduleChanges (one transaction, stale-checked, undoable)   (pure Kotlin)
-:core:database                Room: projects, tasks, dependencies, view_settings, notifications (schema v4, with migrations)
+:core:database                Room: projects, tasks, dependencies, view_settings, notifications (schema v5, with migrations)
 :core:data / :core:network    RoomProjectRepository (every write stamps updatedAt and marks the row dirty), connectivity; HTTP client and JSON
 :core:designsystem / :core:ui theme and shared images; time formatting, sync status UI, the assistant slot the timeline hosts
 :feature:projects             domain (list/save/delete use cases), presentation (project list and editor)

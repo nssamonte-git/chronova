@@ -23,6 +23,8 @@ internal fun TaskProblem.toUi(): TaskProblemUi = when (this) {
     TaskProblem.EndNotAfterStart -> TaskProblemUi.EndNotAfterStart
     is TaskProblem.TooShort -> TaskProblemUi.TooShort(minMinutes)
     TaskProblem.OutsideProject -> TaskProblemUi.OutsideProject
+    is TaskProblem.NotesTooLong -> TaskProblemUi.NotesTooLong(maxLength)
+    TaskProblem.BadProgress -> TaskProblemUi.BadProgress
 }
 
 /** The sample project as the timeline shows it, for previews and gesture tests. */

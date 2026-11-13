@@ -25,7 +25,12 @@ class FakeProjectRepository(
     val updates = mutableListOf<SchedulerTask>()
 
     override fun observeProjects(): Flow<List<ProjectSummary>> =
-        projects.map { list -> list.map { p -> ProjectSummary(p, tasks.value.count { it.projectId == p.id }) } }
+        projects.map { list ->
+            list.map { p ->
+                val own = tasks.value.filter { it.projectId == p.id }
+                ProjectSummary(p, own.size, own.count { it.isDone })
+            }
+        }
 
     override fun observeProject(projectId: String): Flow<Project?> =
         projects.map { list -> list.firstOrNull { it.id == projectId } }
@@ -59,10 +64,13 @@ class FakeProjectRepository(
         startMillis: Long,
         endMillis: Long,
         color: TaskColor,
+        progress: Int,
+        notes: String,
+        isMilestone: Boolean,
     ): String {
         val id = "task-${nextId++}"
         val order = (tasks.value.filter { it.projectId == projectId }.maxOfOrNull { it.sortOrder } ?: -1) + 1
-        tasks.value = tasks.value + SchedulerTask(id, projectId, title.trim(), startMillis, endMillis, color, order)
+        tasks.value = tasks.value + SchedulerTask(id, projectId, title.trim(), startMillis, endMillis, color, order, progress, notes, isMilestone)
         return id
     }
 

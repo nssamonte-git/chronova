@@ -21,7 +21,7 @@ Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Andro
 Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in detail", "Server rules").
 
 - Time is epoch millis; pixels come only from `TimelineMath`, from the window start. Snapping goes through `SnapGrid`; configuration never changes timestamps.
-- Projects, tasks and links live in Room (`:core:database`, schema v4 with migrations). Every schedule write goes through `ApplyScheduleChanges`: one transaction that refuses stale changes and returns the Undo inverse. Sync runs only on "Sync now".
+- Projects, tasks and links live in Room (`:core:database`, schema v5 with migrations). Every schedule write goes through `ApplyScheduleChanges`: one transaction that refuses stale changes and returns the Undo inverse. Sync runs only on "Sync now".
 - `presentation -> domain <- data`; features never depend on each other; core never on features. ViewModels read through `*Queries` and write through use cases; screens render UI models. `verifyModuleGraph` and `verifyUiModels` enforce this.
 - The timeline has one scroll position (`TimelineViewportState`) and measures nothing at full width; rows list only on-screen tasks. A drag is recomputed from the gesture-start task (`pointerInput` keyed on the task id); pinch consumes every move until all fingers lift.
 - Rotation recreates `MainActivity`: keep flags in `rememberSaveable` or a ViewModel, and check `isChangingConfigurations` before treating `ON_STOP` as "the user left".
@@ -31,7 +31,7 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: `tools/check.sh` (repository root) runs everything (332 unit tests, lint, both architecture checks, 46 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 78 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
+- App: `tools/check.sh` (repository root) runs everything (347 unit tests, lint, both architecture checks, 46 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 78 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.

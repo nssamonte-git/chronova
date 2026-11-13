@@ -25,8 +25,9 @@ data class Project(
     )
 }
 
-/** A project plus what the project list shows about it. */
+/** A project plus what the project list shows about it: its tasks and how many are done. */
 data class ProjectSummary(
     val project: Project,
     val taskCount: Int,
+    val doneCount: Int = 0,
 )

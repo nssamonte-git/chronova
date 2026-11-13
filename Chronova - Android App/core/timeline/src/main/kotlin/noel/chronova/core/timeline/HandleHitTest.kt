@@ -9,7 +9,8 @@ import kotlin.math.min
  *
  * Only a selected bar has resize zones. Each zone reaches up to [inset] inside its
  * edge; on narrow bars the inner part shrinks to a third of the bar so the middle
- * third always remains for moving.
+ * third always remains for moving. A milestone has no length to change, so it
+ * only ever moves.
  */
 object HandleHitTest {
     fun modeAt(
@@ -18,8 +19,9 @@ object HandleHitTest {
         barEnd: Float,
         inset: Float,
         selected: Boolean,
+        isMilestone: Boolean = false,
     ): GestureMode {
-        if (!selected) return GestureMode.MOVE
+        if (!selected || isMilestone) return GestureMode.MOVE
         val inner = min(inset, (barEnd - barStart) / 3f)
         return when {
             x <= barStart + inner -> GestureMode.RESIZE_START

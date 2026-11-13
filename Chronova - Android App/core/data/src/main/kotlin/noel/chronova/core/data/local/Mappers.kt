@@ -21,6 +21,7 @@ internal fun ProjectEntity.toDomain() = Project(
 internal fun ProjectWithTaskCount.toDomain() = ProjectSummary(
     project = Project(id, name, LocalDate.parse(startDate), LocalDate.parse(endDate)),
     taskCount = taskCount,
+    doneCount = doneCount,
 )
 
 /** A locally edited project: stamped with [now] and marked for sync. */
@@ -32,16 +33,26 @@ internal fun Project.toEntity(now: Long) = ProjectEntity(
     updatedAt = now,
 )
 
-internal fun TaskEntity.toDomain() = SchedulerTask(
-    id = id,
-    projectId = projectId,
-    title = title,
-    startMillis = startMillis,
-    endMillis = endMillis,
-    // Unknown names (e.g. from a newer app version via sync) fall back to the default.
-    color = TaskColor.entries.firstOrNull { it.name == color } ?: TaskColor.BLUE,
-    sortOrder = sortOrder,
-)
+/**
+ * The stored task, or null when the row breaks the model's rules (only possible
+ * through a bad sync record): such a row is left out rather than failing every
+ * read of its project.
+ */
+internal fun TaskEntity.toDomain(): SchedulerTask? = runCatching {
+    SchedulerTask(
+        id = id,
+        projectId = projectId,
+        title = title,
+        startMillis = startMillis,
+        endMillis = endMillis,
+        // Unknown names (e.g. from a newer app version via sync) fall back to the default.
+        color = TaskColor.entries.firstOrNull { it.name == color } ?: TaskColor.BLUE,
+        sortOrder = sortOrder,
+        progress = progress,
+        notes = notes,
+        isMilestone = isMilestone,
+    )
+}.getOrNull()
 
 internal fun DependencyEntity.toDomain() = TaskDependency(id, projectId, predecessorId, successorId)
 
@@ -58,4 +69,7 @@ internal fun SchedulerTask.toEntity(now: Long) = TaskEntity(
     color = color.name,
     sortOrder = sortOrder,
     updatedAt = now,
+    progress = progress,
+    notes = notes,
+    isMilestone = isMilestone,
 )

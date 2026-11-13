@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
@@ -80,20 +81,7 @@ class RoomLocalSyncStore(
                 if (local.keepsLocal(change)) return
                 val next = when {
                     change.deleted -> local?.copy(deleted = true, dirty = false, updatedAt = change.updatedAt) ?: return
-                    else -> change.data!!.let { data ->
-                        TaskEntity(
-                            id = change.id,
-                            projectId = data.string("projectId"),
-                            title = data.string("title"),
-                            startMillis = data.long("startMillis"),
-                            endMillis = data.long("endMillis"),
-                            color = data.string("color"),
-                            sortOrder = data.int("sortOrder"),
-                            updatedAt = change.updatedAt,
-                            deleted = false,
-                            dirty = false,
-                        )
-                    }
+                    else -> change.toTaskEntity() ?: return
                 }
                 // The project row must exist (foreign key); it always does unless the data is inconsistent.
                 if (dao.project(next.projectId) == null) return
@@ -165,6 +153,33 @@ private fun JsonObject.string(key: String): String = getValue(key).jsonPrimitive
 private fun JsonObject.long(key: String): Long = getValue(key).jsonPrimitive.long
 private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int
 
+/**
+ * A pulled (not deleted) task as a clean row, or null when it breaks the task rules
+ * (times, progress), so a bad record is skipped instead of breaking the project's
+ * reads. Fields added later (`progress`, `notes`, `milestone`) default when absent.
+ */
+internal fun ChangeDto.toTaskEntity(): TaskEntity? {
+    val data = data ?: return null
+    val task = TaskEntity(
+        id = id,
+        projectId = data.string("projectId"),
+        title = data.string("title"),
+        startMillis = data.long("startMillis"),
+        endMillis = data.long("endMillis"),
+        color = data.string("color"),
+        sortOrder = data.int("sortOrder"),
+        updatedAt = updatedAt,
+        deleted = false,
+        dirty = false,
+        progress = data["progress"]?.jsonPrimitive?.int ?: 0,
+        notes = data["notes"]?.jsonPrimitive?.content ?: "",
+        isMilestone = data["milestone"]?.jsonPrimitive?.boolean ?: false,
+    )
+    val timesOk = if (task.isMilestone) task.endMillis == task.startMillis else task.endMillis > task.startMillis
+    val progressOk = task.progress in 0..100 && (!task.isMilestone || task.progress == 0 || task.progress == 100)
+    return task.takeIf { timesOk && progressOk }
+}
+
 internal fun ProjectEntity.toChange() = ChangeDto(
     entity = SyncEntities.PROJECT,
     id = id,
@@ -188,6 +203,9 @@ internal fun TaskEntity.toChange() = ChangeDto(
             "endMillis" to JsonPrimitive(endMillis),
             "color" to JsonPrimitive(color),
             "sortOrder" to JsonPrimitive(sortOrder),
+            "progress" to JsonPrimitive(progress),
+            "notes" to JsonPrimitive(notes),
+            "milestone" to JsonPrimitive(isMilestone),
         ),
     ),
 )

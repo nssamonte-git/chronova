@@ -31,6 +31,13 @@ class HandleHitTestTest {
     }
 
     @Test
+    fun aMilestoneOnlyMoves() {
+        for (x in listOf(0f, 40f, 60f, 80f)) {
+            assertEquals(GestureMode.MOVE, HandleHitTest.modeAt(x, 40f, 40f, inset, selected = true, isMilestone = true))
+        }
+    }
+
+    @Test
     fun narrowBar_keepsMiddleThirdForMoving() {
         // 60 px bar: inner zones shrink to 20 px each, middle 20 px moves.
         assertEquals(GestureMode.RESIZE_START, mode(60f, 60f))

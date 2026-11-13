@@ -38,6 +38,7 @@
     <string name="assistant_task_blank_title">A task needs a name.</string>
     <string name="assistant_task_end_before_start">“%1$s” would end before it starts.</string>
     <string name="assistant_task_outside">“%1$s” would fall outside the project’s dates.</string>
+    <string name="assistant_task_bad_progress">“%1$s” is a milestone: it’s either done or not done.</string>
     <string name="assistant_would_cycle">“%2$s” can’t depend on “%1$s”: that would make a loop.</string>
     <string name="assistant_already_linked">“%2$s” already depends on “%1$s”.</string>
     <string name="assistant_not_linked">“%2$s” doesn’t depend on “%1$s”.</string>
@@ -51,6 +52,10 @@
     <plurals name="assistant_task_too_short">
         <item quantity="one">“%1$s” would be shorter than %2$d minute.</item>
         <item quantity="other">“%1$s” would be shorter than %2$d minutes.</item>
+    </plurals>
+    <plurals name="assistant_task_notes_too_long">
+        <item quantity="one">“%1$s” can keep at most %2$d character of notes.</item>
+        <item quantity="other">“%1$s” can keep at most %2$d characters of notes.</item>
     </plurals>
     <plurals name="assistant_applied">
         <item quantity="one">%d task changed</item>

@@ -46,6 +46,9 @@ class MigrationTest {
     @Test
     fun upgradesFromVersion3() = upgradeFrom(3)
 
+    @Test
+    fun upgradesFromVersion4() = upgradeFrom(4)
+
     private fun upgradeFrom(version: Int) {
         createOldDatabase(version)
         val upgraded = ChronovaDatabase.create(context).also { db = it }
@@ -54,6 +57,8 @@ class MigrationTest {
         assertEquals(CURRENT_VERSION, sql.version)
         assertEquals(listOf("Launch"), sql.strings("SELECT name FROM projects"))
         assertEquals(listOf("Design"), sql.strings("SELECT title FROM tasks"))
+        // v5: existing tasks are not started, have no notes and aren't milestones.
+        assertEquals(listOf("0||0"), sql.strings("SELECT progress || '|' || notes || '|' || is_milestone FROM tasks"))
         if (version >= 2) assertEquals(listOf("HOURS"), sql.strings("SELECT scale FROM view_settings"))
         if (version >= 3) assertEquals(listOf("d1"), sql.strings("SELECT id FROM dependencies"))
         // Tables added after the starting version exist and start empty.
@@ -91,7 +96,7 @@ class MigrationTest {
 
     private companion object {
         const val DB_NAME = "chronova.db"
-        const val CURRENT_VERSION = 4
+        const val CURRENT_VERSION = 5
         const val SCHEMA_DIR = "noel.chronova.core.database.ChronovaDatabase"
     }
 }

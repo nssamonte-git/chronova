@@ -71,7 +71,7 @@ class CommandPlanner(
                     is ScheduleChange.CreateTask -> change.task
                     else -> null
                 } ?: continue
-                TaskRules.validate(task.title, task.startMillis, task.endMillis, window)
+                TaskRules.validate(task, window)
                     ?.let { return Plan.Failed(index, CommandProblem.InvalidTask(task.title, it)) }
             }
             working = ScheduleChanges.apply(working, changes).state

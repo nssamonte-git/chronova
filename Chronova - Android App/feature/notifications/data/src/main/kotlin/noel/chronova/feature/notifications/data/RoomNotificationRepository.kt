@@ -91,8 +91,12 @@ private data class StoredTask(
     val endMillis: Long,
     val color: String,
     val sortOrder: Int,
+    // Added with task progress, notes and milestones; undos stored before them read as the defaults.
+    val progress: Int = 0,
+    val notes: String = "",
+    val milestone: Boolean = false,
 ) {
-    fun toDomain() = SchedulerTask(id, projectId, title, startMillis, endMillis, TaskColor.valueOf(color), sortOrder)
+    fun toDomain() = SchedulerTask(id, projectId, title, startMillis, endMillis, TaskColor.valueOf(color), sortOrder, progress, notes, milestone)
 }
 
 @Serializable
@@ -131,7 +135,10 @@ private sealed interface StoredChange {
     }
 }
 
-private fun stored(task: SchedulerTask) = StoredTask(task.id, task.projectId, task.title, task.startMillis, task.endMillis, task.color.name, task.sortOrder)
+private fun stored(task: SchedulerTask) = StoredTask(
+    task.id, task.projectId, task.title, task.startMillis, task.endMillis, task.color.name, task.sortOrder,
+    task.progress, task.notes, task.isMilestone,
+)
 
 private fun stored(link: TaskDependency) = StoredLink(link.id, link.projectId, link.predecessorId, link.successorId)
 

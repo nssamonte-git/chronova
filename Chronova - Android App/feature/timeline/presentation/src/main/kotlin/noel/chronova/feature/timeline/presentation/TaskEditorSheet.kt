@@ -320,6 +320,8 @@ private fun problemText(problem: TaskProblemUi): String = when (problem) {
     TaskProblemUi.EndNotAfterStart -> stringResource(R.string.task_problem_end_not_after_start)
     is TaskProblemUi.TooShort -> pluralStringResource(R.plurals.task_problem_too_short, problem.minMinutes, problem.minMinutes)
     TaskProblemUi.OutsideProject -> stringResource(R.string.task_problem_outside_project)
+    is TaskProblemUi.NotesTooLong -> pluralStringResource(R.plurals.task_problem_notes_too_long, problem.maxLength, problem.maxLength)
+    TaskProblemUi.BadProgress -> stringResource(R.string.task_problem_bad_progress)
 }
 
 private fun LocalDate.toPickerMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

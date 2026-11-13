@@ -31,4 +31,6 @@ sealed interface TaskProblemUi {
     data object EndNotAfterStart : TaskProblemUi
     data class TooShort(val minMinutes: Int) : TaskProblemUi
     data object OutsideProject : TaskProblemUi
+    data class NotesTooLong(val maxLength: Int) : TaskProblemUi
+    data object BadProgress : TaskProblemUi
 }

@@ -12,6 +12,11 @@
     <string name="task_problem_blank_title">Give the task a title.</string>
     <string name="task_problem_end_not_after_start">The task must end after it starts.</string>
     <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>
+    <plurals name="task_problem_notes_too_long">
+        <item quantity="one">Notes can be at most %1$d character.</item>
+        <item quantity="other">Notes can be at most %1$d characters.</item>
+    </plurals>
+    <string name="task_problem_bad_progress">A milestone is either done or not done.</string>
     <string name="task_depends_on">Depends on (must finish first)</string>
     <string name="edit_not_saved">This task changed meanwhile, so the edit wasn’t saved. Try again.</string>
     <string name="add">Add</string>

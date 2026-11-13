@@ -27,4 +27,23 @@ class TaskRulesTest {
         assertEquals(TaskProblem.OutsideProject, TaskRules.validate("A", 23 * hour, 25 * hour, window))
         assertEquals(TaskProblem.OutsideProject, TaskRules.validate("A", -hour, hour, window))
     }
+
+    @Test
+    fun notesAndProgressHaveLimits() {
+        assertNull(TaskRules.validate("A", 9 * hour, 10 * hour, window, progress = 100, notes = "x".repeat(2000)))
+        assertEquals(TaskProblem.NotesTooLong(2000), TaskRules.validate("A", 9 * hour, 10 * hour, window, notes = "x".repeat(2001)))
+        assertEquals(TaskProblem.BadProgress, TaskRules.validate("A", 9 * hour, 10 * hour, window, progress = 101))
+        assertEquals(TaskProblem.BadProgress, TaskRules.validate("A", 9 * hour, 10 * hour, window, progress = -1))
+    }
+
+    @Test
+    fun aMilestoneIsAMomentInsideTheProject() {
+        assertNull(TaskRules.validate("Launch", 9 * hour, 9 * hour, window, isMilestone = true))
+        assertNull(TaskRules.validate("Launch", 0L, 0L, window, isMilestone = true, progress = 100))
+        // It has no length, so it can't end after it starts, and the project's last midnight is outside.
+        assertEquals(TaskProblem.EndNotAfterStart, TaskRules.validate("Launch", 9 * hour, 10 * hour, window, isMilestone = true))
+        assertEquals(TaskProblem.OutsideProject, TaskRules.validate("Launch", 24 * hour, 24 * hour, window, isMilestone = true))
+        assertEquals(TaskProblem.OutsideProject, TaskRules.validate("Launch", -hour, -hour, window, isMilestone = true))
+        assertEquals(TaskProblem.BadProgress, TaskRules.validate("Launch", 9 * hour, 9 * hour, window, isMilestone = true, progress = 50))
+    }
 }

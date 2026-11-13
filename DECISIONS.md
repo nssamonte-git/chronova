@@ -31,6 +31,13 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Decision: finish-to-start links only, stored in `dependencies` (Room v3, `MIGRATION_2_3`) with a project foreign key but no task foreign keys (a sync may deliver a link before its tasks). Cycles and self-links are blocked in the editor (`DependencyRules.forbiddenPredecessors`); violations (successor starts before predecessor ends) are drawn red, never auto-fixed by edits. Deleting a task tombstones its links; undo restores both.
 - Reason: the common Gantt case, with no surprising automatic rescheduling. (A voice command can ask to push dependents — see Voice editing.)
 
+## 2026-11-13: Task progress, notes and milestones
+
+- Decision (user choices): a task has `progress` (0–100; 100 is done, set in one tap by "Mark done"), free-text `notes` (at most 2,000 characters, may be empty) and `isMilestone`. A milestone is a moment, not a span: it ends when it starts, lies inside the project (before its last midnight), is either done or not (progress 0 or 100), is drawn as a diamond, and is dragged but never resized (made only by the editor's switch, never by shrinking a bar). `SchedulerTask`'s `init` enforces the shape; `TaskRules` also reports notes that are too long and bad progress. Room v5 (`MIGRATION_4_5`) adds the three columns with defaults (not started, no notes, not a milestone).
+- Sync: the three fields are optional on push (sync protocol rule 9): the server keeps the stored `progress` and `notes` when a push leaves them out, so an app from before them can't blank them; a push without `milestone` isn't one (such an app can't make one). Pulls always carry all three; the app defaults any that are missing and skips a pulled task that breaks the rules, and a stored row that breaks them is left out of reads rather than failing them.
+- Notes stay private: never sent to the voice providers, never shown in the staff admin panel (which shows titles and dates only).
+- Reason: progress and milestones are the basic Gantt features the app lacked; the three changes share one migration and one sync-contract change.
+
 ## 2026-11-11: Offline first, sync on request
 
 - Decision: Room on the phone is the working copy; every write stamps `updatedAt` and marks the row dirty, and deletes are tombstones until synced. Sync never starts on its own: coming back online with unsynced changes shows a prompt, and only "Sync now" (prompt, button, account screen) runs `SyncEngine`. Conflicts: last write wins per record by edit time (server clock as ceiling, ties to the server); a stale push gets the winning copy back. Contract: `docs/sync-protocol.md`.
