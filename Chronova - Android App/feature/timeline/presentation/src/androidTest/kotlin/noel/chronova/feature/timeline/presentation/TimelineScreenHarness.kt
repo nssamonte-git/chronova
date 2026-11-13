@@ -1,5 +1,10 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewRequest
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -89,9 +94,25 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
             today = { today },
         )
         compose.setContent {
-            ChronovaTheme { ProjectTimelineScreen(viewModel, AssistantSlot.None, onBack = {}, now = { now }) }
+            val assistant = AssistantSlot(false, emptySet(), null, {}, {}, {}, viewRequest = viewRequest)
+            ChronovaTheme { ProjectTimelineScreen(viewModel, assistant, onBack = {}, now = { now }) }
         }
         compose.waitForIdle()
+    }
+
+    /** What the assistant asks the screen to show; set it to deliver a request. */
+    var viewRequest by mutableStateOf<AssistantViewRequest?>(null)
+
+    /** Keys of the requests the screen has handled, in order. */
+    val handledRequests = mutableListOf<Any>()
+
+    /** Delivers [action] as the assistant would, until the screen has handled it. */
+    fun ask(action: AssistantViewAction) {
+        val key = handledRequests.size + 1 + (viewRequest?.key as? Int ?: 0)
+        viewRequest = AssistantViewRequest(key, action) {
+            handledRequests += key
+            viewRequest = null
+        }
     }
 
     fun string(id: Int): String = res.getString(id)

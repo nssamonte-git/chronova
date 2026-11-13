@@ -9,7 +9,8 @@ use DateTimeImmutable;
  * key, predictable. It understands a few English phrasings, e.g.
  * "push design by 2 hours", "move review to 2026-11-14", "move review to tomorrow",
  * "extend QA by 1 day", "rename QA to Testing", "delete review", "mark review done",
- * "... and everything after it".
+ * "... and everything after it"; and the actions "go to today", "go to tomorrow",
+ * "go to 2026-11-14", "show review".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -26,9 +27,14 @@ final class FakeInterpreter implements Interpreter
 
     private function proposal(string $text, array $context): array
     {
+        $text = rtrim($text, '.!?');
         $task = $this->task($text, $context['tasks']);
         if ($task === false) {
             return $this->clarify('Which task do you mean?');
+        }
+        $actions = $this->actions($text, $task, $context);
+        if ($actions !== null) {
+            return ['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'actions' => $actions];
         }
         $unit = '(minute|hour|day|week)s?';
         $operations = match (true) {
@@ -57,6 +63,17 @@ final class FakeInterpreter implements Interpreter
         }
 
         return ['result' => 'operations', 'operations' => $operations, 'question' => null, 'reason' => null];
+    }
+
+    /** Actions the words ask for, or null when they ask for none. */
+    private function actions(string $text, ?array $task, array $context): ?array
+    {
+        return match (true) {
+            (bool) preg_match('/^(go to|show|show me|jump to|take me to) today$/', $text) => [['type' => 'go_to_today']],
+            (bool) preg_match('/^(go to|show|show me|jump to|take me to) (\d{4}-\d{2}-\d{2}|tomorrow)$/', $text, $m) => [['type' => 'go_to_date', 'date' => $this->day($m[2], $context['today'])]],
+            $task !== null && (bool) preg_match('/^(show|show me|find|where is|go to) /', $text) => [['type' => 'show_task', 'taskId' => $task['id']]],
+            default => null,
+        };
     }
 
     /** The one task whose title appears in the text; null if none, false if several. */

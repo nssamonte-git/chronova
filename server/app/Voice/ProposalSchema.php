@@ -5,8 +5,11 @@ namespace App\Voice;
 /**
  * The only shape an interpreter may answer with: a list of scheduling
  * operations, a clarifying question, or "unsupported", plus, when the
- * operations would cause a clash, a clash-free "alternative". Used as the strict
- * structured-output schema for the model and mirrored by ProposalValidator.
+ * operations would cause a clash, a clash-free "alternative". "actions" are
+ * things the app does at once without changing anything (go to today, show a
+ * task), answered alone (result "actions") or alongside operations; only apps
+ * that say they understand them (capability "actions") are sent any. Used as the
+ * strict structured-output schema for the model and mirrored by ProposalValidator.
  *
  * Dates are local to the project ("2026-11-13"), date-times are local without
  * an offset ("2026-11-13T09:30"). The app does the final calculations
@@ -14,7 +17,7 @@ namespace App\Voice;
  */
 final class ProposalSchema
 {
-    public const RESULTS = ['operations', 'clarification', 'unsupported'];
+    public const RESULTS = ['operations', 'actions', 'clarification', 'unsupported'];
 
     public const UNITS = ['minutes', 'hours', 'days', 'weeks'];
 
@@ -50,18 +53,20 @@ final class ProposalSchema
         ];
     }
 
+    /** Action type => its fields (each field's JSON schema). Actions change nothing, so they run without a yes. */
+    public static function actions(): array
+    {
+        return [
+            'go_to_today' => [],
+            'go_to_date' => ['date' => ['type' => 'string', 'pattern' => self::DATE]],
+            'show_task' => ['taskId' => ['type' => 'string']],
+        ];
+    }
+
     /** The strict JSON schema sent to the model. */
     public static function jsonSchema(): array
     {
-        $variants = [];
-        foreach (self::operations() as $type => $fields) {
-            $variants[] = [
-                'type' => 'object',
-                'properties' => ['type' => ['type' => 'string', 'enum' => [$type]]] + $fields,
-                'required' => array_merge(['type'], array_keys($fields)),
-                'additionalProperties' => false,
-            ];
-        }
+        $variants = self::variants(self::operations());
 
         return [
             'type' => 'object',
@@ -71,9 +76,26 @@ final class ProposalSchema
                 'question' => ['type' => ['string', 'null']],
                 'reason' => ['type' => ['string', 'null']],
                 'alternative' => ['type' => ['array', 'null'], 'items' => ['anyOf' => $variants]],
+                'actions' => ['type' => 'array', 'items' => ['anyOf' => self::variants(self::actions())]],
             ],
-            'required' => ['result', 'operations', 'question', 'reason', 'alternative'],
+            'required' => ['result', 'operations', 'question', 'reason', 'alternative', 'actions'],
             'additionalProperties' => false,
         ];
+    }
+
+    /** One strict object schema per type: its "type" and its fields, all required. */
+    private static function variants(array $types): array
+    {
+        $variants = [];
+        foreach ($types as $type => $fields) {
+            $variants[] = [
+                'type' => 'object',
+                'properties' => ['type' => ['type' => 'string', 'enum' => [$type]]] + $fields,
+                'required' => array_merge(['type'], array_keys($fields)),
+                'additionalProperties' => false,
+            ];
+        }
+
+        return $variants;
     }
 }

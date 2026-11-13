@@ -6,9 +6,13 @@ use DateTimeImmutable;
 
 /**
  * Checks an interpreter's proposal against ProposalSchema and the request's
- * context: only known operation types and fields, task ids that are in the
- * context, real dates, sane amounts and titles. Returns the cleaned proposal,
- * or null when anything is off — a proposal is used whole or not at all.
+ * context: only known operation and action types and fields, task ids that are
+ * in the context, real dates, sane amounts and titles. Returns the cleaned
+ * proposal, or null when anything is off — a proposal is used whole or not at all.
+ *
+ * Actions only reach apps that understand them ($actions): for others an
+ * actions-only answer becomes "unsupported", and actions alongside operations
+ * are dropped (the operations still stand), so the answer keeps its old shape.
  */
 final class ProposalValidator
 {
@@ -18,10 +22,20 @@ final class ProposalValidator
 
     private const MAX_TEXT = 500;
 
-    public function validate(mixed $proposal, array $context, int $maxOperations): ?array
+    public const MAX_ACTIONS = 5;
+
+    private const REQUIRED_KEYS = ['result', 'operations', 'question', 'reason'];
+
+    private const OPTIONAL_KEYS = ['alternative', 'actions'];
+
+    /** Said to an app that can't do actions yet, instead of what it was asked. */
+    public const UPDATE_APP = 'Update the app to do that.';
+
+    public function validate(mixed $proposal, array $context, int $maxOperations, bool $actions = false): ?array
     {
         $keys = is_array($proposal) ? array_keys($proposal) : null;
-        if ($keys != ['result', 'operations', 'question', 'reason'] && $keys != ['result', 'operations', 'question', 'reason', 'alternative']) {
+        if ($keys === null || array_slice($keys, 0, 4) !== self::REQUIRED_KEYS
+            || array_diff(array_slice($keys, 4), self::OPTIONAL_KEYS) !== []) {
             return null;
         }
         $result = $proposal['result'];
@@ -31,18 +45,30 @@ final class ProposalValidator
         }
         $question = $this->text($proposal['question']);
         $reason = $this->text($proposal['reason']);
+        $taskIds = array_column($context['tasks'], 'id');
+        $proposedActions = $this->actions($proposal['actions'] ?? [], $taskIds);
+        if ($proposedActions === null) {
+            return null;
+        }
+        $answer = fn (string $result, array $operations, ?string $question, ?string $reason, ?array $alternative = null, array $done = []) => $this->answer($result, $operations, $question, $reason, $alternative, $actions ? $done : null);
 
         if ($result === 'clarification') {
-            return $question === null || $operations !== [] ? null : $this->answer($result, [], $question, null);
+            return $question === null || $operations !== [] || $proposedActions !== [] ? null : $answer($result, [], $question, null);
         }
         if ($result === 'unsupported') {
-            return $operations !== [] ? null : $this->answer($result, [], null, $reason);
+            return $operations !== [] || $proposedActions !== [] ? null : $answer($result, [], null, $reason);
+        }
+        if ($result === 'actions') {
+            if ($operations !== [] || $proposedActions === []) {
+                return null;
+            }
+
+            return $actions ? $answer($result, [], null, null, null, $proposedActions) : $answer('unsupported', [], null, self::UPDATE_APP);
         }
         if ($operations === [] || count($operations) > $maxOperations) {
             return null;
         }
 
-        $taskIds = array_column($context['tasks'], 'id');
         $clean = $this->operations($operations, $taskIds, $maxOperations);
         if ($clean === null) {
             return null;
@@ -50,7 +76,30 @@ final class ProposalValidator
         // A broken alternative only loses the alternative (the app can still ask for one).
         $alternative = is_array($proposal['alternative'] ?? null) ? $this->operations($proposal['alternative'], $taskIds, $maxOperations) : null;
 
-        return $this->answer($result, $clean, null, null, $alternative);
+        return $answer($result, $clean, null, null, $alternative, $proposedActions);
+    }
+
+    /** The checked actions (possibly none), or null if there are too many or one is bad. */
+    private function actions(mixed $actions, array $taskIds): ?array
+    {
+        if (! is_array($actions) || ! array_is_list($actions) || count($actions) > self::MAX_ACTIONS) {
+            return null;
+        }
+        $clean = [];
+        foreach ($actions as $action) {
+            $fields = is_array($action) ? ProposalSchema::actions()[$action['type'] ?? ''] ?? null : null;
+            if ($fields === null || array_keys($action) != array_merge(['type'], array_keys($fields))) {
+                return null;
+            }
+            foreach ($fields as $name => $schema) {
+                if (! $this->valid($name, $action[$name], $action, $taskIds)) {
+                    return null;
+                }
+            }
+            $clean[] = $action;
+        }
+
+        return $clean;
     }
 
     /** The checked list, or null if it is empty, too long or has a bad operation. */
@@ -71,9 +120,12 @@ final class ProposalValidator
         return $clean;
     }
 
-    private function answer(string $result, array $operations, ?string $question, ?string $reason, ?array $alternative = null): array
+    /** The answer; "actions" only for apps that understand them ($actions not null). */
+    private function answer(string $result, array $operations, ?string $question, ?string $reason, ?array $alternative, ?array $actions): array
     {
-        return ['result' => $result, 'operations' => $operations, 'question' => $question, 'reason' => $reason, 'alternative' => $alternative];
+        $answer = ['result' => $result, 'operations' => $operations, 'question' => $question, 'reason' => $reason, 'alternative' => $alternative];
+
+        return $actions === null ? $answer : $answer + ['actions' => $actions];
     }
 
     private function operation(mixed $operation, array $taskIds): ?array

@@ -335,6 +335,7 @@ internal fun TimelineContent(
                 contentPadding = PaddingValues(bottom = 88.dp),
                 now = now,
                 onTodayOutside = onTodayOutside,
+                viewRequest = assistant.viewRequest,
             )
         }
     }

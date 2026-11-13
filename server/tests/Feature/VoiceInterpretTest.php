@@ -17,9 +17,12 @@ beforeEach(function () {
     Sanctum::actingAs($this->user, ['sync']);
 });
 
-function interpret(string $transcript, array $context = []): TestResponse
+/** $capabilities: what the app says it can do (null: an app from before actions, which sends none). */
+function interpret(string $transcript, array $context = [], ?array $capabilities = null): TestResponse
 {
-    return test()->postJson('/v1/voice/interpret', ['transcript' => $transcript, 'context' => voiceContext($context)]);
+    $body = ['transcript' => $transcript, 'context' => voiceContext($context)];
+
+    return test()->postJson('/v1/voice/interpret', $capabilities === null ? $body : $body + ['capabilities' => $capabilities]);
 }
 
 /** A Responses API answer whose output text is $proposal. */
@@ -241,6 +244,52 @@ it('keeps the schema within the strict structured-output rules', function () {
     expect($schema)->not->toHaveKey('anyOf');
 });
 
+it('understands the "go to" actions with the fake interpreter, for apps that can do them', function (string $words, array $action) {
+    interpret($words, capabilities: ['actions'])
+        ->assertOk()
+        ->assertExactJson([
+            'revision' => 'r17', 'result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null,
+            'alternative' => null, 'actions' => [$action],
+        ]);
+    expect(VoiceEvent::sole()->outcome)->toBe('actions');
+})->with([
+    'today' => ['Go to today.', ['type' => 'go_to_today']],
+    'tomorrow' => ['show tomorrow', ['type' => 'go_to_date', 'date' => '2026-11-13']],
+    'a date' => ['jump to 2026-11-16', ['type' => 'go_to_date', 'date' => '2026-11-16']],
+    'a task' => ['where is review', ['type' => 'show_task', 'taskId' => 't3']],
+]);
+
+it('tells an app from before actions to update instead of sending it any', function () {
+    interpret('go to today')
+        ->assertOk()
+        ->assertExactJson([
+            'revision' => 'r17', 'result' => 'unsupported', 'operations' => [], 'question' => null,
+            'reason' => 'Update the app to do that.', 'alternative' => null,
+        ]);
+    // Other answers keep their old shape too, with no "actions".
+    interpret('delete review')->assertOk()->assertJsonMissingPath('actions');
+    interpret('delete review', capabilities: ['actions'])->assertOk()->assertJsonPath('actions', []);
+});
+
+it('passes on actions that come with operations, and only to apps that can do them', function () {
+    useOpenAi();
+    $answer = ['result' => 'operations', 'operations' => [['type' => 'delete_task', 'taskId' => 't3']], 'question' => null, 'reason' => null,
+        'alternative' => null, 'actions' => [['type' => 'show_task', 'taskId' => 't2'], ['type' => 'go_to_today']]];
+    Http::fake(['api.openai.com/*' => Http::response(openAiAnswer($answer))]);
+
+    interpret('show build and delete review', capabilities: ['actions'])->assertOk()->assertJson(['operations' => $answer['operations'], 'actions' => $answer['actions']]);
+    // The edits still stand for an older app; the actions are left out.
+    interpret('show build and delete review')->assertOk()->assertJson(['operations' => $answer['operations']])->assertJsonMissingPath('actions');
+});
+
+it('asks for actions in the schema and the rules', function () {
+    $actions = ProposalSchema::jsonSchema()['properties']['actions'];
+    expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
+        ->and(ProposalSchema::jsonSchema()['properties']['result']['enum'])->toContain('actions')
+        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task'])
+        ->and(OpenAiInterpreter::instructions())->toContain('go_to_today')->toContain('show_task')->toContain('result "actions"');
+});
+
 it('rejects proposals that break the contract', function (array $proposal) {
     useOpenAi();
     Http::fake(['api.openai.com/*' => Http::response(openAiAnswer($proposal))]);
@@ -263,6 +312,15 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'milestone at no time' => [['result' => 'operations', 'operations' => [['type' => 'create_milestone', 'title' => 'Launch', 'at' => '2026-11-13', 'predecessorIds' => []]], 'question' => null, 'reason' => null]],
     'no operations' => [['result' => 'operations', 'operations' => [], 'question' => null, 'reason' => null]],
     'clarification without a question' => [['result' => 'clarification', 'operations' => [], 'question' => null, 'reason' => null]],
+    'unknown action' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'format_phone']]]],
+    'action on an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'show_task', 'taskId' => 't9']]]],
+    'action on an impossible date' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_date', 'date' => '2026-02-30']]]],
+    'action with an extra field' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today', 'zoom' => 2]]]],
+    'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
+    'actions with nothing to do' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]],
+    'actions answer with operations' => [['result' => 'actions', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],
+    'actions with a question' => [['result' => 'clarification', 'operations' => [], 'question' => 'Which?', 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],
+    'an unknown top-level key' => [['result' => 'unsupported', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'mood' => 'happy']],
     'not an object' => [['just', 'a', 'list']],
 ]);
 
@@ -318,6 +376,8 @@ it('validates the request', function (array $body) {
         ['id' => 'a', 'title' => 'B', 'start' => '2026-11-12T09:00', 'end' => '2026-11-12T10:00', 'predecessorIds' => []],
     ]])]],
     'epoch instead of local time' => [['transcript' => 'x', 'context' => voiceContext(['now' => 1_800_000_000_000])]],
+    'capabilities not a list' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => 'actions']],
+    'too many capabilities' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => array_fill(0, 11, 'actions')]],
 ]);
 
 it('accepts zone names, UTC and fixed offsets', function (string $zone) {

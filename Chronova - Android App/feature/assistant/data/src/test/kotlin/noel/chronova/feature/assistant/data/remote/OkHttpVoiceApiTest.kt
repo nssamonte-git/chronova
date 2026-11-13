@@ -10,6 +10,7 @@ import mockwebserver3.MockWebServer
 import noel.chronova.core.domain.SampleTasks
 import noel.chronova.core.domain.schedule.ScheduleState
 import noel.chronova.feature.assistant.domain.ExplainedChange
+import noel.chronova.feature.assistant.domain.ProposedAction
 import noel.chronova.feature.assistant.domain.ProposedOperation
 import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.feature.assistant.domain.VoiceContext
@@ -69,6 +70,26 @@ class OkHttpVoiceApiTest {
     fun aServerThatIsGoneIsUnreachable() = runTest {
         server.close()
         assertFalse(api.reachable())
+    }
+
+    @Test
+    fun interpretSaysItCanDoActionsAndReadsThem() = runTest {
+        reply(
+            200,
+            """{"revision":"r1","result":"actions","operations":[],"question":null,"reason":null,"alternative":null,
+               "actions":[{"type":"go_to_today"},{"type":"go_to_date","date":"2026-03-03"},{"type":"show_task","taskId":"review"}]}""",
+        )
+        val proposal = api.interpret("token-1", "go to today", context)
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(body, body.contains(""""capabilities":["actions"]"""))
+        assertEquals("actions", proposal.result)
+        assertEquals(
+            listOf(ProposedAction("go_to_today"), ProposedAction("go_to_date", date = "2026-03-03"), ProposedAction("show_task", taskId = "review")),
+            proposal.actions,
+        )
+        // An answer without actions (an older server) has none.
+        reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
+        assertEquals(emptyList<ProposedAction>(), api.interpret("token-1", "delete design", context).actions)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewRequest
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
@@ -53,6 +54,7 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
     val message by assistant.message.collectAsStateWithLifecycle()
     val highlighted by assistant.highlight.collectAsStateWithLifecycle()
     val busy by assistant.busy.collectAsStateWithLifecycle()
+    val view by assistant.view.collectAsStateWithLifecycle()
     val micLevel = assistant.level
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -109,6 +111,7 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
         available = state.availability != AssistantAvailability.NOT_CONFIGURED,
         highlighted = highlighted,
         snackbar = snackbar,
+        viewRequest = view?.let { request -> AssistantViewRequest(request.id, request.action) { assistant.viewShown(request.id) } },
         screenEffects = {
             // Leaving the app stops the assistant; turning the phone (the activity is only recreated) doesn't.
             val activity = LocalActivity.current

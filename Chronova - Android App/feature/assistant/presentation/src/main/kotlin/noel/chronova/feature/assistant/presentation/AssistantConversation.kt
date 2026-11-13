@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import noel.chronova.feature.assistant.domain.VoiceAction
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.update
@@ -26,7 +28,9 @@ import noel.chronova.feature.assistant.presentation.orb.OrbMode
  * yes applies (through the one schedule apply path, refused if the schedule changed since), no
  * closes, anything else is a corrected request. Questions are asked aloud and the answer is folded
  * into the request. After applying, the orb closes first and then it says what changed while the
- * changed tasks are highlighted. Nothing is written without a spoken yes.
+ * changed tasks are highlighted. Nothing is written without a spoken yes. Actions (go to today, show
+ * a task) change nothing, so they are done at once: alone, the orb closes and it says what it shows;
+ * with changes, they are done before the changes are asked about.
  *
  * Plain Kotlin: [AssistantViewModel] starts and cancels it, and everything the screen shows goes
  * through the shared [session].
@@ -47,7 +51,10 @@ internal class AssistantConversation(
     suspend fun introduce() = voice.say(phrases.introduction())
 
     private sealed interface Outcome {
-        data class Proposal(val plan: VoicePlan) : Outcome
+        data class Proposal(val plan: VoicePlan, val actions: List<VoiceAction>) : Outcome
+
+        /** Only things to show: done at once, and the conversation ends. */
+        data class Act(val actions: List<VoiceAction>) : Outcome
         data class Question(val text: String) : Outcome
 
         /** [final]: nothing more can be done in this conversation. */
@@ -72,7 +79,9 @@ internal class AssistantConversation(
                 val request = context?.let { "$it $words" } ?: words
                 context = null
                 when (val outcome = interpret(request)) {
+                    is Outcome.Act -> return act(outcome.actions)
                     is Outcome.Proposal -> {
+                        session.show(outcome.actions.map { it.toViewAction() })
                         val plan = outcome.plan
                         val alternative = plan.alternative
                         val heard = propose(plan) ?: return declined()
@@ -125,7 +134,8 @@ internal class AssistantConversation(
     private suspend fun interpret(text: String): Outcome {
         session.ui.update { it.copy(mode = OrbMode.Thinking) }
         return when (val interpreted = useCases.interpret(projectId, text)) {
-            is Interpretation.Planned -> Outcome.Proposal(interpreted.plan)
+            is Interpretation.Planned -> Outcome.Proposal(interpreted.plan, interpreted.actions)
+            is Interpretation.Act -> Outcome.Act(interpreted.actions)
             is Interpretation.Question -> Outcome.Question(interpreted.text)
             is Interpretation.Unsupported -> Outcome.Problem(phrases.unsupported(interpreted.reason))
             is Interpretation.CannotDo -> Outcome.Problem(phrases.cannotDo(interpreted.problem, interpreted.titles, interpreted.projectEndMillis))
@@ -224,6 +234,20 @@ internal class AssistantConversation(
         }
     }
 
+    /** Shows what was asked for: the orb goes first, so the user sees it while hearing what is shown. */
+    private fun act(actions: List<VoiceAction>) {
+        session.ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
+        session.show(actions.map { it.toViewAction() })
+        session.explaining.value = true
+        session.afterword = session.scope.launch {
+            try {
+                voice.sayAside(phrases.showing(actions.last()))
+            } finally {
+                session.explaining.value = false
+            }
+        }
+    }
+
     /** The proposal was turned down (or not answered): its lines go, so nothing looks applied. */
     private suspend fun declined() {
         session.ui.update { it.copy(proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
@@ -252,4 +276,11 @@ internal class AssistantConversation(
          */
         const val NEAR_SPEECH_LEVEL = 2_000
     }
+}
+
+/** The screen's form of an action (the timeline knows only [AssistantViewAction]). */
+internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
+    VoiceAction.GoToToday -> AssistantViewAction.GoToToday
+    is VoiceAction.GoToDate -> AssistantViewAction.GoToDate(date)
+    is VoiceAction.ShowTask -> AssistantViewAction.ShowTask(taskId)
 }

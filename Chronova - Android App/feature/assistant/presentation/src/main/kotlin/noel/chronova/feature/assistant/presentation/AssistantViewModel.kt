@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import kotlinx.coroutines.flow.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -61,6 +62,14 @@ class AssistantViewModel(
 
     /** Tasks just changed by the assistant, highlighted while it says what changed. */
     val highlight: StateFlow<Set<String>> = session.highlight.asStateFlow()
+
+    /** The next thing it asked the screen to show, until the screen calls [viewShown]. */
+    val view: StateFlow<ViewRequestUi?> = session.views
+        .map { pending -> pending.firstOrNull()?.let { ViewRequestUi(it.id, it.action) } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** The screen has shown request [id]. */
+    fun viewShown(id: Long) = session.shown(id)
 
     /**
      * The assistant is at work: the orb is open (listening, thinking, talking, applying) or, once it

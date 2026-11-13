@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import java.time.format.DateTimeFormatter
+import noel.chronova.feature.assistant.domain.VoiceAction
 import android.content.res.Resources
 import java.time.ZoneId
 import noel.chronova.feature.assistant.domain.VoiceApiException
@@ -29,6 +31,9 @@ interface AssistantPhrases {
     fun microphoneUnavailable(): String
     fun failure(kind: VoiceApiException.Kind): String
     fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String
+
+    /** What it says after doing [action] (the last one, when there were several). */
+    fun showing(action: VoiceAction): String
 }
 
 /** [AssistantPhrases] from the app's string resources. */
@@ -57,6 +62,12 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         },
     )
 
+    override fun showing(action: VoiceAction): String = when (action) {
+        VoiceAction.GoToToday -> resources.getString(R.string.assistant_showing_today)
+        is VoiceAction.GoToDate -> resources.getString(R.string.assistant_showing_day, action.date.format(SPOKEN_DAY))
+        is VoiceAction.ShowTask -> resources.getString(R.string.assistant_showing_task, action.title)
+    }
+
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String {
         fun title(id: String) = titles[id] ?: id
         return when (problem) {
@@ -78,3 +89,6 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         }
     }
 }
+
+/** A day as it is said: "Friday 20 November". */
+private val SPOKEN_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM")

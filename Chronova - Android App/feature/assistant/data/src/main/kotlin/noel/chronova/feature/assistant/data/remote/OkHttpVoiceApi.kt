@@ -81,7 +81,7 @@ class OkHttpVoiceApi(
     }
 
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
-        val body = ApiJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto()))
+        val body = ApiJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto(), APP_CAPABILITIES))
         return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
     }
 

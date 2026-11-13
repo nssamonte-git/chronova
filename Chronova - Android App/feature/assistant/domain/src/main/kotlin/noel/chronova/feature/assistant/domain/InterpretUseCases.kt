@@ -20,7 +20,11 @@ data class VoicePlan(
 
 /** What a request turned into. */
 sealed interface Interpretation {
-    data class Planned(val plan: VoicePlan) : Interpretation
+    /** Changes to ask about; [actions] are done at once, before asking. */
+    data class Planned(val plan: VoicePlan, val actions: List<VoiceAction> = emptyList()) : Interpretation
+
+    /** Only things to do at once (nothing changes). */
+    data class Act(val actions: List<VoiceAction>) : Interpretation
     data class Question(val text: String) : Interpretation
     data class Unsupported(val reason: String?) : Interpretation
     data class CannotDo(val problem: CommandProblem, val titles: Map<String, String>, val projectEndMillis: Long) : Interpretation
@@ -55,8 +59,10 @@ class InterpretRequest(
                 val planned = VoicePlan(PreviewItem.from(handled.changes, now), handled.changes, ScheduleWarning.from(handled.changes, now))
                 Interpretation.Planned(
                     if (planned.warnings.isEmpty()) planned else planned.copy(alternative = alternative(text, context, now, proposal, planned)),
+                    handled.actions,
                 )
             }
+            is HandledProposal.Act -> Interpretation.Act(handled.actions)
             is HandledProposal.Clarify -> Interpretation.Question(handled.question)
             is HandledProposal.Unsupported -> Interpretation.Unsupported(handled.reason)
             is HandledProposal.CannotDo -> Interpretation.CannotDo(
@@ -87,7 +93,7 @@ class InterpretRequest(
         }
         // Usually the interpreter saw the clash and answered with an alternative already: no extra round trip.
         proposal.alternative?.takeIf { it.isNotEmpty() }
-            ?.let { usable(proposal.copy(operations = it, alternative = null)) }
+            ?.let { usable(proposal.copy(operations = it, alternative = null, actions = emptyList())) }
             ?.let { return it }
         val suggested = try {
             voiceApi.resolve(token(), text, context, proposal.operations, planned.warnings)
@@ -99,6 +105,6 @@ class InterpretRequest(
         suggested?.takeIf { it.result == "operations" }?.let(::usable)?.let { return it }
         val waitedFor = ScheduleWarning.waitedFor(planned.changes, state)
         if (waitedFor.isEmpty()) return null
-        return usable(proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }))
+        return usable(proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }, actions = emptyList()))
     }
 }

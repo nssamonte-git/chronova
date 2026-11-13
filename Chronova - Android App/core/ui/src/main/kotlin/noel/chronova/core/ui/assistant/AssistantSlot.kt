@@ -24,6 +24,8 @@ class AssistantSlot(
     val orbButton: @Composable (Modifier) -> Unit,
     /** Drawn over the screen once its content is ready: the big orb, the one-time notice, the introduction. */
     val overlay: @Composable (zone: ZoneId) -> Unit,
+    /** Something it asked the screen to show (go to today, show a task), until the screen has done it. */
+    val viewRequest: AssistantViewRequest? = null,
 ) {
     companion object {
         /** No assistant (previews, tests). */

@@ -33,6 +33,9 @@
     <string name="assistant_not_understood">Sorry, I couldn’t turn that into a change. Try saying it another way.</string>
     <string name="assistant_unsupported">I can only change this project’s schedule.</string>
     <string name="assistant_nothing_to_change">That wouldn’t change anything.</string>
+    <string name="assistant_showing_today">Here’s today.</string>
+    <string name="assistant_showing_day">Here’s %1$s.</string>
+    <string name="assistant_showing_task">Here’s %1$s.</string>
     <string name="assistant_schedule_changed">The schedule changed in the meantime, so nothing was changed. Try again.</string>
     <string name="assistant_unknown_task">I couldn’t find that task.</string>
     <string name="assistant_task_blank_title">A task needs a name.</string>

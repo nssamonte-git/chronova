@@ -85,9 +85,10 @@ class VoiceController extends Controller
         $limits = config('voice.limits');
         $data = $request->validate($this->interpretRules($limits));
         $context = $this->context($data['context']);
+        $actions = in_array('actions', $data['capabilities'] ?? [], true);
 
         return $this->propose($request, 'interpret', $started, $context, $validator,
-            fn () => $interpreter->interpret($data['transcript'], $context, $this->history($request)));
+            fn () => $interpreter->interpret($data['transcript'], $context, $this->history($request)), $actions);
     }
 
     /**
@@ -165,7 +166,7 @@ class VoiceController extends Controller
     }
 
     /** Asks the interpreter, validates its answer and records the call. */
-    private function propose(Request $request, string $kind, int $started, array $context, ProposalValidator $validator, Closure $ask): JsonResponse
+    private function propose(Request $request, string $kind, int $started, array $context, ProposalValidator $validator, Closure $ask, bool $actions = false): JsonResponse
     {
         try {
             $interpretation = $ask();
@@ -175,7 +176,7 @@ class VoiceController extends Controller
             return response()->json(['error' => 'provider_unavailable'], 502);
         }
 
-        $proposal = $validator->validate($interpretation->proposal, $context, config('voice.limits.operations'));
+        $proposal = $validator->validate($interpretation->proposal, $context, config('voice.limits.operations'), $actions);
         $tokens = [
             'input_tokens' => $interpretation->inputTokens,
             'output_tokens' => $interpretation->outputTokens,
@@ -206,6 +207,9 @@ class VoiceController extends Controller
     {
         return [
             'transcript' => ['required', 'string', 'max:'.$limits['transcript_chars']],
+            // What the app can do besides schedule edits; "actions" (go to today, show a task, ...). Older apps send none.
+            'capabilities' => ['sometimes', 'array', 'list', 'max:10'],
+            'capabilities.*' => ['string', 'max:40'],
             'context' => ['required', 'array'],
             'context.projectId' => ['required', 'string', 'max:100'],
             'context.projectName' => ['required', 'string', 'max:200'],

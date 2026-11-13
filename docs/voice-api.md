@@ -51,6 +51,8 @@ Dates (`YYYY-MM-DD`) and date-times (`YYYY-MM-DDTHH:MM`, no offset) are local to
 
 Each task may also carry `progress` (integer 0–100; 100 is done) and `milestone` (boolean; a milestone's `start` equals its `end`). Both are optional: an app from before them leaves them out, and they then read as `0` and `false`. A task's notes are never sent.
 
+`capabilities` (optional, ≤ 10 strings) says what the app can do besides schedule edits. Apps that send `"actions"` can be answered with actions (below); an app that sends nothing is never sent any, so its answers keep the shape it knows.
+
 Response (200):
 
 ```json
@@ -70,9 +72,20 @@ Response (200):
 `alternative` is null unless the operations would cause a clash the schedule doesn't already have (an overlap, or a task starting before one it waits for ends): then it holds the complete operations of the most sensible clash-free version, chosen by the same rules as `/resolve`, and checked the same way as `operations` (a broken alternative becomes null; the operations still stand). Answering it in the same call saves `/resolve`'s round trip (about 3–4 s); the app still re-plans and re-checks it.
 
 `result` is one of:
-- `operations` — one to 20 operations, in order;
-- `clarification` — no operations; `question` asks which task or what was meant;
-- `unsupported` — no operations; `reason` says why (not about this schedule, refused).
+- `operations` — one to 20 operations, in order (and, for an app with the `actions` capability, up to 5 actions to do first);
+- `actions` — only actions (1–5), no operations: nothing changes, so the app does them at once without asking. Never sent to an app without the capability: it gets `unsupported` with the reason "Update the app to do that." instead;
+- `clarification` — no operations or actions; `question` asks which task or what was meant;
+- `unsupported` — no operations or actions; `reason` says why (not about this app, refused).
+
+For an app with the `actions` capability the answer also has `actions` (a list, empty unless there are some).
+
+Actions (every field is always present):
+
+| `type` | Fields | What the app does |
+|---|---|---|
+| `go_to_today` | | Scrolls to now (or the nearer end of the project, saying so) |
+| `go_to_date` | `date` | Scrolls to that day: its first task, or 08:00 |
+| `show_task` | `taskId` | Selects the task and scrolls to its row and time |
 
 Operations (every field is always present):
 

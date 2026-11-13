@@ -22,6 +22,8 @@ data class Proposal(
     val reason: String?,
     /** The model's clash-free version of [operations], when it saw they would clash; checked by the app like any proposal. */
     val alternative: List<ProposedOperation>? = null,
+    /** Things to do at once, without a yes: alone (result "actions") or before the operations are asked about. */
+    val actions: List<ProposedAction> = emptyList(),
 )
 
 /** One proposed operation; which fields are set depends on [type]. */
@@ -46,8 +48,11 @@ data class ProposedOperation(
 
 /** What to show the user for a proposal. Nothing has been written. */
 sealed interface HandledProposal {
-    /** Changes to preview; applied only when the user confirms. */
-    data class Preview(val changes: List<ScheduleChange>) : HandledProposal
+    /** Changes to preview; applied only when the user confirms. [actions] are done first, at once. */
+    data class Preview(val changes: List<ScheduleChange>, val actions: List<VoiceAction> = emptyList()) : HandledProposal
+
+    /** Only things to do at once: nothing changes, so nothing is asked. */
+    data class Act(val actions: List<VoiceAction>) : HandledProposal
 
     data class Clarify(val question: String) : HandledProposal
 
@@ -82,15 +87,21 @@ class AICommandHandler(private val planner: CommandPlanner) {
         if (current == null || proposal.revision != sent.revision || ScheduleRevision.of(current) != sent.revision) {
             return HandledProposal.ScheduleChanged
         }
+        val actions = proposal.actions.map { VoiceAction.from(it, current) ?: return HandledProposal.Unreadable }
         return when (proposal.result) {
             "clarification" -> proposal.question?.takeIf { it.isNotBlank() }?.let { HandledProposal.Clarify(it) } ?: HandledProposal.Unreadable
             "unsupported" -> HandledProposal.Unsupported(proposal.reason?.takeIf { it.isNotBlank() })
+            "actions" -> if (actions.isEmpty() || proposal.operations.isNotEmpty()) HandledProposal.Unreadable else HandledProposal.Act(actions)
             "operations" -> {
                 val commands = proposal.operations.map { toCommand(it) ?: return HandledProposal.Unreadable }
                 if (commands.isEmpty()) return HandledProposal.Unreadable
                 when (val plan = planner.plan(current, commands)) {
-                    is CommandPlanner.Plan.Ready ->
-                        if (plan.changes.isEmpty()) HandledProposal.NothingToChange else HandledProposal.Preview(plan.changes)
+                    is CommandPlanner.Plan.Ready -> when {
+                        plan.changes.isNotEmpty() -> HandledProposal.Preview(plan.changes, actions)
+                        // Nothing to change, but what was asked to be shown still is.
+                        actions.isNotEmpty() -> HandledProposal.Act(actions)
+                        else -> HandledProposal.NothingToChange
+                    }
                     is CommandPlanner.Plan.Failed -> HandledProposal.CannotDo(plan.problem)
                 }
             }

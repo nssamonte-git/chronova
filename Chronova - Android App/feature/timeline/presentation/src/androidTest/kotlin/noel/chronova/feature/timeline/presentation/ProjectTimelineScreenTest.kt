@@ -1,5 +1,7 @@
 package noel.chronova.feature.timeline.presentation
 
+import androidx.compose.ui.test.onFirst
+import noel.chronova.core.ui.assistant.AssistantViewAction
 import noel.chronova.core.model.TimelineConfig
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -146,6 +148,36 @@ class ProjectTimelineScreenTest {
         // The editor says how much Sweep can slip.
         screen.nameCell("Sweep").performClick()
         compose.onNodeWithText(screen.res.getString(R.string.task_slack_can_slip, "1 h 30 min")).assertExists()
+    }
+
+    // What the assistant asks to be shown.
+
+    /** A task's bar: its title outside any clickable node (the name cell is clickable). */
+    private fun bar(title: String) = compose.onAllNodes(hasText(title) and !hasClickAction() and !hasAnyAncestor(hasClickAction()), useUnmergedTree = true)
+
+    @Test
+    fun theAssistantCanShowATaskAnywhereAndGoToToday() {
+        val paint = screen.task("paint", "Paint", screen.at(5, 9), screen.at(5, 10), 1)
+        val inspect = screen.task("inspect", "Inspect", screen.at(3, 14), screen.at(3, 15), 2)
+        screen.show(listOf(survey, paint, inspect))
+        // Only Survey (2 Nov, 10:00) is in view to begin with.
+        assertTrue(exists("Survey"))
+        assertTrue(!exists("Paint") && !exists("Inspect"))
+
+        screen.ask(AssistantViewAction.ShowTask("paint"))
+        compose.waitUntil(5_000) { screen.handledRequests.size == 1 }
+        compose.waitForIdle()
+        assertEquals("paint", (screen.viewModel.state.value as TimelineScreenState.Ready).timeline.selectedTaskId)
+        screen.nameCell("Paint").assertIsDisplayed()
+        // Its bar too (not only its row): the view scrolled to 5 Nov.
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
+        bar("Paint").onFirst().assertIsDisplayed()
+
+        // Today (3 Nov, 14:00) brings Inspect's time into view.
+        screen.ask(AssistantViewAction.GoToToday)
+        compose.waitUntil(5_000) { screen.handledRequests.size == 2 }
+        compose.waitUntil(5_000) { exists("Inspect") }
+        screen.nameCell("Inspect").assertIsDisplayed()
     }
 
     // Search and Today.

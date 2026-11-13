@@ -26,6 +26,44 @@ class AICommandHandlerTest {
     private fun proposal(vararg operations: ProposedOperation, revision: String? = context.revision) =
         Proposal(revision, "operations", operations.toList(), null, null)
 
+    private fun actions(vararg actions: ProposedAction, result: String = "actions", operations: List<ProposedOperation> = emptyList()) =
+        Proposal(context.revision, result, operations, null, null, actions = actions.toList())
+
+    @Test
+    fun actionsAloneAreDoneWithoutAPreview() {
+        val handled = handler.handle(
+            context,
+            state,
+            actions(ProposedAction("go_to_today"), ProposedAction("go_to_date", date = "2026-03-03"), ProposedAction("show_task", taskId = "review")),
+        )
+        assertEquals(
+            HandledProposal.Act(listOf(VoiceAction.GoToToday, VoiceAction.GoToDate(LocalDate.of(2026, 3, 3)), VoiceAction.ShowTask("review", "Review"))),
+            handled,
+        )
+    }
+
+    @Test
+    fun actionsThatComeWithChangesAreDoneBeforeTheChangesAreAskedAbout() {
+        val delete = ProposedOperation("delete_task", taskId = "review")
+        val handled = handler.handle(context, state, actions(ProposedAction("show_task", taskId = "qa-testing"), result = "operations", operations = listOf(delete)))
+        assertTrue(handled is HandledProposal.Preview)
+        assertEquals(listOf(VoiceAction.ShowTask("qa-testing", "QA Testing")), (handled as HandledProposal.Preview).actions)
+    }
+
+    @Test
+    fun anActionThisAppCantDoOrForATaskThatIsntThereIsUnreadable() {
+        for (bad in listOf(
+            actions(ProposedAction("format_phone")),
+            actions(ProposedAction("show_task", taskId = "gone")),
+            actions(ProposedAction("go_to_date", date = "2026-02-30")),
+            actions(ProposedAction("go_to_date")),
+            actions(),
+            actions(ProposedAction("go_to_today"), operations = listOf(ProposedOperation("delete_task", taskId = "review"))),
+        )) {
+            assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(context, state, bad))
+        }
+    }
+
     @Test
     fun contextIsLocalTimeAndListsPredecessors() {
         assertEquals(LocalDate.of(2026, 3, 2), context.today)

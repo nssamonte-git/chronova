@@ -1144,3 +1144,36 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Critical path:** turning the switch on outlined Alpha and Beta in red (the broken link counts) with red name marks and faded Gamma; it stayed on after leaving and reopening the project. The editor said "On the critical path: any delay moves the finish (Fri 13 Nov, 11:00)" for Beta and "Can slip 4 h without delaying the finish" for Gamma.
   - **Clean-up:** the throwaway project deleted and the deletion synced through a briefly started local server ("All changes synced"); the server stopped, the port forward removed, `local.properties` restored after each build.
   - **Checks after the fix:** `tools/check.sh` PASS (409 unit tests, 99 screenshots).
+
+### Voice control of the app
+
+- At your request, a plan to let the assistant drive the timeline and project pages by voice, in small batches, each implemented, tested and fixed before the next. Your choices:
+  - look-only commands (navigation, view, search, settings, sync, export) run at once, and settings are said aloud;
+  - anything that writes keeps the spoken yes (schedule edits, voice undo, new or copied projects); deleting a project stays manual;
+  - the orb goes on the timeline and the project list;
+  - the free fake interpreter on the phone for each batch, with one real-provider run at the end.
+- Batch 1, plumbing and "go to":
+  - **Server:**
+    - `ProposalSchema::actions()` (`go_to_today`, `go_to_date`, `show_task`), a new `result` "actions", and an `actions` list in the strict schema.
+    - `ProposalValidator` checks actions like operations (types, exact fields, real dates, known task ids, at most 5), and no actions with a question or "unsupported".
+    - Apps opt in with `capabilities: ["actions"]`. Others never see `actions`: an actions-only answer becomes "unsupported" with "Update the app to do that.", and actions that come with edits are dropped, so their answers keep the old shape.
+    - The prompt describes the actions; its "unsupported" rule now covers anything that's neither an edit nor an action.
+    - `FakeInterpreter` understands "go to today", "go to/show tomorrow", "go to 2026-11-16" and "show/find/where is <task>".
+    - `docs/voice-api.md` documents all of this.
+  - **App:**
+    - The request says `capabilities: ["actions"]`; `ProposedAction` and a domain `VoiceAction` (unknown or stale actions are unreadable).
+    - `AICommandHandler` returns `Act` for actions alone, and actions with a `Preview`.
+    - The conversation does actions at once: alone, the orb closes and it says "Here's today." / "Here's Saturday 14 November." / "Here's Beta."; with edits, they're shown first and the edits still wait for a yes.
+    - Requests reach the timeline through `AssistantSlot.viewRequest` (`:core:ui`), one at a time. The timeline scrolls with the Today button's logic, now shared, and "show" selects the task and brings its row and time into view.
+  - **Tests:**
+    - Server: 18 new (fake phrases, the old-app answers, actions alongside edits, the schema and rules, 9 contract rejections, 2 request checks); 337 passed, Pint clean.
+    - App: handler (3), API (1) and ViewModel (2) tests, plus a timeline screen test (show a task three days away, then go to today).
+    - `tools/check.sh` PASS (415 unit tests). Device tests on the phone: timeline 24/24, `:core:ui` 9/9. The assistant module has no device tests (its empty test app crashes the runner).
+  - **Phone check** (your data backed up first), on a throwaway project "VoiceCheck" with one task, Beta at 09:00, against the local server with the fake interpreter, the Mac's speaker saying the words:
+    - "go to today" closed the orb and scrolled from midnight to now;
+    - "go to tomorrow" showed Sat 14 Nov from 08:00.
+  - **Found on the phone, fixed:**
+    - "show beta" selected Beta but didn't scroll to it. The scroll waited on the row list it started with, and selecting the task makes a new one, so it gave up after a second. It now reads the latest list.
+    - The screen test had missed this: its bar check also matched the name cell's text. It now checks the bar itself, and fails without the fix.
+    - After the fix, "show beta" scrolled to 09:00 with Beta selected on the phone.
+  - **Seen once, not reproduced:** in the first run the orb opened a second time by itself after "show beta". It didn't happen again in the re-check or while I watched for 15 s; I'll keep watching in the next batches.

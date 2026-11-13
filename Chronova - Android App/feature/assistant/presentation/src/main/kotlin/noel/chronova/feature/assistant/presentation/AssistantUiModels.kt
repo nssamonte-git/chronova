@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewAction
+
 /** One line of what the assistant proposes to change, as the orb shows it. Times are epoch millis. */
 sealed interface ProposalLineUi {
     /** A task's times, title and/or progress change. */
@@ -35,3 +37,6 @@ sealed interface WarningUi {
     /** [successor] would start before [predecessor], which it waits for, ends. */
     data class BrokenLink(val predecessor: String, val successor: String) : WarningUi
 }
+
+/** Something the assistant asked the screen to show; [id] tells one from the next. */
+data class ViewRequestUi(val id: Long, val action: AssistantViewAction)

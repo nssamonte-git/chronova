@@ -11,6 +11,7 @@ import noel.chronova.feature.assistant.domain.DecisionAnswer
 import noel.chronova.feature.assistant.domain.ExplainStage
 import noel.chronova.feature.assistant.domain.ExplainedChange
 import noel.chronova.feature.assistant.domain.Proposal
+import noel.chronova.feature.assistant.domain.ProposedAction
 import noel.chronova.feature.assistant.domain.ProposedOperation
 import noel.chronova.feature.assistant.domain.ScheduleWarning
 import noel.chronova.feature.assistant.domain.VoiceApiException
@@ -80,8 +81,12 @@ internal fun ExplainedChange.toDto() = ExplainChangeDto(
     toProgress = toProgress,
 )
 
+/** [capabilities]: what this app can do besides schedule edits ([APP_CAPABILITIES]). */
 @Serializable
-internal data class InterpretRequestDto(val transcript: String, val context: VoiceContextDto)
+internal data class InterpretRequestDto(val transcript: String, val context: VoiceContextDto, val capabilities: List<String>)
+
+/** Tells the server this app can do actions (go to today, show a task, ...); older apps don't send it. */
+internal val APP_CAPABILITIES = listOf("actions")
 
 @Serializable
 internal data class VoiceContextDto(
@@ -163,7 +168,11 @@ internal data class InterpretResponseDto(
     val question: String? = null,
     val reason: String? = null,
     val alternative: List<OperationDto>? = null,
+    val actions: List<ActionDto> = emptyList(),
 )
+
+@Serializable
+internal data class ActionDto(val type: String, val date: String? = null, val taskId: String? = null)
 
 @Serializable
 internal data class OperationDto(
@@ -206,6 +215,7 @@ internal fun InterpretResponseDto.toDomain() = Proposal(
     question = question,
     reason = reason,
     alternative = alternative?.map { it.toDomain() },
+    actions = actions.map { ProposedAction(it.type, it.date, it.taskId) },
 )
 
 internal fun OperationDto.toDomain() = ProposedOperation(

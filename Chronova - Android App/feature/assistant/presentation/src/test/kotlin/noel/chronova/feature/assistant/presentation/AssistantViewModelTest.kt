@@ -1,5 +1,8 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import noel.chronova.feature.assistant.domain.VoiceAction
+import noel.chronova.feature.assistant.domain.ProposedAction
 import java.io.File
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
@@ -251,6 +254,7 @@ private object FakePhrases : AssistantPhrases {
     override fun microphoneUnavailable() = "mic busy"
     override fun failure(kind: VoiceApiException.Kind) = "failure $kind"
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long) = "cannot do"
+    override fun showing(action: VoiceAction) = "showing $action"
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -403,6 +407,48 @@ class AssistantViewModelTest {
         runCurrent() // availability is worked out
         viewModel.open()
         advanceUntilIdle()
+    }
+
+    @Test
+    fun anActionIsDoneAtOnceWithoutAYesAndTheOrbClosesBeforeSayingSo() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(c.revision, "actions", emptyList(), null, null, actions = listOf(ProposedAction("go_to_today"), ProposedAction("show_task", taskId = "review")))
+        }
+        says("go to today and show review")
+        talk()
+
+        assertFalse(viewModel.state.value.open)
+        assertEquals(listOf("hello", "showing ShowTask(taskId=review, title=Review)"), api.said)
+        // Nothing was asked about or changed.
+        assertTrue(api.explained.none { it is ExplainRequest.Changes })
+        assertEquals(SampleTasks.tasks(zone), repository.tasks.value)
+        // The screen gets them one at a time, in order.
+        val first = viewModel.view.value!!
+        assertEquals(AssistantViewAction.GoToToday, first.action)
+        viewModel.viewShown(first.id)
+        advanceUntilIdle()
+        assertEquals(AssistantViewAction.ShowTask("review"), viewModel.view.value?.action)
+        viewModel.viewShown(viewModel.view.value!!.id)
+        advanceUntilIdle()
+        assertNull(viewModel.view.value)
+        assertFalse(viewModel.busy.value)
+    }
+
+    @Test
+    fun anActionThatComesWithAChangeIsDoneBeforeTheChangeIsAskedAbout() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(
+                c.revision, "operations", listOf(ProposedOperation("shift_task", taskId = "review", amount = 1, unit = "hours")), null, null,
+                actions = listOf(ProposedAction("show_task", taskId = "review")),
+            )
+        }
+        says("show review and push it by an hour", "no")
+        talk()
+
+        // Shown without asking; the change was asked about and still needed a yes.
+        assertEquals(AssistantViewAction.ShowTask("review"), viewModel.view.value?.action)
+        assertEquals(listOf(ExplainStage.Proposal), api.explained.filterIsInstance<ExplainRequest.Changes>().map { it.stage })
+        assertEquals(originalReview, review)
     }
 
     @Test

@@ -38,6 +38,9 @@ internal class AssistantVoice(
     /** Says [text] in the assistant's voice (falls back to a caption alone). */
     suspend fun say(text: String) = speak(voice(text))
 
+    /** Says [text] with the orb closed: heard, not captioned. */
+    suspend fun sayAside(text: String) = speak(voice(text), captioned = false)
+
     private suspend fun voice(text: String): Spoken = useCases.voicePhrase(text, heardLanguage()).let { Spoken(it.text, it.audio) }
 
     data class Spoken(val text: String, val audio: ByteArray?)

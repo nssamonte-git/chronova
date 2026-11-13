@@ -1,5 +1,12 @@
 package noel.chronova.feature.timeline.presentation.components
 
+import androidx.compose.runtime.snapshotFlow
+import java.time.LocalDate
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import noel.chronova.core.ui.assistant.AssistantViewRequest
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Icon
@@ -94,6 +101,8 @@ fun SchedulerTimeline(
      * project's first or last moment, which the view has scrolled to.
      */
     onTodayOutside: (startsLater: Boolean, edgeMillis: Long) -> Unit = { _, _ -> },
+    /** What the assistant asked to be shown (today, a day, a task); handled once, then [AssistantViewRequest.onHandled]. */
+    viewRequest: AssistantViewRequest? = null,
 ) {
     val config = state.config
     val window = state.window
@@ -152,9 +161,13 @@ fun SchedulerTimeline(
                 }
             }
 
+            // The rows as last composed. A change to what is kept (a new selection) makes a new derived list,
+            // so code that runs on after it (scrolling to a task just selected) must read this, not the one it started with.
+            val latestShown = rememberUpdatedState(shownTasks)
+
             /** Scrolls [task]'s row, then its time, into view; it must be listed (kept). */
             suspend fun bringIntoView(task: TaskUi) {
-                val row = shownTasks.indexOfFirst { it.id == task.id }
+                val row = latestShown.value.indexOfFirst { it.id == task.id }
                 val visibleRows = listState.layoutInfo.visibleItemsInfo.map { it.index }
                 if (row >= 0 && row !in visibleRows) listState.animateScrollToItem(row)
                 val startX = TimelineMath.timeToX(task.startMillis, window.startMillis, pxPerMinute)
@@ -171,6 +184,40 @@ fun SchedulerTimeline(
             val highlightTask = state.tasks.firstOrNull { it.id in highlighted }
             LaunchedEffect(highlighted, highlightTask?.startMillis, highlightTask?.endMillis) {
                 bringIntoView(highlightTask ?: return@LaunchedEffect)
+            }
+
+            /**
+             * Puts [target] 20% in from the left, or the nearer end of the project when it is outside it
+             * (said for today, by [onTodayOutside]).
+             */
+            suspend fun goToMoment(target: Long, today: Boolean) {
+                if (today) {
+                    when {
+                        target < window.startMillis -> onTodayOutside(true, window.startMillis)
+                        target >= window.endMillis -> onTodayOutside(false, window.endMillis - 1)
+                    }
+                }
+                val at = target.coerceIn(window.startMillis, window.endMillis - 1)
+                viewport.animateScrollTo(TimelineMath.timeToX(at, window.startMillis, pxPerMinute) - viewport.viewportWidth * 0.2f)
+            }
+
+            // The assistant asked to see a moment or a task: it changes nothing, so it is done at once.
+            val currentViewRequest by rememberUpdatedState(viewRequest)
+            val currentOnSelectTask by rememberUpdatedState(onSelectTask)
+            LaunchedEffect(viewRequest?.key) {
+                val request = currentViewRequest ?: return@LaunchedEffect
+                when (val action = request.action) {
+                    AssistantViewAction.GoToToday -> goToMoment(currentNow(), today = true)
+                    is AssistantViewAction.GoToDate -> goToMoment(dayTarget(state, action.date), today = false)
+                    is AssistantViewAction.ShowTask -> if (state.tasks.any { it.id == action.taskId }) {
+                        // Selected first, so it is kept in the list wherever it is in time; then its row and time are scrolled to.
+                        currentOnSelectTask(action.taskId)
+                        withTimeoutOrNull(SHOW_TASK_WAIT_MILLIS) {
+                            snapshotFlow { latestShown.value.firstOrNull { it.id == action.taskId } }.filterNotNull().first()
+                        }?.let { bringIntoView(it) }
+                    }
+                }
+                request.onHandled()
             }
 
             // A new search or filter brings its earliest match into view.
@@ -311,16 +358,7 @@ fun SchedulerTimeline(
                     )
                     // Today: now 20% in from the left, or the nearer end of the project when today is outside it.
                     SmallFloatingActionButton(
-                        onClick = {
-                            val target = currentNow()
-                            val width = viewport.viewportWidth
-                            when {
-                                target < window.startMillis -> onTodayOutside(true, window.startMillis)
-                                target >= window.endMillis -> onTodayOutside(false, window.endMillis - 1)
-                            }
-                            val at = target.coerceIn(window.startMillis, window.endMillis - 1)
-                            scope.launch { viewport.animateScrollTo(TimelineMath.timeToX(at, window.startMillis, pxPerMinute) - width * 0.2f) }
-                        },
+                        onClick = { scope.launch { goToMoment(currentNow(), today = true) } },
                         containerColor = MaterialTheme.colorScheme.surface,
                         modifier = Modifier
                             .align(Alignment.BottomStart)
@@ -336,6 +374,19 @@ fun SchedulerTimeline(
 }
 
 private const val NOW_REFRESH_MILLIS = 60_000L
+
+/** How long a task asked for may take to get its row (after selecting it) before it is given up on. */
+private const val SHOW_TASK_WAIT_MILLIS = 1_000L
+
+/** Where to look on [date]: its first task's start, or 08:00 when nothing starts that day. */
+private fun dayTarget(state: TimelineUiState, date: LocalDate): Long {
+    val dayStart = date.atStartOfDay(state.zone).toInstant().toEpochMilli()
+    val dayEnd = date.plusDays(1).atStartOfDay(state.zone).toInstant().toEpochMilli()
+    return state.tasks.filter { it.startMillis in dayStart until dayEnd }.minOfOrNull { it.startMillis }
+        ?: date.atTime(DAY_LOOK_HOUR, 0).atZone(state.zone).toInstant().toEpochMilli()
+}
+
+private const val DAY_LOOK_HOUR = 8
 
 /** The earliest task one scale unit in from the left edge (clamped once laid out). */
 private fun initialScrollX(state: TimelineUiState, pxPerMinute: Float): Float {
