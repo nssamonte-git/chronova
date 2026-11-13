@@ -1798,3 +1798,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `tools/check.sh` PASS: 483 unit tests, 171 screenshots, lint 0 errors, both architecture checks;
   - device tests: account 12 and timeline 26, 0 failed.
 - **Not done:** this build was not installed on the phone; its changed screens can't be reached there without signing out.
+
+### The latest build on the phone (a81052a)
+
+- **Your request:** install the latest build on the phone.
+- **What was installed:** a debug build of `a81052a` (the tip of `main`), built with the phone's server address as before, installed over the existing app. `local.properties` is restored byte for byte.
+- **Checked:** the app opens on the project list, signed in, with the same data: Jnn with 5 tasks, 31 changes not synced, 36 unread. The first install date is unchanged.
+- **Not done:** nothing was tapped beyond opening the app.
