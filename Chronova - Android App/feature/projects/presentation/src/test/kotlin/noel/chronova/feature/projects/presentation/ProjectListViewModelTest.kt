@@ -50,15 +50,15 @@ class ProjectListViewModelTest {
         repository.projects.value = repository.projects.value + other
         val rows = listed().associateBy { it.id }
         val sample = SampleTasks.tasks(zone)
-        assertEquals(sample.take(MAX_CARD_BARS).map { it.color }, rows.getValue(SampleTasks.PROJECT_ID).bars.map { it.color })
-        assertEquals(emptyList<ProjectBarUi>(), rows.getValue("other").bars)
+        assertEquals(sample.map { it.color }, rows.getValue(SampleTasks.PROJECT_ID).lanes.map { it.single().color })
+        assertEquals(emptyList<List<ProjectBarUi>>(), rows.getValue("other").lanes)
     }
 
     @Test
     fun aNewTaskAppearsOnItsProjectsCard() = runTest {
-        assertEquals(4, listed().single().bars.size)
+        assertEquals(4, listed().single().lanes.size)
         repository.tasks.value = repository.tasks.value + SampleTasks.tasks(zone).first().copy(id = "added", sortOrder = 99)
-        assertEquals(5, (viewModel.state.value as ProjectListState.Loaded).projects.single().bars.size)
+        assertEquals(5, (viewModel.state.value as ProjectListState.Loaded).projects.single().lanes.size)
     }
 
     @Test

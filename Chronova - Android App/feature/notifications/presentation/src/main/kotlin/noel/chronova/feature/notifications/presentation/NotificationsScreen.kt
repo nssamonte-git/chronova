@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +68,7 @@ import noel.chronova.core.domain.notifications.NotificationKind
 import noel.chronova.core.ui.components.ChronovaTopBar
 import noel.chronova.core.ui.components.ChronovaTopBarTitle
 import noel.chronova.core.ui.components.EmptyState
+import noel.chronova.core.ui.components.SyncIcon
 import noel.chronova.core.ui.components.horizontalFadingEdges
 
 /** Everything that happened (sync, assistant, account), with filters and sorting. */
@@ -315,7 +315,7 @@ private fun CategoryIcon(kind: NotificationKind) {
     Box(Modifier.size(40.dp).background(container, CircleShape), contentAlignment = Alignment.Center) {
         val icon = Modifier.size(20.dp)
         when (kind.category) {
-            NotificationCategory.SYNC -> Icon(Icons.Filled.Refresh, contentDescription = null, tint = tint, modifier = icon)
+            NotificationCategory.SYNC -> Icon(SyncIcon, contentDescription = null, tint = tint, modifier = icon)
             NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint, modifier = icon)
             NotificationCategory.ACCOUNT -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint, modifier = icon)
         }

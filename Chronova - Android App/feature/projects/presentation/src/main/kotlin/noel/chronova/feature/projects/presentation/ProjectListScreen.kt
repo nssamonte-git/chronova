@@ -287,8 +287,8 @@ private fun ProjectCard(
                 }
                 ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onExport = onExport, onDelete = onDelete)
             }
-            if (summary.bars.isNotEmpty()) {
-                MiniChart(summary.bars, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth())
+            if (summary.lanes.isNotEmpty()) {
+                MiniChart(summary.lanes, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth())
             }
             // The count in words and, beside it, how much is done as a short bar (apart from the
             // chart above, so it isn't read as one more task).
@@ -316,31 +316,34 @@ private fun ProjectCard(
 }
 
 /**
- * The project's first tasks as a small chart: one thin bar per task in its colour, placed
- * along the project's days, and a dot for a milestone. A picture of the project's shape, not
+ * The project's tasks as a small chart: rows of thin bars in the tasks' colours, placed along
+ * the project's days, and a dot for a milestone. A picture of the project's shape, not
  * something to read: the dates and the count beside it say the same in words, so it has no
  * description of its own.
  */
 @Composable
-private fun MiniChart(bars: List<ProjectBarUi>, modifier: Modifier = Modifier) {
-    val colors = bars.map { it.color.toColor() }
+private fun MiniChart(lanes: List<List<ProjectBarUi>>, modifier: Modifier = Modifier) {
     val track = MaterialTheme.colorScheme.surfaceContainerHigh
-    Canvas(modifier.height(MiniBarHeight * bars.size + MiniBarGap * (bars.size - 1))) {
+    Canvas(modifier.height(MiniBarHeight * lanes.size + MiniBarGap * (lanes.size - 1))) {
         val barHeight = MiniBarHeight.toPx()
         val step = barHeight + MiniBarGap.toPx()
         val radius = CornerRadius(barHeight / 2f)
-        bars.forEachIndexed { row, bar ->
+        lanes.forEachIndexed { row, bars ->
             val top = row * step
             // A faint track for each row, so a short bar still reads as "part of this length".
             drawRoundRect(track, topLeft = Offset(0f, top), size = Size(size.width, barHeight), cornerRadius = radius)
-            if (bar.milestone) {
-                val x = (size.width * bar.start).coerceIn(barHeight / 2f, size.width - barHeight / 2f)
-                drawCircle(colors[row], radius = barHeight * 0.8f, center = Offset(x, top + barHeight / 2f))
-            } else {
-                // Never thinner than a dot, however short the task is against a long project.
-                val width = (size.width * (bar.end - bar.start)).coerceAtLeast(barHeight)
-                val left = (size.width * bar.start).coerceAtMost(size.width - width)
-                drawRoundRect(colors[row], topLeft = Offset(left, top), size = Size(width, barHeight), cornerRadius = radius)
+            for (bar in bars) {
+                val color = bar.color.toColor()
+                if (bar.milestone) {
+                    // Round and taller than its row, so it isn't taken for a short task.
+                    val x = (size.width * bar.start).coerceIn(barHeight, size.width - barHeight)
+                    drawCircle(color, radius = barHeight * 0.9f, center = Offset(x, top + barHeight / 2f))
+                } else {
+                    // Never shorter than a small pill, whatever the card's width.
+                    val width = (size.width * (bar.end - bar.start)).coerceAtLeast(barHeight * 2f)
+                    val left = (size.width * bar.start).coerceAtMost(size.width - width)
+                    drawRoundRect(color, topLeft = Offset(left, top), size = Size(width, barHeight), cornerRadius = radius)
+                }
             }
         }
     }

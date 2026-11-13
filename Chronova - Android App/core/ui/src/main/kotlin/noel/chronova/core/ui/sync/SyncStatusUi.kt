@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,10 +19,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import noel.chronova.core.designsystem.ChronovaSpacing
 import noel.chronova.core.designsystem.ChronovaTheme
-import noel.chronova.core.ui.BadgedIconButton
-import noel.chronova.core.ui.components.StatusDot
-import noel.chronova.core.ui.R
 import noel.chronova.core.domain.sync.SyncFailure
+import noel.chronova.core.ui.BadgedIconButton
+import noel.chronova.core.ui.R
+import noel.chronova.core.ui.components.StatusDot
+import noel.chronova.core.ui.components.SyncIcon
 
 /** What sync is doing, as the screens show it. */
 sealed interface SyncPhase {
@@ -52,7 +51,7 @@ fun SyncButton(ui: SyncUi, onSync: () -> Unit) {
         }
     } else {
         BadgedIconButton(count = ui.pending, onClick = onSync) {
-            Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync_now))
+            Icon(SyncIcon, contentDescription = stringResource(R.string.sync_now))
         }
     }
 }
