@@ -1651,3 +1651,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Checked the script itself:** its normal mode still passes (482 unit tests, 144 screenshots); the summary, run on a made-up crashed result with Gradle exit 0, prints FAIL and exits 1, and on a passing one prints PASS.
 - **Docs:** HANDOFF and Learn now say 110 device tests, that the emulator run has passed, and why the tests run one module at a time. Learn's per-module baselines were out of date before this (they added up to 102 against a stated 106); they now match the run.
 - **Not done:** the device tests were not run on the phone; CI has still never run (no remote).
+
+### The latest build on the phone
+
+- **Your request:** install the latest build on the phone.
+- **What was installed:** a debug build of `559c55f` (the tip of `main`), built with the phone's server address (`http://localhost:8000`) as before, installed over the existing app. `local.properties` is back to what it was, byte for byte.
+- **Human action:** the phone showed as "unauthorized" at first; it became available after about two minutes (the USB debugging prompt was accepted on the phone).
+- **Checked after the install:** the app opens on the project list in Light, still signed in, with the same data as before: project "Jnn" with 5 tasks, 31 changes not synced, 35 unread notifications. The first install date is unchanged (11 Nov), so the app's data was kept.
+- **Not done:** nothing was tapped in the app beyond opening it; no sync, no settings changed. The code is the same as the last phone check (`cb3766f`); the only commit since then changed `tools/check.sh`.
