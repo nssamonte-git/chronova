@@ -977,3 +977,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **AI mistakes:**
     - the summary first counted 0 screenshots (their results live under `intermediates`) and expected a fixed attribute order; both fixed and rechecked;
     - an early idea to run the whole check on Linux was replaced by `--devices-only`, so the Mac-recorded screenshots are only checked on macOS.
+- Handoff files refreshed, at your request (local-only files, so only this log line is committed):
+  - **`CURRENT_TASK.md`:** rewritten from a day-old status: no task in progress, what's left (push to GitHub for CI, ~10 GB of disk for the emulator, the phone's older build, offered follow-ups, open QA items), and the phone and local server state.
+  - **`HANDOFF.md`:** stale facts corrected (packages per module, `tools/` and CI, test baselines, the badge component, the orb fallback in previews). It was also cut from about 1,980 to 728 words so the startup files fit the project's budget: `scripts/validate-ai-context.sh` went from FAIL (about 2,763 tokens against 1,300) to PASS (1,067). The detailed invariants, server rules and validation procedures moved word for word into `Learn/02-architecture.md` and `Learn/04-validation.md`, and `HANDOFF.md` points there.
+  - **Conflict left for you:** the maintainability review suggested versioning `HANDOFF.md`, `DECISIONS.md` and `Learn/`, but the handoff guardrails keep that kit local-only. Nothing was changed either way.
