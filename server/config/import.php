@@ -23,6 +23,11 @@ return [
         // Standard models (Meta doesn't train on them); never the "-contributor" variants.
         'reader_model' => env('IMPORT_META_READER_MODEL', 'muse-spark-1.3'),
         'segmenter_model' => env('IMPORT_META_SEGMENTER_MODEL', 'sam-3.1'),
+        // SAM finds one concept per request, named by a short noun phrase.
+        'segment_phrases' => [
+            'bar' => env('IMPORT_META_BAR_PHRASE', 'gantt chart bar'),
+            'milestone' => env('IMPORT_META_MILESTONE_PHRASE', 'diamond shape'),
+        ],
         'timeout' => (int) env('IMPORT_META_TIMEOUT', 30),
     ],
 

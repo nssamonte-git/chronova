@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Import\ChartAnalyzer;
 use App\Import\FakeChartAnalyzer;
 use App\Import\FakeScheduleBuilder;
+use App\Import\MetaChartAnalyzer;
+use App\Import\OpenAiScheduleBuilder;
 use App\Import\ScheduleBuilder;
 use App\Push\FakePushSender;
 use App\Push\FcmPushSender;
@@ -40,10 +42,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Voice providers: real ones only when configured; the fake needs no network or key.
         // Schedules from images (docs/import-api.md): fakes until IMPORT_ANALYZER / IMPORT_BUILDER say otherwise.
-        $this->app->bind(ChartAnalyzer::class, fn () => match (config('import.analyzer')) {
+        $this->app->bind(ChartAnalyzer::class, fn ($app) => match (config('import.analyzer')) {
+            'meta' => new MetaChartAnalyzer($app->make(Http::class), config('import.meta')),
             default => new FakeChartAnalyzer,
         });
-        $this->app->bind(ScheduleBuilder::class, fn () => match (config('import.builder')) {
+        // The voice assistant's OpenAI key and model, with the import's own timeout and effort.
+        $this->app->bind(ScheduleBuilder::class, fn ($app) => match (config('import.builder')) {
+            'openai' => new OpenAiScheduleBuilder($app->make(Http::class), config('import.openai') + config('voice.openai')),
             default => new FakeScheduleBuilder,
         });
         $this->app->bind(Interpreter::class, fn ($app) => match (config('voice.interpreter')) {

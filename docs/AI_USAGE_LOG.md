@@ -1410,4 +1410,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Fixed in the tests (mine):**
     - Laravel built the providers even when imports were switched off; they're now resolved only when on.
     - Two expectations were wrong: hand-rounded columns, and a 366-day span that is in fact allowed.
+- Batch 2, the real providers (with faked HTTP):
+  - **`MetaChartAnalyzer`**: three Meta calls at once (`Http::pool`), each with the image as a base64 data URL, so the photo never gets a link:
+    - Muse Spark (`muse-spark-1.3`, Chat Completions, strict `ChartReadingSchema`) reads the kind, title, axis labels with x positions, rows with y and text, links and notes;
+    - SAM 3.1 runs twice, once for "gantt chart bar" and once for "diamond shape", with one-bit masks and `store` off; `SamBoxes` reads the boxes and skips the masks.
+    - It refuses Meta's `-contributor` models (your Standard-mode choice).
+  - **`OpenAiScheduleBuilder`**: the voice model, Responses API, strict `ImportSchema`, `store: false`, rules cached under their own key. It gets the matched rows (text and column numbers), never the image. A refusal counts as "unreadable".
+  - **Meta's docs, read for this:** SAM 3.1 takes a base64 data URL (so no Files API upload); one concept per request; the box grammar. The live probe planned here wasn't needed; the first real call waits for batch 6 and your test image file.
+  - **Tests:** 11 new:
+    - each request's shape (the image only in Meta's three requests; OpenAI's body has no image);
+    - tokens summed;
+    - 502 with no body leaked for each failing call;
+    - an unfinished or unparsable reading, "not a schedule", a refusal;
+    - missing keys and contributor models;
+    - the SAM box parser.
+  - **Checks:** server 476 passed, Pint clean. App unchanged.
+  - **My mistake:** one test compared `0.0` strictly after a JSON round trip, where it comes back as `0`.
 

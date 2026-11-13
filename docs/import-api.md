@@ -58,8 +58,8 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
 
 ## How it is read
 
-1. **Meta Muse Spark** reads the chart: its kind, title, time-axis labels with their x positions, and rows (label, vertical centre, text), links and notes.
-2. **Meta SAM 3.1** finds the shapes: "gantt chart bar" and "milestone diamond", as pixel boxes.
+1. **Meta Muse Spark** (Chat Completions, strict schema `ChartReadingSchema`) reads the chart: its kind, title, time-axis labels with their x positions, and rows (label, vertical centre, text), links and notes.
+2. **Meta SAM 3.1** (Responses API) finds the shapes, one concept per request: "gantt chart bar" and "diamond shape", as pixel boxes. `SamBoxes` reads the box tokens and skips the masks (`metadata.mask_encoding` `one_bit`, `store` `false`). All three Meta calls run at once (`Http::pool`), each with the image as a base64 data URL: the photo never gets a link.
 3. **`BarMatcher`** puts each shape on the row whose band holds its centre. It drops a row's pale full-width track when a shorter bar shares the row, and measures bars in the axis's columns ("Week 1" = 0 to 1). Without axis labels, positions are shares of the image's width.
 4. **OpenAI** (the voice model, `store: false`, strict schema `ImportSchema`) turns the matched rows into the schedule.
 5. **`ImportValidator`** checks the answer:
@@ -87,7 +87,9 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
 | `IMPORT_ANALYZER` | `fake` | `meta`: Muse Spark + SAM 3.1. `fake` always "sees" the test chart (nine steps over seven weeks). |
 | `IMPORT_BUILDER` | `fake` | `openai`. `fake` makes tasks from the matched bars by rule. |
 | `META_API_KEY` | | Meta Model API key (server only) |
-| `IMPORT_META_READER_MODEL` / `IMPORT_META_SEGMENTER_MODEL` | `muse-spark-1.3` / `sam-3.1` | |
+| `IMPORT_META_READER_MODEL` / `IMPORT_META_SEGMENTER_MODEL` | `muse-spark-1.3` / `sam-3.1` | Standard models only: a `-contributor` model is refused |
+| `IMPORT_META_BAR_PHRASE` / `IMPORT_META_MILESTONE_PHRASE` | `gantt chart bar` / `diamond shape` | What SAM looks for |
+| `IMPORT_OPENAI_REASONING_EFFORT` | `low` | |
 | `IMPORT_META_TIMEOUT` / `IMPORT_OPENAI_TIMEOUT` | `30` / `30` | Seconds per call |
 
 The OpenAI key and model are the voice assistant's (`OPENAI_API_KEY`, `VOICE_OPENAI_MODEL`). In production `upload_max_filesize` is 6 MB; a local PHP may still cap uploads at 2 MB.
