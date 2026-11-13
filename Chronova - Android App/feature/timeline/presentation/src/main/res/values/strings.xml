@@ -21,7 +21,7 @@
     <string name="task_bar_milestone">Milestone, %1$s</string>
     <string name="task_bar_state_done">Done</string>
     <string name="task_bar_state_progress">%1$d%% done</string>
-    <string name="task_cell_progress">%1$d%% · %2$s</string>
+    <string name="task_bar_progress">· %1$d%%</string>
     <string name="task_problem_blank_title">Give the task a title.</string>
     <string name="task_problem_end_not_after_start">The task must end after it starts.</string>
     <string name="task_problem_outside_project">The task must fit within the project’s dates.</string>

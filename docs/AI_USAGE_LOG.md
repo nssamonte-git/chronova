@@ -1010,3 +1010,19 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Checks:** `composer test` 319 passed, `composer lint` passed; `tools/check.sh` PASS (359 unit tests, 52 screenshots, lint 0 errors / 21 warnings, module graph and UI-model checks OK). Fakes only: the real voice providers weren't called.
   - **Not done:** no end-to-end run on the phone. That would mean installing this build over your app (which runs the v4 → v5 migration on your data) and starting the local server; it needs your go-ahead.
 - Follow-up fix found on review: cutting notes at 2,000 characters could split an emoji (two UTF-16 units) and leave half of it, which is invalid in the sync JSON and could have failed a whole sync. The cut now stops before such a pair. 1 new test; `tools/check.sh` PASS (360 unit tests).
+- End to end on the phone, with your go-ahead:
+  - **Before:** backed up the app's data with the app stopped (database and settings), one copy on the phone and one on the Mac. Migrated the local server database (the new `tasks` columns) and started it with the fake voice providers. Built with the local server URL (a temporary line in `local.properties`) and installed it over your app, keeping its data.
+  - **Upgrade:** your app opened with no crash: still signed in, "Jnn" with its 5 tasks, and the change that was already waiting to sync.
+  - **Checks, all in a throwaway project "E2E check" (your projects untouched):**
+    - a task saved at 50% with a note; the bar shaded half; the note survived reopening;
+    - the top-bar ✓ marked it done (check on the bar and in the row, "Marked done" with Undo), and Undo brought back 50%;
+    - a milestone ("When", no end or slider) linked to the task drew as a diamond with a red arrow at 09:00; dragged to 10:00 it moved with no grips, and the arrow turned grey;
+    - the card said "2 tasks", then "2 tasks · 1 done" once something was done.
+  - **Sync:** the server stored the task's progress and note and the milestone's equal start and end. A change pushed as if from another device (80%, a new note) came back to the phone on the next sync.
+  - **Voice:** the Mac spoke "mark build done" and then "yes" near the phone, and the server's fake transcriber returned those words. The orb showed "Mark “Build” done", applied it on the yes, and offered Undo. Undo from the notifications page then restored 80%, so the stored undo snapshot carries progress.
+  - **Found and fixed:** on this 360 dp phone the row label "50% · 09:00 –" cut off the end time. The batch 3 screenshot showed the same truncation and I missed it when checking by eye. The row now shows only the times, and the bar carries the percent ("Build · 80%"; the percent stays in view while the title shortens, and screen readers get it from the bar's state, not twice). Checked on the phone and in the re-recorded screenshot; `tools/check.sh` PASS (360 unit tests, 52 screenshots).
+  - **AI mistakes:**
+    - three Undo attempts missed the 4-second Undo bar (the screen-layout dump is slower than that); a tap by position right after the action worked;
+    - the first spoken "yes" came after the listening window had closed, so nothing was applied; the second run timed it right;
+    - the phone dropped off USB once mid-run; it reconnected and the port forward was re-added.
+  - **Cleanup:** the test project was deleted and the deletion synced (none of its tasks or projects are left live on the server); the server and queue worker stopped; `local.properties` restored; the on-phone backup copy removed. The Mac copy of the pre-upgrade backup stays in the session's scratchpad folder. The pending "Jnn" change was synced to the local server along the way. Your phone now runs this build (local server URL), with its data on database v5.

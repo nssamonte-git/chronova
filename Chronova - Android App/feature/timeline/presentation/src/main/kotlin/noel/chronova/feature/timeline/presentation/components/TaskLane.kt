@@ -220,6 +220,11 @@ fun TaskLane(
                 handleOutset = if (selected) HandleOutset else 0.dp,
                 doneFraction = doneFraction,
                 done = task.isDone,
+                progressLabel = if (!dragging && task.progress in 1 until TaskUi.DONE) {
+                    stringResource(R.string.task_bar_progress, task.progress)
+                } else {
+                    null
+                },
                 modifier = container,
             )
         }

@@ -30,8 +30,7 @@ import noel.chronova.feature.timeline.presentation.TaskUi
 
 /**
  * The fixed left cell of a timeline row: colour dot (a check once done), title, and in
- * taller rows the time range (one time for a milestone) with the progress. Tapping it
- * edits the task.
+ * taller rows the time range (one time for a milestone). Tapping it edits the task.
  */
 @Composable
 fun TaskNameCell(
@@ -77,12 +76,9 @@ fun TaskNameCell(
                     } else {
                         TimeFormat.range(task.startMillis, task.endMillis, zone)
                     }
+                    // Times only: the cell is narrow, and the bar shows the progress.
                     Text(
-                        text = if (task.progress in 1 until TaskUi.DONE) {
-                            stringResource(R.string.task_cell_progress, task.progress, times)
-                        } else {
-                            times
-                        },
+                        text = times,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

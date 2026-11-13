@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -66,6 +67,8 @@ fun TaskBar(
     highlighted: Boolean = false,
     doneFraction: Float = 0f,
     done: Boolean = false,
+    /** Shown after the label ("· 40%"), kept in view while the label shortens; read out by the bar's state instead. */
+    progressLabel: String? = null,
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
     val pulse = if (highlighted) {
@@ -117,7 +120,19 @@ fun TaskBar(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                if (progressLabel != null) {
+                    Text(
+                        text = progressLabel,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .clearAndSetSemantics {},
+                    )
+                }
             }
         }
         if (selected) {
