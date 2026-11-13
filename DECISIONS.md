@@ -87,8 +87,29 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 ## 2026-11-12: Voice editing
 
 - Decision: the server only proposes. The phone records (the turn ends on silence; at most 60 s), the server transcribes (ElevenLabs Scribe, with the project's task titles as key terms) and interprets (OpenAI, strict JSON schema, re-validated by the server), and the app plans the operations against its current data. The assistant is voice-only (2026-11-12 revision; previously a sheet with a text field and an Apply button): a 3D orb says the change and asks, applies only on a spoken yes (no, silence or tapping away changes nothing; other words are a corrected request), then hides and says what changed while the task is highlighted; Undo follows. Before asking, the app works out the clashes the change would cause (new overlaps, newly broken dependencies); the assistant names them and asks whether to apply it anyway — clashes are allowed, never blocked. Spoken answers are written by OpenAI and said by ElevenLabs in the user's chosen voice (`OYTbf65OHHFELVut7v2H`). "Push everything after it" (dependents) is available only through commands. Voice is on for every signed-in user, bounded by per-user, per-endpoint rate limits, a kill switch and admin usage metrics. Provider keys stay on the server (one server key for everyone, never per-user or on the phone); OpenAI is called with `store: false`; no audio is stored. Revised 2026-11-12 (user choice): each user's requests and answers are kept 90 days in `voice_decisions` and sent back with that user's own requests as history, deleted with the account, never shown to staff (`VOICE_LEARN_DECISIONS` switches it off). Clashes get a clash-free alternative suggested by the model (`/resolve`) and re-checked by the app, which falls back to its own fix (user choice: model suggests, app checks). The interpreter's fixed rules are cached at OpenAI (explicit breakpoint, shared key); user content never is. Fakes are the default for development and tests.
+- Revised 2026-11-13 (user choices): voice also drives the app (see Voice actions). Look-only requests run at once without a yes; writes still need one.
 - Reason: user choices (providers as in the brief, always preview then confirm with a spoken explanation, dependents via voice only, on for everyone, task names sent to the transcriber); a model can only propose allowed operations on listed tasks.
 - Constraint: real providers only with the user's approval; the privacy policy and Play Data safety form must cover ElevenLabs and OpenAI before release (`docs/voice-api.md`).
+
+## 2026-11-13: Voice actions
+
+- Decision (user choices):
+  - The assistant answers with **actions** as well as schedule operations. Actions change nothing, so they run at once without a yes, and the assistant says what it did:
+    - going to today, a day or a task;
+    - scale, zoom, row height and critical path;
+    - search, clearing it, and opening a task's editor;
+    - going to another project, the projects, notifications or the account;
+    - theme, reminders, sync and export (export opens the share sheet, so nothing is sent until the user picks where).
+  - Writes keep the spoken yes: schedule edits, "undo that" (the assistant's own last change, previewed) and new or copied projects (Undo deletes them). Deleting a project stays manual.
+  - The orb is on the timeline and the project list. From the list, only actions and new projects make sense; an edit is answered "Open a project first."
+- How it works:
+  - Apps opt in with `capabilities: ["actions"]`; older apps never receive actions or the new operations, so their answers keep their old shape.
+  - Requests carry what the screen shows (`context.view`: scale, critical path, selected task, search) and the user's projects, so "this task" and "open Jnn" are understood.
+  - Up to 5 actions run in order. Leaving the screen comes last and only once said.
+  - Screen actions reach the timeline through `AssistantSlot.viewRequest`. App actions go to the shell as an ordered queue (`AssistantViewModel.appRequest`), which uses the existing ViewModels and use cases.
+  - `CopyProject` moved to `:core:domain` so "Duplicate" and the assistant share it.
+- Reason: hands-free use of the whole app with no new risk; anything that writes still says what it will do and waits for a yes.
+- Constraint: every action is checked like an operation (exact fields, ids from the request, real dates) by the server and again by the app. A new action needs the schema, the validator, the prompt, the fake interpreter, `docs/voice-api.md` and the app's mapping together.
 
 ## 2026-11-12: Branding
 

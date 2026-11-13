@@ -1289,4 +1289,18 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - "copy voicecheck starting tomorrow" asked as above; a yes made "Copy of VoiceCheck" (14–20 Nov, 2 tasks), and tapping Undo deleted it.
     - Garden's Undo was tapped too late (the message lasts 10 s), so I deleted it from its menu.
     - The phone lost its network once during this check (the orb then won't open); it came back by itself.
+- Batch 8, real providers and docs:
+  - **Run:** on the phone through OpenAI and ElevenLabs on the local server (the keys in `server/.env`, as approved), 21 spoken requests on VoiceCheck and the project list:
+    - go to tomorrow; show me Beta; switch to weeks; zoom in a bit; show the critical path; which tasks aren't done yet; show everything again;
+    - hide the critical path and move Beta to 11 a.m. (yes); undo that (yes);
+    - mark Gamma as half done (no); open Gamma; what's the weather like today; go back to my projects;
+    - switch to light mode; follow my phone's theme; remind me an hour before each task; turn reminders off;
+    - export VoiceCheck as a spreadsheet; start a new project called Patio from Monday to Friday (no); sync now; open VoiceCheck.
+  - **Results:**
+    - Every one did what was asked; the share sheet was cancelled, and Patio wasn't made.
+    - The proposals were worded naturally ("Beta will move to today from 11 a.m. to noon. Shall I apply it?"). One mishearing ("Hafdan") was still read as 50%. The weather question was unsupported.
+    - All 21 answers were valid. Interpret took about 3.3 s typically, with about 5,300 input tokens, about 4,060 of them cached (see `docs/voice-api.md`).
+    - Your theme (System) and reminders (Off) are as they were. The server is back on the fakes.
+  - **You noticed:** after the switch to the real voices, the project list's orb still greeted in the fake test voice. Its greeting is fetched once and kept for the screen's life, and it had been fetched while the server ran the fakes. Restarting the app fixed it; a real server never changes voice this way.
+  - **Docs:** a DECISIONS entry (Voice actions) with a revision line under Voice editing, README's voice paragraph, `docs/voice-api.md`'s measurements, and the HANDOFF and Learn baselines (436 unit tests, 99 device tests, 393 server tests).
 
