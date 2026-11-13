@@ -78,6 +78,52 @@ class CommandPlannerTest {
     }
 
     @Test
+    fun setProgressAndMarkDone() {
+        val half = afterOf(ready(planner.plan(state, listOf(ScheduleCommand.SetProgress("review", 50)))).single())
+        assertEquals(50, half.progress)
+        val done = afterOf(ready(planner.plan(state, listOf(ScheduleCommand.SetProgress("review", 100)))).single())
+        assertTrue(done.isDone)
+        assertEquals(
+            CommandPlanner.Plan.Failed(0, CommandProblem.InvalidTask("Review", TaskProblem.BadProgress)),
+            planner.plan(state, listOf(ScheduleCommand.SetProgress("review", 101))),
+        )
+    }
+
+    @Test
+    fun createAMilestoneThatWaitsForATask() {
+        val changes = ready(planner.plan(state, listOf(ScheduleCommand.CreateMilestone(" Launch ", day.plusDays(2).atTime(17, 0), setOf("review")))))
+        val launch = (changes.first() as ScheduleChange.CreateTask).task
+        assertEquals("Launch", launch.title)
+        assertTrue(launch.isMilestone)
+        assertEquals(at(day.plusDays(2), 17) to at(day.plusDays(2), 17), launch.startMillis to launch.endMillis)
+        assertEquals(TaskDependency("id2", SampleTasks.PROJECT_ID, "review", launch.id), (changes[1] as ScheduleChange.AddLink).link)
+    }
+
+    @Test
+    fun aMilestoneMovesButHasNoLengthToChange() {
+        val launch = SchedulerTask("launch", SampleTasks.PROJECT_ID, "Launch", at(day, 12), at(day, 12), isMilestone = true)
+        val withMilestone = state.copy(tasks = state.tasks + launch)
+
+        val shifted = afterOf(ready(planner.plan(withMilestone, listOf(ScheduleCommand.ShiftTask("launch", Amount(1, AmountUnit.DAYS))))).single())
+        assertEquals(at(day.plusDays(1), 12) to at(day.plusDays(1), 12), shifted.startMillis to shifted.endMillis)
+        val set = afterOf(ready(planner.plan(withMilestone, listOf(ScheduleCommand.SetTimes("launch", start = null, end = day.atTime(15, 0))))).single())
+        assertEquals(at(day, 15) to at(day, 15), set.startMillis to set.endMillis)
+
+        assertEquals(
+            CommandPlanner.Plan.Failed(0, CommandProblem.MilestoneHasNoLength("Launch")),
+            planner.plan(withMilestone, listOf(ScheduleCommand.ChangeDuration("launch", Amount(1, AmountUnit.HOURS)))),
+        )
+        assertEquals(
+            CommandPlanner.Plan.Failed(0, CommandProblem.MilestoneHasNoLength("Launch")),
+            planner.plan(withMilestone, listOf(ScheduleCommand.SetDuration("launch", Amount(1, AmountUnit.HOURS)))),
+        )
+        assertEquals(
+            CommandPlanner.Plan.Failed(0, CommandProblem.InvalidTask("Launch", TaskProblem.BadProgress)),
+            planner.plan(withMilestone, listOf(ScheduleCommand.SetProgress("launch", 50))),
+        )
+    }
+
+    @Test
     fun problemsNameTheCommandThatFailed() {
         val plan = planner.plan(
             state,

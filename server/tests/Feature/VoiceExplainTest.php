@@ -21,6 +21,11 @@ function moved(string $task = 'Build', string $to = '2026-11-12T11:00', string $
     return ['change' => 'moved', 'task' => $task, 'fromStart' => '2026-11-12T09:00', 'fromEnd' => '2026-11-12T10:00', 'toStart' => $to, 'toEnd' => $toEnd];
 }
 
+function progressChange(int $to, int $from = 0, string $task = 'Build'): array
+{
+    return ['change' => 'progress', 'task' => $task, 'fromProgress' => $from, 'toProgress' => $to];
+}
+
 function explain(array $body): TestResponse
 {
     return test()->postJson('/v1/voice/explain', $body);
@@ -78,6 +83,11 @@ it('summarises every kind of change in plain words, as a proposal', function (ar
     'removed' => [[['change' => 'removed', 'task' => 'Review']], 'Review will be deleted. Shall I apply it?'],
     'linked' => [[['change' => 'linked', 'predecessor' => 'Build', 'successor' => 'Review']], 'Review will wait for Build. Shall I apply it?'],
     'unlinked' => [[['change' => 'unlinked', 'predecessor' => 'Build', 'successor' => 'Review']], 'Review will no longer wait for Build. Shall I apply it?'],
+    'done' => [[progressChange(100)], 'Build will be marked done. Shall I apply it?'],
+    'part done' => [[progressChange(40)], 'Build will be 40% done. Shall I apply it?'],
+    'not started' => [[progressChange(0, 100)], 'Build will be marked not started. Shall I apply it?'],
+    'milestone added' => [[['change' => 'added', 'task' => 'Launch', 'toStart' => '2026-11-13T17:00', 'toEnd' => '2026-11-13T17:00']], 'New milestone Launch, Friday 13 November, 17:00. Shall I apply it?'],
+    'milestone moved' => [[moved('Launch', '2026-11-13T17:00', '2026-11-13T17:00')], 'Launch will move to Friday 13 November, 17:00. Shall I apply it?'],
     'several' => [[moved(), moved('Review'), moved('QA')], 'Build will move to Thursday 12 November, 11:00 to 12:00. And 2 other changes. Shall I apply it?'],
     'two' => [[moved(), moved('Review')], 'Build will move to Thursday 12 November, 11:00 to 12:00. And one other change. Shall I apply it?'],
 ]);
@@ -92,6 +102,9 @@ it('summarises every kind of change in plain words, once applied', function (arr
     'removed' => [[['change' => 'removed', 'task' => 'Review']], 'Done. Review was deleted.'],
     'linked' => [[['change' => 'linked', 'predecessor' => 'Build', 'successor' => 'Review']], 'Done. Review now waits for Build.'],
     'unlinked' => [[['change' => 'unlinked', 'predecessor' => 'Build', 'successor' => 'Review']], 'Done. Review no longer waits for Build.'],
+    'done' => [[progressChange(100)], 'Done. Build is done.'],
+    'part done' => [[progressChange(40)], 'Done. Build is 40% done.'],
+    'milestone added' => [[['change' => 'added', 'task' => 'Launch', 'toStart' => '2026-11-13T17:00', 'toEnd' => '2026-11-13T17:00']], 'Done. Added milestone Launch, Friday 13 November, 17:00.'],
     'several' => [[moved(), moved('Review'), moved('QA')], 'Done. Build moved to Thursday 12 November, 11:00 to 12:00. And 2 other changes.'],
     'two' => [[moved(), moved('Review')], 'Done. Build moved to Thursday 12 November, 11:00 to 12:00. And one other change.'],
 ]);
@@ -366,6 +379,8 @@ it('validates the request', function (array $body) {
     'extra field' => [['changes' => [['change' => 'removed', 'task' => 'Build', 'note' => 'say hi']], 'today' => '2026-11-12']],
     'bad time' => [['changes' => [moved('Build', 'tomorrow')], 'today' => '2026-11-12']],
     'title too long' => [['changes' => [['change' => 'removed', 'task' => str_repeat('a', 201)]], 'today' => '2026-11-12']],
+    'progress over 100' => [['changes' => [progressChange(120)], 'today' => '2026-11-12']],
+    'progress as text' => [['changes' => [['change' => 'progress', 'task' => 'Build', 'fromProgress' => 0, 'toProgress' => 'all']], 'today' => '2026-11-12']],
     'too many' => [['changes' => array_fill(0, 101, moved()), 'today' => '2026-11-12']],
     'question too long' => [['question' => str_repeat('a', 301)]],
     'bad language' => [['question' => 'Which?', 'language' => 'english']],

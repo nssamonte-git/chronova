@@ -19,9 +19,14 @@ data class ExplainedChange(
     val fromEnd: LocalDateTime? = null,
     val toStart: LocalDateTime? = null,
     val toEnd: LocalDateTime? = null,
+    val fromProgress: Int? = null,
+    val toProgress: Int? = null,
 ) {
     companion object {
-        /** The preview in explain terms; a task both renamed and moved is two changes, the move under its new name. */
+        /**
+         * The preview in explain terms; a task both renamed and moved is two changes, the move
+         * (and any progress) under its new name. A milestone is added or moved with equal start and end.
+         */
         fun from(items: List<PreviewItem>, zone: ZoneId): List<ExplainedChange> = items.flatMap { item ->
             fun local(millis: Long) = Instant.ofEpochMilli(millis).atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.MINUTES)
             when (item) {
@@ -36,6 +41,11 @@ data class ExplainedChange(
                             toStart = local(item.after.startMillis),
                             toEnd = local(item.after.endMillis),
                         )
+                    } else {
+                        null
+                    },
+                    if (item.progressed) {
+                        ExplainedChange("progress", task = item.after.title, fromProgress = item.before.progress, toProgress = item.after.progress)
                     } else {
                         null
                     },

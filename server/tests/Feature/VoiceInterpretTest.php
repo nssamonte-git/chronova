@@ -62,6 +62,47 @@ it('returns validated operations with the revision echoed', function () {
         ->and($event->user_id)->toBe($this->user->getKey());
 });
 
+it('accepts progress and milestone operations, and reads progress and milestones in the context', function () {
+    useOpenAi();
+    $operations = [
+        ['type' => 'set_progress', 'taskId' => 't1', 'percent' => 100],
+        ['type' => 'create_milestone', 'title' => ' Launch ', 'at' => '2026-11-18T17:00', 'predecessorIds' => ['t3']],
+    ];
+    Http::fake(['api.openai.com/*' => Http::response(openAiAnswer(['result' => 'operations', 'operations' => $operations, 'question' => null, 'reason' => null]))]);
+
+    $tasks = voiceContext()['tasks'];
+    $tasks[0] += ['progress' => 40, 'milestone' => false];
+    $tasks[2] += ['progress' => 0, 'milestone' => true, 'notes' => 'never sent on'];
+    interpret('mark design done and add a milestone Launch on the 18th at 5', ['tasks' => $tasks])
+        ->assertOk()
+        ->assertJson(['result' => 'operations', 'operations' => [
+            $operations[0],
+            ['type' => 'create_milestone', 'title' => 'Launch', 'at' => '2026-11-18T17:00', 'predecessorIds' => ['t3']],
+        ]]);
+
+    Http::assertSent(function (ClientRequest $request) {
+        $sent = json_decode($request->data()['input'][1]['content'], true)['schedule']['tasks'];
+
+        // Older apps send neither field: they read as not started and not a milestone. Notes never reach the model.
+        return array_column($sent, 'progress') === [40, 0, 0]
+            && array_column($sent, 'milestone') === [false, false, true]
+            && ! str_contains(json_encode($sent), 'notes');
+    });
+});
+
+it('rejects bad progress or milestone flags in the context', function (array $field) {
+    $tasks = voiceContext()['tasks'];
+    $tasks[0] += $field;
+    interpret('push design by 2 hours', ['tasks' => $tasks])->assertStatus(422);
+})->with([
+    'progress over 100' => [['progress' => 101]],
+    'milestone not a boolean' => [['milestone' => 'yes']],
+]);
+
+it('understands "mark X done" with the fake interpreter', function () {
+    interpret('mark review done')->assertOk()->assertJson(['operations' => [['type' => 'set_progress', 'taskId' => 't3', 'percent' => 100]]]);
+});
+
 it('asks instead of guessing when the task is unclear', function () {
     interpret('push it by 2 hours', ['tasks' => [
         ['id' => 'a', 'title' => 'QA', 'start' => '2026-11-12T09:00', 'end' => '2026-11-12T10:00', 'predecessorIds' => []],
@@ -217,6 +258,9 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'self link' => [['result' => 'operations', 'operations' => [['type' => 'add_dependency', 'predecessorId' => 't1', 'successorId' => 't1']], 'question' => null, 'reason' => null]],
     'create ending before it starts' => [['result' => 'operations', 'operations' => [['type' => 'create_task', 'title' => 'QA', 'start' => '2026-11-13T10:00', 'end' => '2026-11-13T09:00', 'predecessorIds' => []]], 'question' => null, 'reason' => null]],
     'blank title' => [['result' => 'operations', 'operations' => [['type' => 'rename_task', 'taskId' => 't1', 'title' => '  ']], 'question' => null, 'reason' => null]],
+    'progress over 100' => [['result' => 'operations', 'operations' => [['type' => 'set_progress', 'taskId' => 't1', 'percent' => 120]], 'question' => null, 'reason' => null]],
+    'progress as text' => [['result' => 'operations', 'operations' => [['type' => 'set_progress', 'taskId' => 't1', 'percent' => '50']], 'question' => null, 'reason' => null]],
+    'milestone at no time' => [['result' => 'operations', 'operations' => [['type' => 'create_milestone', 'title' => 'Launch', 'at' => '2026-11-13', 'predecessorIds' => []]], 'question' => null, 'reason' => null]],
     'no operations' => [['result' => 'operations', 'operations' => [], 'question' => null, 'reason' => null]],
     'clarification without a question' => [['result' => 'clarification', 'operations' => [], 'question' => null, 'reason' => null]],
     'not an object' => [['just', 'a', 'list']],

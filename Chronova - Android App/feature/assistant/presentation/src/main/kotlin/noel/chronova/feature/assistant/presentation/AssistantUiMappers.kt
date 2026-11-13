@@ -13,6 +13,8 @@ internal fun PreviewItem.toUi(): ProposalLineUi = when (this) {
         endBefore = before.endMillis,
         start = after.startMillis,
         end = after.endMillis,
+        progressBefore = before.progress,
+        progress = after.progress,
     )
     is PreviewItem.Added -> ProposalLineUi.Added(task.title, task.startMillis, task.endMillis)
     is PreviewItem.Removed -> ProposalLineUi.Removed(task.title)

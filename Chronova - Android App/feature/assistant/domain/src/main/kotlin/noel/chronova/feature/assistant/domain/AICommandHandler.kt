@@ -38,6 +38,10 @@ data class ProposedOperation(
     val predecessorIds: List<String>? = null,
     val predecessorId: String? = null,
     val successorId: String? = null,
+    /** `set_progress`: percent done, 0–100. */
+    val percent: Int? = null,
+    /** `create_milestone`: when it happens (local date-time). */
+    val at: String? = null,
 )
 
 /** What to show the user for a proposal. Nothing has been written. */
@@ -117,6 +121,12 @@ class AICommandHandler(private val planner: CommandPlanner) {
             "add_dependency" -> ScheduleCommand.AddDependency(op.predecessorId.req(), op.successorId.req())
             "remove_dependency" -> ScheduleCommand.RemoveDependency(op.predecessorId.req(), op.successorId.req())
             "reschedule_dependents" -> ScheduleCommand.RescheduleDependents(op.taskId.req())
+            "set_progress" -> ScheduleCommand.SetProgress(op.taskId.req(), op.percent.req())
+            "create_milestone" -> ScheduleCommand.CreateMilestone(
+                title = op.title.req(),
+                at = LocalDateTime.parse(op.at.req()),
+                predecessorIds = op.predecessorIds.orEmpty().toSet(),
+            )
             else -> null
         }
     } catch (_: MissingField) {

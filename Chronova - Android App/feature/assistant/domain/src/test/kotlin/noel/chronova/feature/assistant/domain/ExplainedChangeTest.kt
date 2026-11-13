@@ -28,6 +28,14 @@ class ExplainedChangeTest {
     }
 
     @Test
+    fun progressIsItsOwnChange() {
+        assertEquals(
+            listOf(ExplainedChange("progress", task = "Review", fromProgress = 0, toProgress = 100)),
+            ExplainedChange.from(listOf(PreviewItem.Changed(review, review.copy(progress = 100))), zone),
+        )
+    }
+
+    @Test
     fun everyOtherKindKeepsOnlyItsFields() {
         assertEquals(
             listOf(

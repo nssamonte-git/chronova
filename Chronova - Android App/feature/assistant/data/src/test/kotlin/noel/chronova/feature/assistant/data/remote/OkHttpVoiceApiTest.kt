@@ -227,6 +227,45 @@ class OkHttpVoiceApiTest {
     }
 
     @Test
+    fun progressAndMilestonesTravelBothWays() = runTest {
+        reply(
+            200,
+            """{"revision":"r1","result":"operations","operations":[
+               {"type":"set_progress","taskId":"t1","percent":100},
+               {"type":"create_milestone","title":"Launch","at":"2026-11-18T17:00","predecessorIds":["t1"]}],
+               "question":null,"reason":null}""",
+        )
+        reply(200, """{"revision":"r1","result":"unsupported","operations":[],"question":null,"reason":"none"}""")
+        reply(200, """{"text":"Build is done."}""")
+        val task = VoiceContext.Task("t1", "Build", LocalDateTime.of(2026, 11, 12, 9, 0), LocalDateTime.of(2026, 11, 12, 9, 0), emptyList(), 100, true)
+        val context = VoiceContext("p1", "Launch", LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 18), "UTC", LocalDate.of(2026, 11, 12), LocalDateTime.of(2026, 11, 12, 9, 0), "r1", listOf(task))
+
+        val proposal = api.interpret("token-1", "mark build done and add a milestone launch", context)
+        assertTrue(server.takeRequest().body!!.utf8().contains(""""predecessorIds":[],"progress":100,"milestone":true}"""))
+        assertEquals(
+            listOf(
+                ProposedOperation("set_progress", taskId = "t1", percent = 100),
+                ProposedOperation("create_milestone", title = "Launch", at = "2026-11-18T17:00", predecessorIds = listOf("t1")),
+            ),
+            proposal.operations,
+        )
+
+        api.resolve("token-1", "mark build done", context, proposal.operations, listOf(ScheduleWarning.Overlap("Build", "QA")))
+        assertTrue(
+            server.takeRequest().body!!.utf8().contains(
+                """"planned":[{"type":"set_progress","taskId":"t1","percent":100},""" +
+                    """{"type":"create_milestone","title":"Launch","at":"2026-11-18T17:00","predecessorIds":["t1"]}]""",
+            ),
+        )
+
+        api.explain(
+            "token-1",
+            ExplainRequest.Changes(LocalDate.of(2026, 11, 12), listOf(ExplainedChange("progress", task = "Build", fromProgress = 0, toProgress = 100)), "en"),
+        )
+        assertTrue(server.takeRequest().body!!.utf8().contains("""{"change":"progress","task":"Build","fromProgress":0,"toProgress":100}"""))
+    }
+
+    @Test
     fun decideSendsTheAnswerAndAcceptsAnEmptyReply() = runTest {
         reply(204, "")
         api.decide(

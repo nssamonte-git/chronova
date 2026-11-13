@@ -33,6 +33,7 @@ final class ChangeList
         'removed' => ['task'],
         'linked' => ['predecessor', 'successor'],
         'unlinked' => ['predecessor', 'successor'],
+        'progress' => ['task', 'fromProgress', 'toProgress'],
     ];
 
     public const DATE_TIME_FIELDS = ['fromStart', 'fromEnd', 'toStart', 'toEnd'];
@@ -127,10 +128,15 @@ final class ChangeList
         return match ($change['change']) {
             'moved' => "move {$change['task']} to ".self::when($change['toStart'], $change['toEnd']),
             'renamed' => "rename {$change['task']} to {$change['title']}",
-            'added' => "add {$change['task']}, ".self::when($change['toStart'], $change['toEnd']),
+            'added' => 'add '.self::kind($change).$change['task'].', '.self::when($change['toStart'], $change['toEnd']),
             'removed' => "delete {$change['task']}",
             'linked' => "make {$change['successor']} wait for {$change['predecessor']}",
             'unlinked' => "stop {$change['successor']} waiting for {$change['predecessor']}",
+            'progress' => match ($change['toProgress']) {
+                100 => "mark {$change['task']} done",
+                0 => "mark {$change['task']} not started",
+                default => "set {$change['task']} to {$change['toProgress']}%",
+            },
         };
     }
 
@@ -147,10 +153,15 @@ final class ChangeList
         return match ($change['change']) {
             'moved' => "{$change['task']} will move to ".self::when($change['toStart'], $change['toEnd']).'.',
             'renamed' => "{$change['task']} will be called {$change['title']}.",
-            'added' => "New task {$change['task']}, ".self::when($change['toStart'], $change['toEnd']).'.',
+            'added' => 'New '.(self::isMilestone($change) ? 'milestone' : 'task')." {$change['task']}, ".self::when($change['toStart'], $change['toEnd']).'.',
             'removed' => "{$change['task']} will be deleted.",
             'linked' => "{$change['successor']} will wait for {$change['predecessor']}.",
             'unlinked' => "{$change['successor']} will no longer wait for {$change['predecessor']}.",
+            'progress' => match ($change['toProgress']) {
+                100 => "{$change['task']} will be marked done.",
+                0 => "{$change['task']} will be marked not started.",
+                default => "{$change['task']} will be {$change['toProgress']}% done.",
+            },
         };
     }
 
@@ -159,18 +170,38 @@ final class ChangeList
         return match ($change['change']) {
             'moved' => "{$change['task']} moved to ".self::when($change['toStart'], $change['toEnd']).'.',
             'renamed' => "{$change['task']} is now called {$change['title']}.",
-            'added' => "Added {$change['task']}, ".self::when($change['toStart'], $change['toEnd']).'.',
+            'added' => 'Added '.self::kind($change).$change['task'].', '.self::when($change['toStart'], $change['toEnd']).'.',
             'removed' => "{$change['task']} was deleted.",
             'linked' => "{$change['successor']} now waits for {$change['predecessor']}.",
             'unlinked' => "{$change['successor']} no longer waits for {$change['predecessor']}.",
+            'progress' => match ($change['toProgress']) {
+                100 => "{$change['task']} is done.",
+                0 => "{$change['task']} is marked not started.",
+                default => "{$change['task']} is {$change['toProgress']}% done.",
+            },
         };
     }
 
-    /** "Thursday 12 November, 11:00 to 12:00", or both days when it spans more than one. */
+    /** A milestone is added as a moment: it ends when it starts. */
+    private static function isMilestone(array $change): bool
+    {
+        return $change['toStart'] === $change['toEnd'];
+    }
+
+    /** "milestone " for an added milestone, nothing for a task. */
+    private static function kind(array $change): string
+    {
+        return self::isMilestone($change) ? 'milestone ' : '';
+    }
+
+    /** "Thursday 12 November, 11:00 to 12:00", both days when it spans more than one, or one time for a moment (a milestone). */
     private static function when(string $start, string $end): string
     {
         $from = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $start);
         $to = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $end);
+        if ($start === $end) {
+            return $from->format('l j F, H:i');
+        }
 
         return $from->isSameDay($to->subMinute())
             ? $from->format('l j F, H:i').' to '.$to->format('H:i')

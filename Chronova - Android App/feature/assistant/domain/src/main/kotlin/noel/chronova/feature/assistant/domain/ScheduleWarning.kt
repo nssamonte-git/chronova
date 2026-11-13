@@ -101,6 +101,8 @@ sealed interface ScheduleWarning {
             }.sortedWith(compareBy(ORDER) { it.first }).map { it.second to it.third }
         }
 
-        private fun overlap(a: SchedulerTask, b: SchedulerTask) = a.startMillis < b.endMillis && b.startMillis < a.endMillis
+        /** Two spans share time. A milestone is a moment, not work, so it never overlaps anything. */
+        private fun overlap(a: SchedulerTask, b: SchedulerTask) =
+            !a.isMilestone && !b.isMilestone && a.startMillis < b.endMillis && b.startMillis < a.endMillis
     }
 }

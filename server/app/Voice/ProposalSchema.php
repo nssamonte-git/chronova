@@ -45,6 +45,8 @@ final class ProposalSchema
             'add_dependency' => ['predecessorId' => $id, 'successorId' => $id],
             'remove_dependency' => ['predecessorId' => $id, 'successorId' => $id],
             'reschedule_dependents' => ['taskId' => $id],
+            'set_progress' => ['taskId' => $id, 'percent' => ['type' => 'integer']],
+            'create_milestone' => ['title' => ['type' => 'string'], 'at' => $dateTime, 'predecessorIds' => ['type' => 'array', 'items' => $id]],
         ];
     }
 

@@ -227,6 +227,9 @@ class VoiceController extends Controller
             'context.tasks.*.title' => ['required', 'string', 'max:200'],
             'context.tasks.*.start' => ['required', 'date_format:Y-m-d\TH:i'],
             'context.tasks.*.end' => ['required', 'date_format:Y-m-d\TH:i'],
+            // Sent by apps since task progress and milestones; older ones leave them out.
+            'context.tasks.*.progress' => ['sometimes', 'integer', 'between:0,100'],
+            'context.tasks.*.milestone' => ['sometimes', 'boolean'],
             'context.tasks.*.predecessorIds' => ['present', 'array', 'list', 'max:'.$limits['tasks']],
             'context.tasks.*.predecessorIds.*' => ['string', 'max:100'],
         ];
@@ -254,6 +257,8 @@ class VoiceController extends Controller
             "$field.*.fromEnd" => $time,
             "$field.*.toStart" => $time,
             "$field.*.toEnd" => $time,
+            "$field.*.fromProgress" => ['integer', 'between:0,100'],
+            "$field.*.toProgress" => ['integer', 'between:0,100'],
         ];
     }
 
@@ -355,6 +360,8 @@ class VoiceController extends Controller
                 'title' => $task['title'],
                 'start' => $task['start'],
                 'end' => $task['end'],
+                'progress' => (int) ($task['progress'] ?? 0),
+                'milestone' => (bool) ($task['milestone'] ?? false),
                 'predecessorIds' => array_values($task['predecessorIds']),
             ], $context['tasks']),
         ];

@@ -37,6 +37,17 @@ class AICommandHandlerTest {
     }
 
     @Test
+    fun contextCarriesProgressAndMilestonesButNeverNotes() {
+        val tracked = state.copy(
+            tasks = state.tasks.map { if (it.id == "review") it.copy(endMillis = it.startMillis, progress = 100, isMilestone = true, notes = "private") else it },
+        )
+        val review = VoiceContext.from(tracked, ZoneOffset.UTC, 0L).tasks.first { it.id == "review" }
+        assertEquals(100, review.progress)
+        assertTrue(review.milestone)
+        assertTrue("private" !in review.toString())
+    }
+
+    @Test
     fun revisionFollowsContent() {
         assertEquals(context.revision, ScheduleRevision.of(state.copy()))
         val renamed = state.copy(tasks = state.tasks.map { if (it.id == "review") it.copy(title = "Sign-off") else it })
@@ -71,6 +82,8 @@ class AICommandHandlerTest {
             ProposedOperation("add_dependency", predecessorId = "review", successorId = "qa-testing"),
             ProposedOperation("remove_dependency", predecessorId = "review", successorId = "qa-testing"),
             ProposedOperation("reschedule_dependents", taskId = "review"),
+            ProposedOperation("set_progress", taskId = "review", percent = 100),
+            ProposedOperation("create_milestone", title = "Launch", at = "2026-03-04T17:00", predecessorIds = listOf("review")),
         )
         ops.forEach { assertTrue(it.type, handler.toCommand(it) != null) }
     }
@@ -83,6 +96,8 @@ class AICommandHandlerTest {
             ProposedOperation("shift_task", taskId = "review", amount = 2, unit = "fortnights"),
             ProposedOperation("shift_task", taskId = "review", amount = 0, unit = "days"),
             ProposedOperation("set_times", taskId = "review"),
+            ProposedOperation("set_progress", taskId = "review"),
+            ProposedOperation("create_milestone", title = "Launch", at = "2026-03-04"),
             ProposedOperation("drop_table"),
         ).forEach { op ->
             assertEquals(op.toString(), HandledProposal.Unreadable, handler.handle(context, state, proposal(op)))

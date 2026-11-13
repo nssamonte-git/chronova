@@ -72,6 +72,7 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
             is CommandProblem.WouldCycle -> resources.getString(R.string.assistant_would_cycle, title(problem.predecessorId), title(problem.successorId))
             is CommandProblem.AlreadyLinked -> resources.getString(R.string.assistant_already_linked, title(problem.predecessorId), title(problem.successorId))
             is CommandProblem.NotLinked -> resources.getString(R.string.assistant_not_linked, title(problem.predecessorId), title(problem.successorId))
+            is CommandProblem.MilestoneHasNoLength -> resources.getString(R.string.assistant_milestone_no_length, problem.title)
             is CommandProblem.DoesNotFit -> resources.getString(R.string.assistant_does_not_fit, TimeFormat.day(projectEndMillis - 1, zone))
             is CommandProblem.Rejected -> resources.getString(R.string.assistant_schedule_changed)
         }

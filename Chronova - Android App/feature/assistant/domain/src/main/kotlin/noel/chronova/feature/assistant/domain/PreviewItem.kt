@@ -6,10 +6,11 @@ import noel.chronova.core.domain.schedule.ScheduleState
 
 /** One line of a change preview, in the user's terms. */
 sealed interface PreviewItem {
-    /** A task's times and/or title change. */
+    /** A task's times, title and/or progress change. */
     data class Changed(val before: SchedulerTask, val after: SchedulerTask) : PreviewItem {
         val renamed: Boolean get() = before.title != after.title
         val moved: Boolean get() = before.startMillis != after.startMillis || before.endMillis != after.endMillis
+        val progressed: Boolean get() = before.progress != after.progress
     }
 
     data class Added(val task: SchedulerTask) : PreviewItem

@@ -108,6 +108,8 @@ final class ProposalValidator
             'date' => is_string($value) && $this->date($value) !== null,
             'time' => $value === null || (is_string($value) && preg_match('/'.ProposalSchema::TIME.'/', $value) && $this->clock($value)),
             'start', 'end' => ($value === null && $operation['type'] === 'set_times') || (is_string($value) && $this->dateTime($value) !== null),
+            'at' => is_string($value) && $this->dateTime($value) !== null,
+            'percent' => is_int($value) && $value >= 0 && $value <= 100,
             'amount' => is_int($value) && $value !== 0 && abs($value) <= (self::MAX_AMOUNT[$operation['unit'] ?? ''] ?? 0),
             'unit' => in_array($value, ProposalSchema::UNITS, true),
             'title' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TITLE,

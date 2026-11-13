@@ -29,6 +29,12 @@ class ScheduleWarningTest {
     private fun link(from: SchedulerTask, to: SchedulerTask) = TaskDependency("${from.id}>${to.id}", "p", from.id, to.id)
 
     @Test
+    fun aMilestoneDuringATaskIsNoClash() {
+        val launch = SchedulerTask("l", "p", "Launch", 17 * hour, 17 * hour, isMilestone = true)
+        assertEquals(emptyList<ScheduleWarning>(), ScheduleWarning.from(listOf(ScheduleChange.CreateTask(launch)), state(build, design, test)))
+    }
+
+    @Test
     fun movingOntoAnotherTaskWarns() {
         assertEquals(listOf(Overlap("Test", "Build")), ScheduleWarning.from(listOf(move(test, 16, 17)), state(build, design, test)))
     }

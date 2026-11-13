@@ -8,7 +8,7 @@ use DateTimeImmutable;
  * A small rule-based interpreter for development and tests: no network, no
  * key, predictable. It understands a few English phrasings, e.g.
  * "push design by 2 hours", "move review to 2026-11-14", "move review to tomorrow",
- * "extend QA by 1 day", "rename QA to Testing", "delete review",
+ * "extend QA by 1 day", "rename QA to Testing", "delete review", "mark review done",
  * "... and everything after it".
  */
 final class FakeInterpreter implements Interpreter
@@ -34,6 +34,7 @@ final class FakeInterpreter implements Interpreter
         $operations = match (true) {
             $task === null => null,
             (bool) preg_match('/^(delete|remove) /', $text) => [['type' => 'delete_task', 'taskId' => $task['id']]],
+            (bool) preg_match('/^mark .+ (done|finished|complete)$/', $text) => [['type' => 'set_progress', 'taskId' => $task['id'], 'percent' => 100]],
             (bool) preg_match('/^rename .+ to (.+)$/', $text, $m) => [['type' => 'rename_task', 'taskId' => $task['id'], 'title' => ucfirst(trim($m[1]))]],
             (bool) preg_match("/^(extend|lengthen|shorten) .+ by (\\d+) $unit/", $text, $m) => [[
                 'type' => 'change_duration', 'taskId' => $task['id'],

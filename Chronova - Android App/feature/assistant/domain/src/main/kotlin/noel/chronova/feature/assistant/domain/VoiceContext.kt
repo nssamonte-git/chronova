@@ -31,6 +31,9 @@ data class VoiceContext(
         val start: LocalDateTime,
         val end: LocalDateTime,
         val predecessorIds: List<String>,
+        /** Percent done; never the task's notes, which stay on the phone. */
+        val progress: Int = 0,
+        val milestone: Boolean = false,
     )
 
     companion object {
@@ -54,6 +57,8 @@ data class VoiceContext(
                         start = local(task.startMillis, zone),
                         end = local(task.endMillis, zone),
                         predecessorIds = predecessors[task.id].orEmpty().sorted(),
+                        progress = task.progress,
+                        milestone = task.isMilestone,
                     )
                 },
             )

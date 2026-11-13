@@ -223,17 +223,29 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
                 range(item.start, item.end, zone),
             )
         }
+        if (item.progressed) {
+            parts += when (item.progress) {
+                100 -> stringResource(R.string.assistant_preview_done, item.title)
+                0 -> stringResource(R.string.assistant_preview_not_started, item.title)
+                else -> stringResource(R.string.assistant_preview_progress, item.title, item.progress)
+            }
+        }
         parts.joinToString("\n")
     }
-    is ProposalLineUi.Added -> stringResource(R.string.assistant_preview_added, item.title, range(item.start, item.end, zone))
+    is ProposalLineUi.Added -> stringResource(
+        if (item.isMilestone) R.string.assistant_preview_added_milestone else R.string.assistant_preview_added,
+        item.title,
+        range(item.start, item.end, zone),
+    )
     is ProposalLineUi.Removed -> stringResource(R.string.assistant_preview_removed, item.title)
     is ProposalLineUi.Linked -> stringResource(R.string.assistant_preview_linked, item.predecessor, item.successor)
     is ProposalLineUi.Unlinked -> stringResource(R.string.assistant_preview_unlinked, item.predecessor, item.successor)
 }
 
-/** "Thu 12 09:00 – 11:00", or "Thu 12 09:00 – Fri 13 17:00" across days. */
+/** "Thu 12 09:00 – 11:00", "Thu 12 09:00 – Fri 13 17:00" across days, or "Fri 13 17:00" for a milestone. */
 private fun range(start: Long, end: Long, zone: ZoneId): String {
     val startDay = TimeFormat.shortDay(start, zone)
+    if (start == end) return "$startDay ${TimeFormat.clock(start, zone)}"
     val endDay = TimeFormat.shortDay(end - 1, zone)
     return if (startDay == endDay) {
         "$startDay ${TimeFormat.range(start, end, zone)}"

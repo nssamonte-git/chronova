@@ -30,6 +30,9 @@ sealed interface CommandProblem {
 
     data class NotLinked(val predecessorId: String, val successorId: String) : CommandProblem
 
+    /** A length change was asked of a milestone (named by its title), which has none. */
+    data class MilestoneHasNoLength(val title: String) : CommandProblem
+
     /** Rescheduling would push these tasks past the project's end. */
     data class DoesNotFit(val taskIds: List<String>) : CommandProblem
 
@@ -105,17 +108,30 @@ class CommandPlanner(
             }
             is ScheduleCommand.SetTimes -> {
                 val task = task(command.taskId) ?: return Step.Problem(CommandProblem.UnknownTask(command.taskId))
+                if (task.isMilestone) {
+                    // A moment: whichever time was given is when it happens.
+                    val at = millis(command.start ?: command.end!!)
+                    return Step.Changes(listOf(ScheduleChange.UpdateTask(task, task.copy(startMillis = at, endMillis = at))))
+                }
                 val start = command.start?.let(::millis) ?: task.startMillis
                 val end = command.end?.let(::millis) ?: task.endMillis
                 if (end <= start) return Step.Problem(CommandProblem.InvalidTask(task.title, TaskProblem.EndNotAfterStart))
                 Step.Changes(listOf(ScheduleChange.UpdateTask(task, task.copy(startMillis = start, endMillis = end))))
             }
-            is ScheduleCommand.ChangeDuration -> update(command.taskId) { task ->
-                task.copy(endMillis = shift(task.endMillis, command.amount).coerceAtLeast(task.startMillis + 1))
+            // The start stays; a milestone has no length to change.
+            is ScheduleCommand.ChangeDuration -> changeLength(state, command.taskId) { shift(it.endMillis, command.amount) }
+            is ScheduleCommand.SetDuration -> changeLength(state, command.taskId) { shift(it.startMillis, command.duration) }
+            is ScheduleCommand.SetProgress -> {
+                val task = task(command.taskId) ?: return Step.Problem(CommandProblem.UnknownTask(command.taskId))
+                val allowed = if (task.isMilestone) {
+                    command.percent == 0 || command.percent == SchedulerTask.DONE
+                } else {
+                    command.percent in 0..SchedulerTask.DONE
+                }
+                if (!allowed) return Step.Problem(CommandProblem.InvalidTask(task.title, TaskProblem.BadProgress))
+                Step.Changes(listOf(ScheduleChange.UpdateTask(task, task.copy(progress = command.percent))))
             }
-            is ScheduleCommand.SetDuration -> update(command.taskId) { task ->
-                task.copy(endMillis = shift(task.startMillis, command.duration).coerceAtLeast(task.startMillis + 1))
-            }
+            is ScheduleCommand.CreateMilestone -> createMilestone(state, command)
             is ScheduleCommand.RenameTask -> update(command.taskId) { it.copy(title = command.title.trim()) }
             is ScheduleCommand.CreateTask -> create(state, command)
             is ScheduleCommand.DeleteTask -> {
@@ -145,6 +161,31 @@ class CommandPlanner(
                 }
             }
         }
+    }
+
+    /** Gives the task the end [newEnd] works out, never at or before its start; refused for a milestone. */
+    private fun changeLength(state: ScheduleState, taskId: String, newEnd: (SchedulerTask) -> Long): Step {
+        val task = state.tasks.firstOrNull { it.id == taskId } ?: return Step.Problem(CommandProblem.UnknownTask(taskId))
+        if (task.isMilestone) return Step.Problem(CommandProblem.MilestoneHasNoLength(task.title))
+        return Step.Changes(listOf(ScheduleChange.UpdateTask(task, task.copy(endMillis = newEnd(task).coerceAtLeast(task.startMillis + 1)))))
+    }
+
+    private fun createMilestone(state: ScheduleState, command: ScheduleCommand.CreateMilestone): Step {
+        command.predecessorIds.firstOrNull { id -> state.tasks.none { it.id == id } }
+            ?.let { return Step.Problem(CommandProblem.UnknownTask(it)) }
+        val at = millis(command.at)
+        val milestone = SchedulerTask(
+            id = newId(),
+            projectId = state.project.id,
+            title = command.title.trim(),
+            startMillis = at,
+            endMillis = at,
+            color = TaskColor.entries[state.tasks.size % TaskColor.entries.size],
+            sortOrder = (state.tasks.maxOfOrNull { it.sortOrder } ?: -1) + 1,
+            isMilestone = true,
+        )
+        val links = command.predecessorIds.map { ScheduleChange.AddLink(TaskDependency(newId(), state.project.id, it, milestone.id)) }
+        return Step.Changes(listOf(ScheduleChange.CreateTask(milestone)) + links)
     }
 
     private fun create(state: ScheduleState, command: ScheduleCommand.CreateTask): Step {

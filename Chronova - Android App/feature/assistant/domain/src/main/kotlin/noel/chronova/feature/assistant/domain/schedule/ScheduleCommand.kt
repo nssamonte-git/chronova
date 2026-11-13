@@ -52,6 +52,16 @@ sealed interface ScheduleCommand {
      * commands use this; dragging never moves other tasks.
      */
     data class RescheduleDependents(val taskId: String) : ScheduleCommand
+
+    /** Sets how far along the task is, 0–100 (100 is done); a milestone is only 0 or 100. */
+    data class SetProgress(val taskId: String, val percent: Int) : ScheduleCommand
+
+    /** A new milestone: a moment at [at], with no length. */
+    data class CreateMilestone(
+        val title: String,
+        val at: LocalDateTime,
+        val predecessorIds: Set<String> = emptySet(),
+    ) : ScheduleCommand
 }
 
 /** A local date, optionally with a time; without one the task keeps its time of day. */

@@ -46,6 +46,11 @@
     <string name="assistant_preview_moved">%1$s: %2$s → %3$s</string>
     <string name="assistant_preview_renamed">Rename “%1$s” to “%2$s”</string>
     <string name="assistant_preview_added">Add “%1$s”: %2$s</string>
+    <string name="assistant_preview_added_milestone">Add milestone “%1$s”: %2$s</string>
+    <string name="assistant_preview_done">Mark “%1$s” done</string>
+    <string name="assistant_preview_not_started">Mark “%1$s” not started</string>
+    <string name="assistant_preview_progress">Set “%1$s” to %2$d%%</string>
+    <string name="assistant_milestone_no_length">“%1$s” is a milestone: it has no length to change.</string>
     <string name="assistant_preview_removed">Delete “%1$s”</string>
     <string name="assistant_preview_linked">“%2$s” will depend on “%1$s”</string>
     <string name="assistant_preview_unlinked">“%2$s” will no longer depend on “%1$s”</string>

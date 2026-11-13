@@ -2,7 +2,7 @@ package noel.chronova.feature.assistant.presentation
 
 /** One line of what the assistant proposes to change, as the orb shows it. Times are epoch millis. */
 sealed interface ProposalLineUi {
-    /** A task's times and/or title change. */
+    /** A task's times, title and/or progress change. */
     data class Changed(
         val titleBefore: String,
         val title: String,
@@ -10,12 +10,18 @@ sealed interface ProposalLineUi {
         val endBefore: Long,
         val start: Long,
         val end: Long,
+        val progressBefore: Int = 0,
+        val progress: Int = 0,
     ) : ProposalLineUi {
         val renamed: Boolean get() = titleBefore != title
         val moved: Boolean get() = startBefore != start || endBefore != end
+        val progressed: Boolean get() = progressBefore != progress
     }
 
-    data class Added(val title: String, val start: Long, val end: Long) : ProposalLineUi
+    /** A new task, or a new milestone ([start] equals [end]). */
+    data class Added(val title: String, val start: Long, val end: Long) : ProposalLineUi {
+        val isMilestone: Boolean get() = start == end
+    }
     data class Removed(val title: String) : ProposalLineUi
     data class Linked(val predecessor: String, val successor: String) : ProposalLineUi
     data class Unlinked(val predecessor: String, val successor: String) : ProposalLineUi

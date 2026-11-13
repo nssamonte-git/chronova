@@ -59,6 +59,8 @@ internal data class ExplainChangeDto(
     val fromEnd: String? = null,
     val toStart: String? = null,
     val toEnd: String? = null,
+    val fromProgress: Int? = null,
+    val toProgress: Int? = null,
 )
 
 @Serializable
@@ -74,6 +76,8 @@ internal fun ExplainedChange.toDto() = ExplainChangeDto(
     fromEnd = fromEnd?.wire(),
     toStart = toStart?.wire(),
     toEnd = toEnd?.wire(),
+    fromProgress = fromProgress,
+    toProgress = toProgress,
 )
 
 @Serializable
@@ -99,6 +103,8 @@ internal data class VoiceTaskDto(
     val start: String,
     val end: String,
     val predecessorIds: List<String>,
+    val progress: Int = 0,
+    val milestone: Boolean = false,
 )
 
 @Serializable
@@ -123,6 +129,8 @@ private val OPERATION_FIELDS = mapOf(
     "add_dependency" to listOf("predecessorId", "successorId"),
     "remove_dependency" to listOf("predecessorId", "successorId"),
     "reschedule_dependents" to listOf("taskId"),
+    "set_progress" to listOf("taskId", "percent"),
+    "create_milestone" to listOf("title", "at", "predecessorIds"),
 )
 
 /** An operation as the server sent it: its type's fields, nulls written out. */
@@ -141,6 +149,8 @@ internal fun ProposedOperation.toWire(): JsonObject = buildJsonObject {
             "predecessorIds" -> put(field, JsonArray(predecessorIds.orEmpty().map(::JsonPrimitive)))
             "predecessorId" -> put(field, predecessorId)
             "successorId" -> put(field, successorId)
+            "percent" -> put(field, percent)
+            "at" -> put(field, at)
         }
     }
 }
@@ -169,6 +179,8 @@ internal data class OperationDto(
     val predecessorIds: List<String>? = null,
     val predecessorId: String? = null,
     val successorId: String? = null,
+    val percent: Int? = null,
+    val at: String? = null,
 )
 
 /** Local date-times as the API expects them: minutes, no seconds, no offset. */
@@ -184,7 +196,7 @@ internal fun VoiceContext.toDto() = VoiceContextDto(
     today = today.toString(),
     now = now.wire(),
     revision = revision,
-    tasks = tasks.map { VoiceTaskDto(it.id, it.title, it.start.wire(), it.end.wire(), it.predecessorIds) },
+    tasks = tasks.map { VoiceTaskDto(it.id, it.title, it.start.wire(), it.end.wire(), it.predecessorIds, it.progress, it.milestone) },
 )
 
 internal fun InterpretResponseDto.toDomain() = Proposal(
@@ -209,6 +221,8 @@ internal fun OperationDto.toDomain() = ProposedOperation(
     predecessorIds = predecessorIds,
     predecessorId = predecessorId,
     successorId = successorId,
+    percent = percent,
+    at = at,
 )
 
 /** The API's names for how the user answered (`POST /v1/voice/decision`). */

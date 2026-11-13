@@ -49,6 +49,8 @@ Response (200): `{"text": "push design by two hours", "language": "en"}`. `text`
 
 Dates (`YYYY-MM-DD`) and date-times (`YYYY-MM-DDTHH:MM`, no offset) are local to `timeZone`. Limits: transcript ≤ 1,000 characters, ≤ 300 tasks.
 
+Each task may also carry `progress` (integer 0–100; 100 is done) and `milestone` (boolean; a milestone's `start` equals its `end`). Both are optional: an app from before them leaves them out, and they then read as `0` and `false`. A task's notes are never sent.
+
 Response (200):
 
 ```json
@@ -86,6 +88,10 @@ Operations (every field is always present):
 | `delete_task` | `taskId` |
 | `add_dependency` / `remove_dependency` | `predecessorId`, `successorId` (different) |
 | `reschedule_dependents` | `taskId` — the app pushes everything downstream just enough |
+| `set_progress` | `taskId`, `percent` (integer 0–100; a milestone takes only 0 or 100) |
+| `create_milestone` | `title`, `at` (date-time), `predecessorIds` |
+
+A milestone moves with `move_task`, `shift_task` or `set_times` (the given start, or end, becomes its moment); the app refuses `change_duration` and `set_duration` on one, and doesn't count a milestone as overlapping a task.
 
 The server checks that every id is in the request's `tasks`, dates are real, amounts are sane and the shape is exact; otherwise the whole proposal is rejected. The app then plans the operations against its current data (`CommandPlanner`) and rejects anything stale or invalid before showing the preview.
 
@@ -142,6 +148,9 @@ Says what a preview will change and asks whether to apply it, so the user can an
 | `added` | `task`, `toStart`, `toEnd` |
 | `removed` | `task` |
 | `linked` / `unlinked` | `predecessor`, `successor` |
+| `progress` | `task`, `fromProgress`, `toProgress` (integers 0–100) |
+
+A milestone is `added` or `moved` with `toStart` equal to `toEnd`; the fallback words then name one time ("New milestone Launch, Friday 13 November, 17:00.").
 
 Titles ≤ 200 characters, ≤ 100 changes, local date-times as in `/interpret`. `question` ≤ 300 characters. `language` (optional) is the language to answer in — the one `/transcribe` detected.
 
