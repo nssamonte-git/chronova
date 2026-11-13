@@ -1,5 +1,18 @@
 package noel.chronova.feature.timeline.presentation.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
@@ -148,7 +161,32 @@ fun TaskLane(
     val criticalState = stringResource(R.string.task_bar_state_critical).takeIf { criticalMark == CriticalMark.Critical }
     val state = listOfNotNull(milestoneState.takeIf { milestone }, progressState, criticalState).joinToString(", ")
 
+    // Which side of the screen the bar is off to (-1 left, 1 right), else 0. Changes only when the
+    // bar crosses an edge, so scrolling doesn't recompose the lane every frame.
+    val offSide by remember(viewport, barStart, barEnd) {
+        derivedStateOf {
+            val width = viewport.viewportWidth
+            when {
+                width <= 0f -> 0
+                barEnd <= viewport.scrollX -> -1
+                barStart >= viewport.scrollX + width -> 1
+                else -> 0
+            }
+        }
+    }
+    val scope = rememberCoroutineScope()
+
     Box(modifier.clipToBounds()) {
+        if (offSide != 0 && !dragging) {
+            OffScreenArrow(
+                towardsStart = offSide < 0,
+                color = task.color.toColor(),
+                description = stringResource(R.string.task_show_off_screen, task.title),
+                // Bring the bar in, a fifth of the screen from the left, as "show task" does.
+                onClick = { scope.launch { viewport.animateScrollTo(currentBarStart - viewport.viewportWidth * 0.2f) } },
+                modifier = Modifier.align(if (offSide < 0) Alignment.CenterStart else Alignment.CenterEnd),
+            )
+        }
         if (visibleEnd <= span.start || visibleStart >= span.end) return@Box // nowhere near the viewport
         val container = Modifier
                 // Layout-phase reads: scrolling and moving don't recompose or re-measure siblings.
@@ -240,3 +278,24 @@ fun TaskLane(
         }
     }
 }
+
+/** A small arrow at the lane's edge towards a bar that is off-screen; tapping it scrolls the bar into view. */
+@Composable
+private fun OffScreenArrow(towardsStart: Boolean, color: Color, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .padding(horizontal = 4.dp)
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.16f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (towardsStart) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = description,
+            tint = color,
+        )
+    }
+}
+

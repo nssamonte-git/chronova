@@ -71,38 +71,22 @@ class ProjectTimelineScreenTest {
     }
 
     @Test
-    fun listsOnlyTheTasksOnScreen() {
+    fun listsEveryTaskAndPointsToTheOnesOffScreen() {
         screen.show(listOf(survey, build, paint))
         // The view opens just before the first task: the first day's morning.
         screen.nameCell("Survey").assertIsDisplayed()
         compose.onNodeWithText(screen.range(survey.startMillis, survey.endMillis)).assertIsDisplayed()
         screen.nameCell("Build").assertIsDisplayed()
-        // Three days later: no row.
-        compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) }
-        compose.onNodeWithText(screen.string(R.string.tasks_none_here)).assertDoesNotExist()
+        // Three days later: its row is there (the grid pans freely both ways), its bar isn't, and an arrow points to it.
+        screen.nameCell("Paint").assertIsDisplayed()
+        assertTrue(bar("Paint").fetchSemanticsNodes().isEmpty())
         compose.onNodeWithText(screen.string(R.string.tasks_empty)).assertDoesNotExist()
-    }
 
-    @Test
-    fun saysSoWhenNoTaskIsOnScreen() {
-        screen.show(listOf(survey, paint))
-        screen.nameCell("Survey").assertIsDisplayed()
-        // Scroll later in the day, slowly (no fling), until the morning's task has left the screen.
-        val stepPx = with(compose.density) { 150.dp.toPx() }
-        repeat(6) {
-            if (exists(screen.string(R.string.tasks_none_here))) return@repeat
-            compose.onRoot().performTouchInput {
-                val start = Offset(width * 0.8f, height * 0.6f)
-                down(start)
-                repeat(30) { moveBy(Offset(-stepPx / 30, 0f)) }
-                advanceEventTime(500)
-                up()
-            }
-            compose.waitForIdle()
-        }
-        compose.onNodeWithText(screen.string(R.string.tasks_none_here)).assertIsDisplayed()
-        compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
-        compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) }
+        compose.onNode(hasContentDescription(screen.res.getString(R.string.task_show_off_screen, "Paint")) and hasClickAction()).performClick()
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
+        bar("Paint").onFirst().assertIsDisplayed()
+        // Now Survey is the one off to the left.
+        compose.onNode(hasContentDescription(screen.res.getString(R.string.task_show_off_screen, "Survey"))).assertExists()
     }
 
     // Pushing what waits for a moved task.
@@ -166,9 +150,9 @@ class ProjectTimelineScreenTest {
         val paint = screen.task("paint", "Paint", screen.at(5, 9), screen.at(5, 10), 1)
         val inspect = screen.task("inspect", "Inspect", screen.at(3, 14), screen.at(3, 15), 2)
         screen.show(listOf(survey, paint, inspect))
-        // Only Survey (2 Nov, 10:00) is in view to begin with.
-        assertTrue(exists("Survey"))
-        assertTrue(!exists("Paint") && !exists("Inspect"))
+        // Every task has a row, but only Survey's bar (2 Nov, 10:00) is in view to begin with.
+        assertTrue(exists("Survey") && exists("Paint") && exists("Inspect"))
+        assertTrue(bar("Paint").fetchSemanticsNodes().isEmpty() && bar("Inspect").fetchSemanticsNodes().isEmpty())
 
         screen.ask(AssistantViewAction.ShowTask("paint"))
         compose.waitUntil(5_000) { screen.handledRequests.size == 1 }
@@ -182,7 +166,7 @@ class ProjectTimelineScreenTest {
         // Today (3 Nov, 14:00) brings Inspect's time into view.
         screen.ask(AssistantViewAction.GoToToday)
         compose.waitUntil(5_000) { screen.handledRequests.size == 2 }
-        compose.waitUntil(5_000) { exists("Inspect") }
+        compose.waitUntil(5_000) { bar("Inspect").fetchSemanticsNodes().isNotEmpty() }
         screen.nameCell("Inspect").assertIsDisplayed()
     }
 
@@ -251,7 +235,7 @@ class ProjectTimelineScreenTest {
     @Test
     fun aSearchListsAMatchThatIsOffScreenAndBringsItIntoView() {
         screen.show(listOf(survey, build, paint))
-        compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) } // three days later
+        assertTrue(bar("Paint").fetchSemanticsNodes().isEmpty()) // three days later
         compose.onNode(hasContentDescription(screen.string(R.string.search_open)) and hasClickAction()).performClick()
         compose.onNode(hasSetTextAction()).performTextInput("pai")
         compose.waitForIdle()
@@ -259,7 +243,7 @@ class ProjectTimelineScreenTest {
         compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
         compose.onNodeWithText(screen.res.getQuantityString(R.plurals.search_count, 3, 1, 3)).assertIsDisplayed()
 
-        // Closing the search shows every task again (only those on screen get rows).
+        // Closing the search lists every task again.
         // The top bar's search button closes it too (the field's own close button can sit under the keyboard).
         compose.onAllNodes(hasContentDescription(screen.string(R.string.search_close)) and hasClickAction())[0].performClick()
         compose.waitForIdle()
@@ -278,11 +262,11 @@ class ProjectTimelineScreenTest {
     fun todayScrollsToNow() {
         val inspect = screen.task("inspect", "Inspect", screen.at(3, 14), screen.at(3, 15), 3)
         screen.show(listOf(survey, inspect))
-        compose.onAllNodesWithText("Inspect").fetchSemanticsNodes().let { assertEquals(0, it.size) } // the next afternoon
+        assertTrue(bar("Inspect").fetchSemanticsNodes().isEmpty()) // the next afternoon
         compose.onNode(hasContentDescription(screen.string(R.string.today_go)) and hasClickAction()).performClick()
-        compose.waitForIdle()
-        screen.nameCell("Inspect").assertIsDisplayed()
-        compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
+        compose.waitUntil(5_000) { bar("Inspect").fetchSemanticsNodes().isNotEmpty() }
+        bar("Inspect").onFirst().assertIsDisplayed()
+        assertTrue(bar("Survey").fetchSemanticsNodes().isEmpty())
     }
 
     @Test

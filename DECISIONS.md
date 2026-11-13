@@ -9,6 +9,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Constraint: never measure timeline content at full width; a bar container wider than its lane needs `wrapContentWidth(unbounded = true)` or `width` gets clamped.
 - Revised 2026-11-13 (user choices): while a search or filter is on, the list is only the matches and every match gets a row wherever it is in time, and the view scrolls to the earliest; search and filters live in the ViewModel's memory only and end with the screen.
 - Revised 2026-11-12 (user choice): rows list only the tasks whose time overlaps what is on screen (`TaskVisibility`), updating as you scroll, plus the selected task (a drag selects its bar, so it never loses its row) and any the assistant just highlighted; with none on screen the timeline says "No tasks here". The list is a `derivedStateOf`, so rows recompose only when it changes, not per scroll frame.
+- Revised 2026-11-13 (user choice, replacing the revision above): every task has a row at every zoom (a search's matches while one is on), so the grid pans freely both ways; zoomed in, the on-screen-only rows left little to pan down to and came and went while panning sideways. A row whose bar is off-screen shows an arrow at that edge, in the task's colour; tapping it scrolls the bar into view. `TaskVisibility` is gone; the list is still a virtualized `LazyColumn`, and bars outside the composed span still aren't laid out.
 
 ## 2026-11-11: Gesture model
 

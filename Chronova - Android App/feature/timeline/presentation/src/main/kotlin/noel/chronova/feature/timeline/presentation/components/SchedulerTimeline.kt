@@ -59,7 +59,6 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.max
-import noel.chronova.core.timeline.TaskVisibility
 import noel.chronova.core.timeline.TimelineMath
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.feature.timeline.presentation.R
@@ -139,27 +138,11 @@ fun SchedulerTimeline(
             // Keeps the centre time fixed across zoom/scale changes and clamps the scroll.
             SideEffect { viewport.onGeometry(contentWidthPx, viewportWidthPx, pxPerMinute) }
 
-            // Rows list only the tasks on screen, plus the selected one (a drag selects its bar, so a
-            // dragged task never loses its row) and any the assistant just changed; while a search or
-            // filter is on, every match (the list is already only the matches). derivedStateOf
-            // recomposes the rows only when that list changes, not on every scroll frame.
-            val keep = remember(state.selectedTaskId, highlighted, state.isFiltering, state.tasks) {
-                if (state.isFiltering) state.tasks.mapTo(HashSet()) { it.id } else highlighted + listOfNotNull(state.selectedTaskId)
-            }
-            // A milestone has no length; it counts as on screen while its diamond or title is.
-            val milestoneBefore = with(density) { (MilestoneTouchWidth / 2).toPx() }
-            val milestoneAfter = milestoneBefore + with(density) { MilestoneLabelWidth.toPx() }
-            val shownTasks by remember(state.tasks, keep, pxPerMinute, window.startMillis, viewportWidthPx) {
-                derivedStateOf {
-                    val visible = TaskVisibility.visibleSpan(viewport.scrollX, viewportWidthPx, window.startMillis, pxPerMinute)
-                    TaskVisibility.onScreen(
-                        state.tasks, visible, keep,
-                        id = { it.id },
-                        start = { if (it.isMilestone) it.startMillis - TimelineMath.pxToMillis(milestoneBefore, pxPerMinute) else it.startMillis },
-                        end = { if (it.isMilestone) it.endMillis + TimelineMath.pxToMillis(milestoneAfter, pxPerMinute) else it.endMillis },
-                    )
-                }
-            }
+            // Every task has a row at every zoom (a search's matches while one is on), so the grid pans
+            // freely both ways and rows never come and go as it scrolls sideways; a row whose bar is
+            // off-screen shows an arrow towards it (TaskLane). The list is virtualized, so only the rows
+            // in view are composed.
+            val shownTasks = state.tasks
 
             // The rows as last composed. A change to what is kept (a new selection) makes a new derived list,
             // so code that runs on after it (scrolling to a task just selected) must read this, not the one it started with.
@@ -296,11 +279,7 @@ fun SchedulerTimeline(
                     if (shownTasks.isEmpty()) {
                         Text(
                             text = stringResource(
-                                when {
-                                    state.isFiltering -> R.string.tasks_no_match
-                                    state.tasks.isEmpty() -> R.string.tasks_empty
-                                    else -> R.string.tasks_none_here
-                                },
+                                if (state.isFiltering) R.string.tasks_no_match else R.string.tasks_empty,
                             ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

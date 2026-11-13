@@ -1523,3 +1523,24 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Note:** the local server ran the fake reader during this work, and the fake "sees" the 7-week chart in any image. Only the real reader can say an image isn't a schedule (it did for the landscape in batch 6).
 - **Checks:** the sheet's 8 ViewModel tests pass; the `ImportNotASchedule` screenshots were re-recorded.
 
+### Timeline: vertical panning
+
+- **Your request:** fix vertical panning in the grid, especially when zoomed in.
+- **What I found on the phone** (an 18-task test project from two fake-reader imports):
+  - straight and diagonal swipes, over bars and names, did scroll the list;
+  - but zoomed in, only the tasks overlapping the visible time had rows (your 12 Nov choice): 4 of 18 at Hours, so nothing to pan down to, and rows came and went while panning sideways.
+- **Your choice:** always list every task.
+- **The change:**
+  - every task (or search match) has a row at every zoom, in the virtualized list;
+  - a row whose bar is off-screen shows a small arrow at that edge, in the task's colour; tapping it scrolls the bar into view, like "show task".
+  - `TaskVisibility` (core:timeline) and "No tasks here" were removed.
+- **Also fixed — my regression from the label change:** a whole-day task's dates ("13 Nov – 19 Nov 2026") didn't fit the name column and were cut. They are now short ("13–19 Nov", "30 Nov – 6 Dec", "13 Nov"), and the line ends in "…" when it still doesn't fit at large font.
+- **Docs:** DECISIONS revises the rows decision; HANDOFF and Learn updated.
+- **Tests:**
+  - the timeline's device tests were rewritten where they assumed hidden rows; they now check that the bar is off-screen, the row is there, and its arrow scrolls to it. OK, 26 on the phone;
+  - the `TimeFormat` tests;
+  - screenshots re-recorded: the sample shows every task with arrows; large-font times end in "…".
+- **On the phone, zoomed in to Hours:** swipes over the grid and over the names scrolled through all 18 rows; tapping Install's arrow jumped to 25 Dec with its bar in view.
+- **Clean-up:** the test project deleted in the app (a tombstone waits for your next sync), the test image and its media entry removed, the local server stopped, the port forward removed.
+
+- **Checks:** `tools/check.sh` PASS: 468 unit tests (the removed `TaskVisibility` tests account for the drop), 126 screenshots, lint 23 warnings.

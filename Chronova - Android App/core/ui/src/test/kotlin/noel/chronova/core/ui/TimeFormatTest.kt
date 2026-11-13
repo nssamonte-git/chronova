@@ -63,9 +63,10 @@ class TimeFormatTest {
     @Test
     fun aWholeDayTaskShowsItsDaysOthersTheirTimes() {
         val manila = ZoneId.of("Asia/Manila")
-        // Midnight to midnight: the days it covers, the last one inclusive.
-        assertEquals("13 Nov – 19 Nov 2026", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 20, 0, 0, manila), manila))
-        assertEquals("13 Nov 2026", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 14, 0, 0, manila), manila))
+        // Midnight to midnight: the days it covers, the last one inclusive, short enough for the name column.
+        assertEquals("13–19 Nov", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 20, 0, 0, manila), manila))
+        assertEquals("30 Nov – 6 Dec", TimeFormat.span(millis(2026, 11, 30, 0, 0, manila), millis(2026, 12, 7, 0, 0, manila), manila))
+        assertEquals("13 Nov", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 14, 0, 0, manila), manila))
         // Anything else keeps its clock times, even when it starts at midnight.
         assertEquals("00:00 – 09:00", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 13, 9, 0, manila), manila))
         assertEquals("09:00 – 17:00", TimeFormat.span(millis(2026, 11, 13, 9, 0, manila), millis(2026, 11, 13, 17, 0, manila), manila))

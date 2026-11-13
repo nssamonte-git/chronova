@@ -35,14 +35,24 @@ object TimeFormat {
 
     /**
      * A task's span as its row shows it: clock times ("09:00 – 17:00"), or, for whole days
-     * (midnight to a later midnight, as tasks read from a chart are), the days it covers:
-     * "13 Nov – 19 Nov 2026", or "13 Nov 2026" for one day.
+     * (midnight to a later midnight, as tasks read from a chart are), the days it covers, short
+     * enough for the name column: "13–19 Nov", "30 Nov – 6 Dec", or "13 Nov" for one day.
      */
     fun span(startMillis: Long, endMillis: Long, zone: ZoneId): String {
         val start = Instant.ofEpochMilli(startMillis).atZone(zone)
         val end = Instant.ofEpochMilli(endMillis).atZone(zone)
         val wholeDays = endMillis > startMillis && start.toLocalTime() == LocalTime.MIDNIGHT && end.toLocalTime() == LocalTime.MIDNIGHT
-        return if (wholeDays) dateRange(start.toLocalDate(), end.toLocalDate().minusDays(1)) else range(startMillis, endMillis, zone)
+        return if (wholeDays) shortDays(start.toLocalDate(), end.toLocalDate().minusDays(1)) else range(startMillis, endMillis, zone)
+    }
+
+    /** Inclusive days without the year: "13–19 Nov", "30 Nov – 6 Dec", "13 Nov". */
+    private fun shortDays(first: LocalDate, last: LocalDate): String {
+        val dayMonth = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+        return when {
+            first == last -> dayMonth.format(first)
+            first.month == last.month && first.year == last.year -> "${first.dayOfMonth}–${dayMonth.format(last)}"
+            else -> "${dayMonth.format(first)} – ${dayMonth.format(last)}"
+        }
     }
 
     /** Inclusive date range, e.g. "2 Mar – 4 Mar 2026"; the year is shown once when shared. */
