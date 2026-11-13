@@ -1444,4 +1444,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - The bounds-only decode returns null by design, and my `?: return null` treated that as "no image", failing 3 device tests. Fixed.
     - The phone disconnected mid-run; you reconnected it.
     - A multipart header I guessed at in a test.
+- Batch 4, the screens (`:feature:chartimport:presentation`) and the entry points:
+  - **The sheet:**
+    - **Take photo** (the system camera into a lent file) or **Choose image** (the system photo picker); neither needs a permission. A note says the image goes to Meta and only what's read goes to OpenAI.
+    - "Reading the chart…" with Cancel.
+    - **Preview:** "Found 9 tasks · 1 milestone · 2 links", the new project's name and dates, "the chart has no dates, starts …" with a date picker, a "Check these" note box, tickable rows (an "Outside this project's dates" row arrives unticked), and Apply ("Create project with 9 tasks" / "Add 3 tasks") with the reason when it can't.
+    - **Problems** with "Try another image": offline, not a schedule, unreadable, bad image, no camera app, too many, switched off, sign in again, project gone.
+    - **Done**, with Undo and Open project.
+  - **Entry points:**
+    - the new-project sheet's "Start from" offers "An image of a chart…";
+    - the timeline's top bar has an "Add tasks from an image" button, shown only while no task is selected so a 360 dp bar keeps at most four buttons.
+    - The shell gives each opening its own ViewModel.
+  - **Changed from the plan:** Undo sits on the sheet's Done step rather than in a snackbar, since the sheet stays open after Apply. Adding to a project also keeps Undo on the notifications page.
+  - **Tests:**
+    - 8 ViewModel tests;
+    - 6 screenshots (×3: phone, large font, dark);
+    - a device test of the real sheet: preview, untick, apply, undo (OK 1);
+    - the notifications (8), projects (9) and timeline (27) device tests, all OK on the phone. Test apps uninstalled.
+  - **Checks:** `tools/check.sh` PASS: 472 unit tests, 123 screenshots, lint 23 warnings (all version notices).
+  - **My fixes on the way:**
+    - The screenshots first rendered the sheet's content without its surface (black text in dark mode); fixed in the screenshot wrapper.
+    - Lint found a string that should be a plural.
+    - Platform `ExifInterface` is suppressed with its reason (reliable from API 24; the minimum is 26; the AndroidX copy would be a new dependency).
 

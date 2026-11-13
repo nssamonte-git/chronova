@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,6 +78,8 @@ fun ProjectTimelineScreen(
     modifier: Modifier = Modifier,
     /** The clock for the now line and Today (tests fix it). */
     now: () -> Long = System::currentTimeMillis,
+    /** Opens the import sheet for this project (the shell's); null hides the button. */
+    onImportImage: (() -> Unit)? = null,
 ) {
     assistant.screenEffects()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -96,6 +99,7 @@ fun ProjectTimelineScreen(
                 state = current.timeline,
                 actions = TimelineActions(
                     onBack = onBack,
+                    onImportImage = onImportImage,
                     onSelectTask = viewModel::selectTask,
                     onCommitEdit = viewModel::commitEdit,
                     onTimeScale = viewModel::setTimeScale,
@@ -193,6 +197,8 @@ data class TimelineActions(
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
+    /** Opens the import sheet (tasks from an image of a chart); null hides the button. */
+    val onImportImage: (() -> Unit)? = null,
 )
 
 @Composable
@@ -324,6 +330,7 @@ internal fun TimelineContent(
                 onEditTask = actions.onEditTask,
                 onMarkDone = actions.onMarkDone,
                 onToggleControls = { showControls = !showControls },
+                onImportImage = actions.onImportImage,
             )
         },
         floatingActionButton = {
@@ -406,6 +413,7 @@ private fun TimelineTopBar(
     onEditTask: (String) -> Unit,
     onMarkDone: () -> Unit,
     onToggleControls: () -> Unit,
+    onImportImage: (() -> Unit)? = null,
 ) {
     TopAppBar(
         navigationIcon = {
@@ -431,6 +439,12 @@ private fun TimelineTopBar(
             if (selectedTaskId != null) {
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))
+                }
+            }
+            // Only while nothing is selected, so a 360 dp bar never holds more than four buttons.
+            if (onImportImage != null && selectedTaskId == null) {
+                IconButton(onClick = onImportImage) {
+                    Icon(painterResource(R.drawable.ic_add_photo), contentDescription = stringResource(R.string.timeline_import_image))
                 }
             }
             IconButton(onClick = onSearch) {

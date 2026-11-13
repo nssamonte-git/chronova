@@ -81,6 +81,8 @@ fun ProjectListScreen(
     modifier: Modifier = Modifier,
     /** The voice assistant, as the shell builds it (none in previews and tests). */
     assistant: AssistantSlot = AssistantSlot.None,
+    /** "Start from: An image…" in the new-project sheet (the shell shows the import sheet); null hides it. */
+    onImportImage: (() -> Unit)? = null,
 ) {
     assistant.screenEffects()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -123,6 +125,12 @@ fun ProjectListScreen(
             onSave = viewModel::saveEditor,
             onDismiss = viewModel::dismissEditor,
             onStartFrom = viewModel::onStartFrom,
+            onFromImage = onImportImage?.let { open ->
+                {
+                    viewModel.dismissEditor()
+                    open()
+                }
+            },
         )
     }
     pendingDelete?.let { target ->

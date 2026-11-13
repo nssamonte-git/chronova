@@ -5,6 +5,8 @@ import noel.chronova.feature.push.domain.RegisterDevice
 import noel.chronova.feature.push.data.OkHttpPushApi
 import noel.chronova.feature.push.data.FirebasePushTokens
 import kotlinx.coroutines.flow.distinctUntilChanged
+import noel.chronova.feature.chartimport.data.OkHttpImportApi
+import noel.chronova.feature.chartimport.domain.ImportApi
 import noel.chronova.feature.push.domain.HandleAlert
 import noel.chronova.feature.push.domain.PushMessage
 import noel.chronova.feature.push.data.PushHost
@@ -20,6 +22,7 @@ import noel.chronova.feature.reminders.data.PreferencesReminderLog
 import noel.chronova.feature.reminders.data.ReminderHost
 import noel.chronova.feature.reminders.domain.ReminderEngine
 import noel.chronova.app.di.ExportGraph
+import noel.chronova.app.di.ImportGraph
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -168,6 +171,12 @@ class AppContainer(context: Context) {
         httpClient.newBuilder().readTimeout(45, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS).build(),
     )
 
+    /** Schedules from images: Meta and OpenAI read the chart on the server, which can take most of a minute. */
+    val importApi: ImportApi = OkHttpImportApi(
+        backendConfig.apiUrl.ifBlank { "https://localhost" },
+        httpClient.newBuilder().writeTimeout(60, TimeUnit.SECONDS).readTimeout(90, TimeUnit.SECONDS).callTimeout(120, TimeUnit.SECONDS).build(),
+    )
+
     /** Whether the internet is reachable (each collector gets its own callback). */
     val online: Flow<Boolean> = onlineFlow(context)
 
@@ -191,6 +200,7 @@ class AppContainer(context: Context) {
     val account = AccountGraph(this)
     val assistant = AssistantGraph(this, context)
     val export = ExportGraph(this, context)
+    val chartImport = ImportGraph(this, context)
 
     /** Tells the server how to push to this device (Firebase token, time zone, reminder choice). */
     val registerDevice = RegisterDevice(

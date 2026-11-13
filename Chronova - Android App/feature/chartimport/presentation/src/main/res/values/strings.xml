@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="import_title_new">New project from an image</string>
+    <string name="import_untitled_project">Imported schedule</string>
+    <string name="import_title_add">Add tasks from an image</string>
+    <string name="import_into">Into %1$s</string>
+    <string name="import_choose_body">Photograph a schedule or Gantt chart, or choose an image of one. Chronova reads its tasks and dates, and you check them before anything changes.</string>
+    <string name="import_take_photo">Take photo</string>
+    <string name="import_choose_image">Choose image</string>
+    <string name="import_privacy">The image is read by Meta; only what it reads (not the image) goes to OpenAI to build the tasks. Neither is kept by Chronova.</string>
+
+    <string name="import_reading">Reading the chart…</string>
+    <string name="import_reading_body">This can take up to a minute.</string>
+
+    <plurals name="import_found_tasks">
+        <item quantity="one">Found %d task</item>
+        <item quantity="other">Found %d tasks</item>
+    </plurals>
+    <plurals name="import_found_milestones">
+        <item quantity="one">%d milestone</item>
+        <item quantity="other">%d milestones</item>
+    </plurals>
+    <plurals name="import_found_links">
+        <item quantity="one">%d link</item>
+        <item quantity="other">%d links</item>
+    </plurals>
+    <string name="import_project_name">Project name</string>
+    <string name="import_project_days">Dates: %1$s</string>
+    <string name="import_starts">The chart has no dates. Starts %1$s</string>
+    <string name="import_change">Change</string>
+    <string name="import_milestone">Milestone</string>
+    <string name="import_outside">Outside this project’s dates</string>
+    <string name="import_progress">%1$d%% done</string>
+    <string name="import_check_these">Check these</string>
+    <plurals name="import_apply_new">
+        <item quantity="one">Create project with %d task</item>
+        <item quantity="other">Create project with %d tasks</item>
+    </plurals>
+    <plurals name="import_apply_add">
+        <item quantity="one">Add %d task</item>
+        <item quantity="other">Add %d tasks</item>
+    </plurals>
+
+    <string name="import_problem_offline">You’re offline. Reading an image needs a connection.</string>
+    <string name="import_problem_not_schedule">That doesn’t look like a schedule. Try a photo of a Gantt chart, a timeline or a table of tasks with dates.</string>
+    <string name="import_problem_unreadable">No tasks with dates could be read. Try a sharper, straighter photo with the whole chart in it.</string>
+    <string name="import_problem_bad_image">That image couldn’t be used. Try another one.</string>
+    <string name="import_problem_no_camera">No camera app was found. Choose an image instead.</string>
+    <string name="import_problem_too_many">That’s a lot of images for now. Try again later.</string>
+    <string name="import_problem_switched_off">Reading images is switched off for now.</string>
+    <string name="import_problem_sign_in">Sign in again to read images.</string>
+    <string name="import_problem_project_gone">This project is no longer here.</string>
+    <string name="import_problem_unavailable">The image couldn’t be read right now. Try again in a moment.</string>
+    <string name="import_try_another">Try another image</string>
+
+    <string name="import_plan_nothing">Tick at least one task.</string>
+    <string name="import_plan_blank_name">Give the project a name.</string>
+    <string name="import_plan_end_before_start">The project can’t end before it starts.</string>
+    <plurals name="import_plan_too_long">
+        <item quantity="one">A project can be at most %d day long.</item>
+        <item quantity="other">A project can be at most %d days long.</item>
+    </plurals>
+    <string name="import_plan_does_not_fit">“%1$s” doesn’t fit the project’s dates.</string>
+    <string name="import_plan_changed">The project changed meanwhile. Try again.</string>
+
+    <plurals name="import_done_body">
+        <item quantity="one">%1$d task added to %2$s.</item>
+        <item quantity="other">%1$d tasks added to %2$s.</item>
+    </plurals>
+    <string name="import_undo">Undo</string>
+    <string name="import_undone">Undone.</string>
+    <string name="import_undo_failed">Couldn’t undo: those tasks were changed since.</string>
+    <string name="import_open_project">Open project</string>
+    <string name="import_close">Done</string>
+</resources>

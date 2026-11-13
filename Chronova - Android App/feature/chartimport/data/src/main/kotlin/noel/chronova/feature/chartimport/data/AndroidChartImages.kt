@@ -1,3 +1,7 @@
+// The platform ExifInterface reads streams reliably from API 24; the app's minimum is 26, so the
+// AndroidX copy (a new dependency) isn't needed.
+@file:Suppress("ExifInterface")
+
 package noel.chronova.feature.chartimport.data
 
 import android.content.Context

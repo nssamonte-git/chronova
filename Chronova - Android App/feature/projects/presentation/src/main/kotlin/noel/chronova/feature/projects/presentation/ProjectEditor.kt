@@ -64,6 +64,8 @@ fun ProjectEditorSheet(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     onStartFrom: (String?) -> Unit = {},
+    /** Offers "An image…" under Start from (a new project read from a chart); null hides it. */
+    onFromImage: (() -> Unit)? = null,
 ) {
     var pickingDates by rememberSaveable { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -88,8 +90,8 @@ fun ProjectEditorSheet(
                 },
                 style = MaterialTheme.typography.titleLarge,
             )
-            if (editor.isNew && editor.sources.isNotEmpty()) {
-                StartFromChoice(editor.copyFrom, editor.sources, onStartFrom)
+            if (editor.isNew && (editor.sources.isNotEmpty() || onFromImage != null)) {
+                StartFromChoice(editor.copyFrom, editor.sources, onStartFrom, onFromImage)
             }
             OutlinedTextField(
                 value = editor.name,
@@ -164,7 +166,7 @@ fun ProjectEditorSheet(
 
 /** "Start from: Blank ▾" and a menu of the projects a new one can copy. */
 @Composable
-private fun StartFromChoice(selected: ProjectSourceUi?, sources: List<ProjectSourceUi>, onStartFrom: (String?) -> Unit) {
+private fun StartFromChoice(selected: ProjectSourceUi?, sources: List<ProjectSourceUi>, onStartFrom: (String?) -> Unit, onFromImage: (() -> Unit)?) {
     var open by remember { mutableStateOf(false) }
     val blank = stringResource(R.string.project_start_blank)
     Box {
@@ -179,6 +181,9 @@ private fun StartFromChoice(selected: ProjectSourceUi?, sources: List<ProjectSou
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text(blank) }, onClick = { open = false; onStartFrom(null) })
+            if (onFromImage != null) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_start_image)) }, onClick = { open = false; onFromImage() })
+            }
             sources.forEach { source ->
                 DropdownMenuItem(
                     text = { Text(source.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },

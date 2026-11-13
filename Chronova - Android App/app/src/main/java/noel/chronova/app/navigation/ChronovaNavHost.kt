@@ -1,5 +1,10 @@
 package noel.chronova.app.navigation
 
+import androidx.compose.ui.res.stringResource
+import java.time.LocalDate
+import noel.chronova.feature.chartimport.presentation.ImportScreen
+import noel.chronova.feature.chartimport.presentation.ImportViewModel
+import noel.chronova.feature.chartimport.presentation.R as ImportR
 import noel.chronova.feature.export.domain.ExportFormat
 import noel.chronova.core.model.ReminderLead
 import androidx.core.app.NotificationManagerCompat
@@ -165,6 +170,8 @@ private fun ChronovaScreens(
         composable<ProjectListRoute> {
             // The project being exported (its sheet); kept across rotation.
             var exportId by rememberSaveable { mutableStateOf<String?>(null) }
+            // An open import sheet (a new project from an image), numbered so each opening starts afresh.
+            var importing by rememberSaveable { mutableStateOf<Int?>(null) }
             var exportName by rememberSaveable { mutableStateOf("") }
             // The assistant on the list of projects: where to go (no project is open here).
             val assistant: AssistantViewModel = viewModel(
@@ -185,7 +192,13 @@ private fun ChronovaScreens(
                     exportId = id
                     exportName = name
                 },
+                onImportImage = { importing = (importing ?: 0) + 1 },
             )
+            importing?.let { session ->
+                ImportSheetHost(container, projectId = null, session = session, onDismiss = { importing = null }) { id ->
+                    navController.navigate(ProjectTimelineRoute(id))
+                }
+            }
             exportId?.let { id ->
                 ExportScreen(
                     viewModel = viewModel(key = "export-$id", factory = ExportViewModel.factory(id, exportName, container.export::exportProject)),
@@ -212,14 +225,36 @@ private fun ChronovaScreens(
                 factory = AssistantViewModel.factory(route.projectId, container.assistant::useCases, container.assistant.phrases),
             )
             AssistantRequests(assistant, doRequest)
+            var importing by rememberSaveable { mutableStateOf<Int?>(null) }
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container.timeline::useCases)),
                 // The timeline knows the assistant only through this slot.
                 assistant = rememberAssistantSlot(assistant),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
+                onImportImage = { importing = (importing ?: 0) + 1 },
             )
+            importing?.let { session ->
+                ImportSheetHost(container, projectId = route.projectId, session = session, onDismiss = { importing = null }) {}
+            }
         }
     }
+}
+
+/**
+ * The import sheet (tasks from an image of a chart) for a new project ([projectId] null) or an open
+ * one. Each opening ([session]) gets its own ViewModel, so the sheet never reopens on an old import.
+ */
+@Composable
+private fun ImportSheetHost(container: AppContainer, projectId: String?, session: Int, onDismiss: () -> Unit, onOpenProject: (String) -> Unit) {
+    val untitled = stringResource(ImportR.string.import_untitled_project)
+    ImportScreen(
+        viewModel = viewModel(
+            key = "import-${projectId ?: "new"}-$session",
+            factory = ImportViewModel.factory(projectId, container.chartImport::useCases, { LocalDate.now() }, untitled),
+        ),
+        onDismiss = onDismiss,
+        onOpenProject = onOpenProject,
+    )
 }
 
 /** Does what the assistant asked the app to do (it has already said so), once per request, in order. */
