@@ -1,14 +1,5 @@
 package noel.chronova.feature.projects.presentation
 
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarDuration
-import java.time.ZoneId
-import noel.chronova.core.ui.assistant.AssistantSlot
-import androidx.compose.material.icons.filled.Share
-import java.time.LocalDate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,26 +18,26 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,18 +46,31 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.LocalDate
+import java.time.ZoneId
+import noel.chronova.core.designsystem.ChronovaSpacing
+import noel.chronova.core.designsystem.ChronovaTheme
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.ui.BadgedIconButton
+import noel.chronova.core.ui.R as CoreUiR
 import noel.chronova.core.ui.TimeFormat
+import noel.chronova.core.ui.assistant.AssistantSlot
+import noel.chronova.core.ui.components.AuroraFab
+import noel.chronova.core.ui.components.BrandTitle
+import noel.chronova.core.ui.components.ChronovaCard
+import noel.chronova.core.ui.components.ChronovaTopBar
+import noel.chronova.core.ui.components.ConfirmDialog
+import noel.chronova.core.ui.components.EmptyState
+import noel.chronova.core.ui.components.FabClearance
+import noel.chronova.core.ui.components.FabColumn
+import noel.chronova.core.ui.components.ProgressMeter
 import noel.chronova.core.ui.sync.SyncButton
 import noel.chronova.core.ui.sync.SyncStatusLine
 import noel.chronova.core.ui.sync.SyncUi
-import noel.chronova.core.designsystem.ChronovaTheme
-import noel.chronova.core.ui.R as CoreUiR
 
 @Composable
 fun ProjectListScreen(
@@ -134,24 +139,17 @@ fun ProjectListScreen(
         )
     }
     pendingDelete?.let { target ->
-        AlertDialog(
-            onDismissRequest = viewModel::cancelDelete,
-            title = { Text(stringResource(R.string.project_delete_title, target.name)) },
-            text = {
-                Text(
-                    if (target.taskCount == 0) {
-                        stringResource(R.string.project_delete_body_empty)
-                    } else {
-                        pluralStringResource(R.plurals.project_delete_body, target.taskCount, target.taskCount)
-                    },
-                )
+        ConfirmDialog(
+            title = stringResource(R.string.project_delete_title, target.name),
+            text = if (target.taskCount == 0) {
+                stringResource(R.string.project_delete_body_empty)
+            } else {
+                pluralStringResource(R.plurals.project_delete_body, target.taskCount, target.taskCount)
             },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmDelete) {
-                    Text(stringResource(CoreUiR.string.delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text(stringResource(CoreUiR.string.cancel)) } },
+            confirmLabel = stringResource(CoreUiR.string.delete),
+            onConfirm = viewModel::confirmDelete,
+            onDismiss = viewModel::cancelDelete,
+            destructive = true,
         )
     }
 }
@@ -189,35 +187,17 @@ internal fun ProjectListContent(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHost) },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FabColumn {
                 // The assistant's orb, just above "New project", as on the timeline.
                 if (assistant.available) assistant.orbButton(Modifier)
-                val label = stringResource(R.string.project_new)
-                ExtendedFloatingActionButton(
-                    onClick = onCreate,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(label) },
-                    // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
-                    modifier = Modifier.semantics { contentDescription = label },
-                )
+                AuroraFab(stringResource(R.string.project_new), onClick = onCreate) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                }
             }
         },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(CoreUiR.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = stringResource(R.string.app_tagline),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
+            ChronovaTopBar(
+                title = { BrandTitle(stringResource(R.string.app_tagline)) },
                 actions = {
                     NotificationsButton(unreadNotifications, onOpenNotifications)
                     if (syncUi.signedIn) SyncButton(syncUi, onSync)
@@ -240,18 +220,20 @@ internal fun ProjectListContent(
                     ProjectListState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                     is ProjectListState.Loaded ->
                         if (state.projects.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.projects_empty),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .padding(24.dp),
+                            EmptyState(
+                                title = stringResource(R.string.projects_empty_title),
+                                body = stringResource(R.string.projects_empty),
+                                modifier = Modifier.align(Alignment.Center),
                             )
                         } else {
                             LazyColumn(
                                 // Bottom padding keeps the last card clear of the FAB (and the orb above it).
-                                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (assistant.available) 172.dp else 96.dp),
+                                contentPadding = PaddingValues(
+                                    start = ChronovaSpacing.screenGutter,
+                                    top = ChronovaSpacing.s,
+                                    end = ChronovaSpacing.screenGutter,
+                                    bottom = if (assistant.available) FabClearance.withOrb else FabClearance.single,
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 items(state.projects, key = { it.id }) { summary ->
@@ -281,40 +263,39 @@ private fun ProjectCard(
     onExport: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Row(verticalAlignment = Alignment.Top) {
-            ProjectCardText(summary, Modifier.weight(1f))
-            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onExport = onExport, onDelete = onDelete)
+    ChronovaCard(Modifier.fillMaxWidth(), onClick = onClick) {
+        Column(Modifier.padding(bottom = 16.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f).padding(start = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = summary.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = TimeFormat.dateRange(summary.startDate, summary.endDate),
+                        style = MaterialTheme.typography.bodyMedium.numeric(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onExport = onExport, onDelete = onDelete)
+            }
+            // How much is done, as a bar across the card; the count below says it in words.
+            if (summary.taskCount > 0) {
+                ProgressMeter(
+                    fraction = summary.doneCount.toFloat() / summary.taskCount,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).fillMaxWidth().height(6.dp),
+                )
+            }
+            val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
+            Text(
+                text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
+                style = MaterialTheme.typography.labelMedium.numeric(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            )
         }
-    }
-}
-
-@Composable
-private fun ProjectCardText(summary: ProjectRowUi, modifier: Modifier = Modifier) {
-    Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = summary.name,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = TimeFormat.dateRange(summary.startDate, summary.endDate),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
-        Text(
-            text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

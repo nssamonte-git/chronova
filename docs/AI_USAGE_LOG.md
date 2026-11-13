@@ -1571,3 +1571,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **My mistake, caught before committing:** the dark preview's background colour is part of each dark screenshot's file name, so changing it left the 42 old dark references beside the new ones, and the first dark images I looked at were the stale ones. The old files are deleted; DECISIONS notes the trap.
 - **Tests:** the theme's device test was rewritten for the new palette and gained contrast checks for both themes and for white labels on every task colour. It compiles (`assembleDebugAndroidTest`); it was not run, no device or emulator was used.
 - **Checks:** `tools/check.sh` PASS: 468 unit tests, 129 screenshots (126 re-recorded, 3 new for the type scale), lint 0 errors and 23 warnings, both architecture checks. I looked at the theme, timeline, task editor and project list images in light and dark. Nothing was checked on a phone.
+
+### Phases 2 to 5: shared components, then every screen
+
+- **Shared pieces** (`:core:ui`, `components/`): top bar, sheet (column, title, action row), card, banner (info, warning, error), empty state, section header, confirm dialog, date picker dialog, the gradient floating button and its column, progress meter, fading edges for rows wider than the screen. They replace four copies of the sheet set-up, three date pickers, the delete and sign-out dialogs, and about a dozen hand-written error lines.
+- **Project list:** logo and name in the top bar; a green, amber or red dot on the sync line; cards with a hairline border and a progress bar from the done count; the empty page has the three bars, "Plan your first project" and the old sentence.
+- **Timeline (drawing only):** the now line in the gradient over a soft glow; weekends shaded; a hairline of light along each bar; a ring round the milestone diamond; equal-width digits in the header, the name column and the controls. `TimelineMath`, `SnapGrid`, the viewport, the gestures and the row sizes were not touched.
+- **Timeline's words:** the controls' labels and the top bar's descriptions were English literals in the code; they are string resources now, with the same text (the device tests look them up by that text).
+- **Task and project editors:** the shared sheet; a "Colour" label, and the chosen swatch has a ring; "On the critical path" is a warning box; problems are error boxes.
+- **Account, notifications, import, export:** the shared top bar and sheet; sync failure, sign-in problems and "Check these" as boxes (the last was the accent colour, now a warning); unread notifications get a rail and a raised row instead of a blue wash, with the icon in a tinted circle; export formats are selectable cards.
+- **Assistant overlay:** its colours moved to `AssistantPalette` (the scrim is the same value as before), and a soft halo sits behind the orb.
+- **Not done from the plan:**
+  - the project card's mini chart of its tasks: the list's query returns counts, not task spans, so it needs a read through the DAO, the repository and its fake. I left the data layer alone and used the progress bar;
+  - the scale picker as chips (the segmented buttons stay; the row's edges fade instead);
+  - the account page as grouped cards (it has section labels and a divider);
+  - motion (colour and progress animations);
+  - one commit per phase: phases 2 to 5 are one commit, because the sync line changed in the shared module and the project list's references changed with it, so the phases would not each have passed the check alone.
+- **My mistakes, caught by the compiler or the screenshots:**
+  - a script I wrote to drop unused imports also dropped `getValue` / `setValue` (property delegates don't name them); fixed in the script and the two files;
+  - a text splice left the export sheet's format row without its opening brace;
+  - the empty state's title was black on navy when shown outside a Scaffold; it sets its colour now.
+- **Tests:** 4 new unit tests for the weekend spans (a plain week, weekdays only, a window starting mid-Saturday, a 23-hour Sunday in Paris).
+- **Checks:** `tools/check.sh` PASS on the final tree: 472 unit tests, 141 screenshots (12 new for the shared pieces), lint 0 errors and 23 warnings, both architecture checks, the app and the device-test APKs build. I looked at every screen's phone and dark images side by side; I did not look at every large-font image.
+- **Not checked:** nothing was run on a phone or an emulator, and the device tests were not run. In particular, untested on a device: the fading edges while scrolling, the gradient button's ripple and TalkBack reading, sheets with the keyboard open (the import sheet now also pads for the keyboard), and the weekend shade while panning a long project.

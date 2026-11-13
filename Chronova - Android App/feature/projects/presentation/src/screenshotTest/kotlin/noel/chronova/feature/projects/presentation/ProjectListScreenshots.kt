@@ -9,7 +9,7 @@ import noel.chronova.core.ui.sync.SyncPhase
 import noel.chronova.core.ui.sync.SyncUi
 
 private val projects = listOf(
-    ProjectRowUi("office", "Office move", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 20), taskCount = 3),
+    ProjectRowUi("office", "Office move", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 20), taskCount = 3, doneCount = 1),
     ProjectRowUi("launch", "Website launch", LocalDate.of(2026, 12, 1), LocalDate.of(2026, 12, 14), taskCount = 1),
     ProjectRowUi("kitchen", "Kitchen", LocalDate.of(2026, 11, 28), LocalDate.of(2026, 11, 28), taskCount = 0),
 )

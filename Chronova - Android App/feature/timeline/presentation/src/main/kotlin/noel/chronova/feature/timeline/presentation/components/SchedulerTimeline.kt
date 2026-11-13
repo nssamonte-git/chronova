@@ -1,20 +1,5 @@
 package noel.chronova.feature.timeline.presentation.components
 
-import androidx.compose.runtime.snapshotFlow
-import java.time.LocalDate
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
-import noel.chronova.core.ui.assistant.AssistantViewAction
-import noel.chronova.core.ui.assistant.AssistantViewRequest
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.Icon
-import androidx.compose.material3.SmallFloatingActionButton
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -33,7 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -41,9 +30,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -53,14 +45,24 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.max
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.timeline.TimelineMath
 import noel.chronova.core.ui.TimeFormat
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import noel.chronova.core.ui.assistant.AssistantViewRequest
+import noel.chronova.core.ui.components.EmptyState
 import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.feature.timeline.presentation.TaskUi
 import noel.chronova.feature.timeline.presentation.TimelineUiState
@@ -260,10 +262,12 @@ fun SchedulerTimeline(
                         // Taps on empty timeline space clear the selection; bars consume their own taps.
                         .pointerInput(Unit) { detectTapGestures { onSelectTask(null) } },
                 ) {
+                    val weekends = remember(window, state.zone) { weekendOffsets(window.startMillis, window.endMillis, state.zone) }
                     TimelineGrid(
                         ticks = ticks,
                         pxPerMinute = pxPerMinute,
                         viewport = viewport,
+                        weekends = weekends,
                         nowOffsetMillis = (nowMillis - window.startMillis).takeIf { nowMillis in window.startMillis until window.endMillis },
                         modifier = Modifier
                             .fillMaxSize()
@@ -277,16 +281,14 @@ fun SchedulerTimeline(
                             .columnDivider(colors.outlineVariant),
                     )
                     if (shownTasks.isEmpty()) {
-                        Text(
-                            text = stringResource(
+                        // Over the grid, right of the name column; the full sentence is the title, so it reads as before.
+                        EmptyState(
+                            title = stringResource(
                                 if (state.isFiltering) R.string.tasks_no_match else R.string.tasks_empty,
                             ),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(start = NameColumnWidth)
-                                .padding(24.dp),
+                                .padding(start = NameColumnWidth),
                         )
                     }
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
@@ -405,8 +407,7 @@ private fun VisibleDayLabel(
     Box(modifier, contentAlignment = Alignment.CenterStart) {
         Text(
             text = day,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelLarge.numeric(),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
@@ -425,6 +426,25 @@ private fun localMidnightOffsets(startMillis: Long, endMillis: Long, zone: ZoneI
         day = day.plusDays(1)
     }
     return offsets.toLongArray()
+}
+
+/**
+ * Each Saturday and Sunday in the window as [start, end) offsets from [startMillis], ascending
+ * (local midnights, so a DST change keeps the shade on the day). For the grid's weekend shade.
+ */
+internal fun weekendOffsets(startMillis: Long, endMillis: Long, zone: ZoneId): List<LongRange> {
+    val spans = ArrayList<LongRange>()
+    var day = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDate()
+    while (true) {
+        val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        if (from >= endMillis) break
+        if (day.dayOfWeek == DayOfWeek.SATURDAY || day.dayOfWeek == DayOfWeek.SUNDAY) {
+            val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            spans += (maxOf(from, startMillis) - startMillis)..(minOf(to, endMillis) - startMillis)
+        }
+        day = day.plusDays(1)
+    }
+    return spans
 }
 
 /** Index of the last value <= [value] in the ascending [sorted] array (0 if none). */

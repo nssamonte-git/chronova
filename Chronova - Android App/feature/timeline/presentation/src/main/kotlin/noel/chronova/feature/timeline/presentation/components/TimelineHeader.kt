@@ -18,9 +18,10 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.ceil
 import kotlin.math.max
+import noel.chronova.core.designsystem.numeric
+import noel.chronova.core.model.TimeScale
 import noel.chronova.core.timeline.Tick
 import noel.chronova.core.timeline.TimelineMath
-import noel.chronova.core.model.TimeScale
 import noel.chronova.core.ui.TimeFormat
 
 /**
@@ -44,9 +45,9 @@ fun TimelineHeader(
 ) {
     val colors = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
-    val clockStyle = MaterialTheme.typography.labelMedium.copy(color = colors.onSurfaceVariant)
+    val clockStyle = MaterialTheme.typography.labelMedium.numeric().copy(color = colors.onSurfaceVariant)
     val dayStyle = clockStyle.copy(color = colors.onSurface, fontWeight = FontWeight.SemiBold)
-    val minorStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSurfaceVariant.copy(alpha = 0.8f))
+    val minorStyle = MaterialTheme.typography.labelSmall.numeric().copy(color = colors.onSurfaceVariant)
 
     // Labels depend only on time, never on zoom. They are formatted lazily, the
     // first time a tick is drawn, so a year at Hours scale doesn't format ~17k up front.

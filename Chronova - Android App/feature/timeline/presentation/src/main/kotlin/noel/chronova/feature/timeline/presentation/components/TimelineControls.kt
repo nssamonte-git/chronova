@@ -27,12 +27,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import noel.chronova.core.designsystem.ChronovaSpacing
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
+import noel.chronova.core.ui.components.horizontalFadingEdges
+import noel.chronova.feature.timeline.presentation.R
 
 /**
  * Configuration toolbar: time scale, zoom, snap interval, row height and the critical-path switch. It scrolls
@@ -50,49 +55,53 @@ fun TimelineControls(
     modifier: Modifier = Modifier,
     onCriticalPath: (Boolean) -> Unit = {},
 ) {
+    val scroll = rememberScrollState()
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            // The row is wider than a phone: its edges fade while there is more to scroll to.
+            .horizontalFadingEdges(scroll)
+            .horizontalScroll(scroll)
+            .padding(horizontal = ChronovaSpacing.screenGutter, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        ControlGroup("Scale") {
+        ControlGroup(stringResource(R.string.controls_scale)) {
             SegmentedChoice(
                 options = TimeScale.entries,
                 selected = config.timeScale,
-                label = ::scaleLabel,
+                label = { scaleLabel(it) },
                 onSelect = onTimeScale,
             )
         }
-        ControlGroup("Zoom") {
-            StepperIcon(MinusIcon, "Zoom out", config.canZoomOut, onZoomOut)
-            ValueText("${config.zoomPercent}%")
-            StepperIcon(Icons.Filled.Add, "Zoom in", config.canZoomIn, onZoomIn)
-            StepperIcon(Icons.Filled.Refresh, "Reset zoom", config.zoomPercent != 100, onZoomReset)
+        ControlGroup(stringResource(R.string.controls_zoom)) {
+            StepperIcon(MinusIcon, stringResource(R.string.controls_zoom_out), config.canZoomOut, onZoomOut)
+            ValueText(stringResource(R.string.controls_zoom_value, config.zoomPercent))
+            StepperIcon(Icons.Filled.Add, stringResource(R.string.controls_zoom_in), config.canZoomIn, onZoomIn)
+            StepperIcon(Icons.Filled.Refresh, stringResource(R.string.controls_zoom_reset), config.zoomPercent != 100, onZoomReset)
         }
-        ControlGroup("Snap") {
+        ControlGroup(stringResource(R.string.controls_snap)) {
             SegmentedChoice(
                 options = config.timeScale.snapOptions,
                 selected = config.snapMinutes,
-                label = ::snapLabel,
+                label = { snapLabel(it) },
                 onSelect = onSnap,
             )
         }
-        ControlGroup("Row height") {
-            StepperIcon(MinusIcon, "Decrease row height", config.canShrinkRows) { onRowHeightStep(-1) }
-            ValueText("${config.rowHeightDp.toInt()}dp")
-            StepperIcon(Icons.Filled.Add, "Increase row height", config.canGrowRows) { onRowHeightStep(+1) }
+        ControlGroup(stringResource(R.string.controls_row_height)) {
+            StepperIcon(MinusIcon, stringResource(R.string.controls_row_height_less), config.canShrinkRows) { onRowHeightStep(-1) }
+            ValueText(stringResource(R.string.controls_row_height_value, config.rowHeightDp.toInt()))
+            StepperIcon(Icons.Filled.Add, stringResource(R.string.controls_row_height_more), config.canGrowRows) { onRowHeightStep(+1) }
         }
-        ControlGroup("Critical path") {
+        ControlGroup(stringResource(R.string.controls_critical_path)) {
+            val description = stringResource(R.string.controls_critical_path_show)
             Switch(
                 checked = config.showCriticalPath,
                 onCheckedChange = onCriticalPath,
                 modifier = Modifier
                     // 48 dp tall with its touch target, like the segmented buttons, so the row keeps its height.
                     .padding(horizontal = 4.dp)
-                    .semantics { contentDescription = "Show critical path" },
+                    .semantics { contentDescription = description },
             )
         }
     }
@@ -116,7 +125,7 @@ private fun ControlGroup(label: String, content: @Composable () -> Unit) {
 private fun <T> SegmentedChoice(
     options: List<T>,
     selected: T,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
 ) {
     SingleChoiceSegmentedButtonRow(Modifier.padding(vertical = 4.dp)) {
@@ -145,25 +154,29 @@ private fun StepperIcon(icon: ImageVector, description: String, enabled: Boolean
 private fun ValueText(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelLarge.numeric(),
         textAlign = TextAlign.Center,
         modifier = Modifier.widthIn(min = 44.dp),
     )
 }
 
-private fun scaleLabel(scale: TimeScale): String = when (scale) {
-    TimeScale.HOURS -> "Hours"
-    TimeScale.DAYS -> "Days"
-    TimeScale.WEEKS -> "Weeks"
-    TimeScale.MONTHS -> "Months"
-}
+@Composable
+private fun scaleLabel(scale: TimeScale): String = stringResource(
+    when (scale) {
+        TimeScale.HOURS -> R.string.scale_hours
+        TimeScale.DAYS -> R.string.scale_days
+        TimeScale.WEEKS -> R.string.scale_weeks
+        TimeScale.MONTHS -> R.string.scale_months
+    },
+)
 
 /** 15m, 30m, 1h, 6h, 1d, 1w. */
+@Composable
 private fun snapLabel(minutes: Int): String = when {
-    minutes % (7 * 24 * 60) == 0 -> "${minutes / (7 * 24 * 60)}w"
-    minutes % (24 * 60) == 0 -> "${minutes / (24 * 60)}d"
-    minutes % 60 == 0 -> "${minutes / 60}h"
-    else -> "${minutes}m"
+    minutes % (7 * 24 * 60) == 0 -> stringResource(R.string.snap_weeks, minutes / (7 * 24 * 60))
+    minutes % (24 * 60) == 0 -> stringResource(R.string.snap_days, minutes / (24 * 60))
+    minutes % 60 == 0 -> stringResource(R.string.snap_hours, minutes / 60)
+    else -> stringResource(R.string.snap_minutes, minutes)
 }
 
 /** Material "remove" glyph; defined locally because it is only in the large extended icon set. */

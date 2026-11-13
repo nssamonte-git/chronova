@@ -2,69 +2,64 @@ package noel.chronova.feature.account.presentation
 
 import android.Manifest
 import android.os.Build
+import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.core.app.NotificationManagerCompat
-import noel.chronova.core.model.ReminderLead
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import noel.chronova.core.model.ThemeMode
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.semantics.Role
-import androidx.compose.material3.Checkbox
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import android.text.format.DateUtils
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -72,13 +67,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import noel.chronova.core.designsystem.ChronovaSpacing
+import noel.chronova.core.designsystem.R as DesignR
+import noel.chronova.core.designsystem.numeric
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.core.model.ThemeMode
+import noel.chronova.core.ui.R as CoreUiR
+import noel.chronova.core.ui.components.BannerKind
+import noel.chronova.core.ui.components.ChronovaTopBar
+import noel.chronova.core.ui.components.ChronovaTopBarTitle
+import noel.chronova.core.ui.components.ConfirmDialog
+import noel.chronova.core.ui.components.DestructiveTextButton
+import noel.chronova.core.ui.components.InlineBanner
+import noel.chronova.core.ui.components.SectionHeader
 import noel.chronova.core.ui.sync.SyncPhase
 import noel.chronova.core.ui.sync.SyncUi
 import noel.chronova.core.ui.sync.syncFailureText
 import noel.chronova.core.ui.sync.syncStatusText
-import noel.chronova.core.designsystem.R as DesignR
-import noel.chronova.core.ui.R as CoreUiR
 
 /** Sign up, confirm, sign in and sign out for sync. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,15 +138,9 @@ internal fun AccountContent(
     page.dialog?.let { AccountConfirmDialog(it, onConfirm = actions.onConfirmDialog, onDismiss = actions.onDismissDialog) }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(if (onBack == null) CoreUiR.string.app_name else R.string.account_title)) },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreUiR.string.back))
-                        }
-                    }
-                },
+            ChronovaTopBar(
+                title = { ChronovaTopBarTitle(stringResource(if (onBack == null) CoreUiR.string.app_name else R.string.account_title)) },
+                onBack = onBack,
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -156,8 +157,8 @@ internal fun AccountContent(
                 Modifier
                     .widthIn(max = 480.dp)
                     .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(ChronovaSpacing.sheetGutter),
+                verticalArrangement = Arrangement.spacedBy(ChronovaSpacing.l),
             ) {
                 if (onBack == null) {
                     Image(
@@ -194,28 +195,24 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
     Explanation(stringResource(R.string.account_signed_in_body))
 
     val ui = SyncUi(configured = true, signedIn = true, pending = page.pending, phase = phase)
-    Text(
-        syncStatusText(ui) ?: lastSyncedText(page.lastSyncedAt, now()),
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (phase is SyncPhase.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    val status = syncStatusText(ui) ?: lastSyncedText(page.lastSyncedAt, now())
+    if (phase is SyncPhase.Failed) {
+        InlineBanner(status, kind = BannerKind.Error)
+    } else {
+        Text(status, style = MaterialTheme.typography.bodyMedium.numeric(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     Button(onClick = actions.onSyncNow, enabled = phase != SyncPhase.Syncing, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(CoreUiR.string.sync_now))
     }
     ThemeChoice(page.themeMode, actions.onThemeModeChange)
     ReminderChoice(page.reminderLead, actions.onReminderLeadChange)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
     }
-    TextButton(onClick = actions.onRequestDeleteAccount, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
-    }
+    DestructiveTextButton(stringResource(R.string.account_delete), actions.onRequestDeleteAccount, Modifier.fillMaxWidth())
     page.deleteFailure?.let {
-        Text(
-            stringResource(R.string.account_delete_failed, syncFailureText(it)),
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        InlineBanner(stringResource(R.string.account_delete_failed, syncFailureText(it)), kind = BannerKind.Error)
     }
 }
 
@@ -237,7 +234,7 @@ private fun ReminderChoice(selected: ReminderLead, onSelect: (ReminderLead) -> U
     }
     var open by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.account_reminders), style = MaterialTheme.typography.titleSmall)
+        SectionHeader(stringResource(R.string.account_reminders))
         Box {
             OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(reminderLabel(selected), modifier = Modifier.weight(1f))
@@ -259,7 +256,7 @@ private fun ReminderChoice(selected: ReminderLead, onSelect: (ReminderLead) -> U
             }
         }
         if (selected != ReminderLead.OFF && !allowed) {
-            Text(stringResource(R.string.account_reminders_blocked), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            InlineBanner(stringResource(R.string.account_reminders_blocked), kind = BannerKind.Warning)
         }
     }
 }
@@ -280,7 +277,7 @@ private fun reminderLabel(lead: ReminderLead): String = stringResource(
 @Composable
 private fun ThemeChoice(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.account_theme), style = MaterialTheme.typography.titleSmall)
+        SectionHeader(stringResource(R.string.account_theme))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             ThemeMode.entries.forEachIndexed { index, mode ->
                 SegmentedButton(
@@ -334,13 +331,7 @@ private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, o
             stringResource(R.string.account_delete_confirm),
         )
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirm, color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
-    )
+    ConfirmDialog(title = title, text = body, confirmLabel = confirm, onConfirm = onConfirm, onDismiss = onDismiss, destructive = true)
 }
 
 @Composable
@@ -354,7 +345,7 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
     }
     Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
     if (required && sessionEnded && form.mode == AccountMode.SIGN_IN) {
-        Text(stringResource(CoreUiR.string.account_session_ended), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+        InlineBanner(stringResource(CoreUiR.string.account_session_ended), kind = BannerKind.Warning)
     }
     Explanation(
         stringResource(
@@ -448,13 +439,9 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
     }
 
     val message = form.formProblem?.let { formProblemText(it) } ?: form.authProblem?.let { authProblemText(it) }
-    message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+    message?.let { InlineBanner(it, kind = BannerKind.Error) }
     form.notice?.let {
-        Text(
-            stringResource(if (it == AccountNotice.CODE_SENT) R.string.account_code_sent else R.string.account_reset_code_sent),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        InlineBanner(stringResource(if (it == AccountNotice.CODE_SENT) R.string.account_code_sent else R.string.account_reset_code_sent))
     }
 
     Button(onClick = actions.onSubmit, enabled = !form.busy, modifier = Modifier.fillMaxWidth()) {

@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -42,7 +41,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,19 +51,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import noel.chronova.core.designsystem.ChronovaSpacing
+import noel.chronova.core.designsystem.R as DesignR
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.domain.notifications.NotificationCategory
 import noel.chronova.core.domain.notifications.NotificationKind
-import noel.chronova.core.designsystem.R as DesignR
-import noel.chronova.core.ui.R as CoreUiR
+import noel.chronova.core.ui.components.ChronovaTopBar
+import noel.chronova.core.ui.components.ChronovaTopBarTitle
+import noel.chronova.core.ui.components.EmptyState
+import noel.chronova.core.ui.components.horizontalFadingEdges
 
 /** Everything that happened (sync, assistant, account), with filters and sorting. */
 @Composable
@@ -129,13 +133,9 @@ internal fun NotificationsContent(
     val resources = LocalResources.current
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.notifications_title)) },
-                navigationIcon = {
-                    IconButton(onClick = actions.onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreUiR.string.back))
-                    }
-                },
+            ChronovaTopBar(
+                title = { ChronovaTopBarTitle(stringResource(R.string.notifications_title)) },
+                onBack = actions.onBack,
                 actions = {
                     var open by remember { mutableStateOf(false) }
                     IconButton(onClick = { open = true }, enabled = !page.isEmpty) {
@@ -161,13 +161,8 @@ internal fun NotificationsContent(
             Filters(page.filter.category, page.filter.unreadOnly, page.filter.projectId, page.filter.newestFirst, page.choices, actions)
             HorizontalDivider()
             if (page.shown.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        stringResource(if (page.isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    EmptyState(title = stringResource(if (page.isEmpty) R.string.notifications_empty else R.string.notifications_empty_filtered))
                 }
             } else {
                 LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -201,11 +196,14 @@ private fun Filters(
     choices: List<ProjectChoice>,
     actions: NotificationsActions,
 ) {
+    val scroll = rememberScrollState()
     Row(
         Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            // More filters than fit: the edges fade while there is more to scroll to.
+            .horizontalFadingEdges(scroll)
+            .horizontalScroll(scroll)
+            .padding(horizontal = ChronovaSpacing.screenGutter, vertical = ChronovaSpacing.s),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -257,12 +255,15 @@ private fun Item(
     onOpen: () -> Unit,
 ) {
     val unread = stringResource(R.string.notifications_unread)
+    val rail = MaterialTheme.colorScheme.primary
     Row(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(if (notification.read) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            // Unread: a raised row with a rail at its start, rather than a wash of the accent colour.
+            .background(if (notification.read) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainer)
+            .drawBehind { if (!notification.read) drawRect(rail, size = Size(3.dp.toPx(), size.height)) }
+            .padding(horizontal = ChronovaSpacing.screenGutter, vertical = ChronovaSpacing.m)
             .semantics(mergeDescendants = true) { if (!notification.read) contentDescription = "$unread. ${text.title}. ${text.body}" },
         verticalAlignment = Alignment.Top,
     ) {
@@ -289,7 +290,7 @@ private fun Item(
             }
             Text(
                 listOfNotNull(notification.projectName, time).joinToString(" · "),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodySmall.numeric(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (notification.canUndo || canOpen) {
@@ -304,16 +305,19 @@ private fun Item(
 
 @Composable
 private fun CategoryIcon(kind: NotificationKind) {
-    val tint = when {
-        kind.important -> MaterialTheme.colorScheme.error
-        kind.category == NotificationCategory.ASSISTANT -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    val colors = MaterialTheme.colorScheme
+    // The icon sits in a tinted circle of its own colour: red for something to act on, the accent for the assistant.
+    val (container, tint) = when {
+        kind.important -> colors.errorContainer to colors.onErrorContainer
+        kind.category == NotificationCategory.ASSISTANT -> colors.primaryContainer to colors.onPrimaryContainer
+        else -> colors.surfaceContainerHighest to colors.onSurfaceVariant
     }
-    Box(Modifier.padding(top = 2.dp).size(24.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(40.dp).background(container, CircleShape), contentAlignment = Alignment.Center) {
+        val icon = Modifier.size(20.dp)
         when (kind.category) {
-            NotificationCategory.SYNC -> Icon(Icons.Filled.Refresh, contentDescription = null, tint = tint)
-            NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint)
-            NotificationCategory.ACCOUNT -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint)
+            NotificationCategory.SYNC -> Icon(Icons.Filled.Refresh, contentDescription = null, tint = tint, modifier = icon)
+            NotificationCategory.ASSISTANT -> Icon(painterResource(DesignR.drawable.ic_mic), contentDescription = null, tint = tint, modifier = icon)
+            NotificationCategory.ACCOUNT -> Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = tint, modifier = icon)
         }
     }
 }

@@ -19,11 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.designsystem.toColor
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.feature.timeline.presentation.R
@@ -78,8 +78,7 @@ fun TaskNameCell(
             Column {
                 Text(
                     text = task.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -92,7 +91,7 @@ fun TaskNameCell(
                     // Times (or the days of a whole-day task) only: the cell is narrow, and the bar shows the progress.
                     Text(
                         text = times,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodySmall.numeric(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

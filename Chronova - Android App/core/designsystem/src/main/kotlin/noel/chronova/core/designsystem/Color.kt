@@ -84,9 +84,15 @@ val ChronovaDarkInversePrimary = Color(0xFF1F47D6)
  * don't follow the theme.
  */
 object AssistantPalette {
-    val Scrim = Color(0xD9060B24)
-    val Caption = Color(0xFFE6EAF5)
-    val CaptionQuiet = Color(0xB3E6EAF5)
+    val Scrim = Color(0xCC060B24)
+    val Caption = Color.White
+    val CaptionQuiet = Color.White.copy(alpha = 0.7f)
+    val Hint = Color.White.copy(alpha = 0.55f)
+
+    /** The fallback orb (no 3D) and the halo behind the orb: light at the centre, out through blue and violet. */
+    val OrbCore = Color(0xFFBFE9FF)
+    val OrbBlue = Color(0xFF5E7BFF)
+    val OrbViolet = Color(0xFF8A3CF0)
     val Proposal = Color(0xFFBFD3FF)
     val Warning = Color(0xFFFFC56B)
     val Offer = Color(0xFF8EF0C4)

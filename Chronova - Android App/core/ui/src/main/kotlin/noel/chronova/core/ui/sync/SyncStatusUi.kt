@@ -1,6 +1,7 @@
 package noel.chronova.core.ui.sync
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,7 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import noel.chronova.core.designsystem.ChronovaSpacing
+import noel.chronova.core.designsystem.ChronovaTheme
 import noel.chronova.core.ui.BadgedIconButton
+import noel.chronova.core.ui.components.StatusDot
 import noel.chronova.core.ui.R
 import noel.chronova.core.domain.sync.SyncFailure
 
@@ -53,18 +57,30 @@ fun SyncButton(ui: SyncUi, onSync: () -> Unit) {
     }
 }
 
-/** One line under the top bar: what sync is doing or why it failed. Tapping it opens the account screen. */
+/**
+ * One line under the top bar: a dot (green when everything is synced, amber while changes wait,
+ * red when sync failed) and what sync is doing or why it failed. Tapping it opens the account screen.
+ */
 @Composable
 fun SyncStatusLine(ui: SyncUi, onClick: () -> Unit) {
     val text = syncStatusText(ui) ?: return
     val isError = ui.phase is SyncPhase.Failed
+    val extended = ChronovaTheme.extended
+    val dot = when {
+        isError -> MaterialTheme.colorScheme.error
+        ui.phase == SyncPhase.Syncing -> MaterialTheme.colorScheme.primary
+        ui.pending > 0 -> extended.warning
+        else -> extended.success
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = ChronovaSpacing.screenGutter, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ChronovaSpacing.s),
     ) {
+        StatusDot(dot)
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,

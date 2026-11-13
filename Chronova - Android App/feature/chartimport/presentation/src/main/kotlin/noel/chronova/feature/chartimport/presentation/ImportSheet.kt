@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,20 +18,15 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDateRangePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,11 +42,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
-import noel.chronova.core.ui.TimeFormat
+import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.ui.R as CoreUiR
+import noel.chronova.core.ui.TimeFormat
+import noel.chronova.core.ui.components.BannerKind
+import noel.chronova.core.ui.components.ChronovaDatePickerDialog
+import noel.chronova.core.ui.components.ChronovaSheet
+import noel.chronova.core.ui.components.InlineBanner
+import noel.chronova.core.ui.components.SheetColumn
+import noel.chronova.core.ui.components.SheetTitle
+import noel.chronova.core.ui.components.toPickerDate
+import noel.chronova.core.ui.components.toPickerMillis
 
 /** What the sheet's buttons do. */
 data class ImportActions(
@@ -116,41 +117,31 @@ fun ImportScreen(viewModel: ImportViewModel, onDismiss: () -> Unit, onOpenProjec
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportSheet(state: ImportSheetUi, actions: ImportActions, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        ImportSheetContent(state, actions)
-    }
+    ChronovaSheet(onDismiss = onDismiss) { ImportSheetBody(state, actions) }
 }
 
 /** The sheet's content (screenshots render this alone). */
 @Composable
 fun ImportSheetContent(state: ImportSheetUi, actions: ImportActions) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 24.dp)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        when (state) {
-            is ImportSheetUi.Choose -> Choose(state, actions)
-            ImportSheetUi.Reading -> Reading(actions)
-            is ImportSheetUi.Preview -> Preview(state.preview, actions)
-            is ImportSheetUi.Problem -> Problem(state.problem, actions)
-            is ImportSheetUi.Done -> Done(state.done, actions)
-        }
+    SheetColumn { ImportSheetBody(state, actions) }
+}
+
+@Composable
+private fun ImportSheetBody(state: ImportSheetUi, actions: ImportActions) {
+    when (state) {
+        is ImportSheetUi.Choose -> Choose(state, actions)
+        ImportSheetUi.Reading -> Reading(actions)
+        is ImportSheetUi.Preview -> Preview(state.preview, actions)
+        is ImportSheetUi.Problem -> Problem(state.problem, actions)
+        is ImportSheetUi.Done -> Done(state.done, actions)
     }
 }
 
 @Composable
 private fun Title(newProject: Boolean, projectName: String) {
-    Text(
-        stringResource(if (newProject) R.string.import_title_new else R.string.import_title_add),
-        style = MaterialTheme.typography.titleLarge,
-    )
+    SheetTitle(stringResource(if (newProject) R.string.import_title_new else R.string.import_title_add))
     if (!newProject && projectName.isNotEmpty()) {
         Text(
             stringResource(R.string.import_into, projectName),
@@ -212,18 +203,16 @@ private fun Preview(preview: ImportPreviewUi, actions: ImportActions) {
         LabelledChange(stringResource(R.string.import_project_days, TimeFormat.dateRange(preview.projectStart, preview.projectEnd))) { pickingDays = true }
     }
     if (preview.uncertain.isNotEmpty()) {
-        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.import_check_these), style = MaterialTheme.typography.labelLarge)
-                preview.uncertain.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
-            }
+        // Things the reader wasn't sure of: a warning, not an error, and not the accent colour.
+        InlineBanner(text = "", kind = BannerKind.Warning, title = stringResource(R.string.import_check_these)) {
+            preview.uncertain.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
         }
     }
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
         items(preview.rows, key = { it.ref }) { row -> TaskRow(row, onToggle = { actions.toggle(row.ref) }) }
     }
     preview.problem?.let { problem ->
-        Text(planProblem(problem), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        InlineBanner(planProblem(problem), kind = BannerKind.Error)
     }
     Button(
         onClick = actions.apply,
@@ -240,7 +229,7 @@ private fun Preview(preview: ImportPreviewUi, actions: ImportActions) {
     }
 
     if (pickingStart) {
-        DayDialog(preview.start, onConfirm = { pickingStart = false; actions.setStart(it) }, onDismiss = { pickingStart = false })
+        ChronovaDatePickerDialog(preview.start, onConfirm = { pickingStart = false; actions.setStart(it) }, onDismiss = { pickingStart = false })
     }
     if (pickingDays) {
         DaysDialog(
@@ -284,7 +273,7 @@ private fun TaskRow(row: ImportRowUi, onToggle: () -> Unit) {
                 add(if (row.milestone) stringResource(R.string.import_milestone) + " · " + TimeFormat.dateRange(row.firstDay, row.firstDay) else TimeFormat.dateRange(row.firstDay, row.lastDay))
                 if (row.progress > 0) add(stringResource(R.string.import_progress, row.progress))
             }.joinToString(" · ")
-            Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(details, style = MaterialTheme.typography.bodySmall.numeric(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!row.fits) {
                 Text(stringResource(R.string.import_outside), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
@@ -327,7 +316,7 @@ private fun Done(done: ImportDoneUi, actions: ImportActions) {
     )
     when (done.undone) {
         true -> Text(stringResource(R.string.import_undone), style = MaterialTheme.typography.bodyMedium)
-        false -> Text(stringResource(R.string.import_undo_failed), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        false -> InlineBanner(stringResource(R.string.import_undo_failed), kind = BannerKind.Error)
         null -> Unit
     }
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
@@ -352,20 +341,6 @@ private fun planProblem(problem: ImportPlanProblemUi): String = when (problem) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DayDialog(day: LocalDate, onConfirm: (LocalDate) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberDatePickerState(initialSelectedDateMillis = day.toPickerMillis())
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            val millis = state.selectedDateMillis
-            TextButton(enabled = millis != null, onClick = { if (millis != null) onConfirm(millis.toPickerDate()) }) { Text(stringResource(CoreUiR.string.ok)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
-    ) { DatePicker(state = state) }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun DaysDialog(start: LocalDate, end: LocalDate, onConfirm: (LocalDate, LocalDate) -> Unit, onDismiss: () -> Unit) {
     val state = rememberDateRangePickerState(initialSelectedStartDateMillis = start.toPickerMillis(), initialSelectedEndDateMillis = end.toPickerMillis())
     DatePickerDialog(
@@ -380,8 +355,3 @@ private fun DaysDialog(start: LocalDate, end: LocalDate, onConfirm: (LocalDate, 
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
     ) { DateRangePicker(state = state, modifier = Modifier.weight(1f)) }
 }
-
-/** The pickers work in UTC midnights. */
-private fun LocalDate.toPickerMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-private fun Long.toPickerDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()

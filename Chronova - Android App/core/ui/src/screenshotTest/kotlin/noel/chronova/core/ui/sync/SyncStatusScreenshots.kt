@@ -25,6 +25,7 @@ fun SyncStatusLines() = ChronovaTheme {
                 SyncUi(configured = true, signedIn = true, phase = SyncPhase.Syncing),
                 SyncUi(configured = true, signedIn = true, phase = SyncPhase.Synced),
                 SyncUi(configured = true, signedIn = true, phase = SyncPhase.Failed(SyncFailure.OFFLINE)),
+                SyncUi(configured = true, signedIn = true, pending = 4, phase = SyncPhase.Synced),
                 SyncUi(configured = true, signedIn = false, pending = 3),
             ).forEach {
                 SyncStatusLine(it, onClick = {})

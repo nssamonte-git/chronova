@@ -11,10 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -39,11 +41,12 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import noel.chronova.core.designsystem.AssistantPalette
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
-import noel.chronova.core.ui.R as CoreUiR
 
 /**
  * The voice assistant in the middle of the screen: the large orb over a dimmed
@@ -63,7 +66,7 @@ fun AssistantOverlay(
         BoxWithConstraints(
             Modifier
                 .fillMaxSize()
-                .background(Color(0xCC060B24))
+                .background(AssistantPalette.Scrim)
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClose),
             contentAlignment = Alignment.Center,
         ) {
@@ -76,7 +79,7 @@ fun AssistantOverlay(
                     Text(
                         stringResource(R.string.assistant_tap_to_close),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.55f),
+                        color = AssistantPalette.Hint,
                     )
                 }
             }
@@ -125,6 +128,16 @@ private fun Orb(state: AssistantUiState, level: () -> Float, size: Dp) {
             level = level,
             modifier = Modifier
                 .size(size)
+                // The logo's halo: a soft glow of the orb's colours behind it, wider than the orb.
+                .drawBehind {
+                    drawCircle(
+                        Brush.radialGradient(
+                            listOf(AssistantPalette.OrbBlue.copy(alpha = 0.22f), AssistantPalette.OrbViolet.copy(alpha = 0.10f), Color.Transparent),
+                            radius = this.size.minDimension,
+                        ),
+                        radius = this.size.minDimension,
+                    )
+                }
                 .semantics { contentDescription = orbLabel },
         ) {
             // Without 3D: a plain glowing circle in the orb's colours.
@@ -132,10 +145,10 @@ private fun Orb(state: AssistantUiState, level: () -> Float, size: Dp) {
                 Modifier
                     .size(size * 5 / 6)
                     .background(
-                        androidx.compose.ui.graphics.Brush.radialGradient(
-                            listOf(Color(0xFFBFE9FF), Color(0xFF5E7BFF), Color(0xFF8A3CF0), Color(0x00000000)),
+                        Brush.radialGradient(
+                            listOf(AssistantPalette.OrbCore, AssistantPalette.OrbBlue, AssistantPalette.OrbViolet, Color.Transparent),
                         ),
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                        shape = CircleShape,
                     ),
             )
         }
@@ -157,18 +170,18 @@ private fun Captions(state: AssistantUiState, zone: ZoneId, maxHeight: Dp) {
                 "“$it”",
                 style = MaterialTheme.typography.bodyMedium,
                 fontStyle = FontStyle.Italic,
-                color = Color.White.copy(alpha = 0.7f),
+                color = AssistantPalette.CaptionQuiet,
                 textAlign = TextAlign.Center,
             )
         }
         state.saying?.let {
-            Text(it, style = MaterialTheme.typography.titleMedium, color = Color.White, textAlign = TextAlign.Center)
+            Text(it, style = MaterialTheme.typography.titleMedium, color = AssistantPalette.Caption, textAlign = TextAlign.Center)
         }
         state.proposal.forEach { item ->
             Text(
                 previewText(item, zone),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFFBFD3FF),
+                color = AssistantPalette.Proposal,
                 textAlign = TextAlign.Center,
             )
         }
@@ -176,7 +189,7 @@ private fun Captions(state: AssistantUiState, zone: ZoneId, maxHeight: Dp) {
             Text(
                 warningText(warning),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFFFFC56B),
+                color = AssistantPalette.Warning,
                 textAlign = TextAlign.Center,
             )
         }
@@ -184,7 +197,7 @@ private fun Captions(state: AssistantUiState, zone: ZoneId, maxHeight: Dp) {
             Text(
                 stringResource(R.string.assistant_offer_line, previewText(item, zone)),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF8EF0C4),
+                color = AssistantPalette.Offer,
                 textAlign = TextAlign.Center,
             )
         }

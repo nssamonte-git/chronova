@@ -1,7 +1,12 @@
 package noel.chronova.feature.chartimport.presentation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import java.time.LocalDate
 import noel.chronova.core.designsystem.ChronovaScreenshots
@@ -22,8 +27,12 @@ private val steps = listOf(
 )
 
 @Composable
-// In a Surface, as the bottom sheet gives it its colours on the phone.
-private fun Sheet(state: ImportSheetUi) = ChronovaTheme { Surface { ImportSheetContent(state, ImportActions()) } }
+// On the sheet's colour, with room above the title where the sheet has its drag handle.
+private fun Sheet(state: ImportSheetUi) = ChronovaTheme {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Box(Modifier.padding(top = 24.dp)) { ImportSheetContent(state, ImportActions()) }
+    }
+}
 
 /** As it opens from "New project": take a photo or choose an image. */
 @PreviewTest

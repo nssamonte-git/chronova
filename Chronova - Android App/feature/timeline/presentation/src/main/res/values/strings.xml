@@ -74,4 +74,29 @@
         <item quantity="other">A task must last at least %d minutes.</item>
     </plurals>
     <string name="task_show_off_screen">Show %1$s</string>
+    <string name="timeline_back">Back to projects</string>
+    <string name="timeline_settings_show">Show timeline settings</string>
+    <string name="timeline_settings_hide">Hide timeline settings</string>
+    <string name="controls_scale">Scale</string>
+    <string name="controls_zoom">Zoom</string>
+    <string name="controls_snap">Snap</string>
+    <string name="controls_row_height">Row height</string>
+    <string name="controls_critical_path">Critical path</string>
+    <string name="controls_critical_path_show">Show critical path</string>
+    <string name="controls_zoom_out">Zoom out</string>
+    <string name="controls_zoom_in">Zoom in</string>
+    <string name="controls_zoom_reset">Reset zoom</string>
+    <string name="controls_zoom_value">%1$d%%</string>
+    <string name="controls_row_height_less">Decrease row height</string>
+    <string name="controls_row_height_more">Increase row height</string>
+    <string name="controls_row_height_value">%1$ddp</string>
+    <string name="scale_hours">Hours</string>
+    <string name="scale_days">Days</string>
+    <string name="scale_weeks">Weeks</string>
+    <string name="scale_months">Months</string>
+    <string name="snap_minutes">%1$dm</string>
+    <string name="snap_hours">%1$dh</string>
+    <string name="snap_days">%1$dd</string>
+    <string name="snap_weeks">%1$dw</string>
+    <string name="task_color">Colour</string>
 </resources>

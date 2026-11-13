@@ -1,29 +1,25 @@
 package noel.chronova.feature.timeline.presentation.components
 
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,13 +27,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import noel.chronova.core.designsystem.AuroraBlue
+import noel.chronova.core.designsystem.ChronovaTheme
 
 private val BarShape = RoundedCornerShape(8.dp)
 private val HandleShape = RoundedCornerShape(50)
@@ -75,6 +77,8 @@ fun TaskBar(
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
     val criticalOutline = MaterialTheme.colorScheme.error
+    val extended = ChronovaTheme.extended
+    val topHighlight = extended.barHighlight
     val pulse = if (highlighted) {
         rememberInfiniteTransition(label = "highlight").animateFloat(
             initialValue = 0.55f,
@@ -102,10 +106,12 @@ fun TaskBar(
                     if (doneFraction > 0f) {
                         drawRect(DoneShade, size = Size(size.width * doneFraction.coerceAtMost(1f), size.height))
                     }
+                    // A hairline of light along the top, so the bar lifts off the page (and off navy).
+                    drawRect(topHighlight, size = Size(size.width, 1.dp.toPx()))
                 }
                 .then(if (criticalPath == CriticalMark.Critical) Modifier.border(CriticalWidth, criticalOutline, BarShape) else Modifier)
                 .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), BarShape) else Modifier)
-                .then(if (highlighted) Modifier.border(3.dp, highlightBrush(pulse), BarShape) else Modifier)
+                .then(if (highlighted) Modifier.border(3.dp, highlightBrush(extended.aurora, pulse), BarShape) else Modifier)
                 .padding(horizontal = if (selected) 12.dp else 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -166,6 +172,9 @@ fun MilestoneMark(
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
     val criticalOutline = MaterialTheme.colorScheme.error
+    val aurora = ChronovaTheme.extended.aurora
+    // A ring in the page's colour keeps the diamond clear of a grid line or an arrow behind it.
+    val ring = MaterialTheme.colorScheme.surface
     Row(modifier.fillMaxHeight().alpha(criticalPath.alpha), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(MilestoneTouchWidth), contentAlignment = Alignment.Center) {
             Box(
@@ -174,9 +183,10 @@ fun MilestoneMark(
                     .rotate(45f)
                     .shadow(if (highlighted) 8.dp else if (active) 6.dp else if (selected) 2.dp else 0.dp, DiamondShape)
                     .background(color, DiamondShape)
+                    .then(if (!selected && !highlighted && criticalPath != CriticalMark.Critical) Modifier.border(1.5.dp, ring, DiamondShape) else Modifier)
                     .then(if (criticalPath == CriticalMark.Critical) Modifier.border(CriticalWidth, criticalOutline, DiamondShape) else Modifier)
                     .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), DiamondShape) else Modifier)
-                    .then(if (highlighted) Modifier.border(3.dp, highlightBrush(1f), DiamondShape) else Modifier),
+                    .then(if (highlighted) Modifier.border(3.dp, highlightBrush(aurora, 1f), DiamondShape) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
                 if (done) {
@@ -235,9 +245,8 @@ private fun ResizeGrip(color: Color, modifier: Modifier = Modifier) {
     )
 }
 
-/** The assistant orb's colours: cyan → violet → magenta. */
-private val HighlightGlow = Color(0xFF7A5CFF)
+/** The glow under a bar the assistant just changed: the middle of the logo's gradient. */
+private val HighlightGlow = AuroraBlue
 
-private fun highlightBrush(alpha: Float) = Brush.linearGradient(
-    listOf(Color(0xFF00C8F0), Color(0xFF7A5CFF), Color(0xFFD14BE8)).map { it.copy(alpha = alpha) },
-)
+/** The logo's gradient (the assistant's colours too), pulsing with [alpha]. */
+private fun highlightBrush(aurora: List<Color>, alpha: Float) = Brush.linearGradient(aurora.map { it.copy(alpha = alpha) })

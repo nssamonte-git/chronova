@@ -1,36 +1,19 @@
 package noel.chronova.feature.timeline.presentation
 
-import noel.chronova.core.ui.assistant.ViewKind
-import noel.chronova.core.ui.assistant.ViewColor
-import noel.chronova.core.ui.assistant.ViewScale
-import noel.chronova.core.ui.assistant.AssistantSearchState
-import noel.chronova.core.ui.assistant.AssistantViewState
-import noel.chronova.core.ui.assistant.ViewZoom
-import noel.chronova.core.ui.assistant.AssistantViewAction
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import noel.chronova.core.model.TaskColor
-import noel.chronova.feature.timeline.presentation.components.TaskSearchBar
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,34 +24,46 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.ZoneOffset
-import noel.chronova.core.ui.assistant.AssistantSlot
-import noel.chronova.core.model.TimeScale
-import noel.chronova.feature.timeline.presentation.components.SchedulerTimeline
-import noel.chronova.feature.timeline.presentation.components.TimelineControls
-import noel.chronova.core.ui.TimeFormat
+import kotlinx.coroutines.launch
 import noel.chronova.core.designsystem.ChronovaTheme
+import noel.chronova.core.model.TaskColor
+import noel.chronova.core.model.TimeScale
 import noel.chronova.core.ui.R as CoreUiR
+import noel.chronova.core.ui.TimeFormat
+import noel.chronova.core.ui.assistant.AssistantSearchState
+import noel.chronova.core.ui.assistant.AssistantSlot
+import noel.chronova.core.ui.assistant.AssistantViewAction
+import noel.chronova.core.ui.assistant.AssistantViewState
+import noel.chronova.core.ui.assistant.ViewColor
+import noel.chronova.core.ui.assistant.ViewKind
+import noel.chronova.core.ui.assistant.ViewScale
+import noel.chronova.core.ui.assistant.ViewZoom
+import noel.chronova.core.ui.components.AuroraFab
+import noel.chronova.core.ui.components.ChronovaTopBar
+import noel.chronova.core.ui.components.ChronovaTopBarTitle
+import noel.chronova.core.ui.components.FabColumn
+import noel.chronova.feature.timeline.presentation.components.SchedulerTimeline
+import noel.chronova.feature.timeline.presentation.components.TaskSearchBar
+import noel.chronova.feature.timeline.presentation.components.TimelineControls
 
 @Composable
 fun ProjectTimelineScreen(
@@ -334,17 +329,12 @@ internal fun TimelineContent(
             )
         },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FabColumn {
                 // The assistant's orb, just above "Add task" where it's easy to find.
                 if (assistant.available) assistant.orbButton(Modifier)
-                val addLabel = stringResource(R.string.task_add)
-                ExtendedFloatingActionButton(
-                    onClick = actions.onAddTask,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(addLabel) },
-                    // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
-                    modifier = Modifier.semantics { contentDescription = addLabel },
-                )
+                AuroraFab(stringResource(R.string.task_add), onClick = actions.onAddTask) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -415,21 +405,10 @@ private fun TimelineTopBar(
     onToggleControls: () -> Unit,
     onImportImage: (() -> Unit)? = null,
 ) {
-    TopAppBar(
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to projects")
-            }
-        },
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
+    ChronovaTopBar(
+        title = { ChronovaTopBarTitle(title) },
+        onBack = onBack,
+        backDescription = stringResource(R.string.timeline_back),
         actions = {
             if (selectedTaskId != null && !selectedIsDone) {
                 IconButton(onClick = onMarkDone) {
@@ -457,7 +436,7 @@ private fun TimelineTopBar(
             IconButton(onClick = onToggleControls) {
                 Icon(
                     imageVector = Icons.Filled.Settings,
-                    contentDescription = if (controlsVisible) "Hide timeline settings" else "Show timeline settings",
+                    contentDescription = stringResource(if (controlsVisible) R.string.timeline_settings_hide else R.string.timeline_settings_show),
                     tint = if (controlsVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

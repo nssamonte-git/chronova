@@ -2,11 +2,12 @@ package noel.chronova.feature.export.presentation
 
 import android.content.ClipData
 import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
@@ -16,25 +17,29 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import noel.chronova.feature.export.domain.ExportFormat
+import noel.chronova.core.designsystem.ChronovaSpacing
 import noel.chronova.core.ui.R as CoreUiR
+import noel.chronova.core.ui.components.BannerKind
+import noel.chronova.core.ui.components.ChronovaSheet
+import noel.chronova.core.ui.components.InlineBanner
+import noel.chronova.core.ui.components.SheetTitle
+import noel.chronova.feature.export.domain.ExportFormat
 
 /** The export sheet, and Android's share sheet once the file is written. */
 @Composable
@@ -77,52 +82,42 @@ fun ExportSheet(
     onExport: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.export_title, state.projectName), style = MaterialTheme.typography.titleLarge)
-            Column(Modifier.selectableGroup()) {
-                ExportFormat.entries.forEach { format ->
-                    FormatRow(format, selected = format == state.format, onSelect = { onFormat(format) })
-                }
+    ChronovaSheet(onDismiss = onDismiss) {
+        SheetTitle(stringResource(R.string.export_title, state.projectName))
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(ChronovaSpacing.s)) {
+            ExportFormat.entries.forEach { format ->
+                FormatRow(format, selected = format == state.format, onSelect = { onFormat(format) })
             }
-            if (state.format != ExportFormat.PDF) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .toggleable(value = state.includeNotes, role = Role.Switch, onValueChange = onIncludeNotes),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(R.string.export_include_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Switch(checked = state.includeNotes, onCheckedChange = null)
-                }
+        }
+        if (state.format != ExportFormat.PDF) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .toggleable(value = state.includeNotes, role = Role.Switch, onValueChange = onIncludeNotes),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.export_include_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Switch(checked = state.includeNotes, onCheckedChange = null)
             }
-            state.problem?.let { problem ->
-                Text(
-                    stringResource(
-                        when (problem) {
-                            ExportProblemUi.ProjectGone -> R.string.export_project_gone
-                            ExportProblemUi.WriteFailed -> R.string.export_failed
-                        },
-                    ),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) }
-                Button(onClick = onExport, enabled = !state.working, modifier = Modifier.padding(start = 8.dp)) {
-                    if (state.working) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text(stringResource(R.string.export_action))
-                    }
+        }
+        state.problem?.let { problem ->
+            InlineBanner(
+                stringResource(
+                    when (problem) {
+                        ExportProblemUi.ProjectGone -> R.string.export_project_gone
+                        ExportProblemUi.WriteFailed -> R.string.export_failed
+                    },
+                ),
+                kind = BannerKind.Error,
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) }
+            Button(onClick = onExport, enabled = !state.working, modifier = Modifier.padding(start = ChronovaSpacing.s)) {
+                if (state.working) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.export_action))
                 }
             }
         }
@@ -131,11 +126,16 @@ fun ExportSheet(
 
 @Composable
 private fun FormatRow(format: ExportFormat, selected: Boolean, onSelect: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    // Each choice is a card; the chosen one is outlined in the accent colour and tinted.
     Row(
         Modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(if (selected) colors.primaryContainer.copy(alpha = 0.45f) else colors.surface)
+            .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, MaterialTheme.shapes.medium)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
-            .padding(vertical = 6.dp),
+            .padding(horizontal = ChronovaSpacing.m, vertical = ChronovaSpacing.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)

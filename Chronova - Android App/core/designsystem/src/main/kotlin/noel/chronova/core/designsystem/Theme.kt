@@ -123,6 +123,12 @@ data class ChronovaExtendedColors(
 
     /** Top-left to bottom-right, as in the logo. */
     val auroraDiagonal: Brush get() = Brush.linearGradient(aurora, start = Offset.Zero, end = Offset.Infinite)
+
+    /**
+     * The gradient's blue to violet in the deeper task tones, for a shape that carries a white
+     * label (the main floating button): white measures 5.2:1 and 5.7:1 on its two ends.
+     */
+    val auroraInkBrush: Brush get() = Brush.horizontalGradient(listOf(ChronovaBlue, ChronovaPurple))
 }
 
 internal val ChronovaLightExtended = ChronovaExtendedColors(

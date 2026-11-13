@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_tagline">Shape Your Time</string>
+    <string name="projects_empty_title">Plan your first project</string>
     <string name="projects_empty">No projects yet. Tap New project to plan one.</string>
     <string name="project_new">New project</string>
     <string name="project_edit">Edit project</string>
