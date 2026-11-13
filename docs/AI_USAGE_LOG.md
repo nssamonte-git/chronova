@@ -957,3 +957,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the first edit of the account wrapper also deleted the line it had just added (`sessionEnded`); the compiler caught it;
     - one validation run returned 127 because its script was edited while running; rerun clean;
     - a too-broad grep hid the first planted run's result ("build-logic" matched "BUILD"); rerun with the exit code.
+- Cut-off count badges, at your request:
+  - **The bug:** the screenshots showed the sync button's "99+" badge cropped at the button's edge (worse at large font). The cause: Material's `IconButton` clips its content to its 40 dp circle. The notification bell on the project list had the same pattern.
+  - **The fix:** a shared `BadgedIconButton` in `:core:ui`. It has the same 48 dp touch target, unbounded ripple, button role and disabled colour as an icon button, without the clip. The badge stays in the button's semantics, so TalkBack still reads it with the button. Both buttons use it; while syncing, the sync button is still a disabled icon button with the spinner.
+  - **Checks:**
+    - the screenshot suite failed on exactly the 6 affected images before re-recording; the new images show "99+" in full;
+    - on the phone, `:core:ui` 9/9 and projects 7/7 with their tests unchanged;
+    - 332 unit tests, lint 0 errors, module graph, UI-model and screenshot checks OK.

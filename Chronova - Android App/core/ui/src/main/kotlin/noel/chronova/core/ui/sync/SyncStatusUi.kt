@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import noel.chronova.core.ui.BadgedIconButton
 import noel.chronova.core.ui.R
 import noel.chronova.core.domain.sync.SyncFailure
 
@@ -43,13 +42,13 @@ data class SyncUi(
 /** Top-bar sync button with the number of unsynced changes. */
 @Composable
 fun SyncButton(ui: SyncUi, onSync: () -> Unit) {
-    IconButton(onClick = onSync, enabled = ui.phase != SyncPhase.Syncing) {
-        if (ui.phase == SyncPhase.Syncing) {
+    if (ui.phase == SyncPhase.Syncing) {
+        IconButton(onClick = onSync, enabled = false) {
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-        } else {
-            BadgedBox(badge = { if (ui.pending > 0) Badge { Text(if (ui.pending > 99) "99+" else "${ui.pending}") } }) {
-                Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync_now))
-            }
+        }
+    } else {
+        BadgedIconButton(count = ui.pending, onClick = onSync) {
+            Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync_now))
         }
     }
 }

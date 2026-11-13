@@ -19,8 +19,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import noel.chronova.core.ui.BadgedIconButton
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.ui.sync.SyncButton
 import noel.chronova.core.ui.sync.SyncStatusLine
@@ -318,9 +317,7 @@ private fun NotificationsButton(unread: Int, onClick: () -> Unit) {
     } else {
         stringResource(R.string.notifications_open_none)
     }
-    IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = description }) {
-        BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else "$unread") } }) {
-            Icon(Icons.Filled.Notifications, contentDescription = null)
-        }
+    BadgedIconButton(count = unread, onClick = onClick, modifier = Modifier.semantics { contentDescription = description }) {
+        Icon(Icons.Filled.Notifications, contentDescription = null)
     }
 }
