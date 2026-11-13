@@ -24,19 +24,32 @@ for arg in "$@"; do
   esac
 done
 
-tasks=""
-$checks && tasks="test :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest verifyModuleGraph verifyUiModels testDebugScreenshotTestDefaultTestSuite"
-$devices && tasks="$tasks pixel6api35DebugAndroidTest"
+check_tasks="test :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest verifyModuleGraph verifyUiModels testDebugScreenshotTestDefaultTestSuite"
+device_tasks="pixel6api35DebugAndroidTest"
 
 mkdir -p build/reports
 log=build/reports/check.log
 # Stale results would make the summary below lie.
 find . -path ./build-logic -prune -o \( -path '*/build/test-results' -o -path '*/build/outputs/androidTest-results' \) -type d -prune -exec rm -rf {} + 2>/dev/null
 
-echo "check: running $tasks"
-# shellcheck disable=SC2086
-./gradlew $tasks ${CHECK_GRADLE_ARGS:-} --continue > "$log" 2>&1
-code=$?
+: > "$log"
+code=0
+if $checks; then
+  echo "check: running $check_tasks"
+  # shellcheck disable=SC2086
+  ./gradlew $check_tasks ${CHECK_GRADLE_ARGS:-} --continue >> "$log" 2>&1
+  code=$?
+fi
+if $devices; then
+  # One module at a time (--max-workers=1). Gradle otherwise runs several modules' test apps at
+  # once on the one emulator, and one of them was killed mid-run ("Process crashed") with none
+  # of its tests reported; alone, the same module passes.
+  echo "check: running $device_tasks (one module at a time)"
+  # shellcheck disable=SC2086
+  ./gradlew $device_tasks ${CHECK_GRADLE_ARGS:-} --continue --max-workers=1 >> "$log" 2>&1
+  device_code=$?
+  [ "$code" -eq 0 ] && code=$device_code
+fi
 
 python3 - "$code" "$devices" "$checks" <<'PY'
 import glob, re, sys
@@ -45,7 +58,9 @@ code, devices, checks = int(sys.argv[1]), sys.argv[2] == "true", sys.argv[3] == 
 def count(pattern):
     tests = failed = 0
     for path in glob.glob(pattern, recursive=True):
-        suite = re.search(r"<testsuite\b[^>]*>", open(path, errors="replace").read(4000))
+        # The root element: <testsuites> where a file holds several classes (device tests), else
+        # its one <testsuite>. Reading only the first class undercounted the device tests.
+        suite = re.search(r"<testsuites?\b[^>]*>", open(path, errors="replace").read(4000))
         if not suite:
             continue
         # Attribute order differs between test tasks, so read each one on its own.
@@ -59,20 +74,33 @@ def first_line(path, default):
     except (OSError, IndexError):
         return default
 
+failures = 0
 if checks:
     unit = [count("**/build/test-results/test/*.xml"), count("**/build/test-results/testDebugUnitTest/*.xml")]
+    failures += unit[0][1] + unit[1][1]
     print(f"unit tests:   {unit[0][0] + unit[1][0]} run, {unit[0][1] + unit[1][1]} failed")
     # The screenshot suites keep their JUnit results under intermediates (kept while the task is up to date).
     shots = count("**/build/intermediates/test_suite_results/debug/testDebugScreenshotTestDefaultTestSuite/*.xml")
+    failures += shots[1]
     print(f"screenshots:  {shots[0]} checked, {shots[1]} failed")
     print("lint:        ", first_line("app/build/reports/lint-results-debug.txt", "no report (lint didn't run)"))
     print("module graph:", first_line("build/reports/module-graph.txt", "no report"))
     print("UI models:   ", first_line("build/reports/ui-models.txt", "no report"))
 if devices:
     dev = count("**/build/outputs/androidTest-results/managedDevice/**/*.xml")
+    failures += dev[1]
     print(f"device tests: {dev[0]} run, {dev[1]} failed (managed emulator)")
-print("result:       PASS" if code == 0 else f"result:       FAIL (Gradle exit {code}; see build/reports/check.log)")
+# A crashed test app is reported as a failed test while Gradle still exits 0: that is not a pass.
+if code == 0 and failures == 0:
+    print("result:       PASS")
+elif code == 0:
+    print(f"result:       FAIL ({failures} failed; Gradle exited 0; see build/reports/check.log)")
+    sys.exit(1)
+else:
+    print(f"result:       FAIL (Gradle exit {code}; see build/reports/check.log)")
 PY
+summary=$?
+[ "$code" -eq 0 ] && code=$summary
 if [ "$code" -ne 0 ]; then
   grep -E '^e: |FAILED|What went wrong' -A3 "$log" | head -30
 fi

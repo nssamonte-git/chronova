@@ -1635,3 +1635,19 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Checks:** `tools/check.sh` PASS: 482 unit tests, 144 screenshots (3 new for the chips; 21 re-recorded: the timeline images that show the toolbar, and the account's signed-in pages), lint 0 errors and 23 warnings, both architecture checks.
 - **On the phone** (installed over the app as before, `local.properties` restored, data as it was): the timeline's toolbar and the account cards match the previews; Appearance switched to Dark and back to Light, where it is now; the account page scrolls to "Delete account".
 - **Not verified:** I could not capture an animation mid-way (the one frame I tried was taken before the tap landed), so the motion is confirmed only by the states before and after, not watched. I did not tap the scale or snap chips on the phone, to leave your project's view settings alone; nothing was synced or marked read, so the sync line's cross-fade and the unread fade were not exercised there either. The device tests were not run.
+
+### Device tests on the emulator, and two faults in the check script
+
+- **Your request:** run the device tests.
+- **Where:** on the managed emulator (`tools/check.sh --devices-only`), not the phone: its image was already installed and the Mac had 31 GB free, and the phone holds 31 unsynced changes. Nothing was installed on the phone and nothing was downloaded.
+- **First run:** 101 tests passed in 12 modules; the projects screen's test app was killed mid-run ("Process crashed") and reported none of its 9 tests. Gradle had three modules' test apps on the one emulator at once. Alone, that module passed 9 of 9, twice.
+- **What that run showed about `tools/check.sh`:**
+  - it printed `result: PASS` with a crashed test app, because Gradle still exited 0;
+  - it reported 82 tests when 102 had run: it read only the first test class in each module's result file.
+- **Fixes to the script:**
+  - the device tests run in their own Gradle call with `--max-workers=1`, one module at a time;
+  - the summary reads each file's totals, and says FAIL (exit 1) when any test failed, whatever Gradle's exit code. This applies to unit and screenshot tests too.
+- **Final run, one clean pass with the fixed script:** 110 device tests, 0 failed: timeline 26, account 12, app 11, core/data 9, core/ui 9, projects 9, notifications 8, core/designsystem 7, core/database 5, chart import data 5, sync 5, export data 3, chart import screen 1. That includes the tests I had only compiled until now (the theme's contrast checks, the task-outline query) and every screen the design pass changed.
+- **Checked the script itself:** its normal mode still passes (482 unit tests, 144 screenshots); the summary, run on a made-up crashed result with Gradle exit 0, prints FAIL and exits 1, and on a passing one prints PASS.
+- **Docs:** HANDOFF and Learn now say 110 device tests, that the emulator run has passed, and why the tests run one module at a time. Learn's per-module baselines were out of date before this (they added up to 102 against a stated 106); they now match the run.
+- **Not done:** the device tests were not run on the phone; CI has still never run (no remote).
