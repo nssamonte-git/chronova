@@ -72,6 +72,8 @@ dependencies {
     implementation(projects.feature.export.domain)
     implementation(projects.feature.export.data)
     implementation(projects.feature.export.presentation)
+    implementation(projects.feature.reminders.domain)
+    implementation(projects.feature.reminders.data)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)

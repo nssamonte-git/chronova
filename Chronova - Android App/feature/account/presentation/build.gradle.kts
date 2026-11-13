@@ -10,6 +10,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.activity.compose)
     implementation(projects.feature.account.domain)
     implementation(projects.core.domain)
     implementation(projects.core.designsystem)

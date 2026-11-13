@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as ChronovaApp).container
         open = intent?.getStringExtra(SystemNotifications.EXTRA_OPEN)
+        openProject = intent?.getStringExtra(EXTRA_OPEN_PROJECT)
         setContent {
             val mode by container.appearance.themeMode.collectAsStateWithLifecycle()
             val dark = when (mode) {
@@ -47,6 +48,8 @@ class MainActivity : ComponentActivity() {
                     container,
                     openNotifications = open == SystemNotifications.OPEN_NOTIFICATIONS,
                     onOpened = { open = null },
+                    openProject = openProject,
+                    onProjectOpened = { openProject = null },
                 )
             }
         }
@@ -56,13 +59,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         open = intent.getStringExtra(SystemNotifications.EXTRA_OPEN)
+        openProject = intent.getStringExtra(EXTRA_OPEN_PROJECT)
     }
 
     private var open by mutableStateOf<String?>(null)
 
-    private companion object {
+    /** A tapped task reminder: the project to open. */
+    private var openProject by mutableStateOf<String?>(null)
+
+    companion object {
+        /** A project id to open (a tapped task reminder). */
+        const val EXTRA_OPEN_PROJECT = "open_project"
+
         // Behind three-button navigation (gesture navigation draws no bar): AndroidX's own defaults.
-        val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
-        val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+        private val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+        private val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
     }
 }

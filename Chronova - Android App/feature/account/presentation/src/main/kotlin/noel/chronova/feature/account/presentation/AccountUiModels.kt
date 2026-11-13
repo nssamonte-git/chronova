@@ -1,5 +1,6 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.model.ReminderLead
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.ui.sync.SyncPhase
@@ -75,6 +76,8 @@ data class AccountPageUi(
     val lastSyncedAt: Long? = null,
     /** System, light or dark on this device. */
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** When task reminders come on this device. */
+    val reminderLead: ReminderLead = ReminderLead.OFF,
 )
 
 /** What each control on the account screen does. */
@@ -92,4 +95,5 @@ data class AccountActions(
     val onConfirmDialog: () -> Unit = {},
     val onDismissDialog: () -> Unit = {},
     val onThemeModeChange: (ThemeMode) -> Unit = {},
+    val onReminderLeadChange: (ReminderLead) -> Unit = {},
 )

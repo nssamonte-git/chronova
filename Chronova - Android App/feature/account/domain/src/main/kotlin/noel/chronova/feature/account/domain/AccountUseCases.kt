@@ -63,4 +63,5 @@ class AccountUseCases(
     val signOutAndClear: SignOutAndClear,
     val deleteAccount: DeleteAccount,
     val setThemeMode: SetThemeMode,
+    val setReminderLead: SetReminderLead,
 )

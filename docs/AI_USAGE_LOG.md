@@ -1082,3 +1082,16 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - a first device run used a test app built before the new projects test was added, so it ran 8 tests rather than 9; rebuilt and rerun;
     - two lint "use KTX" warnings were fixed.
   - **Checks:** `tools/check.sh` PASS (383 unit tests, 93 screenshots, lint 0 errors / 21 warnings, module graph OK with 86 module dependencies, UI-model check OK). On the phone: the PDF writer 3/3, projects 9/9.
+- Batch 2, reminders:
+  - **The setting:** `ReminderLead` (Off / at start / 15 min / 1 h / 1 day before) in core model, a `ReminderSettings` contract in core domain, stored in its own preferences file (on the device, off by default), set through `SetReminderLead` from a "Task reminders" choice on the account page. Choosing one asks for the notification permission on Android 13+, and the page says when notifications are off.
+  - **Which tasks:** a new read-only `ProjectQueries.observeOpenTasks()` (a Room query joining live projects) gives every task not done.
+  - **New module `:feature:reminders:{domain,data}`:**
+    - `ReminderPlanner` (pure) works out each reminder, what is due since the last run, and the next alarm.
+    - `ReminderEngine` keeps one inexact `setAndAllowWhileIdle` alarm. When it fires (even late) it posts what came due since it last ran (never twice; over a day late is dropped) and sets the next. Any change starts afresh from now, so a task added after its reminder time isn't reminded late.
+    - On Android: the alarm, a post-once log, notifications in a new "Task reminders" channel ("Starts <date, time> · <project>"; milestones say so), and receivers for the alarm and for boot, app update, time and time-zone changes. The latter checks the action, which lint asked for.
+  - **App wiring:** the Application is the `ReminderHost` and reschedules (debounced) whenever the open tasks, project names, the choice or the sign-in state change. A tapped reminder opens its project (a new `MainActivity` extra handled by the navigation host). Signing out cancels the alarm.
+  - **Tests:** 7 reminder tests (each lead time, done tasks skipped, due-since and over-a-day-late, the next alarm, a late alarm posting once, a task added after its reminder time, off or signed out means no alarm); an account ViewModel test and a screen test for the choice; the account screenshots re-recorded with the new choice (light, large font, dark), checked by eye. "1 day before" is a fixed 24 hours, written down as a limitation rather than tested.
+  - **AI mistakes:**
+    - the signed-in account previews first failed to render: the permission launcher and the notification-settings read need an activity, so previews skip them;
+    - the account module needed `activity-compose` for the permission launcher; it was already in the catalog and used by other modules, so nothing new was added.
+  - **Checks:** `tools/check.sh` PASS (391 unit tests, 93 screenshots, lint 0 errors / 21 warnings, module graph OK with 91 module dependencies, UI-model check OK). The account device tests weren't run in this batch because the phone was off USB.

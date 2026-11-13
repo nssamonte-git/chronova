@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reminders_channel">Task reminders</string>
+    <string name="reminders_channel_body">Before a task or milestone starts, as chosen on the account page.</string>
+    <string name="reminder_task">Starts %1$s · %2$s</string>
+    <string name="reminder_milestone">Milestone, %1$s · %2$s</string>
+</resources>

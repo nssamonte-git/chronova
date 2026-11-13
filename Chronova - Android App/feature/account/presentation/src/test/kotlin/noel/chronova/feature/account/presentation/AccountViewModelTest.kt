@@ -1,5 +1,8 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.domain.reminders.ReminderSettings
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.feature.account.domain.SetReminderLead
 import noel.chronova.core.domain.appearance.AppearanceRepository
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.feature.account.domain.SetThemeMode
@@ -87,6 +90,15 @@ class AccountViewModelTest {
     private lateinit var sync: FakeAccountSync
 
     private val appearance = TestAppearance()
+    private val reminders = TestReminders()
+
+    @Test
+    fun theReminderChoiceIsReadAndSaved() {
+        assertEquals(ReminderLead.OFF, viewModel.reminderLead.value)
+        viewModel.setReminderLead(ReminderLead.MINUTES_15)
+        assertEquals(ReminderLead.MINUTES_15, reminders.lead.value)
+        assertEquals(ReminderLead.MINUTES_15, viewModel.reminderLead.value)
+    }
 
     @Test
     fun theThemeChoiceIsReadAndSaved() {
@@ -101,7 +113,7 @@ class AccountViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         auth = FakeAuth()
         sync = FakeAccountSync()
-        viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance), appearance)
+        viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance, reminders), appearance, reminders)
     }
 
     @After
@@ -238,7 +250,7 @@ class AccountViewModelTest {
 }
 
 /** The use cases the app wires, over fakes. */
-private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance()) = AccountUseCases(
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance(), reminders: ReminderSettings = TestReminders()) = AccountUseCases(
     signIn = SignIn(auth),
     signUp = SignUp(auth),
     confirmSignUp = ConfirmSignUp(auth),
@@ -249,7 +261,17 @@ private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance:
     signOutAndClear = SignOutAndClear(sync),
     deleteAccount = DeleteAccount(sync),
     setThemeMode = SetThemeMode(appearance),
+    setReminderLead = SetReminderLead(reminders),
 )
+
+/** In-memory reminder choice. */
+private class TestReminders : ReminderSettings {
+    override val lead = MutableStateFlow(ReminderLead.OFF)
+
+    override fun setLead(lead: ReminderLead) {
+        this.lead.value = lead
+    }
+}
 
 /** In-memory appearance choice. */
 private class TestAppearance : AppearanceRepository {

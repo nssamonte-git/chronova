@@ -1,5 +1,16 @@
 package noel.chronova.app
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import noel.chronova.core.data.reminders.PreferencesReminderSettings
+import noel.chronova.core.domain.auth.AuthState
+import noel.chronova.core.domain.reminders.ReminderSettings
+import noel.chronova.feature.reminders.data.AlarmManagerReminderAlarm
+import noel.chronova.feature.reminders.data.NotificationReminderPoster
+import noel.chronova.feature.reminders.data.PreferencesReminderLog
+import noel.chronova.feature.reminders.data.ReminderHost
+import noel.chronova.feature.reminders.domain.ReminderEngine
 import noel.chronova.app.di.ExportGraph
 import android.app.Application
 import android.content.Context
@@ -41,13 +52,31 @@ import noel.chronova.feature.sync.data.SyncEngine
 import noel.chronova.feature.sync.data.keepOnlyFor
 import noel.chronova.feature.sync.data.remote.OkHttpSyncApi
 
-class ChronovaApp : Application() {
+class ChronovaApp : Application(), ReminderHost {
     val container: AppContainer by lazy { AppContainer(this) }
+
+    override val reminderEngine: ReminderEngine get() = container.reminderEngine
 
     override fun onCreate() {
         super.onCreate()
         container.appScope.launch { container.projectRepository.seedSampleIfFirstLaunch() }
         container.appScope.launch { container.authRepository.refresh() }
+        // The reminder alarm follows the open tasks, project names, the reminder choice and sign-in.
+        container.appScope.launch {
+            combine(
+                container.projectRepository.observeOpenTasks(),
+                container.projectRepository.observeProjects(),
+                container.reminderSettings.lead,
+                container.authRepository.state,
+            ) { _, _, _, _ -> }.collectLatest {
+                delay(RESCHEDULE_DEBOUNCE_MILLIS) // a burst of changes (a sync, an undo) reschedules once
+                container.reminderEngine.reschedule()
+            }
+        }
+    }
+
+    private companion object {
+        const val RESCHEDULE_DEBOUNCE_MILLIS = 500L
     }
 }
 
@@ -66,6 +95,9 @@ class AppContainer(context: Context) {
         database,
         PreferencesFirstLaunchFlag(context.getSharedPreferences("chronova", Context.MODE_PRIVATE)),
     )
+
+    /** When task reminders come; this device only, kept when signing out. */
+    val reminderSettings: ReminderSettings = PreferencesReminderSettings(context.getSharedPreferences("chronova_reminders", Context.MODE_PRIVATE))
 
     /** This device's look (System / Light / Dark); its own preferences file, kept when signing out. */
     val appearance: AppearanceRepository = PreferencesAppearanceRepository(context.getSharedPreferences("chronova_appearance", Context.MODE_PRIVATE))
@@ -131,4 +163,16 @@ class AppContainer(context: Context) {
     val account = AccountGraph(this)
     val assistant = AssistantGraph(this, context)
     val export = ExportGraph(this, context)
+
+    /** Posts task reminders from one alarm (see [ChronovaApp] for what reschedules it). */
+    val reminderEngine = ReminderEngine(
+        projects = projectRepository,
+        settings = reminderSettings,
+        signedIn = { authRepository.state.value is AuthState.SignedIn },
+        alarm = AlarmManagerReminderAlarm(context.applicationContext),
+        poster = NotificationReminderPoster(context.applicationContext, openProject = { c, projectId ->
+            Intent(c, MainActivity::class.java).putExtra(MainActivity.EXTRA_OPEN_PROJECT, projectId)
+        }),
+        log = PreferencesReminderLog(context.getSharedPreferences("chronova_reminder_log", Context.MODE_PRIVATE)),
+    )
 }

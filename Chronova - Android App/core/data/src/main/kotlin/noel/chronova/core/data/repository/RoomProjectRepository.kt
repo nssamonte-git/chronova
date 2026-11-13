@@ -42,6 +42,9 @@ class RoomProjectRepository(
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
         db.taskDao().observeTasks(projectId).map { rows -> rows.mapNotNull { it.toDomain() } }
 
+    override fun observeOpenTasks(): Flow<List<SchedulerTask>> =
+        db.taskDao().observeOpenTasks().map { rows -> rows.mapNotNull { it.toDomain() } }
+
     override suspend fun tasksOf(projectId: String): List<SchedulerTask> =
         db.taskDao().tasks(projectId).mapNotNull { it.toDomain() }
 

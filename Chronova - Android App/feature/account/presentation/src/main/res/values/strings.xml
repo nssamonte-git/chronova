@@ -69,4 +69,11 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="account_reminders">Task reminders</string>
+    <string name="account_reminders_blocked">Notifications are off for Chronova, so reminders can’t show. Turn them on in the phone’s settings.</string>
+    <string name="reminders_off">Off</string>
+    <string name="reminders_at_start">When a task starts</string>
+    <string name="reminders_15_minutes">15 minutes before</string>
+    <string name="reminders_1_hour">1 hour before</string>
+    <string name="reminders_1_day">1 day before</string>
 </resources>

@@ -1,5 +1,8 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.testing.FakeReminderSettings
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.feature.account.domain.SetReminderLead
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.testing.FakeAppearanceRepository
 import noel.chronova.feature.account.domain.SetThemeMode
@@ -54,6 +57,7 @@ class AccountScreenTest {
     private lateinit var auth: FakeAuthRepository
     private val sync = FakeAccountSync()
     private val appearance = FakeAppearanceRepository()
+    private val reminders = FakeReminderSettings()
 
     private fun show(state: AuthState) {
         auth = FakeAuthRepository(state)
@@ -71,8 +75,10 @@ class AccountScreenTest {
                 signOutAndClear = SignOutAndClear(sync),
                 deleteAccount = DeleteAccount(sync),
                 setThemeMode = SetThemeMode(appearance),
+                setReminderLead = SetReminderLead(reminders),
             ),
             appearance,
+            reminders,
         )
         compose.setContent { ChronovaTheme { AccountScreen(viewModel, onBack = {}) } }
     }
@@ -182,6 +188,15 @@ class AccountScreenTest {
     }
 
     // Signed in: the account and its sync line.
+
+    @Test
+    fun theReminderChoiceIsSavedForThisDevice() {
+        show(AuthState.SignedIn("user-1", "ana@example.com"))
+        compose.onNodeWithText(string(R.string.reminders_off)).performScrollTo().performClick()
+        compose.onNodeWithText(string(R.string.reminders_15_minutes)).performClick()
+        compose.waitForIdle()
+        assertEquals(ReminderLead.MINUTES_15, reminders.lead.value)
+    }
 
     @Test
     fun theThemeChoiceIsSavedForThisDevice() {

@@ -1,5 +1,7 @@
 package noel.chronova.app.di
 
+import noel.chronova.core.domain.reminders.ReminderSettingsQueries
+import noel.chronova.feature.account.domain.SetReminderLead
 import noel.chronova.app.AppContainer
 import noel.chronova.core.domain.appearance.AppearanceQueries
 import noel.chronova.core.domain.auth.AuthQueries
@@ -24,6 +26,9 @@ class AccountGraph(private val app: AppContainer) {
     /** This device's appearance (theme), read by the account page. */
     val appearance: AppearanceQueries get() = app.appearance
 
+    /** When task reminders come on this device, read by the account page. */
+    val reminders: ReminderSettingsQueries get() = app.reminderSettings
+
     /** Unsynced changes, the last result and time, read by the account page. */
     val syncStatus: SyncStatusQueries get() = app.syncCoordinator
 
@@ -41,6 +46,7 @@ class AccountGraph(private val app: AppContainer) {
             signOutAndClear = SignOutAndClear(sync),
             deleteAccount = DeleteAccount(sync),
             setThemeMode = SetThemeMode(app.appearance),
+            setReminderLead = SetReminderLead(app.reminderSettings),
         )
     }
 }

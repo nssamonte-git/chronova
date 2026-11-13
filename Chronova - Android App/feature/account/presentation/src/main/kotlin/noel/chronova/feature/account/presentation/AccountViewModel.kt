@@ -1,5 +1,7 @@
 package noel.chronova.feature.account.presentation
 
+import noel.chronova.core.domain.reminders.ReminderSettingsQueries
+import noel.chronova.core.model.ReminderLead
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -28,12 +30,18 @@ class AccountViewModel(
     private val sync: SyncStatusQueries,
     private val useCases: AccountUseCases,
     appearance: AppearanceQueries,
+    reminders: ReminderSettingsQueries,
 ) : ViewModel() {
 
     /** System, light or dark on this device. */
     val themeMode: StateFlow<ThemeMode> = appearance.themeMode
 
     fun setThemeMode(mode: ThemeMode) = useCases.setThemeMode(mode)
+
+    /** When task reminders come on this device. */
+    val reminderLead: StateFlow<ReminderLead> = reminders.lead
+
+    fun setReminderLead(lead: ReminderLead) = useCases.setReminderLead(lead)
 
     val authState: StateFlow<AccountAuthUi> = auth.state.map { it.toUi() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, auth.state.value.toUi())
@@ -168,9 +176,10 @@ class AccountViewModel(
             auth: AuthQueries,
             sync: SyncStatusQueries,
             appearance: AppearanceQueries,
+            reminders: ReminderSettingsQueries,
             useCases: () -> AccountUseCases,
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { AccountViewModel(auth, sync, useCases(), appearance) }
+            initializer { AccountViewModel(auth, sync, useCases(), appearance, reminders) }
         }
     }
 }

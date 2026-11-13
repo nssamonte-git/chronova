@@ -55,6 +55,9 @@ fun ChronovaNavHost(
     modifier: Modifier = Modifier,
     openNotifications: Boolean = false,
     onOpened: () -> Unit = {},
+    /** A tapped task reminder asked for this project; [onProjectOpened] once shown. */
+    openProject: String? = null,
+    onProjectOpened: () -> Unit = {},
 ) {
     val auth by container.account.auth.state.collectAsStateWithLifecycle()
     when (AppGate.of(auth)) {
@@ -66,17 +69,30 @@ fun ChronovaNavHost(
         ) { CircularProgressIndicator() }
         // Signing out (or a session the server ended) lands here, and the app's screens start afresh after signing in.
         AppGate.SignIn -> AccountScreen(
-            viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account.appearance, container.account::useCases)),
+            viewModel = viewModel(key = "sign-in", factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account.appearance, container.account.reminders, container.account::useCases)),
             onBack = null,
         )
-        AppGate.App -> ChronovaScreens(container, modifier, openNotifications, onOpened)
+        AppGate.App -> ChronovaScreens(container, modifier, openNotifications, onOpened, openProject, onProjectOpened)
     }
 }
 
 @Composable
-private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNotifications: Boolean, onOpened: () -> Unit) {
+private fun ChronovaScreens(
+    container: AppContainer,
+    modifier: Modifier,
+    openNotifications: Boolean,
+    onOpened: () -> Unit,
+    openProject: String?,
+    onProjectOpened: () -> Unit,
+) {
     val navController = rememberNavController()
     val unread by container.notifications.queries.unreadCount().collectAsStateWithLifecycle(initialValue = 0)
+    LaunchedEffect(openProject) {
+        if (openProject != null) {
+            navController.navigate(ProjectTimelineRoute(openProject)) { launchSingleTop = true }
+            onProjectOpened()
+        }
+    }
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
             navController.navigate(NotificationsRoute) { launchSingleTop = true }
@@ -132,7 +148,7 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
         }
         composable<AccountRoute> {
             AccountScreen(
-                viewModel = viewModel(factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account.appearance, container.account::useCases)),
+                viewModel = viewModel(factory = AccountViewModel.factory(container.account.auth, container.account.syncStatus, container.account.appearance, container.account.reminders, container.account::useCases)),
                 onBack = { navController.popBackStack() },
             )
         }

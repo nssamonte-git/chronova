@@ -37,6 +37,13 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE project_id = :projectId AND deleted = 0 ORDER BY sort_order, start_millis")
     fun observeTasks(projectId: String): Flow<List<TaskEntity>>
 
+    /** Tasks not yet done in every live project, earliest first. */
+    @Query(
+        "SELECT t.* FROM tasks t JOIN projects p ON p.id = t.project_id " +
+            "WHERE t.deleted = 0 AND p.deleted = 0 AND t.progress < 100 ORDER BY t.start_millis",
+    )
+    fun observeOpenTasks(): Flow<List<TaskEntity>>
+
     @Query("SELECT * FROM tasks WHERE project_id = :projectId AND deleted = 0 ORDER BY sort_order, start_millis")
     suspend fun tasks(projectId: String): List<TaskEntity>
 

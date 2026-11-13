@@ -1,5 +1,8 @@
 package noel.chronova.app.rotation
 
+import noel.chronova.core.domain.reminders.ReminderSettings
+import noel.chronova.core.model.ReminderLead
+import noel.chronova.feature.account.domain.SetReminderLead
 import noel.chronova.core.domain.appearance.AppearanceRepository
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.feature.account.domain.SetThemeMode
@@ -110,7 +113,8 @@ class RotationStateTest {
         val auth = SignedOutAuth()
         val sync = IdleSync()
         val appearance = TestAppearance()
-        val viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance), appearance)
+        val reminders = TestReminders()
+        val viewModel = AccountViewModel(auth, sync, accountUseCases(auth, sync, appearance, reminders), appearance, reminders)
         val restorer = StateRestorationTester(compose)
         restorer.setContent { AccountScreen(viewModel = viewModel, onBack = null) }
 
@@ -149,7 +153,7 @@ private class IdleSync : AccountSync {
 }
 
 /** The use cases the app wires, over fakes. */
-private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance()) = AccountUseCases(
+private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance: AppearanceRepository = TestAppearance(), reminders: ReminderSettings = TestReminders()) = AccountUseCases(
     signIn = SignIn(auth),
     signUp = SignUp(auth),
     confirmSignUp = ConfirmSignUp(auth),
@@ -160,7 +164,17 @@ private fun accountUseCases(auth: AuthRepository, sync: AccountSync, appearance:
     signOutAndClear = SignOutAndClear(sync),
     deleteAccount = DeleteAccount(sync),
     setThemeMode = SetThemeMode(appearance),
+    setReminderLead = SetReminderLead(reminders),
 )
+
+/** In-memory reminder choice. */
+private class TestReminders : ReminderSettings {
+    override val lead = MutableStateFlow(ReminderLead.OFF)
+
+    override fun setLead(lead: ReminderLead) {
+        this.lead.value = lead
+    }
+}
 
 /** In-memory appearance choice. */
 private class TestAppearance : AppearanceRepository {

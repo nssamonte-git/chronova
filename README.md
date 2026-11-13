@@ -29,6 +29,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Projects**: create, rename, set an inclusive date range (up to 366 days; can't shrink past existing tasks), delete.
 - **Duplicate and "Start from"**: any project can be a template. "Duplicate" in a project's menu, or "Start from" in the new-project sheet, copies its tasks and links to a new start date, keeping the length and each task's local time of day (across daylight-saving changes too). The copy starts with nothing done; notes, colours and milestones are kept.
 - **Tasks**: add, edit (title, colour, start/end date and time), delete with undo.
+- **Task reminders**: on the account page, Off / When a task starts / 15 minutes / 1 hour / 1 day before. A notification (own "Task reminders" channel) comes for every task or milestone that isn't done, in every project; tapping it opens the project. Kept on this phone; off until chosen.
 - **Export**: "Export…" in a project's menu opens a sheet: a PDF Gantt chart (the whole project on landscape A4 pages, always light), a CSV spreadsheet (one row per task, for Excel, Sheets or Numbers) or a calendar file (.ics, every task as an event; milestones are events with no length), with a switch for task notes. The file goes to Android's share sheet; nothing is sent until you pick where.
 - **Dark theme**: the app follows the phone's light or dark mode, or a System / Light / Dark choice on the account page (kept on this device, not synced). Dark uses slate surfaces with the same brand and task colours, and the status bar follows the app's theme.
 - **Search, filters and Today**: the search button opens a bar that matches task titles and filters by colour and by not done / done / milestones (chips of one kind widen, the kinds narrow), with a match count and Clear. While a search or filter is on, every match gets a row and the view scrolls to the earliest one. It lasts only while the project is open. The calendar button jumps to now (or says when today is outside the project), and a line marks now on the timeline.
@@ -129,6 +130,7 @@ Gradle modules in three layers, with manual dependency injection in the shell (`
 :feature:account              domain, data (ApiAuthRepository, Keystore token store), presentation (sign-in and account pages)
 :feature:assistant            domain (AICommandHandler, CommandPlanner, clashes, use cases), data (voice client, microphone, player), presentation (ViewModel, 3D orb with Filament)
 :feature:export               domain (CSV and calendar files, ExportProject), data (PDF Gantt chart, shared files), presentation (export sheet)
+:feature:reminders            domain (ReminderPlanner, ReminderEngine), data (the alarm, notifications, receivers)
 ```
 
 - **Local first.** Screens read Room through repository `Flow`s; edits are written locally and marked dirty. Deletes are tombstones until synced.
@@ -187,6 +189,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - In Months scale a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
+- Task reminders use an inexact alarm (no special permission), so Android may deliver one a few minutes late while the phone is idle; a reminder more than a day late is dropped. "1 day before" is 24 hours, so across a daylight-saving change it is an hour off the same clock time. A reminder whose time has passed when its task is added or moved is not sent late.
 - The app's in-app theme choice (System / Light / Dark) applies once Compose draws: the launch screen and the very first frame follow the phone's setting. The admin panel is dark-only. Seven instrumented tests (the Room transaction, rotation) and an adb rotation stress script; other device behaviour was verified by hand.
 - While the assistant is open, or still saying what it changed, the screen keeps its orientation; it turns with the phone again once the assistant is done.
 - The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes). A yes quieter than someone talking to the phone gets "Sorry, was that a yes?" first; the level is tuned on one phone.

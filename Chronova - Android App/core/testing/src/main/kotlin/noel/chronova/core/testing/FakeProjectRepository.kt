@@ -3,6 +3,7 @@ package noel.chronova.core.testing
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import noel.chronova.core.model.Project
 import noel.chronova.core.model.ProjectSummary
@@ -37,6 +38,11 @@ class FakeProjectRepository(
 
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
         tasks.map { list -> list.filter { it.projectId == projectId }.sortedBy { it.sortOrder } }
+
+    override fun observeOpenTasks(): Flow<List<SchedulerTask>> = combine(projects, tasks) { projects, tasks ->
+        val live = projects.map { it.id }.toSet()
+        tasks.filter { it.projectId in live && !it.isDone }.sortedBy { it.startMillis }
+    }
 
     override suspend fun tasksOf(projectId: String): List<SchedulerTask> =
         tasks.value.filter { it.projectId == projectId }

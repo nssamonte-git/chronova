@@ -22,6 +22,7 @@ Gradle modules under `Chronova - Android App/` (see `settings.gradle.kts`); each
 | Accounts | `:feature:account:{domain,data,presentation}` | sign-in/account use cases; `ApiAuthRepository`, keystore token store; sign-in pages and account page |
 | Voice assistant | `:feature:assistant:{domain,data,presentation}` | ports, `AICommandHandler`, `CommandPlanner`, clashes, `AssistantUseCases`; OkHttp voice client, recorder, player, settings; `AssistantViewModel`, overlay, Filament orb (`voice/orb/`, `assets/orb`), `rememberAssistantSlot` |
 | Export | `:feature:export:{domain,data,presentation}` | `ExportProject`, `CsvExport`, `IcsExport`; `GanttPdfWriter` (PdfDocument), `CacheExportFiles` + FileProvider; `ExportViewModel`, `ExportSheet` (shown by the shell from the project menu) |
+| Reminders | `:feature:reminders:{domain,data}` | `ReminderPlanner`, `ReminderEngine` (one alarm, post once); `AlarmManagerReminderAlarm`, `NotificationReminderPoster`, `PreferencesReminderLog`, the receivers (`ReminderHost` is the Application); the choice lives in `:core:domain` `ReminderSettings`, set on the account page |
 | Tests | each module's `src/test/…`; `:app` `src/androidTest/…` | domain and engine tests in the pure modules, ViewModel tests with fake use cases/repositories, data tests; Room transaction and rotation on a device |
 
 ## Server and the rest

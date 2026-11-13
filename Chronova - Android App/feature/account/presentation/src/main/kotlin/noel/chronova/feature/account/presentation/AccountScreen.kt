@@ -1,5 +1,16 @@
 package noel.chronova.feature.account.presentation
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.core.app.NotificationManagerCompat
+import noel.chronova.core.model.ReminderLead
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -82,8 +93,9 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
     val phase by viewModel.syncPhase.collectAsStateWithLifecycle()
     val deleteFailure by viewModel.deleteFailure.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val reminderLead by viewModel.reminderLead.collectAsStateWithLifecycle()
     AccountContent(
-        page = AccountPageUi(authState, form, dialog, sessionEnded, pending, phase, deleteFailure, viewModel.lastSyncedAt(), themeMode),
+        page = AccountPageUi(authState, form, dialog, sessionEnded, pending, phase, deleteFailure, viewModel.lastSyncedAt(), themeMode, reminderLead),
         actions = remember(viewModel) {
             AccountActions(
                 onEmailChange = viewModel::onEmailChange,
@@ -99,6 +111,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                 onConfirmDialog = viewModel::confirmDialog,
                 onDismissDialog = viewModel::dismissDialog,
                 onThemeModeChange = viewModel::setThemeMode,
+                onReminderLeadChange = viewModel::setReminderLead,
             )
         },
         onBack = onBack,
@@ -190,6 +203,7 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
         Text(stringResource(CoreUiR.string.sync_now))
     }
     ThemeChoice(page.themeMode, actions.onThemeModeChange)
+    ReminderChoice(page.reminderLead, actions.onReminderLeadChange)
     OutlinedButton(onClick = actions.onRequestSignOut, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.account_sign_out))
     }
@@ -204,6 +218,62 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
         )
     }
 }
+
+/**
+ * When task reminders come. Choosing one asks for the notification permission (Android 13+)
+ * if it isn't granted; without it the page says reminders can't show.
+ */
+@Composable
+private fun ReminderChoice(selected: ReminderLead, onSelect: (ReminderLead) -> Unit) {
+    val context = LocalContext.current
+    // Previews and screenshots have no activity to ask from, nor notification settings to read.
+    val preview = LocalInspectionMode.current
+    var allowed by remember { mutableStateOf(preview || NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    val ask: ((String) -> Unit)? = if (preview) {
+        null
+    } else {
+        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> allowed = granted }
+        launcher::launch
+    }
+    var open by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.account_reminders), style = MaterialTheme.typography.titleSmall)
+        Box {
+            OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(reminderLabel(selected), modifier = Modifier.weight(1f))
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                ReminderLead.entries.forEach { lead ->
+                    DropdownMenuItem(
+                        text = { Text(reminderLabel(lead)) },
+                        onClick = {
+                            open = false
+                            onSelect(lead)
+                            if (lead != ReminderLead.OFF && !allowed && Build.VERSION.SDK_INT >= 33) {
+                                ask?.invoke(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        if (selected != ReminderLead.OFF && !allowed) {
+            Text(stringResource(R.string.account_reminders_blocked), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Composable
+private fun reminderLabel(lead: ReminderLead): String = stringResource(
+    when (lead) {
+        ReminderLead.OFF -> R.string.reminders_off
+        ReminderLead.AT_START -> R.string.reminders_at_start
+        ReminderLead.MINUTES_15 -> R.string.reminders_15_minutes
+        ReminderLead.HOUR_1 -> R.string.reminders_1_hour
+        ReminderLead.DAY_1 -> R.string.reminders_1_day
+    },
+)
 
 /** System / Light / Dark for this device. */
 @OptIn(ExperimentalMaterial3Api::class)

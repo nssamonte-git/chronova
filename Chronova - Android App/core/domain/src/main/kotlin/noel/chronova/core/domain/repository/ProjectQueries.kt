@@ -21,4 +21,7 @@ interface ProjectQueries {
 
     /** The project's live links. */
     fun observeDependencies(projectId: String): Flow<List<TaskDependency>>
+
+    /** Every task not yet done, in every live project, earliest first (for reminders). */
+    fun observeOpenTasks(): Flow<List<SchedulerTask>>
 }
