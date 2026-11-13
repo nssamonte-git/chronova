@@ -404,7 +404,7 @@ private fun DateDialog(
 /** Picks a time of day; the date of [millis] is kept. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(
+internal fun TimeDialog(
     millis: Long,
     zone: ZoneId,
     onConfirm: (Long) -> Unit,
@@ -421,6 +421,8 @@ private fun TimeDialog(
             }) { Text(stringResource(CoreUiR.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
+        // Like the date picker's "Select date", so both pickers say what they're for.
+        title = { Text(stringResource(R.string.time_select), style = MaterialTheme.typography.labelLarge) },
         text = { TimePicker(state = state) },
     )
 }

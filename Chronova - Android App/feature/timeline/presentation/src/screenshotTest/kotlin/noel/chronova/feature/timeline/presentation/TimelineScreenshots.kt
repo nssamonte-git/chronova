@@ -223,3 +223,11 @@ fun TaskEditorEndBeforeStart() {
         ),
     )
 }
+
+/** The task editor's time picker. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TaskTimePicker() = ChronovaTheme {
+    TimeDialog(millis = java.time.LocalDateTime.of(2026, 3, 2, 9, 30).toInstant(java.time.ZoneOffset.UTC).toEpochMilli(), zone = java.time.ZoneOffset.UTC, onConfirm = {}, onDismiss = {})
+}

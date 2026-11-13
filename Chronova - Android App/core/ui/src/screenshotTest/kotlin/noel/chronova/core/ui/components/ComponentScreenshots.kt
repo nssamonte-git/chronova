@@ -123,3 +123,9 @@ fun ChoiceChipRows() = ChronovaTheme {
         }
     }
 }
+
+/** The shared date picker (projects, import, task editor). */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun DatePicker() = ChronovaTheme { ChronovaDatePickerDialog(initial = java.time.LocalDate.of(2026, 11, 20), onConfirm = {}, onDismiss = {}) }

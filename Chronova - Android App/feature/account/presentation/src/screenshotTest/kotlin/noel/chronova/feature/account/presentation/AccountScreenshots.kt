@@ -54,3 +54,45 @@ fun AccountSignedInSyncFailed() = Account(
 fun AccountSignOutDialog() = Account(
     AccountPageUi(auth = AccountAuthUi.SignedIn("ana@example.com"), pending = 2, dialog = AccountDialog.SignOut(unsynced = 2), lastSyncedAt = now - 10 * 60_000L),
 )
+
+/** Forgot password: the email to send a reset code to. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountForgotPassword() = Account(AccountPageUi(form = AccountForm(mode = AccountMode.FORGOT, email = "ana@example.com")))
+
+/** Choosing a new password with the emailed code. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountResetPassword() = Account(
+    AccountPageUi(
+        form = AccountForm(mode = AccountMode.RESET, email = "ana@example.com", code = "123456", password = "New-secret-1", notice = AccountNotice.RESET_CODE_SENT),
+    ),
+)
+
+/** The sign-in page after the server ended the session, with a wrong password. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountSessionEnded() = Account(
+    AccountPageUi(
+        form = AccountForm(email = "ana@example.com", password = "secret-pass", authProblem = AuthProblemUi.WRONG_CREDENTIALS),
+        sessionEnded = true,
+    ),
+    onBack = null,
+)
+
+/** Deleting the account asks first. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountDeleteDialog() = Account(
+    AccountPageUi(auth = AccountAuthUi.SignedIn("ana@example.com"), dialog = AccountDialog.DeleteAccount, lastSyncedAt = now - 10 * 60_000L),
+)
+
+/** A build without sync: the account page explains that everything stays on this device. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountNotConfigured() = Account(AccountPageUi(auth = AccountAuthUi.NotConfigured))

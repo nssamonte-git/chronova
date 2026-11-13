@@ -118,4 +118,5 @@
         <item quantity="other">%d weeks</item>
     </plurals>
     <string name="task_color">Colour</string>
+    <string name="time_select">Select time</string>
 </resources>

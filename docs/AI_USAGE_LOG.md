@@ -1773,3 +1773,28 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - My Back presses went one too far and closed the app; I reopened it on the project list.
   - Not my doing: the unread count went from 35 to 36 after this launch; the app added a notification by itself, and nothing was read or created by me.
 - **Not verified:** the name column at large text on the phone (I left its text size alone); the other device-test modules were not rerun, since only the timeline changed.
+
+### Screens without previews
+
+- **Your requests:** check the screens without previews too; then fix the three findings and commit.
+- **Previews added (9, so 27 references; 171 screenshots in all):**
+  - account: forgot password, reset password, session ended with a wrong password, the delete-account dialog, a build without sync;
+  - the assistant's first-use notice;
+  - the shared date picker;
+  - the task editor's time picker (`TimeDialog` made `internal` so the screenshot test can reach it);
+  - a failed export.
+- **Fixed after viewing them in light, dark and 1.5× text:**
+  - the forgot-password and reset pages' buttons said the page title again; they now say "Send code" and "Save password";
+  - the time picker has a "Select time" heading, like the date picker's "Select date";
+  - a build without sync now shows the Appearance and Task reminders cards under its explanation (it showed one sentence only). Release builds always have sync, so clients shouldn't see this page.
+- **Fine as they were:** the session-ended page, the delete dialog (its buttons stack at large text, as Material does), the assistant notice, the failed export, and the date picker (its US date order in the preview is the preview's locale; the phone uses its own).
+- **On the phone, read only:**
+  - Chronova's notification channels are "Important updates" and "Task reminders";
+  - no Chronova notification was posted at the time, so none was seen in the shade;
+  - the app reports version 1.0 (code 1).
+- **Not reached:** snackbars (task deleted with Undo, the push offer) and the overflow menus on the project list and notifications. Showing them needs a change to your data, or a popup the screenshot tool doesn't draw. Their text was covered by the copy review.
+- **Docs:** HANDOFF and Learn now say 483 unit tests (482 was stale since the row-height test) and 171 screenshots.
+- **Checks:**
+  - `tools/check.sh` PASS: 483 unit tests, 171 screenshots, lint 0 errors, both architecture checks;
+  - device tests: account 12 and timeline 26, 0 failed.
+- **Not done:** this build was not installed on the phone; its changed screens can't be reached there without signing out.

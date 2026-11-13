@@ -22,3 +22,9 @@ fun ExportSheetPdf() = Sheet(ExportSheetState("Office move"))
 @ChronovaScreenshots
 @Composable
 fun ExportSheetCalendarWithoutNotes() = Sheet(ExportSheetState("Office move", format = ExportFormat.CALENDAR, includeNotes = false))
+
+/** Writing the file failed. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun ExportSheetFailed() = Sheet(ExportSheetState("Office move", problem = ExportProblemUi.WriteFailed))

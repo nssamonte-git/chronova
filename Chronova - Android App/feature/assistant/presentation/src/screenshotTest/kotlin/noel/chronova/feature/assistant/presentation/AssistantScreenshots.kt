@@ -46,3 +46,9 @@ fun AssistantListening() = ChronovaTheme {
         onClose = {},
     )
 }
+
+/** The one-time notice before the first conversation. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AssistantFirstUseNotice() = ChronovaTheme { AssistantNotice(onContinue = {}, onDismiss = {}) }

@@ -171,9 +171,12 @@ internal fun AccountContent(
                     )
                 }
                 when (val state = page.auth) {
-                    AccountAuthUi.NotConfigured -> Explanation(
-                        stringResource(if (onBack == null) R.string.account_no_server else R.string.account_not_configured),
-                    )
+                    AccountAuthUi.NotConfigured -> {
+                        Explanation(stringResource(if (onBack == null) R.string.account_no_server else R.string.account_not_configured))
+                        // Without sync there is no account, but the device's own settings still apply.
+                        AccountCard { ThemeChoice(page.themeMode, actions.onThemeModeChange) }
+                        AccountCard { ReminderChoice(page.reminderLead, actions.onReminderLeadChange) }
+                    }
                     AccountAuthUi.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
                     is AccountAuthUi.SignedIn -> SignedIn(state.email, page, actions, now)
                     AccountAuthUi.SignedOut -> SignInForm(page.form, page.sessionEnded, actions, required = onBack == null)
@@ -456,8 +459,17 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
         if (form.busy) {
             CircularProgressIndicator(Modifier.padding(2.dp).widthIn(max = 20.dp), strokeWidth = 2.dp)
         } else {
-            // The button says what it does; on the code page the title already says "Confirm your email".
-            Text(stringResource(if (form.mode == AccountMode.CONFIRM) R.string.account_confirm_action else title))
+            // The button says what it does rather than repeating the page's title.
+            Text(
+                stringResource(
+                    when (form.mode) {
+                        AccountMode.CONFIRM -> R.string.account_confirm_action
+                        AccountMode.FORGOT -> R.string.account_forgot_action
+                        AccountMode.RESET -> R.string.account_reset_action
+                        else -> title
+                    },
+                ),
+            )
         }
     }
     when (form.mode) {
