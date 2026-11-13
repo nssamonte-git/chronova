@@ -65,6 +65,31 @@ class ApiAuthRepositoryTest {
     }
 
     @Test
+    fun checkingTheSessionEndsItOnlyWhenTheServerRefusesIt() = runTest {
+        assertEquals("signed out: nothing to check", null, auth.checkSession())
+        reply(200, signedInBody)
+        auth.signIn("ana@example.com", "Correct-horse-1")
+        server.takeRequest()
+
+        reply(200, """{"user":{"id":"u-1","email":"ana@example.com"}}""")
+        assertEquals(true, auth.checkSession())
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/v1/me", request.url.encodedPath)
+        assertEquals("Bearer 1|abc", request.headers["Authorization"])
+
+        reply(500)
+        assertEquals("the server couldn't say", null, auth.checkSession())
+        assertEquals(AuthState.SignedIn("u-1", "ana@example.com"), auth.state.value)
+
+        reply(401, """{"message":"Unauthenticated."}""")
+        assertEquals(false, auth.checkSession())
+        assertEquals(AuthState.SignedOut, auth.state.value)
+        assertEquals(true, auth.sessionEnded.value)
+        assertEquals(null, store.session)
+    }
+
+    @Test
     fun serverErrorsMapToProblems() = runTest {
         reply(401, """{"error":"invalid_credentials"}""")
         assertEquals(AuthOutcome.Failed(AuthProblem.WRONG_CREDENTIALS), auth.signIn("a@b.c", "x"))

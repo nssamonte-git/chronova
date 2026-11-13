@@ -28,4 +28,12 @@ class FakeAuthRepository(initial: AuthState = AuthState.SignedIn("user-1", "a@ex
         sessionEnded.value = true
     }
     override suspend fun accessToken(): String? = token
+
+    /** What [checkSession] answers; false also ends the session. */
+    var sessionWorks: Boolean? = true
+    override suspend fun checkSession(): Boolean? {
+        calls += "checkSession"
+        if (sessionWorks == false) endSession()
+        return sessionWorks
+    }
 }

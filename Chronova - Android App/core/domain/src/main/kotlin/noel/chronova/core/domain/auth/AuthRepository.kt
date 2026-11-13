@@ -76,6 +76,13 @@ interface AuthRepository : AuthQueries {
      */
     suspend fun endSession() {}
 
+    /**
+     * Asks the server whether this sign-in still works (after an "account changed" push, which
+     * alone is not trusted). When the server refuses it, the session ends here as with [endSession].
+     * True when it works, false when it ended, null when the server couldn't say (offline, an error).
+     */
+    suspend fun checkSession(): Boolean? = null
+
 
     /** A valid access token for the sync API (refreshed if needed), or null when signed out. */
     suspend fun accessToken(): String?

@@ -71,6 +71,29 @@ class ApiAuthRepository(
         notify(NotificationKind.SESSION_ENDED, emptyMap())
     }
 
+    override suspend fun checkSession(): Boolean? {
+        val token = session()?.token ?: return null
+        val code = withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url("$base/v1/me")
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+            try {
+                client.newCall(request).execute().use { it.code }
+            } catch (_: IOException) {
+                -1
+            }
+        }
+        return when {
+            code in 200..299 -> true
+            // Only for the sign-in that was checked (not one made meanwhile).
+            code == 401 && session()?.token == token -> false.also { endSession() }
+            else -> null
+        }
+    }
+
     override suspend fun signUp(email: String, password: String): AuthOutcome =
         when (val r = post("auth/register", body(email) { put("password", password) })) {
             is Reply.Ok -> AuthOutcome.NeedsConfirmation

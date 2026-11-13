@@ -114,6 +114,20 @@ class SyncCoordinatorTest {
     }
 
     @Test
+    fun changesOnAnotherDeviceAskBeforeSyncing() = runTest(StandardTestDispatcher()) {
+        val sync = coordinator()
+        local.edit(task("t1", 1))
+        settle()
+        sync.offerChangesFromOtherDevice()
+        assertEquals(SyncPrompt(pendingChanges = 1, signedIn = true, fromOtherDevice = true), sync.prompt.value)
+        assertEquals("sync never starts on its own", 0, runs)
+
+        val signedOut = coordinator(AuthState.SignedOut)
+        signedOut.offerChangesFromOtherDevice()
+        assertNull("nothing to offer when signed out", signedOut.prompt.value)
+    }
+
+    @Test
     fun laterDismissesUntilTheNextReconnect() = runTest(StandardTestDispatcher()) {
         val sync = coordinator()
         local.edit(task("t1", 1))

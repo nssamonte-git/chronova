@@ -90,6 +90,7 @@ class NotificationsScreenTest {
                 NotificationKind.SYNC_FAILED -> res.getString(R.string.notif_sync_failed) to res.getString(R.string.notif_sync_failed_offline)
                 NotificationKind.SYNC_WAITING -> res.getString(R.string.notif_waiting) to res.getQuantityString(R.plurals.notif_waiting_body, 3, 3)
                 NotificationKind.SYNC_CONFLICT -> res.getString(R.string.notif_conflict) to res.getQuantityString(R.plurals.notif_conflict_body, 1, 1)
+                NotificationKind.SYNC_AVAILABLE -> res.getString(R.string.notif_sync_available) to res.getString(R.string.notif_sync_available_body)
                 NotificationKind.ASSISTANT_APPLIED -> res.getString(R.string.notif_assistant, "Office move") to
                     res.getQuantityString(R.plurals.notif_assistant_body, 2, 2, "Build, Paint")
                 NotificationKind.ASSISTANT_CLASH -> res.getString(R.string.notif_clash) to
@@ -98,12 +99,14 @@ class NotificationsScreenTest {
                 NotificationKind.SIGNED_IN -> res.getString(R.string.notif_signed_in) to res.getString(R.string.notif_signed_in_body, "ana@example.com")
                 NotificationKind.SESSION_ENDED -> res.getString(R.string.notif_session_ended) to res.getString(CoreUiR.string.account_session_ended)
                 NotificationKind.PASSWORD_CHANGED -> res.getString(R.string.notif_password_changed) to res.getString(R.string.notif_password_changed_body)
+                NotificationKind.SIGNED_IN_ELSEWHERE -> res.getString(R.string.notif_signed_in_elsewhere) to res.getString(R.string.notif_signed_in_elsewhere_body)
             }
         }
         add(NotificationKind.SYNCED, mapOf("sent" to "2", "received" to "1"))
         add(NotificationKind.SYNC_FAILED, mapOf("reason" to SyncFailure.OFFLINE.name))
         add(NotificationKind.SYNC_WAITING, mapOf("count" to "3"))
         add(NotificationKind.SYNC_CONFLICT, mapOf("count" to "1"))
+        add(NotificationKind.SYNC_AVAILABLE)
         add(NotificationKind.ASSISTANT_APPLIED, mapOf("count" to "2", "tasks" to "Build\nPaint"), "office", "Office move")
         add(
             NotificationKind.ASSISTANT_CLASH,
@@ -112,6 +115,7 @@ class NotificationsScreenTest {
         add(NotificationKind.SIGNED_IN, mapOf("email" to "ana@example.com"))
         add(NotificationKind.SESSION_ENDED)
         add(NotificationKind.PASSWORD_CHANGED)
+        add(NotificationKind.SIGNED_IN_ELSEWHERE)
         show()
 
         expected.forEach { (kind, words) ->

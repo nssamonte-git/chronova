@@ -23,6 +23,9 @@ enum class NotificationKind(val category: NotificationCategory, val important: B
     /** Changes from this phone were older than the server's copy, which was kept: "count". */
     SYNC_CONFLICT(NotificationCategory.SYNC),
 
+    /** Another of the user's devices synced changes (a push); tapping offers to sync. */
+    SYNC_AVAILABLE(NotificationCategory.SYNC, important = true),
+
     /** The assistant applied a change: "summary" (what it said). */
     ASSISTANT_APPLIED(NotificationCategory.ASSISTANT),
 
@@ -37,6 +40,9 @@ enum class NotificationKind(val category: NotificationCategory, val important: B
 
     /** A new password was set; other devices were signed out. */
     PASSWORD_CHANGED(NotificationCategory.ACCOUNT),
+
+    /** Someone signed in to the account on another device (a push). */
+    SIGNED_IN_ELSEWHERE(NotificationCategory.ACCOUNT, important = true),
 }
 
 data class AppNotification(

@@ -13,6 +13,7 @@ use App\Mail\AlreadyRegisteredMail;
 use App\Mail\EmailCodeMail;
 use App\Models\EmailCode;
 use App\Models\User;
+use App\Push\Alerts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,7 +31,7 @@ class AuthController extends Controller
     /** bcrypt (cost 12) of a random string nobody knows; checked for unknown emails. */
     private const TIMING_HASH = '$2y$12$IK5CWdVliV96w2ZAuEaw8u.UgI189NjHNmxzFGpjJbAM5L/ifXBGu';
 
-    public function __construct(private readonly EmailCodes $codes) {}
+    public function __construct(private readonly EmailCodes $codes, private readonly Alerts $alerts) {}
 
     /** POST /v1/auth/register — always 202; a code (or a "you already have an account" note) is emailed. */
     public function register(RegisterRequest $request): JsonResponse
@@ -99,6 +100,8 @@ class AuthController extends Controller
             || ! $this->codes->consume($user, EmailCode::PURPOSE_RESET, $request->string('code'))) {
             return response()->json(['error' => 'invalid_code'], 422);
         }
+        // The other devices hear it first: their devices go with their sign-ins.
+        $this->alerts->accountChanged($user);
         $user->tokens()->delete();
         $user->forceFill([
             'password' => $request->string('password'),
@@ -146,6 +149,7 @@ class AuthController extends Controller
     private function signedIn(User $user, string $deviceName): JsonResponse
     {
         $token = $user->createToken(mb_substr($deviceName, 0, 100), ['sync'], now()->addDays(self::TOKEN_DAYS));
+        $this->alerts->signedIn($user, $token->accessToken->getKey());
 
         return response()->json(['token' => $token->plainTextToken, 'user' => $this->userJson($user)]);
     }

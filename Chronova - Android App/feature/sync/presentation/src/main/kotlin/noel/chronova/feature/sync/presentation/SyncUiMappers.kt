@@ -9,4 +9,4 @@ import noel.chronova.core.ui.sync.toSyncPhase
 
 internal fun SyncOverview.toUi() = SyncUi(configured = configured, signedIn = signedIn, pending = pending, phase = status.toSyncPhase())
 
-internal fun SyncPrompt.toUi() = SyncPromptUi(pendingChanges = pendingChanges, signedIn = signedIn)
+internal fun SyncPrompt.toUi() = SyncPromptUi(pendingChanges = pendingChanges, signedIn = signedIn, fromOtherDevice = fromOtherDevice)

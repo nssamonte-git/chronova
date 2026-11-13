@@ -37,6 +37,18 @@ The service-account key is a private key: never in git, never in the app.
 - **The message:** `type=reminder`, `taskId`, `projectId`, `projectName`, `title`, `milestone` (`true`/`false`), `startMillis`, `atMillis`; high priority, no collapse key. The phone words it.
 - **On the phone:** dropped when signed out, reminders are off, it is over a day late, or the phone's own copy of the task is done or due at another time (an unsynced change; the phone's alarm covers it). Otherwise it is posted through the same poster and notification id as the alarm, and a shared "posted" log (`taskId@atMillis`, 2 days) means push and alarm show it once between them.
 
+## Account and sync alerts
+
+`App\Push\Alerts`; data messages with only a `type`, worded by the phone. The phone acts on them only while signed in (`HandleAlert`).
+
+| Type | Sent when | To | How | On the phone |
+|---|---|---|---|---|
+| `sync_available` | a sync applied at least one change | the user's other devices (not the caller's sign-in) | queued (`SendAlert`); normal priority, collapse key `sync`; at most once per device every 10 minutes | "Changes on another device" in the shade; tapping it opens the sync prompt. Sync never starts by itself |
+| `signed_in` | a sign-in (login, confirming the email, a reset) | the devices already signed in | queued; high priority | "New sign-in … If that wasn't you, reset your password." Skipped when this phone itself signed in within 5 minutes (the server can't yet tell it apart) |
+| `account_changed` | a password reset, the account deleted (from the app: not the caller), support's "Sign out everywhere" | the user's devices | at once, before the sign-ins (and so the devices) are revoked; high priority | not trusted alone: the phone calls `GET /v1/me`; only a 401 ends the session (the existing "Session ended" path); a working sign-in or no answer changes nothing |
+
+No job is queued when the user has no other device.
+
 ## The app
 
 - **Modules:** `:feature:push:domain` (pure Kotlin: `PushMessage.parse`, `RegisterDevice`) and `:feature:push:data` (`ChronovaMessagingService`, `FirebasePushTokens`, `OkHttpPushApi`). The app module applies the google-services plugin, which reads `app/google-services.json` (Firebase project `chronova-ece3c`).

@@ -73,6 +73,12 @@ class SyncCoordinator(
         }
     }
 
+    /** Asks, never syncs by itself; nothing to ask when signed out or already syncing. */
+    override fun offerChangesFromOtherDevice() {
+        if (auth.state.value !is AuthState.SignedIn || job?.isActive == true) return
+        _prompt.value = SyncPrompt(pendingCount.value, signedIn = true, fromOtherDevice = true)
+    }
+
     /** "Later": the prompt comes back on the next reconnect, not before. */
     override fun dismissPrompt() {
         _prompt.value = null

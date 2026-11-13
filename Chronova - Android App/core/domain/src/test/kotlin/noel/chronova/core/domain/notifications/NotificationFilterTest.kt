@@ -33,9 +33,9 @@ class NotificationFilterTest {
     }
 
     @Test
-    fun everyKindHasACategoryAndOnlyFailuresAndEndedSessionsReachTheShade() {
+    fun onlyFailuresEndedSessionsAndOtherDevicesAlertsReachTheShade() {
         assertEquals(
-            setOf(NotificationKind.SYNC_FAILED, NotificationKind.SESSION_ENDED),
+            setOf(NotificationKind.SYNC_FAILED, NotificationKind.SESSION_ENDED, NotificationKind.SYNC_AVAILABLE, NotificationKind.SIGNED_IN_ELSEWHERE),
             NotificationKind.entries.filter { it.important }.toSet(),
         )
     }

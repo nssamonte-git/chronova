@@ -16,3 +16,11 @@ fun SyncPromptSignedIn() = ChronovaTheme { SyncPromptDialog(SyncPromptUi(pending
 @ChronovaScreenshots
 @Composable
 fun SyncPromptSignedOut() = ChronovaTheme { SyncPromptDialog(SyncPromptUi(pendingChanges = 1, signedIn = false), onSync = {}, onSignIn = {}, onLater = {}) }
+
+/** A tapped "changes on another device" alert: offers to sync them here. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun SyncPromptFromOtherDevice() = ChronovaTheme {
+    SyncPromptDialog(SyncPromptUi(pendingChanges = 0, signedIn = true, fromOtherDevice = true), onSync = {}, onSignIn = {}, onLater = {})
+}

@@ -42,6 +42,8 @@
         <item quantity="one">%d change on this phone hasn’t synced yet.</item>
         <item quantity="other">%d changes on this phone haven’t synced yet.</item>
     </plurals>
+    <string name="notif_sync_available">Changes on another device</string>
+    <string name="notif_sync_available_body">Your projects changed on another of your devices. Tap to sync them here.</string>
     <string name="notif_conflict">Newer copies kept</string>
     <plurals name="notif_conflict_body">
         <item quantity="one">%d change from this phone was replaced by a newer edit from another device.</item>
@@ -61,4 +63,6 @@
     <string name="notif_session_ended">Session ended</string>
     <string name="notif_password_changed">Password changed</string>
     <string name="notif_password_changed_body">Your other devices were signed out.</string>
+    <string name="notif_signed_in_elsewhere">New sign-in</string>
+    <string name="notif_signed_in_elsewhere_body">Your account was signed in on another device. If that wasn’t you, reset your password.</string>
 </resources>

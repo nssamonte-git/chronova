@@ -6,6 +6,7 @@ use App\Accounts\DeleteUserAccount;
 use App\Admin\Audit;
 use App\Models\DataAccessGrant;
 use App\Models\User;
+use App\Push\Alerts;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -104,6 +105,7 @@ class UserActions
             ->authorize('manage')
             ->visible(fn (User $record) => $record->tokens()->exists())
             ->action(function (User $record) {
+                app(Alerts::class)->accountChanged($record);
                 $count = $record->tokens()->delete();
                 Audit::record('user.signed_out_everywhere', $record->id, details: ['devices' => $count]);
                 Notification::make()->title('Signed out of all devices')->success()->send();

@@ -68,6 +68,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Decision: Room on the phone is the working copy; every write stamps `updatedAt` and marks the row dirty, and deletes are tombstones until synced. Sync never starts on its own: coming back online with unsynced changes shows a prompt, and only "Sync now" (prompt, button, account screen) runs `SyncEngine`. Conflicts: last write wins per record by edit time (server clock as ceiling, ties to the server); a stale push gets the winning copy back. Contract: `docs/sync-protocol.md`.
 - Reason: a user choice (asked to be prompted rather than synced silently); per-record last-write-wins is simple and predictable.
 - Constraint: once signed in, the app works fully without a connection; blocking Room and network work runs on `Dispatchers.IO`.
+- Revised 2026-11-13 (user choice, `docs/push.md`): when a sync changes something, the user's other devices get a "changes on another device" push (at most one per device every 10 minutes). It still never syncs by itself: the phone shows a notification, and tapping it opens the sync prompt ("Changes on another device… Sync now?").
 - Revised 2026-11-12 (user request): the app needs an account — signed out, it opens on the sign-in page (`AppGate`) and nothing else is reachable; signing out or deleting the account returns there. A build with no server URL can't sign in, so it stops at that page (user request, same day: sign-in is required even without a server).
 
 ## 2026-11-11: Backend — Laravel + Postgres + Filament on ECS Fargate + RDS

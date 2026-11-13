@@ -28,6 +28,8 @@ class MainActivity : ComponentActivity() {
         val container = (application as ChronovaApp).container
         open = intent?.getStringExtra(SystemNotifications.EXTRA_OPEN)
         openProject = intent?.getStringExtra(EXTRA_OPEN_PROJECT)
+        // Not again when the activity is recreated (rotation) with the same intent.
+        if (savedInstanceState == null) offerSyncIfAsked(container)
         setContent {
             val mode by container.appearance.themeMode.collectAsStateWithLifecycle()
             val dark = when (mode) {
@@ -60,6 +62,14 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         open = intent.getStringExtra(SystemNotifications.EXTRA_OPEN)
         openProject = intent.getStringExtra(EXTRA_OPEN_PROJECT)
+        offerSyncIfAsked((application as ChronovaApp).container)
+    }
+
+    /** A tapped "changes on another device" alert: the sync prompt asks whether to sync them here. */
+    private fun offerSyncIfAsked(container: AppContainer) {
+        if (open != SystemNotifications.OPEN_SYNC) return
+        open = null
+        container.syncCoordinator.offerChangesFromOtherDevice()
     }
 
     private var open by mutableStateOf<String?>(null)

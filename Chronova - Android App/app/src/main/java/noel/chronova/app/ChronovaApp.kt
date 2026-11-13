@@ -5,6 +5,7 @@ import noel.chronova.feature.push.domain.RegisterDevice
 import noel.chronova.feature.push.data.OkHttpPushApi
 import noel.chronova.feature.push.data.FirebasePushTokens
 import kotlinx.coroutines.flow.distinctUntilChanged
+import noel.chronova.feature.push.domain.HandleAlert
 import noel.chronova.feature.push.domain.PushMessage
 import noel.chronova.feature.push.data.PushHost
 import kotlinx.coroutines.delay
@@ -199,14 +200,15 @@ class AppContainer(context: Context) {
         settings = reminderSettings,
     )
 
+    private val handleAlert = HandleAlert(authRepository, notificationRepository)
+
     /** Acts on a push from the server (docs/push.md). */
     suspend fun handlePush(message: PushMessage) {
         when (message) {
             is PushMessage.Reminder -> reminderEngine.onPush(
                 Reminder(message.taskId, message.projectId, message.projectName, message.title, message.isMilestone, message.startMillis, message.atMillis),
             )
-            // The account and sync alerts arrive in the next step of this work.
-            PushMessage.SyncAvailable, PushMessage.SignedIn, PushMessage.AccountChanged -> Unit
+            PushMessage.SyncAvailable, PushMessage.SignedIn, PushMessage.AccountChanged -> handleAlert(message)
         }
     }
 

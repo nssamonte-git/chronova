@@ -15,6 +15,7 @@ import noel.chronova.core.domain.sync.SyncStatus
 /** [SyncService] over the shared account-sync fake. */
 class FakeSyncService : FakeAccountSync(), SyncService {
     override val prompt = MutableStateFlow<SyncPrompt?>(null)
+    override fun offerChangesFromOtherDevice() = Unit
     override fun dismissPrompt() {
         calls += "dismissPrompt"
         prompt.value = null

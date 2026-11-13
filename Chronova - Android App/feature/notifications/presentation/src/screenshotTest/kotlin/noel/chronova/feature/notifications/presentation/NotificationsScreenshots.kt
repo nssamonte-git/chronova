@@ -48,3 +48,17 @@ fun NotificationsUnreadOnly() = Page(
 @ChronovaScreenshots
 @Composable
 fun NotificationsEmpty() = Page(NotificationsPageUi())
+
+/** What other devices bring by push: changes to sync and a new sign-in. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun NotificationsFromOtherDevices() = Page(
+    NotificationsPageUi(
+        listOf(
+            NotificationUi(1, NotificationKind.SYNC_AVAILABLE, emptyMap(), null, null, now - 2 * MINUTE, read = false, canUndo = false),
+            NotificationUi(2, NotificationKind.SIGNED_IN_ELSEWHERE, emptyMap(), null, null, now - 60 * MINUTE, read = false, canUndo = false),
+        ),
+        NotificationFilter(), isEmpty = false, choices = choices, liveProjectIds = setOf("launch"),
+    ),
+)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SyncEvent;
+use App\Push\Alerts;
 use App\Sync\SyncRequestParser;
 use App\Sync\SyncService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ class SyncController extends Controller
     public function __construct(
         private readonly SyncRequestParser $parser,
         private readonly SyncService $sync,
+        private readonly Alerts $alerts,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -32,6 +34,10 @@ class SyncController extends Controller
 
         $result = $this->sync->sync($user, $parsed, now()->getTimestampMs());
         $this->record($user->getKey(), 200, count($parsed['changes']), count($result['response']['changes']), $result['stale'], $started);
+        if (count($parsed['changes']) > $result['stale']) {
+            // Something changed: the user's other devices can sync it.
+            $this->alerts->syncAvailable($user, Alerts::sessionOf($user));
+        }
 
         return response()->json($result['response']);
     }

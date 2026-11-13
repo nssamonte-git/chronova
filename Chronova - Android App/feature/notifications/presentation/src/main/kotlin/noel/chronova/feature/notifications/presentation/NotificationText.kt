@@ -37,6 +37,10 @@ fun notificationText(notification: NotificationUi, resources: Resources): Notifi
             resources.getString(R.string.notif_conflict),
             resources.getQuantityString(R.plurals.notif_conflict_body, count("count"), count("count")),
         )
+        NotificationKind.SYNC_AVAILABLE -> NotificationText(
+            resources.getString(R.string.notif_sync_available),
+            resources.getString(R.string.notif_sync_available_body),
+        )
         NotificationKind.ASSISTANT_APPLIED -> NotificationText(
             notification.projectName?.let { resources.getString(R.string.notif_assistant, it) } ?: resources.getString(R.string.notif_assistant_any),
             resources.getQuantityString(R.plurals.notif_assistant_body, count("count"), count("count"), tasks()),
@@ -60,6 +64,10 @@ fun notificationText(notification: NotificationUi, resources: Resources): Notifi
         NotificationKind.PASSWORD_CHANGED -> NotificationText(
             resources.getString(R.string.notif_password_changed),
             resources.getString(R.string.notif_password_changed_body),
+        )
+        NotificationKind.SIGNED_IN_ELSEWHERE -> NotificationText(
+            resources.getString(R.string.notif_signed_in_elsewhere),
+            resources.getString(R.string.notif_signed_in_elsewhere_body),
         )
     }
 }

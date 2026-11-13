@@ -12,11 +12,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import noel.chronova.core.domain.notifications.AppNotification
+import noel.chronova.core.domain.notifications.NotificationKind
 import noel.chronova.feature.notifications.domain.NotificationPoster
 
 /**
  * Posts important notifications (a failed sync, an ended session) to the phone's
- * notification shade; tapping one opens the notifications page. Without the
+ * notification shade; tapping one opens the notifications page, or for changes on another
+ * device ([OPEN_SYNC]) offers to sync. Without the
  * notification permission (Android 13+) nothing is posted; the page still has them.
  * [openApp] is the intent that opens the app (the shell's activity); [EXTRA_OPEN] is added to it.
  */
@@ -37,12 +39,14 @@ class SystemNotifications(
                 .apply { description = context.getString(R.string.notifications_channel_body) },
         )
         val text = notificationText(notification.toUi(), context.resources)
+        val target = if (notification.kind == NotificationKind.SYNC_AVAILABLE) OPEN_SYNC else OPEN_NOTIFICATIONS
         val open = PendingIntent.getActivity(
             context,
-            0,
+            // One request code per target, so updating one's extras never changes the other's.
+            if (target == OPEN_SYNC) 1 else 0,
             openApp(context)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(EXTRA_OPEN, OPEN_NOTIFICATIONS),
+                .putExtra(EXTRA_OPEN, target),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val built = NotificationCompat.Builder(context, CHANNEL)
@@ -64,5 +68,8 @@ class SystemNotifications(
         const val CHANNEL = "important"
         const val EXTRA_OPEN = "open"
         const val OPEN_NOTIFICATIONS = "notifications"
+
+        /** Opens the app with the "changes on another device" offer to sync. */
+        const val OPEN_SYNC = "sync"
     }
 }

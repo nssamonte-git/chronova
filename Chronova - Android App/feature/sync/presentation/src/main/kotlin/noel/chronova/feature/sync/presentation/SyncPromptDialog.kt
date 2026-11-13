@@ -8,19 +8,23 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import noel.chronova.core.ui.R as CoreUiR
 
-/** "You're back online" — asks before syncing, as the user requires. */
+/** "You're back online" or "Changes on another device": asks before syncing, as the user requires. */
 @Composable
 fun SyncPromptDialog(prompt: SyncPromptUi, onSync: () -> Unit, onSignIn: () -> Unit, onLater: () -> Unit) {
     AlertDialog(
         onDismissRequest = onLater,
-        title = { Text(stringResource(R.string.sync_prompt_title)) },
+        title = { Text(stringResource(if (prompt.fromOtherDevice) R.string.sync_remote_title else R.string.sync_prompt_title)) },
         text = {
             Text(
-                pluralStringResource(
-                    if (prompt.signedIn) R.plurals.sync_prompt_body else R.plurals.sync_prompt_body_signed_out,
-                    prompt.pendingChanges,
-                    prompt.pendingChanges,
-                ),
+                if (prompt.fromOtherDevice) {
+                    stringResource(R.string.sync_remote_body)
+                } else {
+                    pluralStringResource(
+                        if (prompt.signedIn) R.plurals.sync_prompt_body else R.plurals.sync_prompt_body_signed_out,
+                        prompt.pendingChanges,
+                        prompt.pendingChanges,
+                    )
+                },
             )
         },
         confirmButton = {

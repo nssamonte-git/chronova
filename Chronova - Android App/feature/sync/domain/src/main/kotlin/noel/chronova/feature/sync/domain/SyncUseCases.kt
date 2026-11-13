@@ -19,6 +19,9 @@ interface SyncPromptQueries {
 
 interface SyncService : AccountSync, SyncPromptQueries {
     fun dismissPrompt()
+
+    /** Another device synced changes (the user tapped that alert): asks whether to sync them here. */
+    fun offerChangesFromOtherDevice()
 }
 
 /** What the project list shows about sync. */

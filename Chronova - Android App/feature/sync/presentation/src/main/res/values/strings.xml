@@ -7,6 +7,8 @@
         <item quantity="one">%d change on this device hasn’t been synced. Sync it now?</item>
         <item quantity="other">%d changes on this device haven’t been synced. Sync them now?</item>
     </plurals>
+    <string name="sync_remote_title">Changes on another device</string>
+    <string name="sync_remote_body">Your projects changed on another of your devices. Sync now to get them here?</string>
     <plurals name="sync_prompt_body_signed_out">
         <item quantity="one">%d change on this device isn’t backed up. Sign in to sync it.</item>
         <item quantity="other">%d changes on this device aren’t backed up. Sign in to sync them.</item>
