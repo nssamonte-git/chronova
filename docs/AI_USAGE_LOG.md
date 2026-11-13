@@ -1304,3 +1304,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **You noticed:** after the switch to the real voices, the project list's orb still greeted in the fake test voice. Its greeting is fetched once and kept for the screen's life, and it had been fetched while the server ran the fakes. Restarting the app fixed it; a real server never changes voice this way.
   - **Docs:** a DECISIONS entry (Voice actions) with a revision line under Voice editing, README's voice paragraph, `docs/voice-api.md`'s measurements, and the HANDOFF and Learn baselines (436 unit tests, 99 device tests, 393 server tests).
 
+### Light by default
+
+- At your request, the app's default theme is Light (white) instead of following the phone. Anyone who has chosen System, Light or Dark keeps it.
+  - `PreferencesAppearanceRepository` reads Light when nothing is saved, or when the saved value is unknown. The account page's default matches.
+  - The night-mode window colour (`values-night/colors.xml`) was only there to match the old default before Compose draws; it is removed so the first frame is light like the default.
+- **Tests:** a new `PreferencesAppearanceRepositoryTest` (light until a choice is made; a choice is kept; an unknown value reads as Light). `:core:data` device tests 8/8 on the phone.
+- DECISIONS (a revision of the dark-theme line) and README updated.
+

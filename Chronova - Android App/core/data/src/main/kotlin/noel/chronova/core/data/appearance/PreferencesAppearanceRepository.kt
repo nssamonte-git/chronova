@@ -9,8 +9,8 @@ import noel.chronova.core.model.ThemeMode
 
 /**
  * Appearance choices in their own preferences file, so they belong to the device and
- * survive signing out (which clears the account's data). An unknown stored value
- * (from a newer version) reads as following the phone.
+ * survive signing out (which clears the account's data). Light until a choice is made
+ * (user choice, 13 Nov 2026); an unknown stored value (from a newer version) reads as Light too.
  */
 class PreferencesAppearanceRepository(private val prefs: SharedPreferences) : AppearanceRepository {
     private val mode = MutableStateFlow(read())
@@ -22,7 +22,7 @@ class PreferencesAppearanceRepository(private val prefs: SharedPreferences) : Ap
         this.mode.value = mode
     }
 
-    private fun read(): ThemeMode = ThemeMode.entries.firstOrNull { it.name == prefs.getString(KEY_THEME, null) } ?: ThemeMode.SYSTEM
+    private fun read(): ThemeMode = ThemeMode.entries.firstOrNull { it.name == prefs.getString(KEY_THEME, null) } ?: ThemeMode.LIGHT
 
     private companion object {
         const val KEY_THEME = "theme"

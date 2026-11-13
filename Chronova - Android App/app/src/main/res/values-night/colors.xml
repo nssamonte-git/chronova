@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Window background before Compose draws when the phone is in dark mode; matches the dark theme. -->
-    <color name="chronova_background">#FF0B1120</color>
-</resources>

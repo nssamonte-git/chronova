@@ -75,7 +75,7 @@ data class AccountPageUi(
     val deleteFailure: SyncFailure? = null,
     val lastSyncedAt: Long? = null,
     /** System, light or dark on this device. */
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
     /** When task reminders come on this device. */
     val reminderLead: ReminderLead = ReminderLead.OFF,
 )
