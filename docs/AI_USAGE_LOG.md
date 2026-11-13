@@ -1805,3 +1805,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **What was installed:** a debug build of `a81052a` (the tip of `main`), built with the phone's server address as before, installed over the existing app. `local.properties` is restored byte for byte.
 - **Checked:** the app opens on the project list, signed in, with the same data: Jnn with 5 tasks, 31 changes not synced, 36 unread. The first install date is unchanged.
 - **Not done:** nothing was tapped beyond opening the app.
+
+### Handoff files refreshed
+
+- **Your request:** update the handoff files.
+- **HANDOFF.md:** two rules added: the app's text describes features only (no provider, API or server wording), and UI comes from the design-system tokens and the shared components, with light, dark and large-text screenshots for every screen. The counts (483 unit tests, 171 screenshots, 110 device tests) were already current.
+- **DECISIONS.md:** the Branding decision gains the handoff polish (empty states, header labels, narrow bars, import results, the selected-task menu, the name column growing with text size as the one row-geometry change, previews for every screen).
+- **CURRENT_TASK.md** (local only, not committed):
+  - status as of 14 Nov;
+  - next steps led by the client's decisions (application ID, support contact, privacy policy, terms and licences, Data safety form, spelling) and the spoken "3 p.m." versus 24-hour preview;
+  - the device-test step removed, as the emulator run has passed;
+  - the phone's state and install routine updated.
+- No build was needed: documentation only.
