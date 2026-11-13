@@ -1095,3 +1095,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the signed-in account previews first failed to render: the permission launcher and the notification-settings read need an activity, so previews skip them;
     - the account module needed `activity-compose` for the permission launcher; it was already in the catalog and used by other modules, so nothing new was added.
   - **Checks:** `tools/check.sh` PASS (391 unit tests, 93 screenshots, lint 0 errors / 21 warnings, module graph OK with 91 module dependencies, UI-model check OK). The account device tests weren't run in this batch because the phone was off USB.
+- On the phone, after you reconnected it:
+  - **Account tests:** the account device tests passed 12/12, including the new reminder choice.
+  - **Setup:** backed up the app's data to the Mac, then built with the local server URL (the temporary `local.properties` line was removed straight after the build) and installed over your app, keeping its data. The app opened on "Jnn".
+  - **Export of "Jnn":** I exported it three ways, cancelled the share sheet each time so nothing went anywhere, and pulled the files to inspect them.
+    - PDF (370 KB, one A4 landscape page): the header, the day axis 12–18 Nov, and the five tasks in their colours at their times.
+    - CSV: BOM, header, five rows in local time.
+    - Calendar: five UTC events (18:00 in Manila written as 10:00Z).
+  - **Reminder:**
+    - Set "When a task starts", made a throwaway project with a task at 13:40, and saw Android hold the alarm for 13:40.
+    - The notification came at 13:40:12 in the "Task reminders" channel: "Reminder test · Starts Nov 13, 2026, 1:40 PM · Reminder check".
+    - Tapping it opened that project.
+  - **Cleanup:** deleted the throwaway project, set reminders back to Off (no alarm left pending), and synced the deletion to the local server, which was started only for that and stopped again. "Jnn" is untouched. The phone keeps this build.
