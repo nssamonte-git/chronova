@@ -83,32 +83,47 @@ fun TimelineHeader(
             toOffsetMillis = TimelineMath.pxToMillis(scrollX + size.width, pxPerMinute),
         )
 
-        for (index in visible) {
-            val tick = ticks[index]
-            val x = TimelineMath.durationToWidth(tick.offsetMillis, pxPerMinute) - scrollX
+        val labelGap = 8.dp.toPx()
+        // The labels drawn so far, as [left, right) spans: major labels go first and win, and a
+        // minor label that would run into any of them is left out (in Months, "30 Nov" a day before
+        // "Dec 2026"; a long month name reaching past the next Monday).
+        val taken = ArrayList<ClosedFloatingPointRange<Float>>()
+        fun fits(left: Float, right: Float) = taken.none { left < it.endInclusive + labelGap && right + labelGap > it.start }
 
-            val lineTop = if (tick.isMajor) size.height * 0.55f else size.height * 0.75f
-            drawLine(
-                color = if (tick.isMajor) colors.outline else colors.outlineVariant,
-                start = Offset(x, lineTop),
-                end = Offset(x, size.height),
-                strokeWidth = 1.dp.toPx(),
-            )
-
-            val style = when {
-                tick.isMajor -> {
-                    if (tick.majorIndex % labelStride != 0) continue
-                    if (labelFor(index).emphasized) dayStyle else clockStyle
+        for (pass in 0..1) {
+            for (index in visible) {
+                val tick = ticks[index]
+                val x = TimelineMath.durationToWidth(tick.offsetMillis, pxPerMinute) - scrollX
+                if (pass == 0) {
+                    val lineTop = if (tick.isMajor) size.height * 0.55f else size.height * 0.75f
+                    drawLine(
+                        color = if (tick.isMajor) colors.outline else colors.outlineVariant,
+                        start = Offset(x, lineTop),
+                        end = Offset(x, size.height),
+                        strokeWidth = 1.dp.toPx(),
+                    )
                 }
-                showMinorLabels -> minorStyle
-                else -> continue
+                // Majors' labels in the first pass, minors' in the second.
+                if (tick.isMajor != (pass == 0)) continue
+
+                val style = when {
+                    tick.isMajor -> {
+                        if (tick.majorIndex % labelStride != 0) continue
+                        if (labelFor(index).emphasized) dayStyle else clockStyle
+                    }
+                    showMinorLabels -> minorStyle
+                    else -> continue
+                }
+                val layout = textMeasurer.measure(labelFor(index).text, style)
+                val left = x + labelPadding
+                val right = left + layout.size.width
+                if (!tick.isMajor && !fits(left, right)) continue
+                taken += left..right
+                drawText(
+                    textLayoutResult = layout,
+                    topLeft = Offset(left, (size.height * 0.55f - layout.size.height) / 2f),
+                )
             }
-            val label = labelFor(index)
-            val layout = textMeasurer.measure(label.text, style)
-            drawText(
-                textLayoutResult = layout,
-                topLeft = Offset(x + labelPadding, (size.height * 0.55f - layout.size.height) / 2f),
-            )
         }
 
         drawLine(

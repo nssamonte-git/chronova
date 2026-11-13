@@ -8,6 +8,7 @@ import noel.chronova.core.designsystem.ChronovaTheme
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
+import noel.chronova.core.model.TimelineWindow
 
 private val zone = ZoneOffset.UTC
 private val sample = TimelineUiState.sample(zone)
@@ -59,6 +60,35 @@ fun TimelineCriticalPath() {
                 ),
                 // Days at the widest zoom-out, so the whole first day (all four tasks) is on screen.
                 config = TimelineConfig(TimeScale.DAYS, unitWidthDp = TimeScale.DAYS.minUnitWidthDp, showCriticalPath = true),
+            ),
+            actions = TimelineActions(),
+        )
+    }
+}
+
+/**
+ * Months across a month's start: "Dec 2026" on 1 Dec wins over "30 Nov" (a Monday the day before),
+ * which is left out rather than drawn into it. Whole-day tasks (from a chart) list their days, not "00:00 – 00:00".
+ */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TimelineMonthsWholeDays() {
+    val day = 86_400_000L
+    val start = java.time.LocalDate.of(2026, 11, 23).atStartOfDay(zone).toInstant().toEpochMilli()
+    fun task(id: String, title: String, from: Int, days: Int, color: TaskColor) = TaskUi(id, title, start + from * day, start + (from + days) * day, color)
+    ChronovaTheme {
+        TimelineContent(
+            state = sample.copy(
+                projectName = "Project Timeline",
+                window = TimelineWindow(start, start + 49 * day),
+                tasks = listOf(
+                    task("t1", "Initial Client Consult", 0, 7, TaskColor.BLUE),
+                    task("t2", "Project Design Inquiry", 0, 14, TaskColor.GREEN),
+                    task("t3", "Initial Design Concept", 14, 7, TaskColor.PURPLE),
+                    task("t4", "Release Design For Bid", 21, 7, TaskColor.AMBER),
+                ),
+                config = TimelineConfig(TimeScale.MONTHS, rowHeightDp = 56f), // its default zoom, where Mondays get labels
             ),
             actions = TimelineActions(),
         )

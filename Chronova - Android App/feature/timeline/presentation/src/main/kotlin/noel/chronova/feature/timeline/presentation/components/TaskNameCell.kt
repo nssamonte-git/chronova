@@ -87,9 +87,9 @@ fun TaskNameCell(
                     val times = if (task.isMilestone) {
                         TimeFormat.clock(task.startMillis, zone)
                     } else {
-                        TimeFormat.range(task.startMillis, task.endMillis, zone)
+                        TimeFormat.span(task.startMillis, task.endMillis, zone)
                     }
-                    // Times only: the cell is narrow, and the bar shows the progress.
+                    // Times (or the days of a whole-day task) only: the cell is narrow, and the bar shows the progress.
                     Text(
                         text = times,
                         style = MaterialTheme.typography.labelSmall,

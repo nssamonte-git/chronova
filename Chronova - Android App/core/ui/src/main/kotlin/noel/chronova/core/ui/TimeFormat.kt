@@ -2,6 +2,7 @@ package noel.chronova.core.ui
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -31,6 +32,18 @@ object TimeFormat {
 
     fun range(startMillis: Long, endMillis: Long, zone: ZoneId): String =
         "${clock(startMillis, zone)} – ${clock(endMillis, zone)}"
+
+    /**
+     * A task's span as its row shows it: clock times ("09:00 – 17:00"), or, for whole days
+     * (midnight to a later midnight, as tasks read from a chart are), the days it covers:
+     * "13 Nov – 19 Nov 2026", or "13 Nov 2026" for one day.
+     */
+    fun span(startMillis: Long, endMillis: Long, zone: ZoneId): String {
+        val start = Instant.ofEpochMilli(startMillis).atZone(zone)
+        val end = Instant.ofEpochMilli(endMillis).atZone(zone)
+        val wholeDays = endMillis > startMillis && start.toLocalTime() == LocalTime.MIDNIGHT && end.toLocalTime() == LocalTime.MIDNIGHT
+        return if (wholeDays) dateRange(start.toLocalDate(), end.toLocalDate().minusDays(1)) else range(startMillis, endMillis, zone)
+    }
 
     /** Inclusive date range, e.g. "2 Mar – 4 Mar 2026"; the year is shown once when shared. */
     fun dateRange(start: LocalDate, end: LocalDate): String {

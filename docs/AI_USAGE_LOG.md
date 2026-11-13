@@ -1508,3 +1508,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **My mistakes:** `php artisan tinker <file>` waits at its prompt afterwards (stopped; `--execute` instead); one tap meant for the app chooser landed in the picker and chose the table instead of the chart (still a valid test).
   - **Server image:** `docker compose --profile test run --build test` with GD added built and passed: 479 tests, plus 1 warning from my own `BoxColours` test, where `imagecreatefromstring()` warned about non-image data in the container's PHP. It now checks the format first; the unit tests in the image pass with no warning (34), and locally 480 pass.
 
+### Timeline labels: header overlap, whole-day tasks
+
+- **Your request:** fix the month header overlap and the "00:00 – 00:00" labels, both noticed during the image-import phone check.
+- **Header:** labels were drawn in time order with no overlap check, so in Months "30 Nov" (a Monday) ran into "Dec 2026" the next day. The same bug showed in Days, where "Mon 2 Mar" ran into "06:00" in an existing screenshot. `TimelineHeader` now draws the major labels first and leaves out any minor label that would touch one, or the previous minor label.
+- **Whole-day tasks:** `TimeFormat.span` shows a midnight-to-midnight task's days ("13 Nov – 19 Nov 2026", or one date for a single day) instead of "00:00 – 00:00"; timed tasks keep their times. It is used in the row under the task's name and in the label while dragging a bar.
+- **Tests:** 1 new `TimeFormat` test (whole days, one day, timed, another zone). A new screenshot, `TimelineMonthsWholeDays` (×3), shows months across 1 Dec with whole-day rows. The 3 `TimelineCriticalPath` references were re-recorded: "06:00" no longer overlaps the date.
+- **Checks:** `tools/check.sh` PASS: 473 unit tests, 126 screenshots.
+

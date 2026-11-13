@@ -132,7 +132,7 @@ fun TaskLane(
     val label = when {
         !dragging -> task.title
         milestone -> TimeFormat.clock(shown.startMillis, zone)
-        else -> TimeFormat.range(shown.startMillis, shown.endMillis, zone)
+        else -> TimeFormat.span(shown.startMillis, shown.endMillis, zone)
     }
     val milestoneState = stringResource(R.string.task_bar_milestone, TimeFormat.day(shown.startMillis, zone) + " " + TimeFormat.clock(shown.startMillis, zone))
     val progressState = when {

@@ -23,8 +23,8 @@ class TimeFormatTest {
 
     @After fun restore() = Locale.setDefault(original)
 
-    private fun millis(year: Int, month: Int, day: Int, hour: Int, minute: Int) =
-        ZonedDateTime.of(year, month, day, hour, minute, 0, 0, utc).toInstant().toEpochMilli()
+    private fun millis(year: Int, month: Int, day: Int, hour: Int, minute: Int, zone: ZoneId = utc) =
+        ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone).toInstant().toEpochMilli()
 
     @Test
     fun clockIsTwentyFourHourInTheGivenZone() {
@@ -58,6 +58,19 @@ class TimeFormatTest {
     @Test
     fun rangeJoinsTwoClocks() {
         assertEquals("09:05 – 10:30", TimeFormat.range(tuesdayMorning, millis(2026, 3, 3, 10, 30), utc))
+    }
+
+    @Test
+    fun aWholeDayTaskShowsItsDaysOthersTheirTimes() {
+        val manila = ZoneId.of("Asia/Manila")
+        // Midnight to midnight: the days it covers, the last one inclusive.
+        assertEquals("13 Nov – 19 Nov 2026", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 20, 0, 0, manila), manila))
+        assertEquals("13 Nov 2026", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 14, 0, 0, manila), manila))
+        // Anything else keeps its clock times, even when it starts at midnight.
+        assertEquals("00:00 – 09:00", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 13, 9, 0, manila), manila))
+        assertEquals("09:00 – 17:00", TimeFormat.span(millis(2026, 11, 13, 9, 0, manila), millis(2026, 11, 13, 17, 0, manila), manila))
+        // Whole days in another zone are times here.
+        assertEquals("16:00 – 16:00", TimeFormat.span(millis(2026, 11, 13, 0, 0, manila), millis(2026, 11, 14, 0, 0, manila), ZoneId.of("UTC")))
     }
 
     @Test
