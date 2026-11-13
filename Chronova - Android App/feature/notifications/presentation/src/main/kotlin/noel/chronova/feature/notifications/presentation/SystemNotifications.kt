@@ -1,5 +1,7 @@
 package noel.chronova.feature.notifications.presentation
 
+import android.graphics.Bitmap
+import androidx.core.graphics.drawable.toBitmap
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -51,6 +53,7 @@ class SystemNotifications(
         )
         val built = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(appIcon(context))
             .setContentTitle(text.title)
             .setContentText(text.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text.body))
@@ -73,3 +76,12 @@ class SystemNotifications(
         const val OPEN_SYNC = "sync"
     }
 }
+
+/**
+ * The full-colour app icon, shown beside the notification's text (the status bar can only show the
+ * one-colour hourglass). Drawn from the launcher icon, so it is the icon the phone shows for the app.
+ */
+internal fun appIcon(context: Context): Bitmap? = runCatching {
+    val size = context.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+    context.packageManager.getApplicationIcon(context.applicationInfo).toBitmap(size, size)
+}.getOrNull()

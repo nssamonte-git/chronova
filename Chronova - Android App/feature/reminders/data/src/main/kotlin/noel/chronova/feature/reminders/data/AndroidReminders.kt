@@ -1,5 +1,7 @@
 package noel.chronova.feature.reminders.data
 
+import android.graphics.Bitmap
+import androidx.core.graphics.drawable.toBitmap
 import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -104,6 +106,7 @@ class NotificationReminderPoster(
             )
             val notification = NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_reminder)
+                .setLargeIcon(appIcon(context))
                 .setContentTitle(reminder.title)
                 .setContentText(body)
                 .setWhen(reminder.startMillis)
@@ -124,3 +127,12 @@ class NotificationReminderPoster(
         const val CHANNEL = "reminders"
     }
 }
+
+/**
+ * The full-colour app icon, shown beside the notification's text (the status bar can only show the
+ * one-colour hourglass). Drawn from the launcher icon, so it is the icon the phone shows for the app.
+ */
+internal fun appIcon(context: Context): Bitmap? = runCatching {
+    val size = context.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+    context.packageManager.getApplicationIcon(context.applicationInfo).toBitmap(size, size)
+}.getOrNull()
