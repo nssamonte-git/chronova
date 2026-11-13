@@ -1,6 +1,6 @@
 # Handoff
 
-Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Android app (Gradle modules in three layers: `:app` shell, `:core:*`, `:feature:<name>:{domain,data,presentation}`; each module's package is its namespace, `noel.chronova.core.<module>` / `noel.chronova.feature.<name>.<layer>`, the shell `noel.chronova.app`), a Laravel 13 + Postgres + Filament 5 server (API, sync, voice endpoints, staff admin panel), and AWS CDK for it (not deployed). It began as the PicCollage take-home, preserved at tag `submission-v1`.
+Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Android app (Gradle modules in three layers: `:app` shell, `:core:*`, `:feature:<name>:{domain,data,presentation}`; each module's package is its namespace, `noel.chronova.core.<module>` / `noel.chronova.feature.<name>.<layer>`, the shell `noel.chronova.app`), a Laravel 13 + Postgres + Filament 5 server (API, sync, voice, push through Firebase, schedules read from images through Meta and OpenAI, staff admin panel), and AWS CDK for it (not deployed). It began as the PicCollage take-home, preserved at tag `submission-v1`.
 
 ## Layout
 
@@ -14,7 +14,7 @@ Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Andro
 - `HANDOFF.md`, `DECISIONS.md` and `Learn/` are shared in git (user decision, 2026-11-13): keep them free of secrets, keys and personal data, and commit their updates with the change they describe. The rest of the AI kit (`AGENTS.md`, `CURRENT_TASK.md`, `PROJECT_CONTEXT.md`, `manifest.yaml`, the relationship map files, `scripts/`, `learning-inbox/`, `md-templates/`) stays local-only through `.git/info/exclude`; never `git add -f` it. Don't mention the kit in the README.
 - Log only AI mistakes and human actions that actually happened. Never report a build, test, or device check that wasn't run.
 - No new dependencies without approval. Versions are pinned exactly and were at least two weeks old when chosen (check release dates, not tag rebuild dates).
-- Never deploy to AWS, push, call the real voice providers, or send anything to real users without the user's explicit approval. Provider keys (OpenAI, ElevenLabs, Meta) live only in `server/.env` (git-ignored); the Firebase service-account key only in `server/storage/credentials/` (git- and Docker-ignored, mode 600): never read, print or commit it. Device checks that change phone settings must read and restore them (mobile data was off).
+- Never deploy to AWS, push, call the real model providers (OpenAI, ElevenLabs, Meta), or send anything to real users without the user's explicit approval; the local server and the tests default to fakes (`VOICE_*`, `IMPORT_*`; the tests force `PUSH_SENDER=fake`). Provider keys (OpenAI, ElevenLabs, Meta) live only in `server/.env` (git-ignored); the Firebase service-account key only in `server/storage/credentials/` (git- and Docker-ignored, mode 600): never read, print or commit it. Device checks that change phone settings must read and restore them (mobile data was off).
 
 ## Invariants
 
@@ -26,14 +26,14 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 - The timeline has one scroll position (`TimelineViewportState`) and measures nothing at full width; every task has a row (an arrow points to a bar off-screen). A drag is recomputed from the gesture-start task (`pointerInput` keyed on the task id); pinch consumes every move until all fingers lift.
 - Rotation recreates `MainActivity`: keep flags in `rememberSaveable` or a ViewModel, and check `isChangingConfigurations` before treating `ON_STOP` as "the user left".
 - Push (`docs/push.md`): data messages only, worded by the app; reminders are posted once between push and alarm (`ReminderLog`), and an "account changed" push signs out only after the server answers 401.
-- Schedules from images (`docs/import-api.md`): the image goes to Meta only, OpenAI gets Meta's results; the app previews and writes only on Apply, with Undo.
+- Schedules from images (`docs/import-api.md`): the image goes to Meta only (Standard models, never stored), OpenAI gets Meta's results; the app previews and writes only on Apply, with Undo. Geometry comes from SAM's boxes, not Muse Spark's drifting pixel positions.
 - Voice: the server only proposes, the app plans against current data and writes only on a spoken yes; keys stay on the server and no audio or words are stored.
 
 ## Validation
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: `tools/check.sh` (repository root) runs everything (468 unit tests, lint, both architecture checks, 126 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 101 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
+- App: `tools/check.sh` (repository root) runs everything (468 unit tests, lint, both architecture checks, 126 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 106 device tests on the managed emulator (needs ~8 GB free disk; unverified so far). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
@@ -43,5 +43,5 @@ Commands only; procedures, baselines and phone quirks are in `Learn/04-validatio
 
 - `Learn/README.md`: the project map, architecture, workflow, and validation pages.
 - `DECISIONS.md`: active design decisions. `CURRENT_TASK.md` (local only): present status.
-- `README.md`, `server/README.md`, `server/infra/DEPLOY.md`, `docs/sync-protocol.md`, `docs/voice-api.md`, `docs/AI_USAGE_LOG.md`.
+- `README.md`, `server/README.md`, `server/infra/DEPLOY.md`, `docs/sync-protocol.md`, `docs/voice-api.md`, `docs/push.md`, `docs/import-api.md` (with measured results and its release checklist), `docs/AI_USAGE_LOG.md`.
 - Android guidance (reference only, not installed): the canonical `skills/software/mobile/android/mobile-android-production/SKILL.md`. Its path is in `manifest.yaml`.

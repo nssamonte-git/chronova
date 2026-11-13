@@ -1544,3 +1544,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Clean-up:** the test project deleted in the app (a tombstone waits for your next sync), the test image and its media entry removed, the local server stopped, the port forward removed.
 
 - **Checks:** `tools/check.sh` PASS: 468 unit tests (the removed `TaskVisibility` tests account for the drop), 126 screenshots, lint 23 warnings.
+
+### Handoff refreshed
+
+- At your request: HANDOFF now names push and schedules-from-images in the server summary, makes the approval rule cover all three model providers (OpenAI, ElevenLabs, Meta) with the fakes as the default, adds the import geometry rule, the 106 device tests (Learn too), and links `docs/push.md` and `docs/import-api.md`. The local-only CURRENT_TASK was rewritten: current status, renumbered next steps, resolved items dropped, phone and server notes as they are now.
