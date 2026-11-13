@@ -66,7 +66,13 @@ enum class TimelineNotice {
     UndoNotPossible,
 }
 
-/** An undo on offer; [id] tells one offer from the next (the ViewModel keeps what to reverse). */
-data class UndoOffer(val kind: UndoKind, val id: Long)
+/** An undo on offer; [id] tells one offer from the next (the ViewModel keeps what to reverse); [count] for wording. */
+data class UndoOffer(val kind: UndoKind, val id: Long, val count: Int = 0)
 
-enum class UndoKind { TaskDeleted, MarkedDone }
+enum class UndoKind { TaskDeleted, MarkedDone, PushedDependents }
+
+/** After [taskTitle] moved, [count] tasks that wait for it start before it ends: offer to push them later. */
+data class PushOfferUi(val taskTitle: String, val count: Int, val id: Long)
+
+/** Pushing what waits for [taskTitle] would run [titles] past the project's end ([projectEndMillis]). */
+data class PushBlockedUi(val taskTitle: String, val titles: List<String>, val projectEndMillis: Long, val id: Long)

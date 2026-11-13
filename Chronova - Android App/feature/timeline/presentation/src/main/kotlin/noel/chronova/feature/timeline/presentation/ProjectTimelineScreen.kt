@@ -1,5 +1,6 @@
 package noel.chronova.feature.timeline.presentation
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -75,6 +76,8 @@ fun ProjectTimelineScreen(
     val taskEditor by viewModel.taskEditor.collectAsStateWithLifecycle()
     val undoOffer by viewModel.undoOffer.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
+    val pushOffer by viewModel.pushOffer.collectAsStateWithLifecycle()
+    val pushBlocked by viewModel.pushBlocked.collectAsStateWithLifecycle()
     when (val current = state) {
         TimelineScreenState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -105,6 +108,9 @@ fun ProjectTimelineScreen(
                     onToggleColorFilter = viewModel::toggleColorFilter,
                     onToggleKindFilter = viewModel::toggleKindFilter,
                     onClearSearch = viewModel::clearSearch,
+                    onPush = viewModel::pushDependents,
+                    onPushOfferShown = viewModel::dismissPushOffer,
+                    onPushBlockedShown = viewModel::dismissPushBlocked,
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
@@ -112,6 +118,8 @@ fun ProjectTimelineScreen(
                 assistant = assistant,
                 undoOffer = undoOffer,
                 notice = notice,
+                pushOffer = pushOffer,
+                pushBlocked = pushBlocked,
                 now = now,
                 modifier = modifier,
             )
@@ -165,6 +173,10 @@ data class TimelineActions(
     val onToggleColorFilter: (TaskColor) -> Unit = {},
     val onToggleKindFilter: (TaskKind) -> Unit = {},
     val onClearSearch: () -> Unit = {},
+    /** Push the offered dependents; the offer or the "can't push" message was seen. */
+    val onPush: () -> Unit = {},
+    val onPushOfferShown: () -> Unit = {},
+    val onPushBlockedShown: () -> Unit = {},
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
@@ -180,6 +192,8 @@ internal fun TimelineContent(
     assistant: AssistantSlot = AssistantSlot.None,
     /** The clock for the now line and Today (fixed in previews). */
     now: () -> Long = System::currentTimeMillis,
+    pushOffer: PushOfferUi? = null,
+    pushBlocked: PushBlockedUi? = null,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
     // Opening the search folds the timeline settings away, so the two don't crowd the screen.
@@ -189,11 +203,13 @@ internal fun TimelineContent(
     val deletedMessage = stringResource(R.string.task_deleted)
     val markedDoneMessage = stringResource(R.string.task_marked_done)
     val undoLabel = stringResource(CoreUiR.string.undo)
+    val resources = LocalResources.current
     LaunchedEffect(undoOffer) {
         val offer = undoOffer ?: return@LaunchedEffect
         val message = when (offer.kind) {
             UndoKind.TaskDeleted -> deletedMessage
             UndoKind.MarkedDone -> markedDoneMessage
+            UndoKind.PushedDependents -> resources.getQuantityString(R.plurals.push_done, offer.count, offer.count)
         }
         val result = snackbarHost.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
         if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoShown()
@@ -207,6 +223,20 @@ internal fun TimelineContent(
             duration = if (shown.long) SnackbarDuration.Long else SnackbarDuration.Short,
         )
         shown.onResult(result == SnackbarResult.ActionPerformed)
+    }
+    val pushLabel = stringResource(R.string.push_action)
+    LaunchedEffect(pushOffer) {
+        val offer = pushOffer ?: return@LaunchedEffect
+        val message = resources.getQuantityString(R.plurals.push_offer, offer.count, offer.taskTitle, offer.count)
+        val result = snackbarHost.showSnackbar(message, actionLabel = pushLabel, withDismissAction = true, duration = SnackbarDuration.Long)
+        if (result == SnackbarResult.ActionPerformed) actions.onPush() else actions.onPushOfferShown()
+    }
+    LaunchedEffect(pushBlocked) {
+        val blocked = pushBlocked ?: return@LaunchedEffect
+        val titles = blocked.titles.joinToString(", ") { "“$it”" }
+        val message = resources.getString(R.string.push_blocked, titles, TimeFormat.day(blocked.projectEndMillis, state.zone))
+        snackbarHost.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
+        actions.onPushBlockedShown()
     }
     val scope = rememberCoroutineScope()
     val todayBefore = stringResource(R.string.today_before)

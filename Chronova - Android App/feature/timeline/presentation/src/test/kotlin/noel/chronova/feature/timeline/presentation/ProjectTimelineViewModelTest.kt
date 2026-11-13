@@ -26,6 +26,7 @@ import noel.chronova.feature.timeline.domain.ObserveProjectSchedule
 import noel.chronova.feature.timeline.domain.CommitTaskEdit
 import noel.chronova.feature.timeline.domain.ValidateTask
 import noel.chronova.feature.timeline.domain.ForbiddenPredecessors
+import noel.chronova.feature.timeline.domain.PushDependents
 import noel.chronova.feature.timeline.domain.SaveTask
 import noel.chronova.feature.timeline.domain.DeleteTask
 import noel.chronova.feature.timeline.domain.UndoScheduleChanges
@@ -303,6 +304,54 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun aDragThatBreaksALinkOffersToPushAndUndoRestores() = runTest {
+        val state = timeline()
+        repository.dependencies.value = listOf(noel.chronova.core.model.TaskDependency("l1", SampleTasks.PROJECT_ID, "ui-design", "implementation"))
+        val design = state().tasks.first { it.id == "ui-design" } // 09:00–11:00
+        viewModel.commitEdit(design, design.copy(startMillis = at(10), endMillis = at(12)))
+        assertEquals(PushOfferUi("UI Design", 1, viewModel.pushOffer.value!!.id), viewModel.pushOffer.value)
+
+        viewModel.pushDependents()
+        assertEquals(at(12) to at(15), repository.tasks.value.single { it.id == "implementation" }.let { it.startMillis to it.endMillis })
+        assertEquals(UndoKind.PushedDependents, viewModel.undoOffer.value?.kind)
+        assertEquals(1, viewModel.undoOffer.value?.count)
+        viewModel.undo()
+        assertEquals(at(11) to at(14), repository.tasks.value.single { it.id == "implementation" }.let { it.startMillis to it.endMillis })
+    }
+
+    @Test
+    fun aChangeThatBreaksNoLinkOffersNothing() = runTest {
+        val state = timeline()
+        repository.dependencies.value = listOf(noel.chronova.core.model.TaskDependency("l1", SampleTasks.PROJECT_ID, "ui-design", "implementation"))
+        val design = state().tasks.first { it.id == "ui-design" }
+        viewModel.commitEdit(design, design.copy(startMillis = at(8), endMillis = at(10)))
+        assertNull(viewModel.pushOffer.value)
+        assertNull(viewModel.pushBlocked.value)
+    }
+
+    @Test
+    fun anEditorSaveThatBreaksALinkOffersToPush() = runTest {
+        timeline()
+        repository.dependencies.value = listOf(noel.chronova.core.model.TaskDependency("l1", SampleTasks.PROJECT_ID, "implementation", "review"))
+        viewModel.startEditTask("implementation") // 11:00–14:00; Review 16:00
+        viewModel.onTaskEndChange(at(17))
+        viewModel.saveTask()
+        assertEquals("Implementation", viewModel.pushOffer.value?.taskTitle)
+    }
+
+    @Test
+    fun pushingPastTheProjectsEndIsSaidInsteadOfOffered() = runTest {
+        val state = timeline()
+        repository.dependencies.value = listOf(noel.chronova.core.model.TaskDependency("l1", SampleTasks.PROJECT_ID, "qa-testing", "review"))
+        val qa = state().tasks.first { it.id == "qa-testing" } // 13:30–16:00 on the first day; Review 16:00–17:00
+        // QA moved to 23:15–23:45 on the last day: Review would then run 23:45–00:45, past the project's end.
+        val lastEvening = at(23, 15) + 2 * 24 * 3_600_000L
+        viewModel.commitEdit(qa, qa.copy(startMillis = lastEvening, endMillis = lastEvening + 30 * 60_000L))
+        assertNull(viewModel.pushOffer.value)
+        assertEquals(listOf("Review"), viewModel.pushBlocked.value?.titles)
+    }
+
+    @Test
     fun movingTheStartKeepsTheDuration() = runTest {
         timeline()
         viewModel.startEditTask("implementation") // 11:00-14:00
@@ -474,5 +523,6 @@ private fun timelineUseCases(repository: ProjectRepository, zone: ZoneId): Timel
         undo = UndoScheduleChanges(apply),
         loadViewSettings = LoadViewSettings(repository),
         saveViewSettings = SaveViewSettings(repository),
+        pushDependents = PushDependents(repository, apply, zone),
     )
 }

@@ -1,4 +1,4 @@
-package noel.chronova.feature.assistant.domain.schedule
+package noel.chronova.core.domain.schedule
 
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -7,7 +7,6 @@ import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskDependency
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import noel.chronova.core.domain.schedule.ScheduleState
 
 class DependentsReschedulerTest {
 

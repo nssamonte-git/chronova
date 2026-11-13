@@ -32,6 +32,8 @@ internal class TaskEditor(
     /** What the timeline shows now, or null while it loads. */
     private val timeline: () -> TimelineUiState?,
     private val onAdded: (taskId: String) -> Unit,
+    /** An existing task was saved (its times may have moved). */
+    private val onSaved: (taskId: String) -> Unit,
     private val onDeleted: (undo: List<ScheduleChange>) -> Unit,
     private val onRefused: () -> Unit,
 ) {
@@ -159,7 +161,7 @@ internal class TaskEditor(
                 notes = entered.notes,
                 isMilestone = entered.isMilestone,
             )
-            if (entered.taskId == null) onAdded(taskId)
+            if (entered.taskId == null) onAdded(taskId) else onSaved(taskId)
             _state.value = null
         }
     }

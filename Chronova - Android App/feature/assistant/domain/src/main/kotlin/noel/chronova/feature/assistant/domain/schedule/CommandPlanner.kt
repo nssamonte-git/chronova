@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain.schedule
 
+import noel.chronova.core.domain.schedule.DependentsRescheduler
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId

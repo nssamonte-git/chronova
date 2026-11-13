@@ -1107,3 +1107,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - The notification came at 13:40:12 in the "Task reminders" channel: "Reminder test · Starts Nov 13, 2026, 1:40 PM · Reminder check".
     - Tapping it opened that project.
   - **Cleanup:** deleted the throwaway project, set reminders back to Off (no alarm left pending), and synced the deletion to the local server, which was started only for that and stopped again. "Jnn" is untouched. The phone keeps this build.
+
+### Push dependents and the critical path
+
+- At your request, a plan for features 9 and 10, with your choices:
+  - pushing is offered after a change, and only ever pushes later, just enough;
+  - the critical path is a switch in the timeline settings, remembered per project, with slack shown in the task editor.
+- Batch 1, push dependents:
+  - **Shared logic:** `DependentsRescheduler` moved unchanged from the assistant's domain to `:core:domain`, with its tests; the assistant imports it from there.
+  - **Use case:** `PushDependents` (timeline domain) has a dry run (`plan`: nothing, can push N, or would run past the project's end) and `push`, which re-plans against the schedule as it is now and writes through `ApplyScheduleChanges` (Undo; refused when stale).
+  - **When it's offered:** the ViewModel runs the dry run after a saved drag or resize and after the editor saves an existing task. It then shows "N tasks now start before “X” ends · Push", or says pushing would run them past the project's end. Push moves them and offers "Pushed N tasks later · Undo".
+  - **The rule stands:** a drag still never moves other tasks. DECISIONS has a revision line under the gesture model, and README's dependencies line says how pushing works.
+  - **Tests:** 3 use-case tests (moving earlier never pulls along; pushing a chain just enough and undoing; past the end moves nothing); 4 ViewModel tests (offer after a drag, Push then Undo; no offer when nothing breaks; offer after an editor save; past the end said instead of offered); a timeline screen test (drag Survey half an hour onto Plaster, tap Push, Plaster moves and "Pushed 1 task later" shows).
+  - **AI mistakes:**
+    - one ViewModel test first expected an overrun where Review would have ended exactly at the project's last midnight, which still fits; the test now moves it later;
+    - the screen test first checked the moved row's time text, which wasn't reliably on screen; it now checks the stored task and the "Pushed" message;
+    - lint asked for Compose's `LocalResources` instead of reading resources through the context.
+  - **Checks:** `tools/check.sh` PASS (398 unit tests, 93 screenshots, lint 0 errors / 21 warnings). Timeline device tests 22/22, twice, on the phone.

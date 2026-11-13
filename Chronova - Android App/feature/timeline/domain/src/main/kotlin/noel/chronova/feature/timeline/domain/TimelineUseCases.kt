@@ -135,4 +135,5 @@ class TimelineUseCases(
     val undo: UndoScheduleChanges,
     val loadViewSettings: LoadViewSettings,
     val saveViewSettings: SaveViewSettings,
+    val pushDependents: PushDependents,
 )

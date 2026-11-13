@@ -14,6 +14,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 
 - Decision: dragging a bar moves it directly. Empty space and the header scroll. Resize handles appear only on the selected bar (20 dp outside + up to 20 dp inside each edge; the middle third always moves). Dragging never moves other tasks.
 - Reason: a user choice (direct drag over long-press). It also prevents accidental resizes.
+- Revised 2026-11-13 (user choices): a drag still moves only its own task. When a drag, a resize or an editor save leaves tasks that wait for it starting before it ends, a snackbar offers "Push": `PushDependents` moves them later, just enough, keeping their lengths (`DependentsRescheduler`, now in `:core:domain` and shared with the assistant), through `ApplyScheduleChanges` with Undo. Moving a task earlier never pulls its dependents along; when pushing would run past the project's end, the snackbar says so and nothing moves.
 - Constraint: one detector per bar. The mode is chosen at pointer-down. The preview is local and committed on release.
 
 ## 2026-11-11: Time model and snapping
@@ -29,7 +30,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 
 ## 2026-11-11: Task dependencies
 
-- Decision: finish-to-start links only, stored in `dependencies` (Room v3, `MIGRATION_2_3`) with a project foreign key but no task foreign keys (a sync may deliver a link before its tasks). Cycles and self-links are blocked in the editor (`DependencyRules.forbiddenPredecessors`); violations (successor starts before predecessor ends) are drawn red, never auto-fixed by edits. Deleting a task tombstones its links; undo restores both.
+- Decision: finish-to-start links only, stored in `dependencies` (Room v3, `MIGRATION_2_3`) with a project foreign key but no task foreign keys (a sync may deliver a link before its tasks). Cycles and self-links are blocked in the editor (`DependencyRules.forbiddenPredecessors`); violations (successor starts before predecessor ends) are drawn red, never auto-fixed by edits (since 2026-11-13 a "Push" is offered after a change; see Gesture model). Deleting a task tombstones its links; undo restores both.
 - Reason: the common Gantt case, with no surprising automatic rescheduling. (A voice command can ask to push dependents — see Voice editing.)
 
 ## 2026-11-13: Task progress, notes and milestones

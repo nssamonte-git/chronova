@@ -24,6 +24,7 @@ import noel.chronova.feature.timeline.domain.DeleteTask
 import noel.chronova.feature.timeline.domain.ForbiddenPredecessors
 import noel.chronova.feature.timeline.domain.LoadViewSettings
 import noel.chronova.feature.timeline.domain.ObserveProjectSchedule
+import noel.chronova.feature.timeline.domain.PushDependents
 import noel.chronova.feature.timeline.domain.SaveTask
 import noel.chronova.feature.timeline.domain.SaveViewSettings
 import noel.chronova.feature.timeline.domain.TimelineUseCases
@@ -82,6 +83,7 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
                 undo = UndoScheduleChanges(apply),
                 loadViewSettings = LoadViewSettings(repository),
                 saveViewSettings = SaveViewSettings(repository),
+                pushDependents = PushDependents(repository, apply, zone),
             ),
             zone,
             today = { today },

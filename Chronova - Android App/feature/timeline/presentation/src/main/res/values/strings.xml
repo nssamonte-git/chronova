@@ -9,6 +9,16 @@
     <string name="task_deleted">Task deleted</string>
     <string name="task_edit_selected">Edit selected task</string>
     <string name="tasks_empty">No tasks yet. Tap Add task to schedule one.</string>
+    <plurals name="push_offer">
+        <item quantity="one">%2$d task now starts before “%1$s” ends</item>
+        <item quantity="other">%2$d tasks now start before “%1$s” ends</item>
+    </plurals>
+    <string name="push_action">Push</string>
+    <plurals name="push_done">
+        <item quantity="one">Pushed %d task later</item>
+        <item quantity="other">Pushed %d tasks later</item>
+    </plurals>
+    <string name="push_blocked">Tasks now start before it ends, but pushing them would run %1$s past the project’s end (%2$s).</string>
     <string name="search_open">Search tasks</string>
     <string name="search_close">Close search</string>
     <string name="search_hint">Search tasks</string>

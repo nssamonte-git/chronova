@@ -1,15 +1,14 @@
-package noel.chronova.feature.assistant.domain.schedule
+package noel.chronova.core.domain.schedule
 
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TimelineWindow
-import noel.chronova.core.domain.schedule.ScheduleChange
-import noel.chronova.core.domain.schedule.ScheduleState
 
 /**
  * Works out how far to push the tasks that depend on one task, so every link in
  * that chain is satisfied. Tasks only ever move later, keep their duration, and
- * move just enough to start when their latest predecessor ends. Used only by
- * voice/typed commands — dragging never moves other tasks.
+ * move just enough to start when their latest predecessor ends. Used by voice
+ * commands and by the timeline's "Push" offer after a change; a drag itself never
+ * moves other tasks.
  */
 object DependentsRescheduler {
 

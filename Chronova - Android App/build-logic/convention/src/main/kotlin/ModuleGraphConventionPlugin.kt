@@ -50,7 +50,7 @@ class ModuleGraphConventionPlugin : Plugin<Project> {
             """core\.domain\.notifications\.AppNotification""",
             """core\.domain\.sync\.(SyncStatus|SyncPrompt)""",
             """core\.domain\.auth\.(AuthState|AuthProblem|AuthOutcome)""",
-            """feature\.[a-z]+\.domain\.(PreviewItem|ScheduleWarning|VoicePlan|Interpretation|ExplainedChange|SaveProjectResult|SyncOverview|ProjectSchedule|ExportResult|ExportedFile)""",
+            """feature\.[a-z]+\.domain\.(PreviewItem|ScheduleWarning|VoicePlan|Interpretation|ExplainedChange|SaveProjectResult|SyncOverview|ProjectSchedule|ExportResult|ExportedFile|DependentsPlan|PushResult)""",
             """feature\.[a-z]+\.domain\.schedule\.CommandProblem""",
         )
     }

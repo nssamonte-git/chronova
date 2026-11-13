@@ -1,5 +1,8 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.model.TimelineConfig
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -90,6 +93,36 @@ class ProjectTimelineScreenTest {
         compose.onNodeWithText(screen.string(R.string.tasks_none_here)).assertIsDisplayed()
         compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
         compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) }
+    }
+
+    // Pushing what waits for a moved task.
+
+    @Test
+    fun draggingATaskOntoTheOneThatWaitsForItOffersToPushIt() {
+        val plaster = screen.task("plaster", "Plaster", screen.at(2, 11), screen.at(2, 12), 1)
+        screen.show(
+            listOf(survey, plaster),
+            listOf(screen.link("survey", "plaster")),
+            config = TimelineConfig(TimeScale.HOURS, unitWidthDp = 96f, snapMinutes = 15),
+        )
+        // Drag Survey (10–11) half an hour later: it now ends after Plaster starts.
+        val bar = compose.onNode(hasText("Survey") and !hasClickAction() and !hasAnyAncestor(hasClickAction()), useUnmergedTree = true)
+        val bounds = bar.getUnclippedBoundsInRoot()
+        val root = compose.onRoot().getUnclippedBoundsInRoot()
+        compose.onRoot().performTouchInput {
+            val start = Offset(((bounds.left + bounds.right) / 2 - root.left).toPx(), ((bounds.top + bounds.bottom) / 2 - root.top).toPx())
+            val dx = 48.dp.toPx() // 30 minutes at 96 dp an hour
+            down(start)
+            repeat(25) { moveBy(Offset(dx / 25, 0f)) }
+            up()
+        }
+        val offer = screen.res.getQuantityString(R.plurals.push_offer, 1, "Survey", 1)
+        compose.waitUntil(5_000) { exists(offer) }
+        compose.onNodeWithText(screen.string(R.string.push_action)).performClick()
+        compose.waitUntil(5_000) { screen.repository.tasks.value.single { it.id == "plaster" }.startMillis == screen.at(2, 11, 30) }
+        // Plaster now starts when Survey ends, keeping its hour, and Undo is offered.
+        assertEquals(screen.at(2, 12, 30), screen.repository.tasks.value.single { it.id == "plaster" }.endMillis)
+        compose.waitUntil(5_000) { exists(screen.res.getQuantityString(R.plurals.push_done, 1, 1)) }
     }
 
     // Search and Today.

@@ -18,7 +18,9 @@ import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.domain.schedule.ApplyResult
+import noel.chronova.feature.timeline.domain.DependentsPlan
 import noel.chronova.feature.timeline.domain.ProjectSchedule
+import noel.chronova.feature.timeline.domain.PushResult
 import noel.chronova.feature.timeline.domain.TimelineUseCases
 
 /**
@@ -49,6 +51,19 @@ class ProjectTimelineViewModel(
     /** The last change set that can be undone, offered until [dismissUndo]. */
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
 
+    private val _pushOffer = MutableStateFlow<PushOfferUi?>(null)
+
+    /** Tasks that now start before a moved task ends, offered to be pushed; see [pushDependents]. */
+    val pushOffer: StateFlow<PushOfferUi?> = _pushOffer.asStateFlow()
+
+    private val _pushBlocked = MutableStateFlow<PushBlockedUi?>(null)
+
+    /** Pushing them would run past the project's end; said instead of offering. */
+    val pushBlocked: StateFlow<PushBlockedUi?> = _pushBlocked.asStateFlow()
+
+    /** The task whose dependents are on offer. */
+    private var pushTaskId: String? = null
+
     /** What undoing the offered change applies. */
     private var undoChanges: List<ScheduleChange> = emptyList()
     private var undoOffers = 0L
@@ -61,6 +76,7 @@ class ProjectTimelineViewModel(
         schedule = { schedule },
         timeline = { readyTimeline() },
         onAdded = { selectedTaskId.value = it },
+        onSaved = { offerPush(it) },
         onDeleted = { changes -> offerUndo(UndoKind.TaskDeleted, changes) },
         onRefused = { _notice.value = TimelineNotice.EditNotSaved },
     )
@@ -119,8 +135,10 @@ class ProjectTimelineViewModel(
         val from = current.copy(title = original.title, startMillis = original.startMillis, endMillis = original.endMillis, color = original.color)
         val to = from.copy(startMillis = updated.startMillis, endMillis = updated.endMillis)
         viewModelScope.launch {
-            val result = useCases.commitEdit(projectId, from, to)
-            if (result is ApplyResult.Rejected) _notice.value = TimelineNotice.EditNotSaved
+            when (useCases.commitEdit(projectId, from, to)) {
+                is ApplyResult.Applied -> offerPush(to.id)
+                is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
+            }
         }
     }
 
@@ -139,9 +157,50 @@ class ProjectTimelineViewModel(
         }
     }
 
-    private fun offerUndo(kind: UndoKind, changes: List<ScheduleChange>) {
+    private fun offerUndo(kind: UndoKind, changes: List<ScheduleChange>, count: Int = 0) {
         undoChanges = changes
-        _undoOffer.value = UndoOffer(kind, id = ++undoOffers)
+        _undoOffer.value = UndoOffer(kind, id = ++undoOffers, count = count)
+    }
+
+    /** After [taskId]'s times changed: offer to push what now starts before it ends, or say it can't be. */
+    private fun offerPush(taskId: String) {
+        viewModelScope.launch {
+            when (val plan = useCases.pushDependents.plan(projectId, taskId)) {
+                is DependentsPlan.CanPush -> {
+                    pushTaskId = taskId
+                    _pushOffer.value = PushOfferUi(plan.taskTitle, plan.count, id = ++undoOffers)
+                }
+                is DependentsPlan.DoesNotFit ->
+                    _pushBlocked.value = PushBlockedUi(plan.taskTitle, plan.titles, plan.projectEndMillis, id = ++undoOffers)
+                DependentsPlan.NothingToPush -> Unit
+            }
+        }
+    }
+
+    /** Pushes the offered task's dependents later, just enough, and offers undo. */
+    fun pushDependents() {
+        val taskId = pushTaskId ?: return
+        val offer = _pushOffer.value ?: return
+        _pushOffer.value = null
+        pushTaskId = null
+        viewModelScope.launch {
+            when (val result = useCases.pushDependents.push(projectId, taskId)) {
+                is PushResult.Pushed -> offerUndo(UndoKind.PushedDependents, result.undo, result.count)
+                is PushResult.DoesNotFit ->
+                    _pushBlocked.value = PushBlockedUi(offer.taskTitle, result.titles, result.projectEndMillis, id = ++undoOffers)
+                PushResult.Refused -> _notice.value = TimelineNotice.EditNotSaved
+                PushResult.NothingToPush -> Unit
+            }
+        }
+    }
+
+    fun dismissPushOffer() {
+        _pushOffer.value = null
+        pushTaskId = null
+    }
+
+    fun dismissPushBlocked() {
+        _pushBlocked.value = null
     }
 
     // The search bar (see [TaskFilter]).
