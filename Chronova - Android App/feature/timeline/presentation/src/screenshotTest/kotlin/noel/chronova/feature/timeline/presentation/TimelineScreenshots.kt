@@ -32,8 +32,35 @@ fun TimelineWithProgressAndAMilestone() {
         TimelineContent(
             state = sample.copy(tasks = tasks, config = sample.config.copy(rowHeightDp = 56f), selectedTaskId = "launch"),
             actions = TimelineActions(),
+            now = { at(7, 30) }, // the now line
         )
     }
+}
+
+/** Searching: the bar with a query and a chip on, and only the match listed. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TimelineSearching() {
+    val filter = TaskFilter(query = "test", kinds = setOf(TaskKind.NOT_DONE))
+    val matches = sample.tasks.filter(filter::matches)
+    ChronovaTheme {
+        TimelineContent(
+            state = sample.copy(tasks = matches, search = TaskSearchUi(filter, matches = matches.size, total = sample.tasks.size)),
+            actions = TimelineActions(),
+        )
+    }
+}
+
+/** A search with no match. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TimelineNoMatch() = ChronovaTheme {
+    TimelineContent(
+        state = sample.copy(tasks = emptyList(), search = TaskSearchUi(TaskFilter(query = "roof"), matches = 0, total = sample.tasks.size)),
+        actions = TimelineActions(),
+    )
 }
 
 /** A project with no tasks yet. */

@@ -1,5 +1,13 @@
 package noel.chronova.feature.timeline.presentation.components
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Icon
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -79,6 +87,13 @@ fun SchedulerTimeline(
     onZoomBy: (factor: Float) -> Unit = {},
     /** The fingers of a pinch lifted. */
     onZoomEnd: () -> Unit = {},
+    /** The clock for the "now" line and Today; read again every minute. */
+    now: () -> Long = System::currentTimeMillis,
+    /**
+     * Today is outside the project: [startsLater] says which way, and [edgeMillis] is the
+     * project's first or last moment, which the view has scrolled to.
+     */
+    onTodayOutside: (startsLater: Boolean, edgeMillis: Long) -> Unit = { _, _ -> },
 ) {
     val config = state.config
     val window = state.window
@@ -96,6 +111,14 @@ fun SchedulerTimeline(
         TimelineViewportState(initialScrollX(state, pxPerMinute))
     }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val currentNow by rememberUpdatedState(now)
+    val nowMillis by produceState(now()) {
+        while (true) {
+            delay(NOW_REFRESH_MILLIS)
+            value = currentNow()
+        }
+    }
     val currentOnZoomBy by rememberUpdatedState(onZoomBy)
     val currentOnZoomEnd by rememberUpdatedState(onZoomEnd)
 
@@ -108,9 +131,12 @@ fun SchedulerTimeline(
             SideEffect { viewport.onGeometry(contentWidthPx, viewportWidthPx, pxPerMinute) }
 
             // Rows list only the tasks on screen, plus the selected one (a drag selects its bar, so a
-            // dragged task never loses its row) and any the assistant just changed. derivedStateOf
+            // dragged task never loses its row) and any the assistant just changed; while a search or
+            // filter is on, every match (the list is already only the matches). derivedStateOf
             // recomposes the rows only when that list changes, not on every scroll frame.
-            val keep = remember(state.selectedTaskId, highlighted) { highlighted + listOfNotNull(state.selectedTaskId) }
+            val keep = remember(state.selectedTaskId, highlighted, state.isFiltering, state.tasks) {
+                if (state.isFiltering) state.tasks.mapTo(HashSet()) { it.id } else highlighted + listOfNotNull(state.selectedTaskId)
+            }
             // A milestone has no length; it counts as on screen while its diamond or title is.
             val milestoneBefore = with(density) { (MilestoneTouchWidth / 2).toPx() }
             val milestoneAfter = milestoneBefore + with(density) { MilestoneLabelWidth.toPx() }
@@ -126,22 +152,32 @@ fun SchedulerTimeline(
                 }
             }
 
+            /** Scrolls [task]'s row, then its time, into view; it must be listed (kept). */
+            suspend fun bringIntoView(task: TaskUi) {
+                val row = shownTasks.indexOfFirst { it.id == task.id }
+                val visibleRows = listState.layoutInfo.visibleItemsInfo.map { it.index }
+                if (row >= 0 && row !in visibleRows) listState.animateScrollToItem(row)
+                val startX = TimelineMath.timeToX(task.startMillis, window.startMillis, pxPerMinute)
+                val endX = TimelineMath.timeToX(task.endMillis, window.startMillis, pxPerMinute)
+                val width = viewport.viewportWidth
+                if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
+                    viewport.animateScrollTo(startX - width * 0.2f)
+                }
+            }
+
             // Bring the first task the assistant changed into view (row, then time) while it says what changed.
             // Keyed on its times too: the highlight can arrive before the moved task does, and the scroll
             // must follow the task to where it now is.
             val highlightTask = state.tasks.firstOrNull { it.id in highlighted }
             LaunchedEffect(highlighted, highlightTask?.startMillis, highlightTask?.endMillis) {
-                val task = highlightTask ?: return@LaunchedEffect
-                // The highlighted task is always listed (it is kept), so its row exists.
-                val row = shownTasks.indexOfFirst { it.id == task.id }
-                val visibleRows = listState.layoutInfo.visibleItemsInfo.map { it.index }
-                if (row >= 0 && row !in visibleRows) listState.animateScrollToItem(row)
-                val startX = (task.startMillis - window.startMillis) / 60_000f * pxPerMinute
-                val endX = (task.endMillis - window.startMillis) / 60_000f * pxPerMinute
-                val width = viewport.viewportWidth
-                if (width > 0f && (endX < viewport.scrollX || startX > viewport.scrollX + width)) {
-                    viewport.animateScrollTo(startX - width * 0.2f)
-                }
+                bringIntoView(highlightTask ?: return@LaunchedEffect)
+            }
+
+            // A new search or filter brings its earliest match into view.
+            val filter = state.search?.filter
+            LaunchedEffect(filter) {
+                if (filter?.isActive != true) return@LaunchedEffect
+                bringIntoView(state.tasks.minByOrNull { it.startMillis } ?: return@LaunchedEffect)
             }
 
             Column(Modifier.fillMaxSize()) {
@@ -194,6 +230,7 @@ fun SchedulerTimeline(
                         ticks = ticks,
                         pxPerMinute = pxPerMinute,
                         viewport = viewport,
+                        nowOffsetMillis = (nowMillis - window.startMillis).takeIf { nowMillis in window.startMillis until window.endMillis },
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(start = NameColumnWidth),
@@ -207,7 +244,13 @@ fun SchedulerTimeline(
                     )
                     if (shownTasks.isEmpty()) {
                         Text(
-                            text = stringResource(if (state.tasks.isEmpty()) R.string.tasks_empty else R.string.tasks_none_here),
+                            text = stringResource(
+                                when {
+                                    state.isFiltering -> R.string.tasks_no_match
+                                    state.tasks.isEmpty() -> R.string.tasks_empty
+                                    else -> R.string.tasks_none_here
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -263,11 +306,33 @@ fun SchedulerTimeline(
                             .fillMaxSize()
                             .padding(start = NameColumnWidth),
                     )
+                    // Today: now 20% in from the left, or the nearer end of the project when today is outside it.
+                    SmallFloatingActionButton(
+                        onClick = {
+                            val target = currentNow()
+                            val width = viewport.viewportWidth
+                            when {
+                                target < window.startMillis -> onTodayOutside(true, window.startMillis)
+                                target >= window.endMillis -> onTodayOutside(false, window.endMillis - 1)
+                            }
+                            val at = target.coerceIn(window.startMillis, window.endMillis - 1)
+                            scope.launch { viewport.animateScrollTo(TimelineMath.timeToX(at, window.startMillis, pxPerMinute) - width * 0.2f) }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            // Over the name column, clear of "Add task" (wider at large font sizes).
+                            .padding(start = 16.dp, bottom = 24.dp),
+                    ) {
+                        Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.today_go))
+                    }
                 }
             }
         }
     }
 }
+
+private const val NOW_REFRESH_MILLIS = 60_000L
 
 /** The earliest task one scale unit in from the left edge (clamped once laid out). */
 private fun initialScrollX(state: TimelineUiState, pxPerMinute: Float): Float {

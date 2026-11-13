@@ -41,6 +41,9 @@ class ProjectTimelineViewModel(
     private val settings = TimelineViewSettings(projectId, useCases, viewModelScope)
     private val selectedTaskId = MutableStateFlow<String?>(null)
 
+    /** The open search bar's filter, or null when it is closed. Never saved: it ends with the screen. */
+    private val search = MutableStateFlow<TaskFilter?>(null)
+
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
 
     /** The last change set that can be undone, offered until [dismissUndo]. */
@@ -69,7 +72,8 @@ class ProjectTimelineViewModel(
         useCases.observeSchedule(projectId),
         settings.config,
         selectedTaskId,
-    ) { schedule, config, selected ->
+        search,
+    ) { schedule, config, selected, filter ->
         if (schedule == null) {
             TimelineScreenState.NotFound
         } else if (config == null) {
@@ -78,15 +82,18 @@ class ProjectTimelineViewModel(
         } else {
             this.schedule = schedule
             val (project, tasks, dependencies) = schedule
+            val all = tasks.map { it.toUi() }
+            val shown = if (filter == null) all else all.filter(filter::matches)
             TimelineScreenState.Ready(
                 TimelineUiState(
                     projectName = project.name,
-                    tasks = tasks.map { it.toUi() },
+                    tasks = shown,
                     window = project.window(zone),
                     zone = zone,
                     config = config,
-                    // A selection whose task disappeared is dropped.
-                    selectedTaskId = selected?.takeIf { id -> tasks.any { it.id == id } },
+                    // A selection whose task disappeared, or that the search hides, is dropped.
+                    selectedTaskId = selected?.takeIf { id -> shown.any { it.id == id } },
+                    search = filter?.let { TaskSearchUi(it, matches = shown.size, total = all.size) },
                     dependencies = tasks.associateBy { it.id }.let { byId -> dependencies.map { it.toUi(byId) } },
                 ),
             )
@@ -136,6 +143,35 @@ class ProjectTimelineViewModel(
         undoChanges = changes
         _undoOffer.value = UndoOffer(kind, id = ++undoOffers)
     }
+
+    // The search bar (see [TaskFilter]).
+
+    fun openSearch() {
+        if (search.value == null) search.value = TaskFilter()
+    }
+
+    /** Closing the bar shows every task again. */
+    fun closeSearch() {
+        search.value = null
+    }
+
+    fun onSearchQuery(query: String) = updateSearch { it.copy(query = query) }
+
+    fun toggleColorFilter(color: TaskColor) = updateSearch { it.copy(colors = it.colors.toggled(color)) }
+
+    fun toggleKindFilter(kind: TaskKind) = updateSearch { it.copy(kinds = it.kinds.toggled(kind)) }
+
+    fun clearSearch() = updateSearch { TaskFilter() }
+
+    private fun updateSearch(change: (TaskFilter) -> TaskFilter) {
+        val next = change(search.value ?: return)
+        search.value = next
+        // A selected task the search hides stays unselected when the search is cleared.
+        val selected = schedule?.tasks?.firstOrNull { it.id == selectedTaskId.value }?.toUi()
+        if (selected != null && !next.matches(selected)) selectedTaskId.value = null
+    }
+
+    private fun <T> Set<T>.toggled(item: T): Set<T> = if (item in this) this - item else this + item
 
     fun dismissNotice() {
         _notice.value = null

@@ -7,6 +7,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Decision: one horizontal scroll position in `TimelineViewportState` (2026-11-11 revision for multi-project ranges; previously a `horizontalScroll` `ScrollState`). Header and body feed it via `scrollable(reverseDirection = true)`; header, grid and bars read it in draw/layout. Bars are clipped to a page-quantized compose span; rows are a `LazyColumn`.
 - Reason: no drift between header and body, no recomposition per scroll frame, and user-defined project ranges can be far wider than a layout can measure.
 - Constraint: never measure timeline content at full width; a bar container wider than its lane needs `wrapContentWidth(unbounded = true)` or `width` gets clamped.
+- Revised 2026-11-13 (user choices): while a search or filter is on, the list is only the matches and every match gets a row wherever it is in time, and the view scrolls to the earliest; search and filters live in the ViewModel's memory only and end with the screen.
 - Revised 2026-11-12 (user choice): rows list only the tasks whose time overlaps what is on screen (`TaskVisibility`), updating as you scroll, plus the selected task (a drag selects its bar, so it never loses its row) and any the assistant just highlighted; with none on screen the timeline says "No tasks here". The list is a `derivedStateOf`, so rows recompose only when it changes, not per scroll frame.
 
 ## 2026-11-11: Gesture model

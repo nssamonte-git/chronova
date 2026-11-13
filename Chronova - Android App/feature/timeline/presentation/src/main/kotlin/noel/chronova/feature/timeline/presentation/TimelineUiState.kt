@@ -14,7 +14,12 @@ data class TimelineUiState(
     val config: TimelineConfig = TimelineConfig(),
     val selectedTaskId: String? = null,
     val dependencies: List<DependencyUi> = emptyList(),
+    /** The search bar while it is open; [tasks] then holds only the matches. */
+    val search: TaskSearchUi? = null,
 ) {
+    /** A search or filter narrows the list: every match gets a row, wherever it is in time. */
+    val isFiltering: Boolean get() = search?.filter?.isActive == true
+
     companion object {
         /** The sample project, for previews. */
         fun sample(zone: ZoneId): TimelineUiState = sampleTimeline(zone)

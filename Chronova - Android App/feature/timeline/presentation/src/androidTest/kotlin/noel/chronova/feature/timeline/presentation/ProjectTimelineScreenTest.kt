@@ -92,6 +92,45 @@ class ProjectTimelineScreenTest {
         compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) }
     }
 
+    // Search and Today.
+
+    @Test
+    fun aSearchListsAMatchThatIsOffScreenAndBringsItIntoView() {
+        screen.show(listOf(survey, build, paint))
+        compose.onAllNodesWithText("Paint").fetchSemanticsNodes().let { assertEquals(0, it.size) } // three days later
+        compose.onNode(hasContentDescription(screen.string(R.string.search_open)) and hasClickAction()).performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("pai")
+        compose.waitForIdle()
+        screen.nameCell("Paint").assertIsDisplayed()
+        compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
+        compose.onNodeWithText(screen.res.getQuantityString(R.plurals.search_count, 3, 1, 3)).assertIsDisplayed()
+
+        // Closing the search shows every task again (only those on screen get rows).
+        // The top bar's search button closes it too (the field's own close button can sit under the keyboard).
+        compose.onAllNodes(hasContentDescription(screen.string(R.string.search_close)) and hasClickAction())[0].performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(screen.string(R.string.search_hint)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSearchWithNoMatchSaysSo() {
+        screen.show(listOf(survey, build))
+        compose.onNode(hasContentDescription(screen.string(R.string.search_open)) and hasClickAction()).performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("roof")
+        compose.onNodeWithText(screen.string(R.string.tasks_no_match)).assertIsDisplayed()
+    }
+
+    @Test
+    fun todayScrollsToNow() {
+        val inspect = screen.task("inspect", "Inspect", screen.at(3, 14), screen.at(3, 15), 3)
+        screen.show(listOf(survey, inspect))
+        compose.onAllNodesWithText("Inspect").fetchSemanticsNodes().let { assertEquals(0, it.size) } // the next afternoon
+        compose.onNode(hasContentDescription(screen.string(R.string.today_go)) and hasClickAction()).performClick()
+        compose.waitForIdle()
+        screen.nameCell("Inspect").assertIsDisplayed()
+        compose.onAllNodesWithText("Survey").fetchSemanticsNodes().let { assertEquals(0, it.size) }
+    }
+
     @Test
     fun anEmptyProjectSaysHowToAddATask() {
         screen.show(emptyList())

@@ -1,5 +1,10 @@
 package noel.chronova.feature.timeline.presentation
 
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import noel.chronova.core.model.TaskColor
+import noel.chronova.feature.timeline.presentation.components.TaskSearchBar
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
@@ -62,6 +67,8 @@ fun ProjectTimelineScreen(
     assistant: AssistantSlot,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The clock for the now line and Today (tests fix it). */
+    now: () -> Long = System::currentTimeMillis,
 ) {
     assistant.screenEffects()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -92,6 +99,12 @@ fun ProjectTimelineScreen(
                     onAddTask = viewModel::startAddTask,
                     onEditTask = viewModel::startEditTask,
                     onMarkDone = viewModel::markSelectedDone,
+                    onOpenSearch = viewModel::openSearch,
+                    onCloseSearch = viewModel::closeSearch,
+                    onSearchQuery = viewModel::onSearchQuery,
+                    onToggleColorFilter = viewModel::toggleColorFilter,
+                    onToggleKindFilter = viewModel::toggleKindFilter,
+                    onClearSearch = viewModel::clearSearch,
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
@@ -99,6 +112,7 @@ fun ProjectTimelineScreen(
                 assistant = assistant,
                 undoOffer = undoOffer,
                 notice = notice,
+                now = now,
                 modifier = modifier,
             )
             assistant.overlay(current.timeline.zone)
@@ -144,6 +158,13 @@ data class TimelineActions(
     val onEditTask: (String) -> Unit = {},
     /** Marks the selected task done. */
     val onMarkDone: () -> Unit = {},
+    /** The search bar (open, close, type, toggle a chip, clear). */
+    val onOpenSearch: () -> Unit = {},
+    val onCloseSearch: () -> Unit = {},
+    val onSearchQuery: (String) -> Unit = {},
+    val onToggleColorFilter: (TaskColor) -> Unit = {},
+    val onToggleKindFilter: (TaskKind) -> Unit = {},
+    val onClearSearch: () -> Unit = {},
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
@@ -157,8 +178,13 @@ internal fun TimelineContent(
     undoOffer: UndoOffer? = null,
     notice: TimelineNotice? = null,
     assistant: AssistantSlot = AssistantSlot.None,
+    /** The clock for the now line and Today (fixed in previews). */
+    now: () -> Long = System::currentTimeMillis,
 ) {
     var showControls by rememberSaveable { mutableStateOf(true) }
+    // Opening the search folds the timeline settings away, so the two don't crowd the screen.
+    val searchOpen = state.search != null
+    LaunchedEffect(searchOpen) { if (searchOpen) showControls = false }
     val snackbarHost = remember { SnackbarHostState() }
     val deletedMessage = stringResource(R.string.task_deleted)
     val markedDoneMessage = stringResource(R.string.task_marked_done)
@@ -182,6 +208,13 @@ internal fun TimelineContent(
         )
         shown.onResult(result == SnackbarResult.ActionPerformed)
     }
+    val scope = rememberCoroutineScope()
+    val todayBefore = stringResource(R.string.today_before)
+    val todayAfter = stringResource(R.string.today_after)
+    val onTodayOutside: (Boolean, Long) -> Unit = { startsLater, edge ->
+        val day = TimeFormat.day(edge, state.zone)
+        scope.launch { snackbarHost.showSnackbar((if (startsLater) todayBefore else todayAfter).format(day), duration = SnackbarDuration.Short) }
+    }
     val editNotSavedMessage = stringResource(R.string.edit_not_saved)
     val undoNotPossibleMessage = stringResource(CoreUiR.string.undo_not_possible)
     LaunchedEffect(notice) {
@@ -201,6 +234,8 @@ internal fun TimelineContent(
                 controlsVisible = showControls,
                 selectedTaskId = state.selectedTaskId,
                 selectedIsDone = state.tasks.firstOrNull { it.id == state.selectedTaskId }?.isDone ?: true,
+                searchOpen = state.search != null,
+                onSearch = if (state.search != null) actions.onCloseSearch else actions.onOpenSearch,
                 onBack = actions.onBack,
                 onEditTask = actions.onEditTask,
                 onMarkDone = actions.onMarkDone,
@@ -229,6 +264,16 @@ internal fun TimelineContent(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            state.search?.let { search ->
+                TaskSearchBar(
+                    search = search,
+                    onQuery = actions.onSearchQuery,
+                    onToggleColor = actions.onToggleColorFilter,
+                    onToggleKind = actions.onToggleKindFilter,
+                    onClear = actions.onClearSearch,
+                    onClose = actions.onCloseSearch,
+                )
+            }
             AnimatedVisibility(visible = showControls) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     TimelineControls(
@@ -254,6 +299,8 @@ internal fun TimelineContent(
                 modifier = Modifier.weight(1f),
                 // Lets the last rows scroll clear of the FAB.
                 contentPadding = PaddingValues(bottom = 88.dp),
+                now = now,
+                onTodayOutside = onTodayOutside,
             )
         }
     }
@@ -266,6 +313,8 @@ private fun TimelineTopBar(
     controlsVisible: Boolean,
     selectedTaskId: String?,
     selectedIsDone: Boolean,
+    searchOpen: Boolean,
+    onSearch: () -> Unit,
     onBack: () -> Unit,
     onEditTask: (String) -> Unit,
     onMarkDone: () -> Unit,
@@ -296,6 +345,13 @@ private fun TimelineTopBar(
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))
                 }
+            }
+            IconButton(onClick = onSearch) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = stringResource(if (searchOpen) R.string.search_close else R.string.search_open),
+                    tint = if (searchOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             IconButton(onClick = onToggleControls) {
                 Icon(

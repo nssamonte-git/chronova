@@ -271,6 +271,38 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun searchListsOnlyMatchesAndClosingShowsEverything() = runTest {
+        val state = timeline()
+        viewModel.openSearch()
+        assertEquals(TaskSearchUi(TaskFilter(), matches = 4, total = 4), state().search)
+
+        viewModel.onSearchQuery("test")
+        assertEquals(listOf("QA Testing"), state().tasks.map { it.title })
+        assertEquals(1, state().search?.matches)
+        viewModel.toggleColorFilter(TaskColor.BLUE)
+        assertEquals(emptyList<String>(), state().tasks.map { it.title }) // QA Testing is purple
+        viewModel.clearSearch()
+        assertEquals(4, state().tasks.size)
+
+        viewModel.toggleKindFilter(TaskKind.DONE)
+        assertTrue(state().tasks.isEmpty())
+        viewModel.closeSearch()
+        assertNull(state().search)
+        assertEquals(4, state().tasks.size)
+    }
+
+    @Test
+    fun aSelectedTaskTheSearchHidesIsUnselected() = runTest {
+        val state = timeline()
+        viewModel.selectTask("review")
+        viewModel.openSearch()
+        viewModel.onSearchQuery("design")
+        assertNull(state().selectedTaskId)
+        viewModel.closeSearch()
+        assertNull(state().selectedTaskId) // it stays unselected
+    }
+
+    @Test
     fun movingTheStartKeepsTheDuration() = runTest {
         timeline()
         viewModel.startEditTask("implementation") // 11:00-14:00

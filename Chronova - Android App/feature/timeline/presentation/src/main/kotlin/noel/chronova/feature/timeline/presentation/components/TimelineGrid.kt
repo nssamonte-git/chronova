@@ -21,9 +21,12 @@ fun TimelineGrid(
     pxPerMinute: Float,
     viewport: TimelineViewportState,
     modifier: Modifier = Modifier,
+    /** Now, as an offset from the window start; null when now is outside the project. Drawn as a line. */
+    nowOffsetMillis: Long? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val minorColor = colors.outlineVariant.copy(alpha = 0.5f)
+    val nowColor = colors.primary
     Canvas(modifier.clipToBounds()) {
         val stroke = 1.dp.toPx()
         val scrollX = viewport.scrollX
@@ -41,6 +44,12 @@ fun TimelineGrid(
                 end = Offset(x, size.height),
                 strokeWidth = stroke,
             )
+        }
+        if (nowOffsetMillis != null) {
+            val x = TimelineMath.durationToWidth(nowOffsetMillis, pxPerMinute) - scrollX
+            if (x in -stroke..size.width + stroke) {
+                drawLine(nowColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = 2 * stroke)
+            }
         }
     }
 }

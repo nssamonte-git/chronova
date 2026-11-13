@@ -42,6 +42,9 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
     val project = Project(PROJECT_ID, "Fit-out", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 6))
     val today: LocalDate = LocalDate.of(2026, 11, 3)
 
+    /** "Now" for the now line and Today: 14:00 on [today]. */
+    val now: Long get() = at(3, 14)
+
     lateinit var repository: FakeProjectRepository
         private set
 
@@ -84,7 +87,7 @@ class TimelineScreenHarness(private val compose: ComposeContentTestRule) {
             today = { today },
         )
         compose.setContent {
-            ChronovaTheme { ProjectTimelineScreen(viewModel, AssistantSlot.None, onBack = {}) }
+            ChronovaTheme { ProjectTimelineScreen(viewModel, AssistantSlot.None, onBack = {}, now = { now }) }
         }
         compose.waitForIdle()
     }
