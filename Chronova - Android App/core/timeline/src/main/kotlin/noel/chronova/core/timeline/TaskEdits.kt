@@ -19,7 +19,9 @@ object TaskEdits {
 
     /**
      * Moves the task, snapping its start and preserving its duration. Near the window
-     * end the start stops at the last grid line that still fits the whole task.
+     * end the start stops at the last grid line that still fits the whole task; a
+     * milestone (no duration) stops at the last grid line before the end, which is
+     * already outside the project.
      */
     fun move(
         original: TimeSpan,
@@ -29,7 +31,7 @@ object TaskEdits {
     ): TimeSpan {
         val duration = original.durationMillis
         val start = grid.nearest(original.startMillis + deltaMillis)
-            .coerceAtMost(grid.floor(window.endMillis - duration))
+            .coerceAtMost(grid.floor(window.endMillis - maxOf(duration, 1L)))
             .coerceAtLeast(window.startMillis)
         return original.copy(startMillis = start, endMillis = start + duration)
     }

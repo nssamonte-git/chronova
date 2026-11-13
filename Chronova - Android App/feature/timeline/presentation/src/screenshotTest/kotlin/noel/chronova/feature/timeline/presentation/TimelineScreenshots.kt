@@ -16,6 +16,26 @@ private val sample = TimelineUiState.sample(zone)
 @Composable
 fun TimelineWithTasks() = ChronovaTheme { TimelineContent(state = sample, actions = TimelineActions()) }
 
+/** One task done, one under way, one not started, and a selected milestone, all in the first hours on screen. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TimelineWithProgressAndAMilestone() {
+    fun at(hour: Int, minute: Int = 0) = sample.window.startMillis + hour * 3_600_000L + minute * 60_000L
+    val tasks = listOf(
+        TaskUi("design", "Design", at(7), at(7, 45), TaskColor.BLUE, progress = 100),
+        TaskUi("build", "Build", at(7, 15), at(9, 15), TaskColor.GREEN, progress = 40),
+        TaskUi("test", "Test", at(8), at(9, 30), TaskColor.PURPLE),
+        TaskUi("launch", "Launch", at(8, 15), at(8, 15), TaskColor.AMBER, isMilestone = true),
+    )
+    ChronovaTheme {
+        TimelineContent(
+            state = sample.copy(tasks = tasks, config = sample.config.copy(rowHeightDp = 56f), selectedTaskId = "launch"),
+            actions = TimelineActions(),
+        )
+    }
+}
+
 /** A project with no tasks yet. */
 @PreviewTest
 @ChronovaScreenshots
@@ -34,6 +54,10 @@ private fun Editor(editor: TaskEditorState) = ChronovaTheme {
         onColorChange = {},
         onStartChange = {},
         onEndChange = {},
+        onMilestoneChange = {},
+        onProgressChange = {},
+        onDoneChange = {},
+        onNotesChange = {},
         onSave = {},
         onDelete = {},
         onDismiss = {},
@@ -47,6 +71,34 @@ private fun Editor(editor: TaskEditorState) = ChronovaTheme {
 fun TaskEditorAdding() {
     val start = sample.window.startMillis + 9 * 3_600_000L
     Editor(TaskEditorState(taskId = null, title = "Stand-up", startMillis = start, endMillis = start + 3_600_000L, color = TaskColor.GREEN))
+}
+
+/** Editing a task under way, with notes. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TaskEditorProgressAndNotes() {
+    val task = sample.tasks[1]
+    Editor(
+        TaskEditorState(
+            taskId = task.id,
+            title = task.title,
+            startMillis = task.startMillis,
+            endMillis = task.endMillis,
+            color = task.color,
+            progress = 40,
+            notes = "Waiting on the API review.\nShip behind a flag.",
+        ),
+    )
+}
+
+/** Adding a milestone: one time, and done or not. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun TaskEditorMilestone() {
+    val at = sample.window.startMillis + 18 * 3_600_000L
+    Editor(TaskEditorState(taskId = null, title = "Launch", startMillis = at, endMillis = at, color = TaskColor.AMBER, isMilestone = true))
 }
 
 /** The edit sheet refusing a task that ends before it starts. */

@@ -19,6 +19,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
@@ -34,6 +37,7 @@ import noel.chronova.core.timeline.TaskEdits
 import noel.chronova.core.timeline.TimelineMath
 import noel.chronova.core.timeline.ViewportMath
 import noel.chronova.core.ui.TimeFormat
+import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.feature.timeline.presentation.TaskUi
 
 private val MinBarWidth = 4.dp
@@ -92,41 +96,61 @@ fun TaskLane(
     val currentOnSelect by rememberUpdatedState(onSelect)
     val currentOnCommit by rememberUpdatedState(onCommit)
 
-    val barStart = TimelineMath.timeToX(shown.startMillis, window.startMillis, pxPerMinute)
-    val barEnd = barStart + TimelineMath.durationToWidth(shown.durationMillis, pxPerMinute)
-        .coerceAtLeast(with(density) { MinBarWidth.toPx() })
+    val milestone = task.isMilestone
+    val momentX = TimelineMath.timeToX(shown.startMillis, window.startMillis, pxPerMinute)
+    val milestoneTouchPx = with(density) { MilestoneTouchWidth.toPx() }
+    // A milestone's mark is a fixed size around its moment: its touch area, then room for the title.
+    val barStart = if (milestone) momentX - milestoneTouchPx / 2 else momentX
+    val barEnd = if (milestone) {
+        momentX + milestoneTouchPx / 2 + with(density) { MilestoneLabelWidth.toPx() }
+    } else {
+        barStart + TimelineMath.durationToWidth(shown.durationMillis, pxPerMinute)
+            .coerceAtLeast(with(density) { MinBarWidth.toPx() })
+    }
     // Only the selected bar gets handles, and with them extra touch area on both sides.
-    val outsetPx = with(density) { if (selected) HandleOutset.toPx() else 0f }
+    val outsetPx = with(density) { if (selected && !milestone) HandleOutset.toPx() else 0f }
 
     // Changes only when the scroll crosses a viewport-wide page, not every frame.
     val span by remember(viewport) {
         derivedStateOf { ViewportMath.composeSpan(viewport.scrollX, viewport.viewportWidth) }
     }
-    val visibleStart = max(barStart, span.start)
-    val visibleEnd = min(barEnd, span.end)
+    // A milestone's mark is small, so it is never cut to the span (cutting would shift its diamond).
+    val visibleStart = if (milestone) barStart else max(barStart, span.start)
+    val visibleEnd = if (milestone) barEnd else min(barEnd, span.end)
     val containerStart = visibleStart - outsetPx
+    // The done part of the whole bar, as a share of the part that is laid out.
+    val doneX = barStart + (barEnd - barStart) * task.progress / TaskUi.DONE
+    val doneFraction = if (visibleEnd > visibleStart) ((doneX - visibleStart) / (visibleEnd - visibleStart)).coerceIn(0f, 1f) else 0f
 
     val currentSelected by rememberUpdatedState(selected)
     val currentBarStart by rememberUpdatedState(barStart)
     val currentBarEnd by rememberUpdatedState(barEnd)
     val currentContainerStart by rememberUpdatedState(containerStart)
 
+    val label = when {
+        !dragging -> task.title
+        milestone -> TimeFormat.clock(shown.startMillis, zone)
+        else -> TimeFormat.range(shown.startMillis, shown.endMillis, zone)
+    }
+    val milestoneState = stringResource(R.string.task_bar_milestone, TimeFormat.day(shown.startMillis, zone) + " " + TimeFormat.clock(shown.startMillis, zone))
+    val progressState = when {
+        task.isDone -> stringResource(R.string.task_bar_state_done)
+        task.progress > 0 -> stringResource(R.string.task_bar_state_progress, task.progress)
+        else -> null
+    }
+    val state = listOfNotNull(milestoneState.takeIf { milestone }, progressState).joinToString(", ")
+
     Box(modifier.clipToBounds()) {
-        if (visibleEnd <= visibleStart) return@Box // nowhere near the viewport
-        TaskBar(
-            label = if (dragging) TimeFormat.range(shown.startMillis, shown.endMillis, zone) else task.title,
-            color = task.color.toColor(),
-            selected = selected,
-            active = dragging,
-            highlighted = highlighted,
-            handleOutset = if (selected) HandleOutset else 0.dp,
-            modifier = Modifier
+        if (visibleEnd <= span.start || visibleStart >= span.end) return@Box // nowhere near the viewport
+        val container = Modifier
                 // Layout-phase reads: scrolling and moving don't recompose or re-measure siblings.
                 .offset { IntOffset((containerStart - viewport.scrollX).roundToInt(), 0) }
                 // The container is usually wider than the lane (it spans up to four
                 // viewports); without this, `width` would be clamped to the lane width.
                 .wrapContentWidth(Alignment.Start, unbounded = true)
                 .width(with(density) { (visibleEnd - visibleStart + 2 * outsetPx).toDp() })
+                // One node for accessibility: the title plus how far along it is (and when, for a milestone).
+                .semantics(mergeDescendants = true) { if (state.isNotEmpty()) stateDescription = state }
                 .pointerInput(task.id) {
                     var original = currentTask
                     var mode = GestureMode.MOVE
@@ -138,6 +162,7 @@ fun TaskLane(
                                 barEnd = currentBarEnd,
                                 inset = HandleInset.toPx(),
                                 selected = currentSelected,
+                                isMilestone = currentTask.isMilestone,
                             )
                         },
                         onTap = { currentOnSelect(currentTask.id) },
@@ -174,7 +199,29 @@ fun TaskLane(
                             preview = null
                         },
                     )
-                },
-        )
+                }
+        if (milestone) {
+            MilestoneMark(
+                label = label,
+                color = task.color.toColor(),
+                selected = selected,
+                active = dragging,
+                done = task.isDone,
+                highlighted = highlighted,
+                modifier = container,
+            )
+        } else {
+            TaskBar(
+                label = label,
+                color = task.color.toColor(),
+                selected = selected,
+                active = dragging,
+                highlighted = highlighted,
+                handleOutset = if (selected) HandleOutset else 0.dp,
+                doneFraction = doneFraction,
+                done = task.isDone,
+                modifier = container,
+            )
+        }
     }
 }

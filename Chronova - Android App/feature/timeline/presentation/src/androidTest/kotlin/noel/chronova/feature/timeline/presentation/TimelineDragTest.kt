@@ -3,6 +3,7 @@ package noel.chronova.feature.timeline.presentation
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -46,7 +47,9 @@ class TimelineDragTest {
     private fun minutes(m: Int): Dp = (HOUR_DP * m / 60f).dp
 
     /** The bar's title (the name cell's copy is the clickable one). */
-    private fun barTitle() = compose.onNode(hasText("Survey") and !hasClickAction())
+    /** The title inside the bar (the bar itself is one accessibility node, so its text is found unmerged). */
+    private fun barTitle() =
+        compose.onNode(hasText("Survey") and !hasClickAction() and !hasAnyAncestor(hasClickAction()), useUnmergedTree = true)
 
     private fun selected() =
         compose.onAllNodesWithContentDescription(screen.string(R.string.task_edit_selected)).fetchSemanticsNodes().isNotEmpty()

@@ -252,8 +252,9 @@ private fun ProjectCardText(summary: ProjectRowUi, modifier: Modifier = Modifier
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
         Text(
-            text = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount),
+            text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

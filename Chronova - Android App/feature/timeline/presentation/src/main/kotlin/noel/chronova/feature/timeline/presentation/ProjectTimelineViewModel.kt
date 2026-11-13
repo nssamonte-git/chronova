@@ -58,10 +58,7 @@ class ProjectTimelineViewModel(
         schedule = { schedule },
         timeline = { readyTimeline() },
         onAdded = { selectedTaskId.value = it },
-        onDeleted = { changes ->
-            undoChanges = changes
-            _undoOffer.value = UndoOffer(UndoKind.TaskDeleted, id = ++undoOffers)
-        },
+        onDeleted = { changes -> offerUndo(UndoKind.TaskDeleted, changes) },
         onRefused = { _notice.value = TimelineNotice.EditNotSaved },
     )
 
@@ -120,6 +117,26 @@ class ProjectTimelineViewModel(
         }
     }
 
+    /**
+     * Marks the selected task done (100%) through the shared apply path and offers
+     * undo; refused, like a drag, if the task changed meanwhile.
+     */
+    fun markSelectedDone() {
+        val taskId = selectedTaskId.value ?: return
+        val current = schedule?.tasks?.firstOrNull { it.id == taskId }?.takeUnless { it.isDone } ?: return
+        viewModelScope.launch {
+            when (val result = useCases.commitEdit(projectId, current, current.copy(progress = TaskUi.DONE))) {
+                is ApplyResult.Applied -> offerUndo(UndoKind.MarkedDone, result.undo)
+                is ApplyResult.Rejected -> _notice.value = TimelineNotice.EditNotSaved
+            }
+        }
+    }
+
+    private fun offerUndo(kind: UndoKind, changes: List<ScheduleChange>) {
+        undoChanges = changes
+        _undoOffer.value = UndoOffer(kind, id = ++undoOffers)
+    }
+
     fun dismissNotice() {
         _notice.value = null
     }
@@ -141,6 +158,14 @@ class ProjectTimelineViewModel(
     fun onTaskEndChange(endMillis: Long) = editor.changeEnd(endMillis)
 
     fun onTaskColorChange(color: TaskColor) = editor.changeColor(color)
+
+    fun onTaskProgressChange(progress: Int) = editor.changeProgress(progress)
+
+    fun onTaskDoneChange(done: Boolean) = editor.changeDone(done)
+
+    fun onTaskNotesChange(notes: String) = editor.changeNotes(notes)
+
+    fun onTaskMilestoneChange(isMilestone: Boolean) = editor.changeMilestone(isMilestone)
 
     fun dismissTaskEditor() = editor.dismiss()
 

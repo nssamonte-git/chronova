@@ -40,6 +40,17 @@ class TaskEditsTest {
 
     // Scenario 5 — left resize preserves end
     @Test
+    fun move_keepsAMilestoneAMomentInsideTheWindow() {
+        val milestone = TimeSpan(Fixtures.at(12), Fixtures.at(12))
+        val moved = TaskEdits.move(milestone, 47 * MINUTE, snap15, window)
+        assertEquals(TimeSpan(Fixtures.at(12, 45), Fixtures.at(12, 45)), moved)
+        // The project's last midnight is outside it, so the milestone stops one grid line before.
+        val late = TaskEdits.move(milestone, 5 * 24 * HOUR, snap15, window)
+        assertEquals(window.endMillis - 15 * MINUTE, late.startMillis)
+        assertEquals(late.startMillis, late.endMillis)
+    }
+
+    @Test
     fun resizeStart_preservesEnd() {
         val implementation = span(11, 0, 14, 0)
         val resized = TaskEdits.resizeStart(implementation, -65 * MINUTE, snap15, window) // 09:55 -> 10:00

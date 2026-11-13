@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import noel.chronova.core.domain.TaskRules
 import noel.chronova.core.domain.schedule.ApplyResult
 import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
@@ -69,6 +70,9 @@ internal class TaskEditor(
             startMillis = task.startMillis,
             endMillis = task.endMillis,
             color = task.color,
+            progress = task.progress,
+            notes = task.notes,
+            isMilestone = task.isMilestone,
             predecessorIds = shown.dependencies.filter { it.successorId == taskId }.map { it.predecessorId }.toSet(),
             forbiddenPredecessorIds = useCases.forbiddenPredecessors(taskId, schedule()?.dependencies.orEmpty()),
         )
@@ -94,6 +98,34 @@ internal class TaskEditor(
 
     fun changeColor(color: TaskColor) = _state.update { it?.copy(color = color) }
 
+    /** A milestone is done or not, so it snaps to 0 or 100. */
+    fun changeProgress(progress: Int) = _state.update { editor ->
+        val clamped = progress.coerceIn(0, TaskUi.DONE)
+        editor?.copy(progress = if (editor.isMilestone) snapToDoneOrNot(clamped) else clamped, problem = null)
+    }
+
+    fun changeDone(done: Boolean) = _state.update { it?.copy(progress = if (done) TaskUi.DONE else 0, problem = null) }
+
+    /** Longer notes are cut at the limit, so the field never holds what can't be saved. */
+    fun changeNotes(notes: String) = _state.update { it?.copy(notes = notes.take(NOTES_MAX_LENGTH), problem = null) }
+
+    /**
+     * A milestone is a moment: switching it on drops the end (and keeps only done or
+     * not done); switching it off gives the task the default hour from its start.
+     */
+    fun changeMilestone(isMilestone: Boolean) = _state.update { editor ->
+        when {
+            editor == null || editor.isMilestone == isMilestone -> editor
+            isMilestone -> editor.copy(
+                isMilestone = true,
+                endMillis = editor.startMillis,
+                progress = snapToDoneOrNot(editor.progress),
+                problem = null,
+            )
+            else -> editor.copy(isMilestone = false, endMillis = editor.startMillis + DEFAULT_DURATION_MILLIS, problem = null)
+        }
+    }
+
     fun dismiss() {
         _state.value = null
     }
@@ -101,7 +133,10 @@ internal class TaskEditor(
     fun save() {
         val entered = _state.value?.takeUnless { it.saving } ?: return
         val shown = timeline() ?: return
-        val problem = useCases.validateTask(entered.title, entered.startMillis, entered.endMillis, shown.window)
+        val problem = useCases.validateTask(
+            entered.title, entered.startMillis, entered.endMillis, shown.window,
+            entered.isMilestone, entered.progress, entered.notes,
+        )
         if (problem != null) {
             _state.value = entered.copy(problem = problem.toUi())
             return
@@ -117,6 +152,9 @@ internal class TaskEditor(
                 endMillis = entered.endMillis,
                 color = entered.color,
                 predecessorIds = entered.predecessorIds,
+                progress = entered.progress,
+                notes = entered.notes,
+                isMilestone = entered.isMilestone,
             )
             if (entered.taskId == null) onAdded(taskId)
             _state.value = null
@@ -138,8 +176,13 @@ internal class TaskEditor(
         }
     }
 
+    private fun snapToDoneOrNot(progress: Int): Int = if (progress == TaskUi.DONE) TaskUi.DONE else 0
+
     private companion object {
         const val DEFAULT_START_HOUR = 9
         const val DEFAULT_DURATION_MILLIS = 60 * 60_000L
     }
 }
+
+/** The longest notes the editor takes (the save rule's limit). */
+internal const val NOTES_MAX_LENGTH = TaskRules.MAX_NOTES_LENGTH

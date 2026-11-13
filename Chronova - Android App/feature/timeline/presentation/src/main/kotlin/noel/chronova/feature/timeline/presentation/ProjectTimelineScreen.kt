@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +91,7 @@ fun ProjectTimelineScreen(
                     onRowHeightStep = viewModel::changeRowHeight,
                     onAddTask = viewModel::startAddTask,
                     onEditTask = viewModel::startEditTask,
+                    onMarkDone = viewModel::markSelectedDone,
                     onUndo = viewModel::undo,
                     onUndoShown = viewModel::dismissUndo,
                     onNoticeShown = viewModel::dismissNotice,
@@ -111,6 +113,10 @@ fun ProjectTimelineScreen(
                     onColorChange = viewModel::onTaskColorChange,
                     onStartChange = viewModel::onTaskStartChange,
                     onEndChange = viewModel::onTaskEndChange,
+                    onMilestoneChange = viewModel::onTaskMilestoneChange,
+                    onProgressChange = viewModel::onTaskProgressChange,
+                    onDoneChange = viewModel::onTaskDoneChange,
+                    onNotesChange = viewModel::onTaskNotesChange,
                     onSave = viewModel::saveTask,
                     onDelete = viewModel::deleteEditingTask,
                     onDismiss = viewModel::dismissTaskEditor,
@@ -136,6 +142,8 @@ data class TimelineActions(
     val onRowHeightStep: (Int) -> Unit = {},
     val onAddTask: () -> Unit = {},
     val onEditTask: (String) -> Unit = {},
+    /** Marks the selected task done. */
+    val onMarkDone: () -> Unit = {},
     val onUndo: () -> Unit = {},
     val onUndoShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
@@ -153,11 +161,13 @@ internal fun TimelineContent(
     var showControls by rememberSaveable { mutableStateOf(true) }
     val snackbarHost = remember { SnackbarHostState() }
     val deletedMessage = stringResource(R.string.task_deleted)
+    val markedDoneMessage = stringResource(R.string.task_marked_done)
     val undoLabel = stringResource(CoreUiR.string.undo)
     LaunchedEffect(undoOffer) {
         val offer = undoOffer ?: return@LaunchedEffect
         val message = when (offer.kind) {
             UndoKind.TaskDeleted -> deletedMessage
+            UndoKind.MarkedDone -> markedDoneMessage
         }
         val result = snackbarHost.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
         if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoShown()
@@ -190,8 +200,10 @@ internal fun TimelineContent(
                 title = state.projectName,
                 controlsVisible = showControls,
                 selectedTaskId = state.selectedTaskId,
+                selectedIsDone = state.tasks.firstOrNull { it.id == state.selectedTaskId }?.isDone ?: true,
                 onBack = actions.onBack,
                 onEditTask = actions.onEditTask,
+                onMarkDone = actions.onMarkDone,
                 onToggleControls = { showControls = !showControls },
             )
         },
@@ -253,8 +265,10 @@ private fun TimelineTopBar(
     title: String,
     controlsVisible: Boolean,
     selectedTaskId: String?,
+    selectedIsDone: Boolean,
     onBack: () -> Unit,
     onEditTask: (String) -> Unit,
+    onMarkDone: () -> Unit,
     onToggleControls: () -> Unit,
 ) {
     TopAppBar(
@@ -273,6 +287,11 @@ private fun TimelineTopBar(
             )
         },
         actions = {
+            if (selectedTaskId != null && !selectedIsDone) {
+                IconButton(onClick = onMarkDone) {
+                    Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.task_mark_done))
+                }
+            }
             if (selectedTaskId != null) {
                 IconButton(onClick = { onEditTask(selectedTaskId) }) {
                     Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.task_edit_selected))

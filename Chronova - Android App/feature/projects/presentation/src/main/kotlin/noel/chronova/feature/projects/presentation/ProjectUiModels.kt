@@ -9,6 +9,8 @@ data class ProjectRowUi(
     val startDate: LocalDate,
     val endDate: LocalDate,
     val taskCount: Int,
+    /** How many of its tasks are done. */
+    val doneCount: Int = 0,
 )
 
 /** Why the entered project can't be saved, as the editor words it. */

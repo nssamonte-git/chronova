@@ -3,20 +3,33 @@ package noel.chronova.feature.timeline.presentation
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.timeline.TimeSpan
 
-/** One task on the timeline, as its row and bar show it. Times are epoch millis. */
+/**
+ * One task on the timeline, as its row and bar show it. Times are epoch millis.
+ * [progress] is percent complete (100 is done); a milestone ([isMilestone]) is a
+ * moment, so it ends when it starts.
+ */
 data class TaskUi(
     val id: String,
     val title: String,
     val startMillis: Long,
     val endMillis: Long,
     val color: TaskColor = TaskColor.BLUE,
+    val progress: Int = 0,
+    val notes: String = "",
+    val isMilestone: Boolean = false,
 ) {
     val durationMillis: Long get() = endMillis - startMillis
+
+    val isDone: Boolean get() = progress == DONE
 
     /** The task's times, as the gesture engine edits them. */
     val span: TimeSpan get() = TimeSpan(startMillis, endMillis)
 
     fun withSpan(span: TimeSpan): TaskUi = copy(startMillis = span.startMillis, endMillis = span.endMillis)
+
+    companion object {
+        const val DONE = 100
+    }
 }
 
 /**

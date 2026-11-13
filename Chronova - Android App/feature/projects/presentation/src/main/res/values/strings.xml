@@ -13,6 +13,10 @@
     <string name="account_open">Account and sync</string>
     <string name="create">Create</string>
     <string name="edit">Edit</string>
+    <plurals name="task_count_done">
+        <item quantity="one">%1$s · %2$d done</item>
+        <item quantity="other">%1$s · %2$d done</item>
+    </plurals>
     <plurals name="task_count">
         <item quantity="one">%d task</item>
         <item quantity="other">%d tasks</item>

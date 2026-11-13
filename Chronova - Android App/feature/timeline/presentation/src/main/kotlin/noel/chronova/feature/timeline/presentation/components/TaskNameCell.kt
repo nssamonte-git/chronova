@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +28,11 @@ import noel.chronova.core.ui.TimeFormat
 import noel.chronova.feature.timeline.presentation.R
 import noel.chronova.feature.timeline.presentation.TaskUi
 
-/** The fixed left cell of a timeline row: colour dot, title and time range. Tapping it edits the task. */
+/**
+ * The fixed left cell of a timeline row: colour dot (a check once done), title, and in
+ * taller rows the time range (one time for a milestone) with the progress. Tapping it
+ * edits the task.
+ */
 @Composable
 fun TaskNameCell(
     task: TaskUi,
@@ -42,11 +49,20 @@ fun TaskNameCell(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                Modifier
-                    .size(8.dp)
-                    .background(task.color.toColor(), CircleShape),
-            )
+            if (task.isDone) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = stringResource(R.string.task_bar_state_done),
+                    tint = task.color.toColor(),
+                    modifier = Modifier.size(14.dp),
+                )
+            } else {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(task.color.toColor(), CircleShape),
+                )
+            }
             Column {
                 Text(
                     text = task.title,
@@ -56,8 +72,17 @@ fun TaskNameCell(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (rowHeight >= 48.dp) {
+                    val times = if (task.isMilestone) {
+                        TimeFormat.clock(task.startMillis, zone)
+                    } else {
+                        TimeFormat.range(task.startMillis, task.endMillis, zone)
+                    }
                     Text(
-                        text = TimeFormat.range(task.startMillis, task.endMillis, zone),
+                        text = if (task.progress in 1 until TaskUi.DONE) {
+                            stringResource(R.string.task_cell_progress, task.progress, times)
+                        } else {
+                            times
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

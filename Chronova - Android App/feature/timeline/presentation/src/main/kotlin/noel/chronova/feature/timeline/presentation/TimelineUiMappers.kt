@@ -8,7 +8,10 @@ import noel.chronova.core.model.TaskDependency
 
 // Domain to screen: the timeline, its gestures and the editor never see the domain's tasks or links.
 
-internal fun SchedulerTask.toUi() = TaskUi(id = id, title = title, startMillis = startMillis, endMillis = endMillis, color = color)
+internal fun SchedulerTask.toUi() = TaskUi(
+    id = id, title = title, startMillis = startMillis, endMillis = endMillis, color = color,
+    progress = progress, notes = notes, isMilestone = isMilestone,
+)
 
 /** [tasks] are the project's tasks, to tell whether the link is currently broken. */
 internal fun TaskDependency.toUi(tasks: Map<String, SchedulerTask>): DependencyUi {

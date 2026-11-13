@@ -199,6 +199,71 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun addTask_savesAMilestoneWithItsProgressAndNotes() = runTest {
+        val state = timeline()
+        viewModel.startAddTask()
+        viewModel.onTaskTitleChange("Launch")
+        viewModel.onTaskMilestoneChange(true)
+        viewModel.onTaskDoneChange(true)
+        viewModel.onTaskNotesChange("Press release at noon")
+        val editor = viewModel.taskEditor.value!!
+        assertEquals(editor.startMillis, editor.endMillis) // a moment, with no end to pick
+        viewModel.saveTask()
+
+        val stored = repository.tasks.value.single { it.id == state().selectedTaskId }
+        assertTrue(stored.isMilestone)
+        assertEquals(stored.startMillis, stored.endMillis)
+        assertEquals(100, stored.progress)
+        assertEquals("Press release at noon", stored.notes)
+    }
+
+    @Test
+    fun aMilestoneIsDoneOrNot_andSwitchingItOffGivesItAnHour() = runTest {
+        timeline()
+        viewModel.startEditTask("review") // 16:00–17:00
+        viewModel.onTaskProgressChange(40)
+        viewModel.onTaskMilestoneChange(true)
+        assertEquals(0, viewModel.taskEditor.value!!.progress)
+        viewModel.onTaskProgressChange(70)
+        assertEquals(0, viewModel.taskEditor.value!!.progress) // the slider isn't shown, but a stray value still snaps
+        viewModel.onTaskDoneChange(true)
+        assertEquals(100, viewModel.taskEditor.value!!.progress)
+
+        viewModel.onTaskMilestoneChange(false)
+        assertEquals(at(17), viewModel.taskEditor.value!!.endMillis)
+        assertEquals(100, viewModel.taskEditor.value!!.progress)
+    }
+
+    @Test
+    fun editTask_savesProgressAndNotes_andCutsNotesAtTheLimit() = runTest {
+        timeline()
+        viewModel.startEditTask("review")
+        viewModel.onTaskProgressChange(130)
+        assertEquals(100, viewModel.taskEditor.value!!.progress)
+        viewModel.onTaskProgressChange(30)
+        viewModel.onTaskNotesChange("x".repeat(2_500))
+        assertEquals(2_000, viewModel.taskEditor.value!!.notes.length)
+        viewModel.saveTask()
+
+        val stored = repository.tasks.value.single { it.id == "review" }
+        assertEquals(30, stored.progress)
+        assertEquals(2_000, stored.notes.length)
+    }
+
+    @Test
+    fun markDone_savesThroughTheApplyPathAndOffersUndo() = runTest {
+        val state = timeline()
+        viewModel.selectTask("review")
+        viewModel.markSelectedDone()
+        assertEquals(100, repository.tasks.value.single { it.id == "review" }.progress)
+        assertTrue(state().tasks.single { it.id == "review" }.isDone)
+        assertEquals(UndoKind.MarkedDone, viewModel.undoOffer.value?.kind)
+
+        viewModel.undo()
+        assertEquals(0, repository.tasks.value.single { it.id == "review" }.progress)
+    }
+
+    @Test
     fun movingTheStartKeepsTheDuration() = runTest {
         timeline()
         viewModel.startEditTask("implementation") // 11:00-14:00

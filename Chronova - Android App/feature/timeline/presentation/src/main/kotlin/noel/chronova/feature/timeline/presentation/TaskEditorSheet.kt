@@ -16,11 +16,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -32,6 +36,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -55,6 +61,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
@@ -62,6 +69,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlin.math.roundToInt
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimelineWindow
 import noel.chronova.core.ui.TimeFormat
@@ -70,7 +78,7 @@ import noel.chronova.core.ui.R as CoreUiR
 
 private enum class Picking { START_DATE, START_TIME, END_DATE, END_TIME }
 
-/** Bottom sheet to add or edit a task: title, colour, start and end. */
+/** Bottom sheet to add or edit a task: title, colour, milestone or not, times, progress, notes and dependencies. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskEditorSheet(
@@ -83,6 +91,10 @@ fun TaskEditorSheet(
     onColorChange: (TaskColor) -> Unit,
     onStartChange: (Long) -> Unit,
     onEndChange: (Long) -> Unit,
+    onMilestoneChange: (Boolean) -> Unit,
+    onProgressChange: (Int) -> Unit,
+    onDoneChange: (Boolean) -> Unit,
+    onNotesChange: (String) -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -107,41 +119,75 @@ fun TaskEditorSheet(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = stringResource(if (editor.isNew) R.string.task_new else R.string.task_edit),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            OutlinedTextField(
-                value = editor.title,
-                onValueChange = onTitleChange,
-                label = { Text(stringResource(R.string.task_title)) },
-                singleLine = true,
-                isError = editor.problem == TaskProblemUi.BlankTitle,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            ColorChoice(selected = editor.color, onSelect = onColorChange)
-            DateTimeRow(
-                label = stringResource(R.string.task_starts),
-                millis = editor.startMillis,
-                zone = zone,
-                onPickDate = { pick(Picking.START_DATE) },
-                onPickTime = { pick(Picking.START_TIME) },
-            )
-            DateTimeRow(
-                label = stringResource(R.string.task_ends),
-                millis = editor.endMillis,
-                zone = zone,
-                onPickDate = { pick(Picking.END_DATE) },
-                onPickTime = { pick(Picking.END_TIME) },
-            )
-            if (otherTasks.isNotEmpty()) {
-                PredecessorChoice(
-                    tasks = otherTasks,
-                    selected = editor.predecessorIds,
-                    forbidden = editor.forbiddenPredecessorIds,
-                    onToggle = onTogglePredecessor,
+            // The fields scroll; the problem and the buttons stay in view below them.
+            Column(
+                Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = stringResource(if (editor.isNew) R.string.task_new else R.string.task_edit),
+                    style = MaterialTheme.typography.titleLarge,
                 )
+                OutlinedTextField(
+                    value = editor.title,
+                    onValueChange = onTitleChange,
+                    label = { Text(stringResource(R.string.task_title)) },
+                    singleLine = true,
+                    isError = editor.problem == TaskProblemUi.BlankTitle,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ColorChoice(selected = editor.color, onSelect = onColorChange)
+                SwitchRow(
+                    label = stringResource(R.string.task_milestone),
+                    checked = editor.isMilestone,
+                    onCheckedChange = onMilestoneChange,
+                )
+                DateTimeRow(
+                    label = stringResource(if (editor.isMilestone) R.string.task_when else R.string.task_starts),
+                    millis = editor.startMillis,
+                    zone = zone,
+                    onPickDate = { pick(Picking.START_DATE) },
+                    onPickTime = { pick(Picking.START_TIME) },
+                )
+                if (!editor.isMilestone) {
+                    DateTimeRow(
+                        label = stringResource(R.string.task_ends),
+                        millis = editor.endMillis,
+                        zone = zone,
+                        onPickDate = { pick(Picking.END_DATE) },
+                        onPickTime = { pick(Picking.END_TIME) },
+                    )
+                    ProgressChoice(progress = editor.progress, onChange = onProgressChange)
+                }
+                CheckboxRow(label = stringResource(R.string.task_done), checked = editor.isDone, onCheckedChange = onDoneChange)
+                OutlinedTextField(
+                    value = editor.notes,
+                    onValueChange = onNotesChange,
+                    label = { Text(stringResource(R.string.task_notes)) },
+                    minLines = 2,
+                    maxLines = 6,
+                    isError = editor.problem is TaskProblemUi.NotesTooLong,
+                    supportingText = {
+                        Text(
+                            stringResource(R.string.task_notes_count, editor.notes.length, NOTES_MAX_LENGTH),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (otherTasks.isNotEmpty()) {
+                    PredecessorChoice(
+                        tasks = otherTasks,
+                        selected = editor.predecessorIds,
+                        forbidden = editor.forbiddenPredecessorIds,
+                        onToggle = onTogglePredecessor,
+                    )
+                }
             }
             editor.problem?.let { problem ->
                 Text(
@@ -171,6 +217,54 @@ fun TaskEditorSheet(
         Picking.START_TIME -> TimeDialog(editor.startMillis, zone, { onStartChange(it); picking = null }) { picking = null }
         Picking.END_TIME -> TimeDialog(editor.endMillis, zone, { onEndChange(it); picking = null }) { picking = null }
         null -> Unit
+    }
+}
+
+/** A labelled switch; the whole row toggles it. */
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/** A labelled checkbox; the whole row toggles it. */
+@Composable
+private fun CheckboxRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp))
+    }
+}
+
+/** Percent complete in steps of ten (a task set elsewhere, e.g. by voice, may sit between steps). */
+@Composable
+private fun ProgressChoice(progress: Int, onChange: (Int) -> Unit) {
+    val label = stringResource(R.string.task_progress)
+    val value = stringResource(R.string.task_progress_value, progress)
+    Column {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.bodyLarge)
+        }
+        Slider(
+            value = progress.toFloat(),
+            onValueChange = { onChange(it.roundToInt()) },
+            valueRange = 0f..100f,
+            steps = 9,
+            modifier = Modifier.semantics { contentDescription = label },
+        )
     }
 }
 

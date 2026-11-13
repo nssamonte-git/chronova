@@ -44,8 +44,15 @@ class CommitTaskEdit(private val applyChanges: ApplyScheduleChanges) {
 
 /** The first problem with a task as entered in the editor, or null when it can be saved. */
 class ValidateTask {
-    operator fun invoke(title: String, startMillis: Long, endMillis: Long, window: TimelineWindow): TaskProblem? =
-        TaskRules.validate(title, startMillis, endMillis, window)
+    operator fun invoke(
+        title: String,
+        startMillis: Long,
+        endMillis: Long,
+        window: TimelineWindow,
+        isMilestone: Boolean = false,
+        progress: Int = 0,
+        notes: String = "",
+    ): TaskProblem? = TaskRules.validate(title, startMillis, endMillis, window, isMilestone, progress, notes)
 }
 
 /** Tasks that can't become [taskId]'s predecessors (itself, or a link that would close a cycle). */
@@ -70,12 +77,20 @@ class SaveTask(private val repository: ProjectRepository) {
         endMillis: Long,
         color: TaskColor,
         predecessorIds: Set<String>,
+        progress: Int = 0,
+        notes: String = "",
+        isMilestone: Boolean = false,
     ): String {
         val id = if (taskId == null) {
-            repository.createTask(projectId, title, startMillis, endMillis, color)
+            repository.createTask(projectId, title, startMillis, endMillis, color, progress, notes, isMilestone)
         } else {
             if (existing != null) {
-                repository.updateTask(existing.copy(title = title, startMillis = startMillis, endMillis = endMillis, color = color))
+                repository.updateTask(
+                    existing.copy(
+                        title = title, startMillis = startMillis, endMillis = endMillis, color = color,
+                        progress = progress, notes = notes, isMilestone = isMilestone,
+                    ),
+                )
             }
             taskId
         }

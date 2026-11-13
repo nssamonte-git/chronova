@@ -28,6 +28,11 @@ data class TaskEditorState(
     val startMillis: Long,
     val endMillis: Long,
     val color: TaskColor,
+    /** Percent complete; a milestone is 0 or 100. */
+    val progress: Int = 0,
+    val notes: String = "",
+    /** A moment rather than a span: [endMillis] equals [startMillis] and there is no end to pick. */
+    val isMilestone: Boolean = false,
     /** Tasks this one depends on (finish-to-start). */
     val predecessorIds: Set<String> = emptySet(),
     /** Tasks that can't be picked as predecessors: itself and its successors (would form a cycle). */
@@ -36,6 +41,8 @@ data class TaskEditorState(
     val saving: Boolean = false,
 ) {
     val isNew: Boolean get() = taskId == null
+
+    val isDone: Boolean get() = progress == TaskUi.DONE
 }
 
 /** The timeline screen while its project loads, once loaded, or after it disappears. */
@@ -57,4 +64,4 @@ enum class TimelineNotice {
 /** An undo on offer; [id] tells one offer from the next (the ViewModel keeps what to reverse). */
 data class UndoOffer(val kind: UndoKind, val id: Long)
 
-enum class UndoKind { TaskDeleted }
+enum class UndoKind { TaskDeleted, MarkedDone }

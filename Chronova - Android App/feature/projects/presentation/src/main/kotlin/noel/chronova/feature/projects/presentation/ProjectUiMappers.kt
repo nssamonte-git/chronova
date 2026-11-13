@@ -11,6 +11,7 @@ internal fun ProjectSummary.toUi() = ProjectRowUi(
     startDate = project.startDate,
     endDate = project.endDate,
     taskCount = taskCount,
+    doneCount = doneCount,
 )
 
 internal fun ProjectProblem.toUi(): ProjectProblemUi = when (this) {

@@ -111,10 +111,18 @@ fun SchedulerTimeline(
             // dragged task never loses its row) and any the assistant just changed. derivedStateOf
             // recomposes the rows only when that list changes, not on every scroll frame.
             val keep = remember(state.selectedTaskId, highlighted) { highlighted + listOfNotNull(state.selectedTaskId) }
+            // A milestone has no length; it counts as on screen while its diamond or title is.
+            val milestoneBefore = with(density) { (MilestoneTouchWidth / 2).toPx() }
+            val milestoneAfter = milestoneBefore + with(density) { MilestoneLabelWidth.toPx() }
             val shownTasks by remember(state.tasks, keep, pxPerMinute, window.startMillis, viewportWidthPx) {
                 derivedStateOf {
                     val visible = TaskVisibility.visibleSpan(viewport.scrollX, viewportWidthPx, window.startMillis, pxPerMinute)
-                    TaskVisibility.onScreen(state.tasks, visible, keep, id = { it.id }, start = { it.startMillis }, end = { it.endMillis })
+                    TaskVisibility.onScreen(
+                        state.tasks, visible, keep,
+                        id = { it.id },
+                        start = { if (it.isMilestone) it.startMillis - TimelineMath.pxToMillis(milestoneBefore, pxPerMinute) else it.startMillis },
+                        end = { if (it.isMilestone) it.endMillis + TimelineMath.pxToMillis(milestoneAfter, pxPerMinute) else it.endMillis },
+                    )
                 }
             }
 

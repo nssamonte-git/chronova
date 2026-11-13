@@ -14,6 +14,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,6 +49,10 @@ private val HandleHeight = 24.dp
  *
  * Selected bars get an outline and a grip on each edge; the bar being edited is
  * raised and shows [label] (its live start–end time) instead of the title.
+ *
+ * Progress darkens the bar from its start: [doneFraction] is the share of the
+ * visible bar that is done (the caller works it out from the whole bar, which may
+ * reach past the container). A [done] task also gets a check before its label.
  */
 @Composable
 fun TaskBar(
@@ -51,6 +64,8 @@ fun TaskBar(
     modifier: Modifier = Modifier,
     /** Just changed by the assistant: a pulsing outline in the orb's colours. */
     highlighted: Boolean = false,
+    doneFraction: Float = 0f,
+    done: Boolean = false,
 ) {
     val outline = MaterialTheme.colorScheme.onSurface
     val pulse = if (highlighted) {
@@ -76,19 +91,34 @@ fun TaskBar(
                 )
                 .clip(BarShape)
                 .background(color)
+                .drawBehind {
+                    if (doneFraction > 0f) {
+                        drawRect(DoneShade, size = Size(size.width * doneFraction.coerceAtMost(1f), size.height))
+                    }
+                }
                 .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), BarShape) else Modifier)
                 .then(if (highlighted) Modifier.border(3.dp, highlightBrush(pulse), BarShape) else Modifier)
                 .padding(horizontal = if (selected) 12.dp else 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
-            Text(
-                text = label,
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (done) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 4.dp).size(16.dp),
+                    )
+                }
+                Text(
+                    text = label,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (selected) {
             // Grips centred on the bar's edges.
@@ -97,6 +127,68 @@ fun TaskBar(
         }
     }
 }
+
+/**
+ * A milestone: a diamond centred in a [MilestoneTouchWidth]-wide start area (the
+ * moment sits at its centre), with [label] beside it. It has no grips: a milestone
+ * only moves. A [done] milestone shows a check inside the diamond.
+ */
+@Composable
+fun MilestoneMark(
+    label: String,
+    color: Color,
+    selected: Boolean,
+    active: Boolean,
+    done: Boolean,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+) {
+    val outline = MaterialTheme.colorScheme.onSurface
+    Row(modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(MilestoneTouchWidth), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .size(DiamondSide)
+                    .rotate(45f)
+                    .shadow(if (highlighted) 8.dp else if (active) 6.dp else if (selected) 2.dp else 0.dp, DiamondShape)
+                    .background(color, DiamondShape)
+                    .then(if (selected) Modifier.border(2.dp, outline.copy(alpha = 0.55f), DiamondShape) else Modifier)
+                    .then(if (highlighted) Modifier.border(3.dp, highlightBrush(1f), DiamondShape) else Modifier),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (done) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.rotate(-45f).size(12.dp),
+                    )
+                }
+            }
+        }
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = MilestoneLabelWidth),
+        )
+    }
+}
+
+/** The milestone's touch area around its diamond (a comfortable target). */
+val MilestoneTouchWidth = 48.dp
+
+/** Room for a milestone's title after its diamond. */
+val MilestoneLabelWidth = 160.dp
+
+private val DiamondSide = 14.dp
+private val DiamondShape = RoundedCornerShape(2.dp)
+
+/** Darkens the done part of a bar; white labels stay readable on every task colour. */
+private val DoneShade = Color.Black.copy(alpha = 0.22f)
 
 @Composable
 private fun ResizeGrip(color: Color, modifier: Modifier = Modifier) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
@@ -198,7 +199,8 @@ class ProjectTimelineScreenTest {
         // Survey must finish before Build starts.
         screen.show(listOf(survey, build, paint), listOf(screen.link("survey", "build")))
         screen.nameCell("Survey").performClick()
-        compose.onNodeWithText(screen.string(R.string.task_depends_on)).assertIsDisplayed()
+        // The editor's fields scroll; the dependencies are at the end.
+        compose.onNodeWithText(screen.string(R.string.task_depends_on)).performScrollTo().assertIsDisplayed()
         // Build depends on Survey, so Survey can't depend on Build (a cycle); Paint is free.
         predecessorChip("Build").assertIsNotEnabled().assertIsNotSelected()
         predecessorChip("Paint").assertIsEnabled().assertIsNotSelected()
@@ -206,7 +208,7 @@ class ProjectTimelineScreenTest {
 
         predecessorChip("Build").performClick()
         predecessorChip("Build").assertIsNotSelected()
-        predecessorChip("Paint").performClick()
+        predecessorChip("Paint").performScrollTo().performClick()
         predecessorChip("Paint").assertIsSelected()
         screen.button(screen.string(CoreUiR.string.save)).performClick()
         compose.waitUntil(5_000) { screen.repository.dependencies.value.size == 2 }
