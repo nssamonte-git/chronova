@@ -34,6 +34,8 @@ data class AssistantUiState(
 sealed interface AssistantMessage {
     /** [taskCount] tasks changed; the change can be undone from the message (the ViewModel keeps what to undo). */
     data class Applied(val taskCount: Int) : AssistantMessage
+    /** It made the project [name]; Undo deletes it (the ViewModel keeps which). */
+    data class ProjectCreated(val name: String) : AssistantMessage
     data object UndoNotPossible : AssistantMessage
     data object NeedsConnection : AssistantMessage
     data object NeedsSignIn : AssistantMessage

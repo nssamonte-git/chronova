@@ -178,6 +178,30 @@ class AICommandHandlerTest {
     }
 
     @Test
+    fun newProjectsAreLeftToTheCallerAndStandAlone() {
+        val sample = ProjectRef(SampleTasks.PROJECT_ID, SampleTasks.project.name, SampleTasks.project.startDate, SampleTasks.project.endDate)
+        val withProjects = context.copy(projects = listOf(sample))
+        assertEquals(
+            HandledProposal.NewProject(ProjectPlan.Create("Garden", LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 13))),
+            handler.handle(withProjects, state, proposal(ProposedOperation("create_project", name = " Garden ", startDate = "2026-03-09", endDate = "2026-03-13"))),
+        )
+        // A copy keeps the source's length (the sample runs 2–4 March).
+        val length = java.time.temporal.ChronoUnit.DAYS.between(sample.startDate, sample.endDate)
+        assertEquals(
+            HandledProposal.NewProject(ProjectPlan.Copy(sample.id, sample.name, null, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 1).plusDays(length))),
+            handler.handle(withProjects, state, proposal(ProposedOperation("duplicate_project", projectId = sample.id, startDate = "2026-04-01"))),
+        )
+        for (bad in listOf(
+            proposal(ProposedOperation("create_project", name = "X", startDate = "2026-02-30", endDate = "2026-03-13")),
+            proposal(ProposedOperation("create_project", startDate = "2026-03-09", endDate = "2026-03-13")),
+            proposal(ProposedOperation("duplicate_project", projectId = "gone", startDate = "2026-04-01")),
+            proposal(ProposedOperation("create_project", name = "X", startDate = "2026-03-09", endDate = "2026-03-13"), ProposedOperation("delete_task", taskId = "review")),
+        )) {
+            assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(withProjects, state, bad))
+        }
+    }
+
+    @Test
     fun actionsThatComeWithChangesAreDoneBeforeTheChangesAreAskedAbout() {
         val delete = ProposedOperation("delete_task", taskId = "review")
         val handled = handler.handle(context, state, actions(ProposedAction("show_task", taskId = "qa-testing"), result = "operations", operations = listOf(delete)))

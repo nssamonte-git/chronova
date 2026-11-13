@@ -18,4 +18,6 @@ class AssistantUseCases(
     val undo: UndoVoiceChange,
     val endSession: EndVoiceSession,
     val planUndo: PlanUndo,
+    val createProject: CreateVoiceProject,
+    val deleteProject: DeleteVoiceProject,
 )

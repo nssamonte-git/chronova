@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain
 
+import java.time.temporal.ChronoUnit
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -44,6 +45,12 @@ data class ProposedOperation(
     val percent: Int? = null,
     /** `create_milestone`: when it happens (local date-time). */
     val at: String? = null,
+    /** `create_project` / `duplicate_project`: the new project's name (null for a copy the app names). */
+    val name: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    /** `duplicate_project`: the project to copy. */
+    val projectId: String? = null,
 )
 
 /** What to show the user for a proposal. Nothing has been written. */
@@ -56,6 +63,9 @@ sealed interface HandledProposal {
 
     /** Undo the last applied change: the caller knows what it was, and asks first. */
     data class UndoLast(val actions: List<VoiceAction>) : HandledProposal
+
+    /** A new project (made or copied): asked about first. */
+    data class NewProject(val plan: ProjectPlan) : HandledProposal
 
     data class Clarify(val question: String) : HandledProposal
 
@@ -96,6 +106,7 @@ class AICommandHandler(private val planner: CommandPlanner) {
             "unsupported" -> HandledProposal.Unsupported(proposal.reason?.takeIf { it.isNotBlank() })
             "actions" -> if (actions.isEmpty() || proposal.operations.isNotEmpty()) HandledProposal.Unreadable else HandledProposal.Act(actions)
             "operations" -> {
+                ProjectPlan.from(proposal, sent.projects)?.let { return it }
                 if (proposal.operations.any { it.type == UNDO }) {
                     return if (proposal.operations.size == 1) HandledProposal.UndoLast(actions) else HandledProposal.Unreadable
                 }
@@ -171,5 +182,58 @@ class AICommandHandler(private val planner: CommandPlanner) {
             else -> return null
         }
         return Amount(value, unit)
+    }
+}
+
+/**
+ * A new project the user asked for, before it is made: an empty one, or a copy of [Copy.sourceId]
+ * starting on [startDate] with the same length. [name] is null for a copy the app names.
+ */
+sealed interface ProjectPlan {
+    val name: String?
+    val startDate: LocalDate
+    val endDate: LocalDate
+
+    data class Create(override val name: String, override val startDate: LocalDate, override val endDate: LocalDate) : ProjectPlan
+
+    data class Copy(
+        val sourceId: String,
+        val sourceName: String,
+        override val name: String?,
+        override val startDate: LocalDate,
+        override val endDate: LocalDate,
+    ) : ProjectPlan
+
+    companion object {
+        private val TYPES = setOf("create_project", "duplicate_project")
+
+        /**
+         * The plan when [proposal] is about a new project ([HandledProposal.NewProject], or
+         * [HandledProposal.Unreadable] when malformed or not alone); null when it isn't about one.
+         */
+        fun from(proposal: Proposal, projects: List<ProjectRef>): HandledProposal? {
+            if (proposal.operations.none { it.type in TYPES }) return null
+            val op = proposal.operations.singleOrNull() ?: return HandledProposal.Unreadable
+            val plan = try {
+                when (op.type) {
+                    "create_project" -> Create(
+                        op.name?.trim()?.ifEmpty { null } ?: return HandledProposal.Unreadable,
+                        LocalDate.parse(op.startDate ?: return HandledProposal.Unreadable),
+                        LocalDate.parse(op.endDate ?: return HandledProposal.Unreadable),
+                    )
+                    else -> {
+                        val source = projects.firstOrNull { it.id == op.projectId } ?: return HandledProposal.Unreadable
+                        val start = LocalDate.parse(op.startDate ?: return HandledProposal.Unreadable)
+                        Copy(
+                            source.id, source.name, op.name?.trim()?.ifEmpty { null }, start,
+                            start.plusDays(ChronoUnit.DAYS.between(source.startDate, source.endDate)),
+                        )
+                    }
+                }
+            } catch (_: DateTimeParseException) {
+                return HandledProposal.Unreadable
+            }
+            return HandledProposal.NewProject(plan)
+        }
     }
 }

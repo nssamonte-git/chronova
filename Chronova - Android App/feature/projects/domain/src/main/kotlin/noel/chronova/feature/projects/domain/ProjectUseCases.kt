@@ -1,5 +1,6 @@
 package noel.chronova.feature.projects.domain
 
+import noel.chronova.core.domain.CopyProject
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow

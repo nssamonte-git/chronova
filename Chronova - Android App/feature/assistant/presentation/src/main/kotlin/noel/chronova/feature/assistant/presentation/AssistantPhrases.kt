@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.domain.ProjectProblem
+import noel.chronova.feature.assistant.domain.ProjectPlan
 import noel.chronova.core.model.ReminderLead
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.core.model.TimeScale
@@ -40,6 +42,16 @@ interface AssistantPhrases {
 
     /** Asked to undo, but it has changed nothing (or its change was already undone). */
     fun nothingToUndo(): String
+
+    /** Asks before making a project: what it will be called and when it runs. */
+    fun askNewProject(plan: ProjectPlan, name: String): String
+
+    /** The name a copy gets when none was said ("Copy of Jnn", as "Duplicate" names it). */
+    fun copyName(sourceName: String): String
+
+    fun projectCreated(name: String): String
+
+    fun projectProblem(problem: ProjectProblem): String
 }
 
 /** [AssistantPhrases] from the app's string resources. */
@@ -69,6 +81,22 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
     )
 
     override fun nothingToUndo() = resources.getString(R.string.assistant_nothing_to_undo)
+
+    override fun askNewProject(plan: ProjectPlan, name: String): String = when (plan) {
+        is ProjectPlan.Create -> resources.getString(R.string.assistant_ask_create_project, name, plan.startDate.format(SPOKEN_DAY), plan.endDate.format(SPOKEN_DAY))
+        is ProjectPlan.Copy -> resources.getString(R.string.assistant_ask_copy_project, plan.sourceName, name, plan.startDate.format(SPOKEN_DAY), plan.endDate.format(SPOKEN_DAY))
+    }
+
+    override fun copyName(sourceName: String) = resources.getString(R.string.assistant_copy_name, sourceName)
+
+    override fun projectCreated(name: String) = resources.getString(R.string.assistant_project_ready, name)
+
+    override fun projectProblem(problem: ProjectProblem): String = when (problem) {
+        ProjectProblem.BlankName -> resources.getString(R.string.assistant_project_needs_name)
+        ProjectProblem.EndBeforeStart -> resources.getString(R.string.assistant_project_ends_before_start)
+        is ProjectProblem.TooLong -> resources.getQuantityString(R.plurals.assistant_project_too_long, problem.maxDays, problem.maxDays)
+        is ProjectProblem.ExcludesTasks -> resources.getString(R.string.assistant_schedule_changed)
+    }
 
     override fun showing(action: VoiceAction): String = when (action) {
         VoiceAction.GoToToday -> resources.getString(R.string.assistant_showing_today)

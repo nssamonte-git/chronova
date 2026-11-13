@@ -1270,4 +1270,23 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - "sync now" synced: "3 changes not synced" became "All changes synced".
     - "export this as a pdf" opened the share sheet with VoiceCheck.pdf (370 KB, a valid PDF). I cancelled it, so nothing was sent.
     - Your appearance (System) and reminders (Off) are as they were.
+- Batch 7, new and copied projects:
+  - **Server:**
+    - The operations `create_project` (`name`, `startDate`, `endDate`; the right way round, at most 366 days) and `duplicate_project` (`projectId`, `name` or null, `startDate`).
+    - Each stands alone, works from the list of projects too, and only for apps with actions.
+    - The fake interpreter knows "new project <name> from <date> to <date>" and "copy this/<project> (as <name>) starting <date>".
+    - 6 new tests; 393 passed, Pint clean.
+  - **App:**
+    - `CopyProject` moved unchanged from the projects feature to `:core:domain`, with its test, so "Duplicate" and the assistant share it (the move that `DependentsRescheduler` had in batch 1 of the previous plan). `ProjectTemplate` stayed in the projects feature.
+    - `ProjectPlan` (make or copy; a copy keeps the source's length). The assistant says what it will make and asks, e.g. "Copy "VoiceCheck" as "Copy of VoiceCheck", Saturday 14 November to Friday 20 November?".
+    - On a yes `CreateVoiceProject` makes it after the same checks as the new-project sheet, and a "Created "…" · Undo" message deletes it (`DeleteVoiceProject`).
+    - It stays on the screen it was asked on, so the Undo message is there to use; "open <name>" goes to it.
+    - Problems are said ("A project can last at most 366 days.", as a plural after lint asked for one).
+  - **Tests:** handler (make, copy with the source's length, 4 bad ones), API (the fields, both ways), 2 ViewModel tests (asked first, a no makes nothing, a yes makes it, Undo deletes it; a copy named as "Duplicate" names it, with its tasks).
+    - `tools/check.sh` PASS (436 unit tests, lint 21 warnings).
+  - **Phone check** with the fake interpreter:
+    - "new project garden …", then yes, made Garden (16–20 Nov) with "Created "Garden" · Undo".
+    - "copy voicecheck starting tomorrow" asked as above; a yes made "Copy of VoiceCheck" (14–20 Nov, 2 tasks), and tapping Undo deleted it.
+    - Garden's Undo was tapped too late (the message lasts 10 s), so I deleted it from its menu.
+    - The phone lost its network once during this check (the orb then won't open); it came back by itself.
 

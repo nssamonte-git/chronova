@@ -1,5 +1,10 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.domain.CopyProject
+import noel.chronova.feature.assistant.domain.DeleteVoiceProject
+import noel.chronova.feature.assistant.domain.CreateVoiceProject
+import noel.chronova.core.domain.ProjectProblem
+import noel.chronova.feature.assistant.domain.ProjectPlan
 import noel.chronova.core.model.ReminderLead
 import noel.chronova.core.model.ThemeMode
 import noel.chronova.feature.assistant.domain.ListContext
@@ -274,6 +279,10 @@ private object FakePhrases : AssistantPhrases {
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long) = "cannot do"
     override fun showing(action: VoiceAction) = "showing $action"
     override fun nothingToUndo() = "nothing to undo"
+    override fun askNewProject(plan: ProjectPlan, name: String) = "make $name ${plan.startDate}–${plan.endDate}?"
+    override fun copyName(sourceName: String) = "Copy of $sourceName"
+    override fun projectCreated(name: String) = "made $name"
+    override fun projectProblem(problem: ProjectProblem) = "project problem $problem"
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -329,6 +338,8 @@ class AssistantViewModelTest {
             undo = UndoVoiceChange(applyChanges),
             endSession = EndVoiceSession(auth),
             planUndo = PlanUndo(repository),
+            createProject = CreateVoiceProject(repository, CopyProject(repository, zone), zone),
+            deleteProject = DeleteVoiceProject(repository),
         )
     }
 
@@ -605,6 +616,40 @@ class AssistantViewModelTest {
         viewModel.appRequestDone(viewModel.appRequest.value!!.id)
         advanceUntilIdle()
         assertNull(viewModel.appRequest.value) // not the account page: it was asking about a change
+    }
+
+    @Test
+    fun aNewProjectIsAskedAboutMadeOnAYesAndUndoDeletesIt() = runTest(dispatcher) {
+        viewModel = viewModelFor(null)
+        api.answerOnList = { _, _ ->
+            Proposal(null, "operations", listOf(ProposedOperation("create_project", name = "Garden", startDate = "2026-03-09", endDate = "2026-03-13")), null, null)
+        }
+        says("new project garden", "no")
+        talk()
+        assertTrue("make Garden 2026-03-09–2026-03-13?" in api.said)
+        assertEquals(listOf(SampleTasks.project.name), repository.projects.value.map { it.name }) // a no makes nothing
+
+        says("new project garden", "yes")
+        talk()
+        assertEquals(listOf(SampleTasks.project.name, "Garden"), repository.projects.value.map { it.name })
+        assertEquals("made Garden", api.said.last())
+        assertEquals(AssistantMessage.ProjectCreated("Garden"), viewModel.message.value)
+
+        viewModel.undo()
+        advanceUntilIdle()
+        assertEquals(listOf(SampleTasks.project.name), repository.projects.value.map { it.name })
+    }
+
+    @Test
+    fun aCopyIsNamedAsDuplicateNamesIt() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(c.revision, "operations", listOf(ProposedOperation("duplicate_project", projectId = SampleTasks.PROJECT_ID, startDate = "2026-04-06")), null, null)
+        }
+        says("copy this starting april 6", "yes")
+        talk()
+        val copy = repository.projects.value.single { it.name == "Copy of ${SampleTasks.project.name}" }
+        assertEquals(java.time.LocalDate.of(2026, 4, 6), copy.startDate)
+        assertEquals(SampleTasks.tasks(zone).size, repository.tasks.value.count { it.projectId == copy.id })
     }
 
     @Test

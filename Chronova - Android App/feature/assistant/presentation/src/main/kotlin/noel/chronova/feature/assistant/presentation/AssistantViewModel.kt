@@ -188,6 +188,14 @@ class AssistantViewModel(
     }
 
     fun undo() {
+        if (session.message.value is AssistantMessage.ProjectCreated) {
+            val made = session.lastProjectId ?: return
+            session.message.value = null
+            session.lastProjectId = null
+            conversation.stopAfterword()
+            viewModelScope.launch { useCases.deleteProject(made) }
+            return
+        }
         val projectId = projectId ?: return
         if (session.message.value !is AssistantMessage.Applied) return
         val changes = session.lastUndo

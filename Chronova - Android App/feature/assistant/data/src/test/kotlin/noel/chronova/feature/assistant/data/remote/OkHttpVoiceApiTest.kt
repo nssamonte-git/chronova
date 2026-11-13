@@ -162,6 +162,23 @@ class OkHttpVoiceApiTest {
     }
 
     @Test
+    fun newProjectsAreReadWithTheirFields() = runTest {
+        reply(
+            200,
+            """{"revision":"r1","result":"operations","operations":[{"type":"duplicate_project","projectId":"p2","name":null,"startDate":"2026-12-01"}],"question":null,"reason":null}""",
+        )
+        assertEquals(
+            listOf(ProposedOperation("duplicate_project", projectId = "p2", startDate = "2026-12-01")),
+            api.interpret("token-1", "copy kitchen", context).operations,
+        )
+        assertEquals(
+            """{"type":"create_project","name":"Garden","startDate":"2026-11-16","endDate":"2026-11-20"}""",
+            ProposedOperation("create_project", name = "Garden", startDate = "2026-11-16", endDate = "2026-11-20").toWire().toString(),
+        )
+        server.takeRequest()
+    }
+
+    @Test
     fun theViewIsSentInTheApisTerms() = runTest {
         reply(200, """{"revision":"r1","result":"unsupported","operations":[],"question":null,"reason":"no"}""")
         val view = ViewContext(

@@ -1,12 +1,10 @@
-package noel.chronova.feature.projects.domain
+package noel.chronova.core.domain
 
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
-import noel.chronova.core.domain.ProjectProblem
-import noel.chronova.core.domain.SampleTasks
 import noel.chronova.core.model.Project
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskDependency

@@ -29,6 +29,9 @@ internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boole
     /** What the last applied change's undo would apply, while its message offers Undo. */
     var lastUndo: List<ScheduleChange> = emptyList()
 
+    /** The project it just made, while its message offers Undo (which deletes it). */
+    var lastProjectId: String? = null
+
     /** What the screen shows (from [AssistantViewModel.onView]); sent with each request. */
     var view: ViewContext? = null
 

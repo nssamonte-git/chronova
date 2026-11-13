@@ -124,6 +124,8 @@ Operations (every field is always present):
 | `reschedule_dependents` | `taskId` — the app pushes everything downstream just enough |
 | `set_progress` | `taskId`, `percent` (integer 0–100; a milestone takes only 0 or 100) |
 | `create_milestone` | `title`, `at` (date-time), `predecessorIds` |
+| `create_project` | `name` (1–200 characters), `startDate`, `endDate` (dates; at most 366 days) — alone; also from the list of projects; only for apps with actions |
+| `duplicate_project` | `projectId` (from `context.projects`), `name` (or null: the app names it "Copy of …"), `startDate` — alone; same rules. The copy keeps the source's length, tasks and links |
 | `undo_last_change` | (none) — always alone, with no alternative; only for apps with the `actions` capability (others get "unsupported"). The app knows what its last applied change was, previews undoing it and asks first |
 
 A milestone moves with `move_task`, `shift_task` or `set_times` (the given start, or end, becomes its moment); the app refuses `change_duration` and `set_duration` on one, and doesn't count a milestone as overlapping a task.

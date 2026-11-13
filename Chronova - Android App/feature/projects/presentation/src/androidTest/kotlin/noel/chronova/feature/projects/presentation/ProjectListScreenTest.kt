@@ -21,7 +21,7 @@ import noel.chronova.core.model.TaskColor
 import noel.chronova.core.testing.FakeProjectRepository
 import noel.chronova.core.ui.TimeFormat
 import noel.chronova.core.ui.sync.SyncUi
-import noel.chronova.feature.projects.domain.CopyProject
+import noel.chronova.core.domain.CopyProject
 import noel.chronova.feature.projects.domain.DeleteProject
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProject

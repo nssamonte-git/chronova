@@ -62,6 +62,17 @@
     <string name="assistant_reminders_1_hour">Reminders an hour before each task.</string>
     <string name="assistant_reminders_1_day">Reminders a day before each task.</string>
     <string name="assistant_syncing">Syncing now.</string>
+    <string name="assistant_ask_create_project">Create a new project “%1$s”, %2$s to %3$s?</string>
+    <string name="assistant_ask_copy_project">Copy “%1$s” as “%2$s”, %3$s to %4$s?</string>
+    <string name="assistant_copy_name">Copy of %1$s</string>
+    <string name="assistant_project_ready">Done. “%1$s” is in your projects.</string>
+    <string name="assistant_project_created">Created “%1$s”</string>
+    <string name="assistant_project_needs_name">The project needs a name.</string>
+    <string name="assistant_project_ends_before_start">A project must end on or after the day it starts.</string>
+    <plurals name="assistant_project_too_long">
+        <item quantity="one">A project can last at most %1$d day.</item>
+        <item quantity="other">A project can last at most %1$d days.</item>
+    </plurals>
     <string name="assistant_exporting_pdf">Exporting %1$s as a PDF. Choose where to send it.</string>
     <string name="assistant_exporting_csv">Exporting %1$s as a spreadsheet. Choose where to send it.</string>
     <string name="assistant_exporting_calendar">Exporting %1$s for your calendar. Choose where to send it.</string>

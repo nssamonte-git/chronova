@@ -15,7 +15,8 @@ use DateTimeImmutable;
  * that aren't done", "show milestones", "clear the search", "open review"; "undo that"; "this" or "it"
  * for the selected task; two of these joined by "and"; and "open <project>", "go back to my projects",
  * "show notifications", "open my account"; "dark theme", "remind me 15 minutes before", "turn off reminders",
- * "sync now", "export this as a pdf (without notes)".
+ * "sync now", "export this as a pdf (without notes)"; "new project kitchen from 2026-11-16 to 2026-11-20",
+ * "copy this (as <name>) starting tomorrow".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -33,6 +34,24 @@ final class FakeInterpreter implements Interpreter
     private function proposal(string $text, array $context): array
     {
         $text = rtrim($text, '.!?');
+        $date = '(\d{4}-\d{2}-\d{2}|today|tomorrow)';
+        if (preg_match("/^(new|create a|start a) project (.+) from $date to $date$/", $text, $m)) {
+            return ['result' => 'operations', 'operations' => [[
+                'type' => 'create_project', 'name' => ucfirst($m[2]),
+                'startDate' => $this->day($m[3], $context['today']), 'endDate' => $this->day($m[4], $context['today']),
+            ]], 'question' => null, 'reason' => null];
+        }
+        if (preg_match("/^(copy|duplicate) (this|.+?)( as (.+?))? starting $date$/", $text, $m)) {
+            $source = $m[2] === 'this'
+                ? ($context['projectId'] ?? null)
+                : (collect($context['projects'] ?? [])->first(fn ($p) => mb_strtolower($p['name']) === $m[2])['id'] ?? null);
+            if ($source !== null) {
+                return ['result' => 'operations', 'operations' => [[
+                    'type' => 'duplicate_project', 'projectId' => $source,
+                    'name' => ($m[4] ?? '') === '' ? null : ucfirst($m[4]), 'startDate' => $this->day($m[5], $context['today']),
+                ]], 'question' => null, 'reason' => null];
+            }
+        }
         if (preg_match('/^(undo( that| it| your last change)?|put it back)$/', $text)) {
             return ['result' => 'operations', 'operations' => [['type' => 'undo_last_change']], 'question' => null, 'reason' => null];
         }

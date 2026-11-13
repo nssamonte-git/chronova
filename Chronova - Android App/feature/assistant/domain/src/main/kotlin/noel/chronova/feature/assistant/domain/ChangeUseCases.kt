@@ -1,5 +1,9 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.domain.ProjectRules
+import noel.chronova.core.domain.ProjectProblem
+import noel.chronova.core.domain.CopyProjectResult
+import noel.chronova.core.domain.CopyProject
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import noel.chronova.core.domain.notifications.NotificationKind
@@ -26,6 +30,42 @@ class PlanUndo(private val repository: ProjectRepository) {
         val state = repository.schedule(projectId) ?: return null
         return VoicePlan(PreviewItem.from(undo, state), undo, ScheduleWarning.from(undo, state))
     }
+}
+
+/** What making a new project by voice came to. */
+sealed interface NewProjectResult {
+    data class Created(val projectId: String) : NewProjectResult
+    data class Invalid(val problem: ProjectProblem) : NewProjectResult
+
+    /** The project to copy has gone meanwhile. */
+    data object SourceGone : NewProjectResult
+}
+
+/**
+ * Makes the project [plan] describes, named [name]: empty, or a copy through the same
+ * [CopyProject] as "Duplicate", after the same checks as the new-project sheet.
+ */
+class CreateVoiceProject(
+    private val repository: ProjectRepository,
+    private val copyProject: CopyProject,
+    private val zone: ZoneId,
+) {
+    suspend operator fun invoke(plan: ProjectPlan, name: String): NewProjectResult = when (plan) {
+        is ProjectPlan.Create -> {
+            ProjectRules.validate(name, plan.startDate, plan.endDate, emptyList(), zone)?.let { NewProjectResult.Invalid(it) }
+                ?: NewProjectResult.Created(repository.createProject(name.trim(), plan.startDate, plan.endDate))
+        }
+        is ProjectPlan.Copy -> when (val copied = copyProject(plan.sourceId, name, plan.startDate)) {
+            is CopyProjectResult.Created -> NewProjectResult.Created(copied.projectId)
+            is CopyProjectResult.Invalid -> NewProjectResult.Invalid(copied.problem)
+            CopyProjectResult.SourceGone -> NewProjectResult.SourceGone
+        }
+    }
+}
+
+/** Undoes a project made by voice: deletes it (synced like any deletion). */
+class DeleteVoiceProject(private val repository: ProjectRepository) {
+    suspend operator fun invoke(projectId: String) = repository.deleteProject(projectId)
 }
 
 /** Reverses an applied change set, unless those tasks were edited again since. */

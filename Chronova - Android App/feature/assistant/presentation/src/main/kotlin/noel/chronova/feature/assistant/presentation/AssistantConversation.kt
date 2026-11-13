@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.feature.assistant.domain.NewProjectResult
+import noel.chronova.feature.assistant.domain.ProjectPlan
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TaskColor
 import noel.chronova.feature.assistant.domain.ViewContext
@@ -64,6 +66,9 @@ internal class AssistantConversation(
 
         /** Only things to show: done at once, and the conversation ends. */
         data class Act(val actions: List<VoiceAction>) : Outcome
+
+        /** A new project: said and asked about first. */
+        data class NewProject(val plan: ProjectPlan) : Outcome
         data class Question(val text: String) : Outcome
 
         /** [final]: nothing more can be done in this conversation. */
@@ -89,6 +94,22 @@ internal class AssistantConversation(
                 context = null
                 when (val outcome = interpret(request)) {
                     is Outcome.Act -> return act(outcome.actions)
+                    is Outcome.NewProject -> {
+                        val plan = outcome.plan
+                        val name = plan.name ?: phrases.copyName((plan as ProjectPlan.Copy).sourceName)
+                        voice.say(phrases.askNewProject(plan, name))
+                        val heard = ears.listen(answering = true) ?: return declined()
+                        val (kind, reply) = answer(heard) ?: return declined()
+                        when (kind) {
+                            ConfirmationReply.Yes -> return createProject(plan, name)
+                            ConfirmationReply.No -> return declined()
+                            ConfirmationReply.Other -> {
+                                context = "$request. Change of plan:"
+                                pendingWords = reply
+                                strikes = 0
+                            }
+                        }
+                    }
                     is Outcome.Proposal -> {
                         // Done at once, before asking; leaving the screen mid-question isn't done.
                         session.show(outcome.actions.filter { it.forTheScreen }.map { it.toViewAction() })
@@ -148,6 +169,7 @@ internal class AssistantConversation(
             is Interpretation.Planned -> Outcome.Proposal(interpreted.plan, interpreted.actions)
             is Interpretation.Act -> Outcome.Act(interpreted.actions)
             // Undoing is a change like any other: said and asked about first.
+            is Interpretation.NewProject -> Outcome.NewProject(interpreted.plan)
             is Interpretation.UndoLast -> projectId?.let { useCases.planUndo(it, session.lastUndo) }
                 ?.let { Outcome.Proposal(it, interpreted.actions) }
                 ?: Outcome.Problem(phrases.nothingToUndo())
@@ -265,6 +287,27 @@ internal class AssistantConversation(
                 actions.filter { !it.forTheScreen }.forEach(session::request)
             } finally {
                 session.explaining.value = false
+            }
+        }
+    }
+
+    /** Makes the project once the user said yes; its message offers Undo, which deletes it. */
+    private suspend fun createProject(plan: ProjectPlan, name: String) {
+        when (val result = useCases.createProject(plan, name)) {
+            is NewProjectResult.Invalid -> voice.say(phrases.projectProblem(result.problem))
+            NewProjectResult.SourceGone -> voice.say(phrases.scheduleChanged())
+            is NewProjectResult.Created -> {
+                session.lastProjectId = result.projectId
+                session.message.value = AssistantMessage.ProjectCreated(name)
+                session.explaining.value = true
+                session.ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
+                session.afterword = session.scope.launch {
+                    try {
+                        voice.sayAside(phrases.projectCreated(name))
+                    } finally {
+                        session.explaining.value = false
+                    }
+                }
             }
         }
     }

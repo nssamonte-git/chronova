@@ -33,6 +33,9 @@ final class ProposalValidator
     /** Said to an app that can't do actions yet, instead of what it was asked. */
     public const UPDATE_APP = 'Update the app to do that.';
 
+    /** Longest project, in days (as the app's rules). */
+    private const MAX_PROJECT_DAYS = 366;
+
     /** Said when the list of projects is asked to change a schedule. */
     public const OPEN_A_PROJECT = 'Open a project first, then tell me what to change.';
 
@@ -74,16 +77,18 @@ final class ProposalValidator
         if ($operations === [] || count($operations) > $maxOperations) {
             return null;
         }
-        if (($context['view']['screen'] ?? 'timeline') === 'projects') {
+        $types = array_column(array_filter($operations, 'is_array'), 'type');
+        $aboutProjects = array_intersect($types, ProposalSchema::PROJECT_OPERATIONS) !== [];
+        if (! $aboutProjects && ($context['view']['screen'] ?? 'timeline') === 'projects') {
             return $answer('unsupported', [], null, self::OPEN_A_PROJECT);
         }
 
-        $clean = $this->operations($operations, $taskIds, $maxOperations);
+        $clean = $this->operations($operations, $taskIds, $maxOperations, $projectIds);
         if ($clean === null) {
             return null;
         }
-        if (in_array('undo_last_change', array_column($clean, 'type'), true)) {
-            // Undo stands alone: nothing else to plan with it, and no alternative.
+        if (array_intersect(array_column($clean, 'type'), ProposalSchema::ALONE) !== []) {
+            // Undo and new projects stand alone: nothing else to plan with them, and no alternative.
             if (count($clean) !== 1) {
                 return null;
             }
@@ -141,14 +146,14 @@ final class ProposalValidator
     }
 
     /** The checked list, or null if it is empty, too long or has a bad operation. */
-    private function operations(mixed $operations, array $taskIds, int $maxOperations): ?array
+    private function operations(mixed $operations, array $taskIds, int $maxOperations, array $projectIds = []): ?array
     {
         if (! is_array($operations) || ! array_is_list($operations) || $operations === [] || count($operations) > $maxOperations) {
             return null;
         }
         $clean = [];
         foreach ($operations as $operation) {
-            $checked = $this->operation($operation, $taskIds);
+            $checked = $this->operation($operation, $taskIds, $projectIds);
             if ($checked === null) {
                 return null;
             }
@@ -166,25 +171,29 @@ final class ProposalValidator
         return $actions === null ? $answer : $answer + ['actions' => $actions];
     }
 
-    private function operation(mixed $operation, array $taskIds): ?array
+    private function operation(mixed $operation, array $taskIds, array $projectIds = []): ?array
     {
         $fields = is_array($operation) ? ProposalSchema::operations()[$operation['type'] ?? ''] ?? null : null;
         if ($fields === null || array_keys($operation) != array_merge(['type'], array_keys($fields))) {
             return null;
         }
         foreach ($fields as $name => $schema) {
-            if (! $this->valid($name, $operation[$name], $operation, $taskIds)) {
+            if (! $this->valid($name, $operation[$name], $operation, $taskIds, $projectIds)) {
                 return null;
             }
         }
         if (isset($operation['title'])) {
             $operation['title'] = trim($operation['title']);
         }
+        if (isset($operation['name'])) {
+            $operation['name'] = trim($operation['name']);
+        }
 
         return match ($operation['type']) {
             'set_times' => ($operation['start'] === null && $operation['end'] === null) ? null : $operation,
             'add_dependency', 'remove_dependency' => $operation['predecessorId'] === $operation['successorId'] ? null : $operation,
             'create_task' => $this->dateTime($operation['end']) <= $this->dateTime($operation['start']) ? null : $operation,
+            'create_project' => $this->projectDays($operation['startDate'], $operation['endDate']) ? $operation : null,
             default => $operation,
         };
     }
@@ -208,6 +217,10 @@ final class ProposalValidator
             'amount' => is_int($value) && $value !== 0 && abs($value) <= (self::MAX_AMOUNT[$operation['unit'] ?? ''] ?? 0),
             'unit' => in_array($value, ProposalSchema::UNITS, true),
             'title' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TITLE,
+            // A copy may leave its name to the app.
+            'name' => ($value === null && $operation['type'] === 'duplicate_project')
+                || (is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TITLE),
+            'startDate', 'endDate' => is_string($value) && $this->date($value) !== null,
             'scale' => in_array($value, ProposalSchema::SCALES, true),
             'direction' => in_array($value, ProposalSchema::ZOOMS, true),
             'size' => in_array($value, ProposalSchema::ROW_SIZES, true),
@@ -217,6 +230,15 @@ final class ProposalValidator
             'kinds' => $this->choices($value, ProposalSchema::KINDS),
             default => false,
         };
+    }
+
+    /** The project's range is the right way round and no longer than the app allows. */
+    private function projectDays(string $start, string $end): bool
+    {
+        $from = $this->date($start);
+        $to = $this->date($end);
+
+        return $from !== null && $to !== null && $to >= $from && $from->diff($to)->days < self::MAX_PROJECT_DAYS;
     }
 
     private function date(string $value): ?DateTimeImmutable

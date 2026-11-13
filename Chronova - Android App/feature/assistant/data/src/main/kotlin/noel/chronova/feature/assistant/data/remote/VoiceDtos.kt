@@ -172,6 +172,9 @@ private val OPERATION_FIELDS = mapOf(
     "reschedule_dependents" to listOf("taskId"),
     "set_progress" to listOf("taskId", "percent"),
     "create_milestone" to listOf("title", "at", "predecessorIds"),
+    "undo_last_change" to emptyList(),
+    "create_project" to listOf("name", "startDate", "endDate"),
+    "duplicate_project" to listOf("projectId", "name", "startDate"),
 )
 
 /** An operation as the server sent it: its type's fields, nulls written out. */
@@ -192,6 +195,10 @@ internal fun ProposedOperation.toWire(): JsonObject = buildJsonObject {
             "successorId" -> put(field, successorId)
             "percent" -> put(field, percent)
             "at" -> put(field, at)
+            "name" -> put(field, name)
+            "startDate" -> put(field, startDate)
+            "endDate" -> put(field, endDate)
+            "projectId" -> put(field, projectId)
         }
     }
 }
@@ -242,6 +249,10 @@ internal data class OperationDto(
     val successorId: String? = null,
     val percent: Int? = null,
     val at: String? = null,
+    val name: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val projectId: String? = null,
 )
 
 /** Local date-times as the API expects them: minutes, no seconds, no offset. */
@@ -301,6 +312,10 @@ internal fun OperationDto.toDomain() = ProposedOperation(
     successorId = successorId,
     percent = percent,
     at = at,
+    name = name,
+    startDate = startDate,
+    endDate = endDate,
+    projectId = projectId,
 )
 
 /** The API's names for how the user answered (`POST /v1/voice/decision`). */

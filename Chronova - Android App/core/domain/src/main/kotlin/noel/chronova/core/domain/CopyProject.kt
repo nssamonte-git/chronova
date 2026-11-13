@@ -1,13 +1,9 @@
-package noel.chronova.feature.projects.domain
+package noel.chronova.core.domain
 
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import noel.chronova.core.domain.CalendarDays
-import noel.chronova.core.domain.ProjectProblem
-import noel.chronova.core.domain.ProjectRules
-import noel.chronova.core.domain.TaskRules
 import noel.chronova.core.domain.repository.ProjectRepository
 import noel.chronova.core.model.Project
 import noel.chronova.core.model.SchedulerTask
@@ -27,7 +23,8 @@ sealed interface CopyProjectResult {
  * calendar days, so they keep their local times across DST; one that DST would make
  * invalid keeps its length instead. The copy starts with nothing done (progress 0);
  * titles, notes, colours, row order and milestones are kept. Everything is written in
- * one transaction, with new ids.
+ * one transaction, with new ids. Shared by the projects feature ("Duplicate", "Start from") and
+ * the voice assistant ("copy Jnn starting Monday").
  */
 class CopyProject(
     private val repository: ProjectRepository,
@@ -61,9 +58,4 @@ class CopyProject(
         repository.createProjectWithSchedule(project, tasks, links)
         return CopyProjectResult.Created(project.id)
     }
-}
-
-/** A project offered as a starting point: its name and length, for the sheet. */
-data class ProjectTemplate(val projectId: String, val name: String, val startDate: LocalDate, val endDate: LocalDate) {
-    val lengthDays: Long get() = ChronoUnit.DAYS.between(startDate, endDate)
 }

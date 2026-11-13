@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.core.model.ProjectSummary
-import noel.chronova.feature.projects.domain.CopyProjectResult
+import noel.chronova.core.domain.CopyProjectResult
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProjectResult
 import noel.chronova.core.domain.repository.ProjectQueries

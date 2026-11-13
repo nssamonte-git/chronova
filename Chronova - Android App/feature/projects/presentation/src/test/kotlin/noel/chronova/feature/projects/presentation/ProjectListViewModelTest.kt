@@ -20,7 +20,7 @@ import org.junit.Before
 import org.junit.Test
 import noel.chronova.feature.projects.domain.SaveProject
 import noel.chronova.feature.projects.domain.DeleteProject
-import noel.chronova.feature.projects.domain.CopyProject
+import noel.chronova.core.domain.CopyProject
 import noel.chronova.core.domain.repository.ProjectRepository
 import java.time.ZoneId
 

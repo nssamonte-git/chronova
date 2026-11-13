@@ -77,8 +77,17 @@ final class ProposalSchema
             'create_milestone' => ['title' => ['type' => 'string'], 'at' => $dateTime, 'predecessorIds' => ['type' => 'array', 'items' => $id]],
             // Undoes the assistant's last applied change (the app knows what it was); always alone, and asked about first.
             'undo_last_change' => [],
+            // New projects (always alone; from the list of projects too). A copy's name null: the app names it.
+            'create_project' => ['name' => ['type' => 'string'], 'startDate' => ['type' => 'string', 'pattern' => self::DATE], 'endDate' => ['type' => 'string', 'pattern' => self::DATE]],
+            'duplicate_project' => ['projectId' => $id, 'name' => ['type' => ['string', 'null']], 'startDate' => ['type' => 'string', 'pattern' => self::DATE]],
         ];
     }
+
+    /** Operations that stand alone: each is all the answer holds. */
+    public const ALONE = ['undo_last_change', 'create_project', 'duplicate_project'];
+
+    /** Operations about projects rather than the open schedule: allowed from the list of projects. */
+    public const PROJECT_OPERATIONS = ['create_project', 'duplicate_project'];
 
     /** Action type => its fields (each field's JSON schema). Actions change nothing, so they run without a yes. */
     public static function actions(): array

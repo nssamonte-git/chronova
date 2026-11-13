@@ -91,6 +91,13 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
                 long = true,
                 onResult = { undo -> if (undo) assistant.undo() else assistant.dismissMessage() },
             )
+            is AssistantMessage.ProjectCreated -> AssistantSnackbar(
+                key = shown,
+                text = resources.getString(R.string.assistant_project_created, shown.name),
+                actionLabel = undoLabel,
+                long = true,
+                onResult = { undo -> if (undo) assistant.undo() else assistant.dismissMessage() },
+            )
             AssistantMessage.UndoNotPossible -> AssistantSnackbar(shown, resources.getString(CoreUiR.string.undo_not_possible), null, false, done)
             AssistantMessage.NeedsConnection -> AssistantSnackbar(shown, resources.getString(R.string.assistant_needs_connection), null, false, done)
             AssistantMessage.NeedsSignIn -> AssistantSnackbar(shown, resources.getString(R.string.assistant_needs_sign_in), null, false, done)

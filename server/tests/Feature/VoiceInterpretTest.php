@@ -385,6 +385,20 @@ it('changes settings, syncs and exports by voice', function (string $words, arra
     'export another' => ['export kitchen as a spreadsheet without notes', ['type' => 'export', 'projectId' => 'p2', 'format' => 'csv', 'notes' => false]],
 ]);
 
+it('starts new projects, alone, from the list or a timeline', function () {
+    test()->postJson('/v1/voice/interpret', ['transcript' => 'new project garden from 2026-11-16 to 2026-11-20', 'context' => listContext(), 'capabilities' => ['actions']])
+        ->assertOk()
+        ->assertJson(['result' => 'operations', 'operations' => [['type' => 'create_project', 'name' => 'Garden', 'startDate' => '2026-11-16', 'endDate' => '2026-11-20']]]);
+    test()->postJson('/v1/voice/interpret', ['transcript' => 'copy kitchen starting tomorrow', 'context' => listContext(), 'capabilities' => ['actions']])
+        ->assertOk()
+        ->assertJson(['operations' => [['type' => 'duplicate_project', 'projectId' => 'p2', 'name' => null, 'startDate' => '2026-11-13']]]);
+    interpret('copy this as launch two starting 2026-12-01', ['projects' => listContext()['projects']], ['actions'])
+        ->assertOk()
+        ->assertJson(['operations' => [['type' => 'duplicate_project', 'projectId' => 'p1', 'name' => 'Launch two', 'startDate' => '2026-12-01']]]);
+    // An older app can't.
+    interpret('copy this starting tomorrow', ['projects' => listContext()['projects']])->assertOk()->assertJson(['result' => 'unsupported']);
+});
+
 it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
@@ -429,6 +443,11 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'a query too long' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => str_repeat('a', 101), 'colors' => [], 'kinds' => []]]]],
     'open an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_task', 'taskId' => 't9']]]],
     'undo with something else' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change'], ['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
+    'a project ending before it starts' => [['result' => 'operations', 'operations' => [['type' => 'create_project', 'name' => 'X', 'startDate' => '2026-11-20', 'endDate' => '2026-11-16']], 'question' => null, 'reason' => null]],
+    'a project over a year long' => [['result' => 'operations', 'operations' => [['type' => 'create_project', 'name' => 'X', 'startDate' => '2026-01-01', 'endDate' => '2027-01-02']], 'question' => null, 'reason' => null]],
+    'a project with no name' => [['result' => 'operations', 'operations' => [['type' => 'create_project', 'name' => null, 'startDate' => '2026-11-16', 'endDate' => '2026-11-20']], 'question' => null, 'reason' => null]],
+    'a new project with an edit' => [['result' => 'operations', 'operations' => [['type' => 'create_project', 'name' => 'X', 'startDate' => '2026-11-16', 'endDate' => '2026-11-20'], ['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
+    'a copy of an unknown project' => [['result' => 'operations', 'operations' => [['type' => 'duplicate_project', 'projectId' => 'p9', 'name' => null, 'startDate' => '2026-11-16']], 'question' => null, 'reason' => null]],
     'undo with a field' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
     'an unknown theme' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'set_theme', 'theme' => 'sepia']]]],
     'an unknown reminder time' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'set_reminders', 'lead' => '2_hours']]]],

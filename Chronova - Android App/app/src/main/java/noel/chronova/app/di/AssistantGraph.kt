@@ -1,5 +1,8 @@
 package noel.chronova.app.di
 
+import noel.chronova.core.domain.CopyProject
+import noel.chronova.feature.assistant.domain.DeleteVoiceProject
+import noel.chronova.feature.assistant.domain.CreateVoiceProject
 import android.content.Context
 import java.time.ZoneId
 import java.util.UUID
@@ -70,6 +73,8 @@ class AssistantGraph(private val app: AppContainer, private val context: Context
             recordChange = RecordVoiceChange(app.notificationRepository, repository, zone),
             undo = UndoVoiceChange(applyChanges),
             planUndo = PlanUndo(repository),
+            createProject = CreateVoiceProject(repository, CopyProject(repository, zone), zone),
+            deleteProject = DeleteVoiceProject(repository),
             endSession = EndVoiceSession(app.authRepository),
         )
     }

@@ -29,6 +29,9 @@ sealed interface Interpretation {
 
     /** Undo the assistant's last applied change (only it knows what that was); asked about first. */
     data class UndoLast(val actions: List<VoiceAction> = emptyList()) : Interpretation
+
+    /** A new project (made or copied); asked about first. */
+    data class NewProject(val plan: ProjectPlan) : Interpretation
     data class Question(val text: String) : Interpretation
     data class Unsupported(val reason: String?) : Interpretation
     data class CannotDo(val problem: CommandProblem, val titles: Map<String, String>, val projectEndMillis: Long) : Interpretation
@@ -74,6 +77,7 @@ class InterpretRequest(
             }
             is HandledProposal.Act -> Interpretation.Act(handled.actions)
             is HandledProposal.UndoLast -> Interpretation.UndoLast(handled.actions)
+            is HandledProposal.NewProject -> Interpretation.NewProject(handled.plan)
             is HandledProposal.Clarify -> Interpretation.Question(handled.question)
             is HandledProposal.Unsupported -> Interpretation.Unsupported(handled.reason)
             is HandledProposal.CannotDo -> Interpretation.CannotDo(
@@ -91,6 +95,11 @@ class InterpretRequest(
     private suspend fun onList(text: String, projects: List<ProjectRef>): Interpretation {
         val proposal = voiceApi.interpretOnList(token(), text, ListContext.from(projects, zone, clock()))
         return when (proposal.result) {
+            // New projects can be asked for here too.
+            "operations" -> when (val project = ProjectPlan.from(proposal, projects)) {
+                is HandledProposal.NewProject -> Interpretation.NewProject(project.plan)
+                else -> Interpretation.Unreadable
+            }
             "actions" -> proposal.actions
                 .map { VoiceAction.from(it, tasks = emptyList(), projects) ?: return Interpretation.Unreadable }
                 .takeIf { it.isNotEmpty() }
