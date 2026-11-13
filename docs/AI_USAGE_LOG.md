@@ -1225,4 +1225,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - "hide the critical path and show beta" did both: the red marks went and Beta was selected.
     - "mark this done" previewed Mark "Beta" done, and a no changed nothing.
   - **Getting the phone check to work:** the Mac's speaker was too quiet for a "yes" to count, so the assistant asked "was that a yes?" and gave up. That's the existing guard against a voice across the room working as meant. The words are now played louder through `afplay`, and answers timed to the 8 s listening window.
+- Batch 5, the orb on the project list, and going places:
+  - **Server:**
+    - `context.projects`, and a list-of-projects request (`view.screen` "projects", no project or tasks).
+    - The actions `open_project` (an id from the projects), `go_to_projects`, `open_notifications` and `open_account`; nothing may follow them.
+    - An edit asked from the list is answered "Open a project first, then tell me what to change."
+    - The fake interpreter knows "open <project>", "go back to my projects", "show my notifications" and "open my account/settings".
+    - 10 new tests; 376 passed, Pint clean.
+  - **App:**
+    - `AssistantViewModel` takes no project on the list. There, `InterpretRequest` sends the projects (`interpretOnList`) and accepts only actions; the transcriber listens for project names; and the introduction, which is about tasks, isn't played.
+    - Every request also carries the projects, so "open Jnn" works from a timeline.
+    - Leaving the screen is said first, then the shell navigates (`AssistantViewModel.navigation`, handled in `ChronovaNavHost`). The screen it leaves would otherwise cut the sentence off.
+    - `ProjectListScreen` takes an `AssistantSlot`: the orb above "New project", its messages, and the overlay.
+  - **Tests:** handler (a project from the request, unknown ones unreadable), API (the list request: projects, `view.screen` "projects", no project), 2 ViewModel tests (on the list it goes after saying so, with project names as key terms and no introduction; leaving the timeline comes after what's shown there).
+    - `tools/check.sh` PASS (429 unit tests). Projects device tests 9/9 on the phone (a first run hung after the phone dropped off USB; it passed when run again).
+    - Not run: the app module's own device tests. They run inside the installed app, alongside your data.
+  - **Phone check**, with the fake interpreter:
+    - the orb shows above "New project" on the list;
+    - "open voicecheck" opened its timeline;
+    - from there, "go back to my projects" returned to the list;
+    - "show my notifications" opened Notifications, listing the batch 4 voice changes;
+    - "open settings" opened Account & sync;
+    - one server check per orb opening: no extra openings.
 

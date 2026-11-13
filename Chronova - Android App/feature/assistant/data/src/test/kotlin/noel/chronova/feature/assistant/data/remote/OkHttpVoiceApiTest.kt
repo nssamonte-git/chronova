@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.data.remote
 
+import noel.chronova.feature.assistant.domain.ListContext
+import noel.chronova.feature.assistant.domain.ProjectRef
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
 import noel.chronova.feature.assistant.domain.VoiceAction
@@ -122,6 +124,27 @@ class OkHttpVoiceApiTest {
         // An answer without actions (an older server) has none.
         reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
         assertEquals(emptyList<ProposedAction>(), api.interpret("token-1", "delete design", context).actions)
+    }
+
+    @Test
+    fun fromTheListOfProjectsItSendsTheProjectsAndNoProject() = runTest {
+        reply(
+            200,
+            """{"revision":null,"result":"actions","operations":[],"question":null,"reason":null,"alternative":null,
+               "actions":[{"type":"open_project","projectId":"p2"}]}""",
+        )
+        val projects = listOf(ProjectRef("p2", "Kitchen", LocalDate.of(2026, 11, 20), LocalDate.of(2026, 12, 4)))
+        val proposal = api.interpretOnList("token-1", "open kitchen", ListContext("UTC", LocalDate.of(2026, 11, 13), LocalDateTime.of(2026, 11, 13, 9, 30), projects))
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(
+            body,
+            body.contains(
+                """"context":{"timeZone":"UTC","today":"2026-11-13","now":"2026-11-13T09:30",""" +
+                    """"projects":[{"id":"p2","name":"Kitchen","startDate":"2026-11-20","endDate":"2026-12-04"}],"view":{"screen":"projects"}}""",
+            ),
+        )
+        assertTrue(body, !body.contains("projectId\""))
+        assertEquals(listOf(ProposedAction("open_project", projectId = "p2")), proposal.actions)
     }
 
     @Test

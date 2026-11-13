@@ -33,6 +33,9 @@ final class ProposalValidator
     /** Said to an app that can't do actions yet, instead of what it was asked. */
     public const UPDATE_APP = 'Update the app to do that.';
 
+    /** Said when the list of projects is asked to change a schedule. */
+    public const OPEN_A_PROJECT = 'Open a project first, then tell me what to change.';
+
     public function validate(mixed $proposal, array $context, int $maxOperations, bool $actions = false): ?array
     {
         $keys = is_array($proposal) ? array_keys($proposal) : null;
@@ -48,7 +51,8 @@ final class ProposalValidator
         $question = $this->text($proposal['question']);
         $reason = $this->text($proposal['reason']);
         $taskIds = array_column($context['tasks'], 'id');
-        $proposedActions = $this->actions($proposal['actions'] ?? [], $taskIds);
+        $projectIds = array_column($context['projects'] ?? [], 'id');
+        $proposedActions = $this->actions($proposal['actions'] ?? [], $taskIds, $projectIds);
         if ($proposedActions === null) {
             return null;
         }
@@ -69,6 +73,9 @@ final class ProposalValidator
         }
         if ($operations === [] || count($operations) > $maxOperations) {
             return null;
+        }
+        if (($context['view']['screen'] ?? 'timeline') === 'projects') {
+            return $answer('unsupported', [], null, self::OPEN_A_PROJECT);
         }
 
         $clean = $this->operations($operations, $taskIds, $maxOperations);
@@ -93,19 +100,23 @@ final class ProposalValidator
     }
 
     /** The checked actions (possibly none), or null if there are too many or one is bad. */
-    private function actions(mixed $actions, array $taskIds): ?array
+    private function actions(mixed $actions, array $taskIds, array $projectIds): ?array
     {
         if (! is_array($actions) || ! array_is_list($actions) || count($actions) > self::MAX_ACTIONS) {
             return null;
         }
         $clean = [];
-        foreach ($actions as $action) {
+        foreach ($actions as $index => $action) {
+            // Nothing can follow leaving the screen.
+            if ($index > 0 && in_array($actions[$index - 1]['type'] ?? null, ProposalSchema::NAVIGATIONS, true)) {
+                return null;
+            }
             $fields = is_array($action) ? ProposalSchema::actions()[$action['type'] ?? ''] ?? null : null;
             if ($fields === null || array_keys($action) != array_merge(['type'], array_keys($fields))) {
                 return null;
             }
             foreach ($fields as $name => $schema) {
-                if (! $this->valid($name, $action[$name], $action, $taskIds)) {
+                if (! $this->valid($name, $action[$name], $action, $taskIds, $projectIds)) {
                     return null;
                 }
             }
@@ -178,9 +189,10 @@ final class ProposalValidator
         };
     }
 
-    private function valid(string $name, mixed $value, array $operation, array $taskIds): bool
+    private function valid(string $name, mixed $value, array $operation, array $taskIds, array $projectIds = []): bool
     {
         return match ($name) {
+            'projectId' => is_string($value) && in_array($value, $projectIds, true),
             'taskId', 'predecessorId', 'successorId' => is_string($value) && in_array($value, $taskIds, true),
             'predecessorIds' => is_array($value) && array_is_list($value) && count($value) === count(array_unique($value))
                 && array_diff($value, $taskIds) === [],

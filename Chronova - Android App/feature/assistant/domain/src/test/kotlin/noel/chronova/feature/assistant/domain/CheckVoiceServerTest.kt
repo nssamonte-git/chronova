@@ -14,6 +14,7 @@ class CheckVoiceServerTest {
         override suspend fun transcribe(accessToken: String, audio: File, durationMs: Long, language: String?, keyterms: List<String>) = error("unused")
         override suspend fun explain(accessToken: String, request: ExplainRequest) = error("unused")
         override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext) = error("unused")
+        override suspend fun interpretOnList(accessToken: String, transcript: String, context: ListContext) = error("unused")
         override suspend fun resolve(accessToken: String, transcript: String, context: VoiceContext, planned: List<ProposedOperation>, clashes: List<ScheduleWarning>) = error("unused")
         override suspend fun decide(accessToken: String, decision: VoiceDecision) = error("unused")
     }

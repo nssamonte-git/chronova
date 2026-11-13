@@ -336,11 +336,48 @@ it('passes the view on to the model as data', function () use ($shift) {
     expect(OpenAiInterpreter::instructions())->toContain('view.selectedTaskId')->toContain('undo_last_change');
 });
 
+/** A request from the list of projects: no project open, no tasks, the user's projects. */
+function listContext(): array
+{
+    return [
+        'timeZone' => 'America/Los_Angeles', 'today' => '2026-11-12', 'now' => '2026-11-12T10:15',
+        'view' => ['screen' => 'projects'],
+        'projects' => [
+            ['id' => 'p1', 'name' => 'Launch', 'startDate' => '2026-11-12', 'endDate' => '2026-11-18'],
+            ['id' => 'p2', 'name' => 'Kitchen', 'startDate' => '2026-11-20', 'endDate' => '2026-12-04'],
+        ],
+    ];
+}
+
+it('goes to another screen from the list of projects', function (string $words, array $action) {
+    test()->postJson('/v1/voice/interpret', ['transcript' => $words, 'context' => listContext(), 'capabilities' => ['actions']])
+        ->assertOk()
+        ->assertJson(['result' => 'actions', 'actions' => [$action]]);
+})->with([
+    'a project' => ['open kitchen', ['type' => 'open_project', 'projectId' => 'p2']],
+    'notifications' => ['show my notifications', ['type' => 'open_notifications']],
+    'the account' => ['open settings', ['type' => 'open_account']],
+]);
+
+it('asks for a project to be opened before an edit on the list', function () {
+    useOpenAi();
+    Http::fake(['api.openai.com/*' => Http::response(openAiAnswer(['result' => 'operations', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]))]);
+    test()->postJson('/v1/voice/interpret', ['transcript' => 'delete design', 'context' => listContext(), 'capabilities' => ['actions']])
+        ->assertOk()
+        ->assertJson(['result' => 'unsupported', 'reason' => 'Open a project first, then tell me what to change.']);
+});
+
+it('goes back to the projects or to another project from a timeline', function () {
+    $projects = listContext()['projects'];
+    interpret('go back to my projects', ['projects' => $projects], ['actions'])->assertOk()->assertJson(['actions' => [['type' => 'go_to_projects']]]);
+    interpret('open the kitchen project', ['projects' => $projects], ['actions'])->assertOk()->assertJson(['actions' => [['type' => 'open_project', 'projectId' => 'p2']]]);
+});
+
 it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
         ->and(ProposalSchema::jsonSchema()['properties']['result']['enum'])->toContain('actions')
-        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path', 'search', 'clear_search', 'open_task'])
+        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path', 'search', 'clear_search', 'open_task', 'open_project', 'go_to_projects', 'open_notifications', 'open_account'])
         ->and(OpenAiInterpreter::instructions())->toContain('go_to_today')->toContain('show_task')->toContain('result "actions"');
 });
 
@@ -381,6 +418,8 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'open an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_task', 'taskId' => 't9']]]],
     'undo with something else' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change'], ['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
     'undo with a field' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
+    'an unknown project' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_project', 'projectId' => 'p9']]]],
+    'something after leaving the screen' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_account'], ['type' => 'go_to_today']]]],
     'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
     'actions with nothing to do' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]],
     'actions answer with operations' => [['result' => 'actions', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],
@@ -444,6 +483,12 @@ it('validates the request', function (array $body) {
     'capabilities not a list' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => 'actions']],
     'too many capabilities' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => array_fill(0, 11, 'actions')]],
     'a view on another screen' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'settings', 'scale' => 'days', 'criticalPath' => false]])]],
+    'a timeline view without its scale' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'timeline', 'criticalPath' => false]])]],
+    'a timeline with no project' => [['transcript' => 'x', 'context' => array_diff_key(voiceContext(), ['projectId' => 1, 'projectName' => 1])]],
+    'a project twice' => [['transcript' => 'x', 'context' => voiceContext(['projects' => [
+        ['id' => 'p1', 'name' => 'A', 'startDate' => '2026-11-12', 'endDate' => '2026-11-18'],
+        ['id' => 'p1', 'name' => 'B', 'startDate' => '2026-11-12', 'endDate' => '2026-11-18'],
+    ]])]],
     'a view with an unknown scale' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'timeline', 'scale' => 'years', 'criticalPath' => false]])]],
     'a view searching for a colour it lacks' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'timeline', 'scale' => 'days', 'criticalPath' => false, 'search' => ['query' => null, 'colors' => ['red'], 'kinds' => []]]])]],
 ]);

@@ -92,6 +92,10 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         is VoiceAction.Search -> resources.getString(R.string.assistant_showing_matches)
         VoiceAction.ClearSearch -> resources.getString(R.string.assistant_showing_all)
         is VoiceAction.OpenTask -> resources.getString(R.string.assistant_opening_task, action.title)
+        is VoiceAction.OpenProject -> resources.getString(R.string.assistant_opening_project, action.name)
+        VoiceAction.GoToProjects -> resources.getString(R.string.assistant_showing_projects)
+        VoiceAction.OpenNotifications -> resources.getString(R.string.assistant_showing_notifications)
+        VoiceAction.OpenAccount -> resources.getString(R.string.assistant_showing_account)
     }
 
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String {

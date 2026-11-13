@@ -30,7 +30,8 @@ import noel.chronova.feature.assistant.presentation.orb.OrbMode
  * everything.
  */
 class AssistantViewModel(
-    private val projectId: String,
+    /** The open project, or null on the list of projects (only where to go can be asked there). */
+    private val projectId: String?,
     private val useCases: AssistantUseCases,
     phrases: AssistantPhrases,
     zone: ZoneId = ZoneId.systemDefault(),
@@ -71,6 +72,11 @@ class AssistantViewModel(
 
     /** The screen has shown request [id]. */
     fun viewShown(id: Long) = session.shown(id)
+
+    /** Another screen it was asked to go to, until the shell calls [navigated]. */
+    val navigation: StateFlow<NavigationUi?> = session.navigation.asStateFlow()
+
+    fun navigated(id: Long) = session.navigated(id)
 
     /** What the screen shows now; sent with the next request. */
     fun onView(view: AssistantViewState) {
@@ -133,6 +139,8 @@ class AssistantViewModel(
      * (only the fixed introduction, to be voiced). Offline or signed out it waits for a later visit.
      */
     fun introduceIfFirstVisit() {
+        // The introduction is about a project's tasks: not on the list of projects.
+        val projectId = projectId ?: return
         if (ui.value.open || state.value.availability != AssistantAvailability.READY || useCases.introduction.isDone(projectId)) return
         conversation.stopAfterword()
         introducing = true
@@ -154,7 +162,7 @@ class AssistantViewModel(
 
     /** Stops listening and speaking and closes the orb; nothing is applied. */
     fun close() {
-        if (introducing) useCases.introduction.markDone(projectId) // skipped on purpose
+        if (introducing) projectId?.let(useCases.introduction::markDone) // skipped on purpose
         stop()
     }
 
@@ -178,6 +186,7 @@ class AssistantViewModel(
     }
 
     fun undo() {
+        val projectId = projectId ?: return
         if (session.message.value !is AssistantMessage.Applied) return
         val changes = session.lastUndo
         session.message.value = null
@@ -198,8 +207,8 @@ class AssistantViewModel(
     }
 
     companion object {
-        /** [projectId] comes from the timeline's navigation argument (the shell reads it). */
-        fun factory(projectId: String, useCases: () -> AssistantUseCases, phrases: AssistantPhrases): ViewModelProvider.Factory = viewModelFactory {
+        /** [projectId] comes from the timeline's navigation argument (the shell reads it); null for the list of projects. */
+        fun factory(projectId: String?, useCases: () -> AssistantUseCases, phrases: AssistantPhrases): ViewModelProvider.Factory = viewModelFactory {
             initializer { AssistantViewModel(projectId, useCases(), phrases) }
         }
     }

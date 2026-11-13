@@ -1,5 +1,12 @@
 package noel.chronova.feature.projects.presentation
 
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
+import java.time.ZoneId
+import noel.chronova.core.ui.assistant.AssistantSlot
 import androidx.compose.material.icons.filled.Share
 import java.time.LocalDate
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +79,10 @@ fun ProjectListScreen(
     /** "Export…" in a project's menu: its id and name (the shell shows the export sheet). */
     onExport: (projectId: String, projectName: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The voice assistant, as the shell builds it (none in previews and tests). */
+    assistant: AssistantSlot = AssistantSlot.None,
 ) {
+    assistant.screenEffects()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val editor by viewModel.editor.collectAsStateWithLifecycle()
     val pendingDelete by viewModel.pendingDelete.collectAsStateWithLifecycle()
@@ -102,7 +112,9 @@ fun ProjectListScreen(
         unreadNotifications = unreadNotifications,
         onOpenNotifications = onOpenNotifications,
         modifier = modifier,
+        assistant = assistant,
     )
+    assistant.overlay(ZoneId.systemDefault())
     editor?.let { current ->
         ProjectEditorSheet(
             editor = current,
@@ -152,18 +164,35 @@ internal fun ProjectListContent(
     unreadNotifications: Int,
     onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
+    assistant: AssistantSlot = AssistantSlot.None,
 ) {
+    val snackbarHost = remember { SnackbarHostState() }
+    val assistantSnackbar by rememberUpdatedState(assistant.snackbar)
+    LaunchedEffect(assistant.snackbar?.key) {
+        val shown = assistantSnackbar ?: return@LaunchedEffect
+        val result = snackbarHost.showSnackbar(
+            shown.text,
+            actionLabel = shown.actionLabel,
+            duration = if (shown.long) SnackbarDuration.Long else SnackbarDuration.Short,
+        )
+        shown.onResult(result == SnackbarResult.ActionPerformed)
+    }
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHost) },
         floatingActionButton = {
-            val label = stringResource(R.string.project_new)
-            ExtendedFloatingActionButton(
-                onClick = onCreate,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(label) },
-                // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
-                modifier = Modifier.semantics { contentDescription = label },
-            )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // The assistant's orb, just above "New project", as on the timeline.
+                if (assistant.available) assistant.orbButton(Modifier)
+                val label = stringResource(R.string.project_new)
+                ExtendedFloatingActionButton(
+                    onClick = onCreate,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(label) },
+                    // Material's extended FAB hides its text from accessibility; TalkBack reads this instead.
+                    modifier = Modifier.semantics { contentDescription = label },
+                )
+            }
         },
         topBar = {
             TopAppBar(
@@ -213,8 +242,8 @@ internal fun ProjectListContent(
                             )
                         } else {
                             LazyColumn(
-                                // Bottom padding keeps the last card clear of the FAB.
-                                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+                                // Bottom padding keeps the last card clear of the FAB (and the orb above it).
+                                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (assistant.available) 172.dp else 96.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 items(state.projects, key = { it.id }) { summary ->

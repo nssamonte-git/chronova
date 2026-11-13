@@ -33,6 +33,12 @@ final class ProposalSchema
 
     public const KINDS = ['not_done', 'done', 'milestone'];
 
+    /** Screens the app can ask from: a project's timeline, or the list of projects. */
+    public const SCREENS = ['timeline', 'projects'];
+
+    /** Actions that leave the screen; nothing can follow them. */
+    public const NAVIGATIONS = ['open_project', 'go_to_projects', 'open_notifications', 'open_account'];
+
     public const DATE = '^\d{4}-\d{2}-\d{2}$';
 
     public const TIME = '^\d{2}:\d{2}$';
@@ -85,6 +91,11 @@ final class ProposalSchema
             ],
             'clear_search' => [],
             'open_task' => ['taskId' => ['type' => 'string']],
+            // Leaving the screen: these come last.
+            'open_project' => ['projectId' => ['type' => 'string']],
+            'go_to_projects' => [],
+            'open_notifications' => [],
+            'open_account' => [],
         ];
     }
 

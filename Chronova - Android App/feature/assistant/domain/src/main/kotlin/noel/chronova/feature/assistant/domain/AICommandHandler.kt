@@ -90,7 +90,7 @@ class AICommandHandler(private val planner: CommandPlanner) {
         if (current == null || proposal.revision != sent.revision || ScheduleRevision.of(current) != sent.revision) {
             return HandledProposal.ScheduleChanged
         }
-        val actions = proposal.actions.map { VoiceAction.from(it, current) ?: return HandledProposal.Unreadable }
+        val actions = proposal.actions.map { VoiceAction.from(it, current.tasks, sent.projects) ?: return HandledProposal.Unreadable }
         return when (proposal.result) {
             "clarification" -> proposal.question?.takeIf { it.isNotBlank() }?.let { HandledProposal.Clarify(it) } ?: HandledProposal.Unreadable
             "unsupported" -> HandledProposal.Unsupported(proposal.reason?.takeIf { it.isNotBlank() })

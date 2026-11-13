@@ -17,6 +17,9 @@ interface VoiceApi {
     /** Asks the server to interpret [transcript]; cancelling the coroutine cancels the request. */
     suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal
 
+    /** The same, from the list of projects: no project is open, so only actions (where to go) can come back. */
+    suspend fun interpretOnList(accessToken: String, transcript: String, context: ListContext): Proposal
+
     /**
      * Asks for a clash-free alternative to [planned], the operations proposed for
      * [transcript], which would cause [clashes]; "unsupported" when there is none.

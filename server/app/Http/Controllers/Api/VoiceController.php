@@ -212,10 +212,11 @@ class VoiceController extends Controller
             'capabilities' => ['sometimes', 'array', 'list', 'max:10'],
             'capabilities.*' => ['string', 'max:40'],
             'context' => ['required', 'array'],
-            'context.projectId' => ['required', 'string', 'max:100'],
-            'context.projectName' => ['required', 'string', 'max:200'],
-            'context.startDate' => ['required', 'date_format:Y-m-d'],
-            'context.endDate' => ['required', 'date_format:Y-m-d', 'after_or_equal:context.startDate'],
+            // On the list of projects (view.screen "projects") there is no project, and no tasks.
+            'context.projectId' => ['required_unless:context.view.screen,projects', 'string', 'max:100'],
+            'context.projectName' => ['required_unless:context.view.screen,projects', 'string', 'max:200'],
+            'context.startDate' => ['required_unless:context.view.screen,projects', 'date_format:Y-m-d'],
+            'context.endDate' => ['required_unless:context.view.screen,projects', 'date_format:Y-m-d', 'after_or_equal:context.startDate'],
             // Zone names and fixed offsets ("+08:00"), as Java and PHP both understand them.
             'context.timeZone' => ['required', 'string', 'max:64', function (string $attribute, mixed $value, Closure $fail) {
                 try {
@@ -227,7 +228,7 @@ class VoiceController extends Controller
             'context.today' => ['required', 'date_format:Y-m-d'],
             'context.now' => ['required', 'date_format:Y-m-d\TH:i'],
             'context.revision' => ['nullable', 'string', 'max:100'],
-            'context.tasks' => ['present', 'array', 'list', 'max:'.$limits['tasks']],
+            'context.tasks' => ['required_unless:context.view.screen,projects', 'array', 'list', 'max:'.$limits['tasks']],
             'context.tasks.*.id' => ['required', 'string', 'max:100', 'distinct'],
             'context.tasks.*.title' => ['required', 'string', 'max:200'],
             'context.tasks.*.start' => ['required', 'date_format:Y-m-d\TH:i'],
@@ -239,9 +240,9 @@ class VoiceController extends Controller
             'context.tasks.*.predecessorIds.*' => ['string', 'max:100'],
             // What the screen shows, from apps with actions; optional.
             'context.view' => ['sometimes', 'array'],
-            'context.view.screen' => ['required_with:context.view', Rule::in(['timeline'])],
-            'context.view.scale' => ['required_with:context.view', Rule::in(ProposalSchema::SCALES)],
-            'context.view.criticalPath' => ['required_with:context.view', 'boolean'],
+            'context.view.screen' => ['required_with:context.view', Rule::in(ProposalSchema::SCREENS)],
+            'context.view.scale' => ['required_if:context.view.screen,timeline', Rule::in(ProposalSchema::SCALES)],
+            'context.view.criticalPath' => ['required_if:context.view.screen,timeline', 'boolean'],
             'context.view.selectedTaskId' => ['nullable', 'string', 'max:100'],
             'context.view.search' => ['nullable', 'array'],
             'context.view.search.query' => ['nullable', 'string', 'max:100'],
@@ -249,6 +250,12 @@ class VoiceController extends Controller
             'context.view.search.colors.*' => [Rule::in(ProposalSchema::COLORS)],
             'context.view.search.kinds' => ['sometimes', 'array', 'list'],
             'context.view.search.kinds.*' => [Rule::in(ProposalSchema::KINDS)],
+            // The user's projects, so "open Jnn" can be understood; optional.
+            'context.projects' => ['sometimes', 'array', 'list', 'max:'.$limits['tasks']],
+            'context.projects.*.id' => ['required', 'string', 'max:100', 'distinct'],
+            'context.projects.*.name' => ['required', 'string', 'max:200'],
+            'context.projects.*.startDate' => ['required', 'date_format:Y-m-d'],
+            'context.projects.*.endDate' => ['required', 'date_format:Y-m-d'],
         ];
     }
 
@@ -364,10 +371,10 @@ class VoiceController extends Controller
     private function context(array $context): array
     {
         return [
-            'projectId' => $context['projectId'],
-            'projectName' => $context['projectName'],
-            'startDate' => $context['startDate'],
-            'endDate' => $context['endDate'],
+            'projectId' => $context['projectId'] ?? null,
+            'projectName' => $context['projectName'] ?? null,
+            'startDate' => $context['startDate'] ?? null,
+            'endDate' => $context['endDate'] ?? null,
             'timeZone' => $context['timeZone'],
             'today' => $context['today'],
             'now' => $context['now'],
@@ -380,11 +387,16 @@ class VoiceController extends Controller
                 'progress' => (int) ($task['progress'] ?? 0),
                 'milestone' => (bool) ($task['milestone'] ?? false),
                 'predecessorIds' => array_values($task['predecessorIds']),
-            ], $context['tasks']),
-        ] + (isset($context['view']) ? ['view' => [
+            ], $context['tasks'] ?? []),
+        ] + (isset($context['projects']) ? ['projects' => array_map(fn (array $project) => [
+            'id' => $project['id'],
+            'name' => $project['name'],
+            'startDate' => $project['startDate'],
+            'endDate' => $project['endDate'],
+        ], $context['projects'])] : []) + (isset($context['view']) ? ['view' => [
             'screen' => $context['view']['screen'],
-            'scale' => $context['view']['scale'],
-            'criticalPath' => (bool) $context['view']['criticalPath'],
+            'scale' => $context['view']['scale'] ?? null,
+            'criticalPath' => (bool) ($context['view']['criticalPath'] ?? false),
             'selectedTaskId' => $context['view']['selectedTaskId'] ?? null,
             'search' => isset($context['view']['search']) ? [
                 'query' => $context['view']['search']['query'] ?? null,

@@ -53,6 +53,8 @@ Each task may also carry `progress` (integer 0–100; 100 is done) and `mileston
 
 An app with actions may also send `context.view`, what its timeline shows: `screen` (`timeline`), `scale` (`hours`/`days`/`weeks`/`months`), `criticalPath` (boolean), `selectedTaskId` (or null; "this task" and "it" mean it) and `search` (null, or `query`, `colors`, `kinds` as in the `search` action). It is passed to the model as data.
 
+`context.projects` (optional, ≤ 300) lists the user's projects (`id`, `name`, `startDate`, `endDate`), so "open Jnn" can be understood. From the list of projects there is no project open: `context.view` is `{"screen": "projects"}` and `projectId`, `projectName`, `startDate`, `endDate` and `tasks` are left out. There, only actions make sense; an edit is answered "unsupported" with "Open a project first, then tell me what to change."
+
 `capabilities` (optional, ≤ 10 strings) says what the app can do besides schedule edits. Apps that send `"actions"` can be answered with actions (below); an app that sends nothing is never sent any, so its answers keep the shape it knows.
 
 Response (200):
@@ -95,6 +97,12 @@ Actions (every field is always present):
 | `search` | `query` (words in titles, ≤ 100 characters, or null), `colors` (`blue`/`green`/`purple`/`amber`), `kinds` (`not_done`/`done`/`milestone`) | Opens the search bar (without the keyboard) listing only the matches: any of the colours, each of the kinds; never empty (that's `clear_search`) |
 | `clear_search` | | Closes the search: every task again |
 | `open_task` | `taskId` | Opens the task's editor |
+| `open_project` | `projectId` (from `context.projects`) | Opens that project's timeline |
+| `go_to_projects` | | Back to the list of projects |
+| `open_notifications` | | Opens the notifications page |
+| `open_account` | | Opens the account and settings page |
+
+The last four leave the screen: nothing may follow them in `actions`. The app says what it is doing first, then goes.
 
 Operations (every field is always present):
 

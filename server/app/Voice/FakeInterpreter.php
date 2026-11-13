@@ -13,7 +13,8 @@ use DateTimeImmutable;
  * "go to 2026-11-14", "show review", "show days", "zoom in", "reset the zoom", "bigger rows",
  * "show the critical path", "hide the critical path", "search for design", "show only green tasks
  * that aren't done", "show milestones", "clear the search", "open review"; "undo that"; "this" or "it"
- * for the selected task; and two of these joined by "and".
+ * for the selected task; two of these joined by "and"; and "open <project>", "go back to my projects",
+ * "show notifications", "open my account".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -61,6 +62,10 @@ final class FakeInterpreter implements Interpreter
 
     private function single(string $text, array $context): array
     {
+        $navigation = $this->navigation($text, $context);
+        if ($navigation !== null) {
+            return ['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'actions' => [$navigation]];
+        }
         $task = $this->task($text, $context['tasks']);
         if ($task === false) {
             return $this->clarify('Which task do you mean?');
@@ -124,6 +129,23 @@ final class FakeInterpreter implements Interpreter
             // Only the task's title after the verb: "show the critical path and push design" isn't "show design".
             $task !== null && $this->namesOnly($text, '(open|edit)', $task) => [['type' => 'open_task', 'taskId' => $task['id']]],
             $task !== null && $this->namesOnly($text, '(show|show me|find|where is|go to)', $task) => [['type' => 'show_task', 'taskId' => $task['id']]],
+            default => null,
+        };
+    }
+
+    /** Leaving the screen: "open <project>", "go back to my projects", "show notifications", "open my account". */
+    private function navigation(string $text, array $context): ?array
+    {
+        foreach ($context['projects'] ?? [] as $project) {
+            if (preg_match('/^(open|go to|show) (the )?'.preg_quote(mb_strtolower($project['name']), '/').'( project)?$/', $text)) {
+                return ['type' => 'open_project', 'projectId' => $project['id']];
+            }
+        }
+
+        return match (true) {
+            (bool) preg_match('/^(go back to|go to|show|show me) (my |the )?projects$/', $text) => ['type' => 'go_to_projects'],
+            (bool) preg_match('/^(open|show|show me) (my |the )?notifications$/', $text) => ['type' => 'open_notifications'],
+            (bool) preg_match('/^(open|show|show me) (my |the )?(account|settings)$/', $text) => ['type' => 'open_account'],
             default => null,
         };
     }

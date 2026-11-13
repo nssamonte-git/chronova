@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.data.remote
 
+import noel.chronova.feature.assistant.domain.ListContext
+import noel.chronova.feature.assistant.domain.ProjectRef
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -100,7 +102,27 @@ internal data class VoiceContextDto(
     val revision: String,
     val tasks: List<VoiceTaskDto>,
     val view: ViewContextDto? = null,
+    val projects: List<ProjectRefDto>? = null,
 )
+
+@Serializable
+internal data class ProjectRefDto(val id: String, val name: String, val startDate: String, val endDate: String)
+
+/** A request from the list of projects: no project, no tasks; the view says so. */
+@Serializable
+internal data class ListContextDto(
+    val timeZone: String,
+    val today: String,
+    val now: String,
+    val projects: List<ProjectRefDto>,
+    val view: ListViewDto,
+)
+
+@Serializable
+internal data class ListViewDto(val screen: String)
+
+@Serializable
+internal data class ListInterpretRequestDto(val transcript: String, val context: ListContextDto, val capabilities: List<String>)
 
 /** What the timeline shows; the API's lower-case names. */
 @Serializable
@@ -197,6 +219,7 @@ internal data class ActionDto(
     val query: String? = null,
     val colors: List<String>? = null,
     val kinds: List<String>? = null,
+    val projectId: String? = null,
 )
 
 @Serializable
@@ -231,6 +254,7 @@ internal fun VoiceContext.toDto() = VoiceContextDto(
     now = now.wire(),
     revision = revision,
     tasks = tasks.map { VoiceTaskDto(it.id, it.title, it.start.wire(), it.end.wire(), it.predecessorIds, it.progress, it.milestone) },
+    projects = projects.takeIf { it.isNotEmpty() }?.map { it.toDto() },
     view = view?.let { shown ->
         ViewContextDto(
             screen = "timeline",
@@ -244,6 +268,10 @@ internal fun VoiceContext.toDto() = VoiceContextDto(
     },
 )
 
+internal fun ProjectRef.toDto() = ProjectRefDto(id, name, startDate.toString(), endDate.toString())
+
+internal fun ListContext.toDto() = ListContextDto(timeZone, today.toString(), now.wire(), projects.map { it.toDto() }, ListViewDto("projects"))
+
 internal fun InterpretResponseDto.toDomain() = Proposal(
     revision = revision,
     result = result,
@@ -251,7 +279,7 @@ internal fun InterpretResponseDto.toDomain() = Proposal(
     question = question,
     reason = reason,
     alternative = alternative?.map { it.toDomain() },
-    actions = actions.map { ProposedAction(it.type, it.date, it.taskId, it.scale, it.direction, it.size, it.on, it.query, it.colors, it.kinds) },
+    actions = actions.map { ProposedAction(it.type, it.date, it.taskId, it.scale, it.direction, it.size, it.on, it.query, it.colors, it.kinds, it.projectId) },
 )
 
 internal fun OperationDto.toDomain() = ProposedOperation(

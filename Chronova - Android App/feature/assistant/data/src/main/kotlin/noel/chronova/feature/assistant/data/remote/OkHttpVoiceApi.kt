@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.data.remote
 
+import noel.chronova.feature.assistant.domain.ListContext
 import java.io.File
 import java.io.IOException
 import java.util.Base64
@@ -82,6 +83,11 @@ class OkHttpVoiceApi(
 
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
         val body = ApiJson.json.encodeToString(InterpretRequestDto.serializer(), InterpretRequestDto(transcript, context.toDto(), APP_CAPABILITIES))
+        return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
+    }
+
+    override suspend fun interpretOnList(accessToken: String, transcript: String, context: ListContext): Proposal {
+        val body = ApiJson.json.encodeToString(ListInterpretRequestDto.serializer(), ListInterpretRequestDto(transcript, context.toDto(), APP_CAPABILITIES))
         return call("interpret", body.toRequestBody(JSON), InterpretResponseDto.serializer(), accessToken).toDomain()
     }
 

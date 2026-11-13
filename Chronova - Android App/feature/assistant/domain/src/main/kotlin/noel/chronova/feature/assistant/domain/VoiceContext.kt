@@ -28,6 +28,8 @@ data class VoiceContext(
     val tasks: List<Task>,
     /** What the timeline shows, so "this task" or "zoom in" can be understood; null when unknown. */
     val view: ViewContext? = null,
+    /** The user's projects, so "open Jnn" can be understood. */
+    val projects: List<ProjectRef> = emptyList(),
 ) {
     data class Task(
         val id: String,
@@ -41,7 +43,13 @@ data class VoiceContext(
     )
 
     companion object {
-        fun from(state: ScheduleState, zone: ZoneId, nowMillis: Long, view: ViewContext? = null): VoiceContext {
+        fun from(
+            state: ScheduleState,
+            zone: ZoneId,
+            nowMillis: Long,
+            view: ViewContext? = null,
+            projects: List<ProjectRef> = emptyList(),
+        ): VoiceContext {
             val now = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.MINUTES)
             val predecessors = state.links.groupBy({ it.successorId }, { it.predecessorId })
             return VoiceContext(
@@ -67,8 +75,12 @@ data class VoiceContext(
                 },
                 // A selection whose task has gone (deleted meanwhile) isn't sent.
                 view = view?.let { shown -> if (state.tasks.any { it.id == shown.selectedTaskId }) shown else shown.copy(selectedTaskId = null) },
+                projects = projects,
             )
         }
+
+        /** The zone as the API takes it: "Z" isn't a zone name servers accept; fixed offsets stay as "+08:00". */
+        fun zoneName(zone: ZoneId): String = if (zone.normalized() == ZoneOffset.UTC) "UTC" else zone.id
 
         private fun local(millis: Long, zone: ZoneId) =
             Instant.ofEpochMilli(millis).atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.MINUTES)
@@ -97,4 +109,17 @@ data class ViewContext(
     val search: Search? = null,
 ) {
     data class Search(val query: String?, val colors: Set<TaskColor>, val kinds: Set<VoiceAction.SearchKind>)
+}
+
+/** One of the user's projects, as a request names it. */
+data class ProjectRef(val id: String, val name: String, val startDate: LocalDate, val endDate: LocalDate)
+
+/** A request from the list of projects: no project is open, so no tasks; only where to go. */
+data class ListContext(val timeZone: String, val today: LocalDate, val now: LocalDateTime, val projects: List<ProjectRef>) {
+    companion object {
+        fun from(projects: List<ProjectRef>, zone: ZoneId, nowMillis: Long): ListContext {
+            val now = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.MINUTES)
+            return ListContext(VoiceContext.zoneName(zone), now.toLocalDate(), now, projects)
+        }
+    }
 }

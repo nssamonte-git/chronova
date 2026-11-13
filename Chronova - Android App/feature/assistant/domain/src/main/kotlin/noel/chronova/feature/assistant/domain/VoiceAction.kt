@@ -1,9 +1,9 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskColor
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
-import noel.chronova.core.domain.schedule.ScheduleState
 import noel.chronova.core.model.TimeScale
 
 /** One proposed action as the server sent it; which fields are set depends on [type]. */
@@ -23,6 +23,8 @@ data class ProposedAction(
     val query: String? = null,
     val colors: List<String>? = null,
     val kinds: List<String>? = null,
+    /** `open_project`. */
+    val projectId: String? = null,
 )
 
 /**
@@ -51,15 +53,27 @@ sealed interface VoiceAction {
     /** Opens the task's editor. */
     data class OpenTask(val taskId: String, val title: String) : VoiceAction
 
+    // Leaving the screen (nothing follows these).
+    data class OpenProject(val projectId: String, val name: String) : VoiceAction
+    data object GoToProjects : VoiceAction
+    data object OpenNotifications : VoiceAction
+    data object OpenAccount : VoiceAction
+
+    /** Leaves the screen. */
+    val leavesScreen: Boolean get() = this is OpenProject || this == GoToProjects || this == OpenNotifications || this == OpenAccount
+
     enum class SearchKind { NOT_DONE, DONE, MILESTONE }
 
     companion object {
-        /** The action for [proposed] on [state], or null if it is malformed or names a task that isn't there. */
-        fun from(proposed: ProposedAction, state: ScheduleState): VoiceAction? = try {
+        /**
+         * The action for [proposed], given the open project's [tasks] (none on the list of projects) and the
+         * user's [projects]; null if it is malformed or names a task or project that isn't there.
+         */
+        fun from(proposed: ProposedAction, tasks: List<SchedulerTask>, projects: List<ProjectRef>): VoiceAction? = try {
             when (proposed.type) {
                 "go_to_today" -> GoToToday
                 "go_to_date" -> GoToDate(LocalDate.parse(proposed.date ?: return null))
-                "show_task" -> state.tasks.firstOrNull { it.id == proposed.taskId }?.let { ShowTask(it.id, it.title) }
+                "show_task" -> tasks.firstOrNull { it.id == proposed.taskId }?.let { ShowTask(it.id, it.title) }
                 "set_scale" -> TimeScale.entries.firstOrNull { it.name.equals(proposed.scale, ignoreCase = true) }?.let(::SetScale)
                 "zoom" -> ZoomStep.entries.firstOrNull { it.name.equals(proposed.direction, ignoreCase = true) }?.let(::Zoom)
                 "row_height" -> when (proposed.size) {
@@ -70,7 +84,11 @@ sealed interface VoiceAction {
                 "critical_path" -> proposed.on?.let(::CriticalPath)
                 "search" -> search(proposed)
                 "clear_search" -> ClearSearch
-                "open_task" -> state.tasks.firstOrNull { it.id == proposed.taskId }?.let { OpenTask(it.id, it.title) }
+                "open_task" -> tasks.firstOrNull { it.id == proposed.taskId }?.let { OpenTask(it.id, it.title) }
+                "open_project" -> projects.firstOrNull { it.id == proposed.projectId }?.let { OpenProject(it.id, it.name) }
+                "go_to_projects" -> GoToProjects
+                "open_notifications" -> OpenNotifications
+                "open_account" -> OpenAccount
                 else -> null
             }
         } catch (_: DateTimeParseException) {

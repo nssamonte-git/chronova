@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.feature.assistant.domain.VoiceAction
 import noel.chronova.feature.assistant.domain.ViewContext
 import kotlinx.coroutines.flow.update
 import noel.chronova.core.ui.assistant.AssistantViewAction
@@ -42,6 +43,23 @@ internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boole
 
     fun shown(id: Long) {
         views.update { pending -> pending.filterNot { it.id == id } }
+    }
+
+    /** Where to go (another screen), once it has said so; the shell navigates and calls [navigated]. */
+    val navigation = MutableStateFlow<NavigationUi?>(null)
+
+    fun navigate(action: VoiceAction) {
+        navigation.value = when (action) {
+            is VoiceAction.OpenProject -> NavigationUi.OpenProject(++viewIds, action.projectId)
+            VoiceAction.GoToProjects -> NavigationUi.Projects(++viewIds)
+            VoiceAction.OpenNotifications -> NavigationUi.Notifications(++viewIds)
+            VoiceAction.OpenAccount -> NavigationUi.Account(++viewIds)
+            else -> return
+        }
+    }
+
+    fun navigated(id: Long) {
+        navigation.update { it?.takeUnless { request -> request.id == id } }
     }
 }
 

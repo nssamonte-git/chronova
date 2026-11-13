@@ -124,6 +124,23 @@ class AICommandHandlerTest {
     }
 
     @Test
+    fun leavingTheScreenNamesAProjectFromTheRequest() {
+        val kitchen = ProjectRef("p2", "Kitchen", LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 13))
+        val withProjects = context.copy(projects = listOf(kitchen))
+        assertEquals(
+            HandledProposal.Act(listOf(VoiceAction.OpenProject("p2", "Kitchen"))),
+            handler.handle(withProjects, state, actions(ProposedAction("open_project", projectId = "p2"))),
+        )
+        assertEquals(HandledProposal.Unreadable, handler.handle(withProjects, state, actions(ProposedAction("open_project", projectId = "p9"))))
+        assertEquals(
+            HandledProposal.Act(listOf(VoiceAction.GoToProjects)),
+            handler.handle(context, state, actions(ProposedAction("go_to_projects"))),
+        )
+        assertTrue(VoiceAction.OpenAccount.leavesScreen)
+        assertTrue(!VoiceAction.GoToToday.leavesScreen)
+    }
+
+    @Test
     fun actionsThatComeWithChangesAreDoneBeforeTheChangesAreAskedAbout() {
         val delete = ProposedOperation("delete_task", taskId = "review")
         val handled = handler.handle(context, state, actions(ProposedAction("show_task", taskId = "qa-testing"), result = "operations", operations = listOf(delete)))

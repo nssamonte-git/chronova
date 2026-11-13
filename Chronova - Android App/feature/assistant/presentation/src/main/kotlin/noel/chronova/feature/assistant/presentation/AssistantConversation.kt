@@ -44,7 +44,8 @@ import noel.chronova.feature.assistant.presentation.orb.OrbMode
  * through the shared [session].
  */
 internal class AssistantConversation(
-    private val projectId: String,
+    /** The open project, or null on the list of projects (where only actions can be done). */
+    private val projectId: String?,
     private val useCases: AssistantUseCases,
     private val phrases: AssistantPhrases,
     private val zone: ZoneId,
@@ -89,7 +90,8 @@ internal class AssistantConversation(
                 when (val outcome = interpret(request)) {
                     is Outcome.Act -> return act(outcome.actions)
                     is Outcome.Proposal -> {
-                        session.show(outcome.actions.map { it.toViewAction() })
+                        // Shown at once; leaving the screen mid-question isn't done.
+                        session.show(outcome.actions.takeWhile { !it.leavesScreen }.map { it.toViewAction() })
                         val plan = outcome.plan
                         val alternative = plan.alternative
                         val heard = propose(plan) ?: return declined()
@@ -145,7 +147,7 @@ internal class AssistantConversation(
             is Interpretation.Planned -> Outcome.Proposal(interpreted.plan, interpreted.actions)
             is Interpretation.Act -> Outcome.Act(interpreted.actions)
             // Undoing is a change like any other: said and asked about first.
-            is Interpretation.UndoLast -> useCases.planUndo(projectId, session.lastUndo)
+            is Interpretation.UndoLast -> projectId?.let { useCases.planUndo(it, session.lastUndo) }
                 ?.let { Outcome.Proposal(it, interpreted.actions) }
                 ?: Outcome.Problem(phrases.nothingToUndo())
             is Interpretation.Question -> Outcome.Question(interpreted.text)
@@ -222,6 +224,7 @@ internal class AssistantConversation(
     }
 
     private suspend fun applyAndExplain(proposal: VoicePlan) {
+        val projectId = projectId ?: return // nothing to apply on the list of projects
         when (val result = useCases.apply(projectId, proposal)) {
             is ApplyResult.Rejected -> voice.say(phrases.scheduleChanged())
             is ApplyResult.Applied -> {
@@ -246,14 +249,20 @@ internal class AssistantConversation(
         }
     }
 
-    /** Shows what was asked for: the orb goes first, so the user sees it while hearing what is shown. */
+    /**
+     * Shows what was asked for: the orb goes first, so the user sees it while hearing what is shown.
+     * Leaving the screen comes last and only once it has been said (the screen it leaves may stop it).
+     */
     private fun act(actions: List<VoiceAction>) {
         session.ui.update { it.copy(open = false, proposal = emptyList(), warnings = emptyList(), offer = emptyList()) }
-        session.show(actions.map { it.toViewAction() })
+        val here = actions.takeWhile { !it.leavesScreen }
+        val leave = actions.firstOrNull { it.leavesScreen }
+        session.show(here.map { it.toViewAction() })
         session.explaining.value = true
         session.afterword = session.scope.launch {
             try {
-                voice.sayAside(phrases.showing(actions.last()))
+                voice.sayAside(phrases.showing(leave ?: actions.last()))
+                leave?.let(session::navigate)
             } finally {
                 session.explaining.value = false
             }
@@ -306,6 +315,9 @@ internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
     )
     VoiceAction.ClearSearch -> AssistantViewAction.ClearSearch
     is VoiceAction.OpenTask -> AssistantViewAction.OpenTask(taskId)
+    // Leaving the screen is the shell's (see [AssistantSession.navigate]); never shown here.
+    is VoiceAction.OpenProject, VoiceAction.GoToProjects, VoiceAction.OpenNotifications, VoiceAction.OpenAccount ->
+        error("$this leaves the screen")
 }
 
 /** What the screen shows, in the domain's terms. */

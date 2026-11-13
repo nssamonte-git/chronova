@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain
 
+import kotlinx.coroutines.flow.first
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import noel.chronova.core.domain.repository.ProjectRepository
@@ -52,10 +53,15 @@ class InterpretRequest(
     private val zone: ZoneId,
     private val clock: () -> Long,
 ) {
-    /** [view]: what the timeline shows, sent so "this task" or "zoom in" can be understood. */
-    suspend operator fun invoke(projectId: String, text: String, view: ViewContext? = null): Interpretation {
+    /**
+     * [projectId]: the open project, or null on the list of projects. [view]: what the timeline shows,
+     * sent so "this task" or "zoom in" can be understood.
+     */
+    suspend operator fun invoke(projectId: String?, text: String, view: ViewContext? = null): Interpretation {
+        val projects = repository.observeProjects().first().map { ProjectRef(it.project.id, it.project.name, it.project.startDate, it.project.endDate) }
+        if (projectId == null) return onList(text, projects)
         val sent = repository.schedule(projectId) ?: return Interpretation.ScheduleChanged
-        val context = VoiceContext.from(sent, zone, clock(), view)
+        val context = VoiceContext.from(sent, zone, clock(), view, projects)
         val proposal = voiceApi.interpret(token(), text, context)
         val now = repository.schedule(projectId) ?: return Interpretation.ScheduleChanged
         return when (val handled = handler.handle(context, now, proposal)) {
@@ -78,6 +84,21 @@ class InterpretRequest(
             HandledProposal.NothingToChange -> Interpretation.NothingToChange
             HandledProposal.ScheduleChanged -> Interpretation.ScheduleChanged
             HandledProposal.Unreadable -> Interpretation.Unreadable
+        }
+    }
+
+    /** From the list of projects only actions make sense (the server says to open a project for anything else). */
+    private suspend fun onList(text: String, projects: List<ProjectRef>): Interpretation {
+        val proposal = voiceApi.interpretOnList(token(), text, ListContext.from(projects, zone, clock()))
+        return when (proposal.result) {
+            "actions" -> proposal.actions
+                .map { VoiceAction.from(it, tasks = emptyList(), projects) ?: return Interpretation.Unreadable }
+                .takeIf { it.isNotEmpty() }
+                ?.let(Interpretation::Act)
+                ?: Interpretation.Unreadable
+            "clarification" -> proposal.question?.takeIf { it.isNotBlank() }?.let(Interpretation::Question) ?: Interpretation.Unreadable
+            "unsupported" -> Interpretation.Unsupported(proposal.reason?.takeIf { it.isNotBlank() })
+            else -> Interpretation.Unreadable
         }
     }
 

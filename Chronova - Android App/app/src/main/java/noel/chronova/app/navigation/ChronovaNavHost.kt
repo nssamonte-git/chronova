@@ -1,5 +1,7 @@
 package noel.chronova.app.navigation
 
+import androidx.navigation.NavHostController
+import noel.chronova.feature.assistant.presentation.NavigationUi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -119,7 +121,14 @@ private fun ChronovaScreens(
             // The project being exported (its sheet); kept across rotation.
             var exportId by rememberSaveable { mutableStateOf<String?>(null) }
             var exportName by rememberSaveable { mutableStateOf("") }
+            // The assistant on the list of projects: where to go (no project is open here).
+            val assistant: AssistantViewModel = viewModel(
+                key = "assistant-projects",
+                factory = AssistantViewModel.factory(null, container.assistant::useCases, container.assistant.phrases),
+            )
+            AssistantNavigation(assistant, navController)
             ProjectListScreen(
+                assistant = rememberAssistantSlot(assistant),
                 viewModel = viewModel(factory = ProjectListViewModel.factory(container.projects.queries, container.projects::useCases)),
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
                 onOpenAccount = { navController.navigate(AccountRoute) },
@@ -157,12 +166,29 @@ private fun ChronovaScreens(
             val assistant: AssistantViewModel = viewModel(
                 factory = AssistantViewModel.factory(route.projectId, container.assistant::useCases, container.assistant.phrases),
             )
+            AssistantNavigation(assistant, navController)
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container.timeline::useCases)),
                 // The timeline knows the assistant only through this slot.
                 assistant = rememberAssistantSlot(assistant),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
             )
+        }
+    }
+}
+
+/** Goes where the assistant was asked to go (it has already said so), once per request. */
+@Composable
+private fun AssistantNavigation(assistant: AssistantViewModel, navController: NavHostController) {
+    val request by assistant.navigation.collectAsStateWithLifecycle()
+    LaunchedEffect(request?.id) {
+        val shown = request ?: return@LaunchedEffect
+        assistant.navigated(shown.id)
+        when (shown) {
+            is NavigationUi.OpenProject -> navController.navigate(ProjectTimelineRoute(shown.projectId)) { launchSingleTop = true }
+            is NavigationUi.Projects -> navController.popBackStack(ProjectListRoute, inclusive = false)
+            is NavigationUi.Notifications -> navController.navigate(NotificationsRoute) { launchSingleTop = true }
+            is NavigationUi.Account -> navController.navigate(AccountRoute) { launchSingleTop = true }
         }
     }
 }

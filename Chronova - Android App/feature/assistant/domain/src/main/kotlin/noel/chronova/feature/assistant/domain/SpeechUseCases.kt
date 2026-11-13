@@ -73,9 +73,14 @@ class TranscribeSpeech(
     private val voiceApi: VoiceApi,
     private val token: VoiceAccessToken,
 ) {
-    suspend operator fun invoke(projectId: String, recording: Recording, language: String?, answering: Boolean): Transcript {
+    /** [projectId]: the open project (its task titles help), or null on the list (the project names do). */
+    suspend operator fun invoke(projectId: String?, recording: Recording, language: String?, answering: Boolean): Transcript {
         try {
-            val titles = repository.schedule(projectId)?.tasks?.map { it.title }.orEmpty()
+            val titles = if (projectId == null) {
+                repository.observeProjects().first().map { it.project.name }
+            } else {
+                repository.schedule(projectId)?.tasks?.map { it.title }.orEmpty()
+            }
             val keyterms = if (answering) ConfirmationReply.KEYTERMS + titles else titles
             return voiceApi.transcribe(token(), recording.file, recording.durationMs, language, keyterms)
         } finally {

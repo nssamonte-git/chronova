@@ -8,7 +8,8 @@ import noel.chronova.feature.assistant.presentation.orb.OrbMode
 
 /** The assistant's listening: records until the speaker stops and has the words transcribed. */
 internal class AssistantEars(
-    private val projectId: String,
+    /** The open project, or null on the list of projects. */
+    private val projectId: String?,
     private val useCases: AssistantUseCases,
     /** A hint for the transcriber: the phone's language, or null to let it detect. */
     private val language: () -> String?,

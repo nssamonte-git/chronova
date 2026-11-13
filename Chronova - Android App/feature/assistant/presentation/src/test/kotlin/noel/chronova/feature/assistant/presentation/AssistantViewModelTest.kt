@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.feature.assistant.domain.ListContext
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.ui.assistant.AssistantViewState
 import noel.chronova.feature.assistant.domain.ViewContext
@@ -130,6 +131,16 @@ private class FakeVoiceApi : VoiceApi {
     override suspend fun interpret(accessToken: String, transcript: String, context: VoiceContext): Proposal {
         requests += transcript
         return answer(transcript, context)
+    }
+
+    /** What the list of projects asked, and how it is answered. */
+    val listRequests = mutableListOf<ListContext>()
+    var answerOnList: (String, ListContext) -> Proposal = { _, _ -> Proposal(null, "unsupported", emptyList(), null, null) }
+
+    override suspend fun interpretOnList(accessToken: String, transcript: String, context: ListContext): Proposal {
+        requests += transcript
+        listRequests += context
+        return answerOnList(transcript, context)
     }
 
     /** What /resolve was asked: the operations planned and the clashes. */
@@ -319,7 +330,7 @@ class AssistantViewModelTest {
         )
     }
 
-    private fun viewModelFor(projectId: String) = AssistantViewModel(
+    private fun viewModelFor(projectId: String?) = AssistantViewModel(
         projectId,
         assistantUseCases(zone),
         FakePhrases, zone, language = { "en" },
@@ -507,6 +518,40 @@ class AssistantViewModelTest {
         says("mark this done")
         talk()
         assertEquals(ViewContext(TimeScale.DAYS, criticalPath = false, selectedTaskId = "review"), sent)
+    }
+
+    @Test
+    fun onTheListOfProjectsItGoesWhereItIsAskedOnceItHasSaidSo() = runTest(dispatcher) {
+        viewModel = viewModelFor(null)
+        api.answerOnList = { _, _ -> Proposal(null, "actions", emptyList(), null, null, actions = listOf(ProposedAction("open_project", projectId = SampleTasks.PROJECT_ID))) }
+        var navigationWhenSaying: NavigationUi? = null
+        api.onExplain = { if (it is ExplainRequest.Question && it.text.startsWith("showing OpenProject")) navigationWhenSaying = viewModel.navigation.value }
+        says("open the sample")
+        talk()
+
+        // Only the projects were sent (no project is open), with their names as words to listen for.
+        assertEquals(listOf(SampleTasks.project.name), api.listRequests.single().projects.map { it.name })
+        assertEquals(listOf(SampleTasks.project.name), api.keyterms.first())
+        assertNull(navigationWhenSaying) // said first
+        val request = viewModel.navigation.value as NavigationUi.OpenProject
+        assertEquals(SampleTasks.PROJECT_ID, request.projectId)
+        viewModel.navigated(request.id)
+        assertNull(viewModel.navigation.value)
+        // No introduction here: it is about a project's tasks.
+        viewModel.introduceIfFirstVisit()
+        assertFalse(viewModel.state.value.open)
+    }
+
+    @Test
+    fun leavingTheTimelineComesAfterWhatIsShownHere() = runTest(dispatcher) {
+        api.answer = { _, c ->
+            Proposal(c.revision, "actions", emptyList(), null, null, actions = listOf(ProposedAction("go_to_today"), ProposedAction("go_to_projects")))
+        }
+        says("go to today and then back to my projects")
+        talk()
+        assertEquals(AssistantViewAction.GoToToday, viewModel.view.value?.action)
+        assertTrue(viewModel.navigation.value is NavigationUi.Projects)
+        assertEquals("showing GoToProjects", api.said.last())
     }
 
     @Test

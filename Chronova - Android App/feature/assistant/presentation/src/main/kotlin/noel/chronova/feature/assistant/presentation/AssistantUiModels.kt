@@ -40,3 +40,13 @@ sealed interface WarningUi {
 
 /** Something the assistant asked the screen to show; [id] tells one from the next. */
 data class ViewRequestUi(val id: Long, val action: AssistantViewAction)
+
+/** Another screen the assistant was asked to go to; [id] tells one request from the next. */
+sealed interface NavigationUi {
+    val id: Long
+
+    data class OpenProject(override val id: Long, val projectId: String) : NavigationUi
+    data class Projects(override val id: Long) : NavigationUi
+    data class Notifications(override val id: Long) : NavigationUi
+    data class Account(override val id: Long) : NavigationUi
+}
