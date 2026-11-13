@@ -14,6 +14,7 @@
     <string name="create">Create</string>
     <string name="edit">Edit</string>
     <string name="duplicate">Duplicate</string>
+    <string name="export">Export…</string>
     <string name="project_copy_name">Copy of %1$s</string>
     <string name="project_copy_title">Copy “%1$s”</string>
     <string name="project_copy_hint">Its tasks and links are copied to the new dates, with nothing done yet; notes are kept.</string>

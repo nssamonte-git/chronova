@@ -1,5 +1,6 @@
 package noel.chronova.feature.projects.presentation
 
+import androidx.compose.material.icons.filled.Share
 import java.time.LocalDate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,6 +69,8 @@ fun ProjectListScreen(
     onSync: () -> Unit,
     unreadNotifications: Int,
     onOpenNotifications: () -> Unit,
+    /** "Export…" in a project's menu: its id and name (the shell shows the export sheet). */
+    onExport: (projectId: String, projectName: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -91,6 +94,7 @@ fun ProjectListScreen(
         onCreate = viewModel::startCreate,
         onEdit = viewModel::startEdit,
         onDuplicate = { project -> viewModel.startDuplicate(project, copyName.format(project.name)) },
+        onExport = { project -> onExport(project.id, project.name) },
         onDelete = viewModel::requestDelete,
         onOpenAccount = onOpenAccount,
         syncUi = syncUi,
@@ -140,6 +144,7 @@ internal fun ProjectListContent(
     onCreate: () -> Unit,
     onEdit: (ProjectRowUi) -> Unit,
     onDuplicate: (ProjectRowUi) -> Unit,
+    onExport: (ProjectRowUi) -> Unit,
     onDelete: (ProjectRowUi) -> Unit,
     onOpenAccount: () -> Unit,
     syncUi: SyncUi,
@@ -218,6 +223,7 @@ internal fun ProjectListContent(
                                         onClick = { onOpenProject(summary.id) },
                                         onEdit = { onEdit(summary) },
                                         onDuplicate = { onDuplicate(summary) },
+                                        onExport = { onExport(summary) },
                                         onDelete = { onDelete(summary) },
                                     )
                                 }
@@ -230,7 +236,14 @@ internal fun ProjectListContent(
 }
 
 @Composable
-private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit) {
+private fun ProjectCard(
+    summary: ProjectRowUi,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
+    onExport: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -239,7 +252,7 @@ private fun ProjectCard(summary: ProjectRowUi, onClick: () -> Unit, onEdit: () -
     ) {
         Row(verticalAlignment = Alignment.Top) {
             ProjectCardText(summary, Modifier.weight(1f))
-            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onDelete = onDelete)
+            ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onExport = onExport, onDelete = onDelete)
         }
     }
 }
@@ -269,7 +282,7 @@ private fun ProjectCardText(summary: ProjectRowUi, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit) {
+private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDuplicate: () -> Unit, onExport: () -> Unit, onDelete: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.padding(4.dp)) {
         IconButton(onClick = { expanded = true }) {
@@ -290,6 +303,14 @@ private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDuplicate: ()
                 onClick = {
                     expanded = false
                     onDuplicate()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.export)) },
+                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onExport()
                 },
             )
             DropdownMenuItem(
@@ -316,6 +337,7 @@ private fun ProjectListPreview() {
             onCreate = {},
             onEdit = {},
             onDuplicate = {},
+            onExport = {},
             onDelete = {},
             onOpenAccount = {},
             syncUi = SyncUi(),

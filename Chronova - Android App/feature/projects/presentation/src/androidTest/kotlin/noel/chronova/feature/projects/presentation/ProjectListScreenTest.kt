@@ -56,6 +56,7 @@ class ProjectListScreenTest {
     private lateinit var repository: FakeProjectRepository
     private lateinit var viewModel: ProjectListViewModel
     private val opened = mutableListOf<String>()
+    private val exported = mutableListOf<String>()
 
     private fun show(projects: List<Project>, tasks: List<SchedulerTask> = emptyList()) {
         repository = FakeProjectRepository(projects, tasks)
@@ -74,6 +75,7 @@ class ProjectListScreenTest {
                     onSync = {},
                     unreadNotifications = 0,
                     onOpenNotifications = {},
+                    onExport = { id, _ -> exported += id },
                 )
             }
         }
@@ -141,6 +143,15 @@ class ProjectListScreenTest {
         assertEquals(today.plusDays(18), copy.endDate)
         assertEquals(2, repository.tasks.value.count { it.projectId == copy.id })
         assertEquals(listOf(copy.id), opened)
+    }
+
+    @Test
+    fun exportInAProjectsMenuAsksTheShellToExportIt() {
+        show(listOf(office, launch))
+        compose.onNodeWithContentDescription(res.getString(R.string.project_actions, "Launch")).performClick()
+        compose.onNodeWithText(res.getString(R.string.export)).performClick()
+        compose.waitForIdle()
+        assertEquals(listOf("launch"), exported)
     }
 
     @Test

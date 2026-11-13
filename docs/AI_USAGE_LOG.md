@@ -1062,3 +1062,23 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the Today button scrolled to 12:42 with the now line;
     - searching "eat" listed 1 of 5 tasks and scrolled from 12:42 to 19:00.
   - **Cleanup:** deleted the copy and synced its 6 deletion records to the local server (started only for that sync and stopped again); "Jnn" untouched. Appearance set back to System, which still shows dark because the phone itself is in dark mode. The phone keeps this build.
+
+### Export and reminders
+
+- At your request, a plan for features 6 and 7, with your choices: export as PDF, CSV and calendar, with a notes switch that starts on; reminders as one app-wide setting (Off / At start / 15 min / 1 h / 1 day before each task or milestone starts, skipping done tasks), close-enough timing with no exact-alarm permission. No new libraries, no server or schema changes.
+- Batch 1, export:
+  - **New module `:feature:export:{domain,data,presentation}`.**
+  - **CSV and calendar builders** (pure Kotlin):
+    - CSV is RFC 4180, CRLF, UTF-8 with a BOM, local times, the dependencies by title, and notes when the switch is on.
+    - The calendar file is RFC 5545: UTC times, a UID per task, a milestone as an event with no DTEND, escaped text, and lines folded at 75 octets without splitting a character.
+  - **`ExportProject`** reads the schedule as it is now and names the file after the project, made safe for a file name ("project" if nothing usable is left).
+  - **PDF:** `GanttPdfWriter` draws the whole project with Android's `PdfDocument`. It uses A4 landscape pages, scales the full date range to the width with day, week or month ticks by length, and draws bars with the done part darkened, a check before done titles, milestone diamonds and finish-to-start arrows (red when broken). Rows continue over pages that repeat the header and axis, and the colours are always light.
+  - **Sharing:** files go to `cache/exports` (cleared each time) and are shared through a new FileProvider with a read grant.
+  - **The sheet:** format radio rows, the notes switch (hidden for PDF), and Export, which opens Android's share sheet. "Export…" sits in a project's menu; the projects feature only reports it, and the shell shows the sheet. `ExportResult` and `ExportedFile` were added to the UI-model rule's denied imports.
+  - **Tests:** 7 builder and use-case tests (CSV quoting and row order, no Notes column when off, calendar events in UTC with a milestone without an end, escaping and notes only when asked, folding with accents and emoji, file naming); 2 ViewModel tests; a PDF device test (an empty project, a milestone with a link, and 60 tasks over 3–4 pages at 3, 30, 120 and 366 days, each reopened with Android's `PdfRenderer`); a projects screen test (Export… reports the project); 6 sheet screenshots, checked by eye.
+  - **AI mistakes:**
+    - two `\;` escapes in the calendar code and its test lost a backslash when written through the shell, which the compiler caught;
+    - a CSV test expected the note's line break to split the row (it is a bare LF inside quotes and stays in the row); the test was wrong, not the file;
+    - a first device run used a test app built before the new projects test was added, so it ran 8 tests rather than 9; rebuilt and rerun;
+    - two lint "use KTX" warnings were fixed.
+  - **Checks:** `tools/check.sh` PASS (383 unit tests, 93 screenshots, lint 0 errors / 21 warnings, module graph OK with 86 module dependencies, UI-model check OK). On the phone: the PDF writer 3/3, projects 9/9.

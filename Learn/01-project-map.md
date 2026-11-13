@@ -21,6 +21,7 @@ Gradle modules under `Chronova - Android App/` (see `settings.gradle.kts`); each
 | Sync | `:feature:sync:{domain,data,presentation}` | `SyncService` and use cases; `SyncEngine`, `SyncCoordinator`, `RoomLocalSyncStore`, sync API/DTOs; sync ViewModel and reconnect prompt |
 | Accounts | `:feature:account:{domain,data,presentation}` | sign-in/account use cases; `ApiAuthRepository`, keystore token store; sign-in pages and account page |
 | Voice assistant | `:feature:assistant:{domain,data,presentation}` | ports, `AICommandHandler`, `CommandPlanner`, clashes, `AssistantUseCases`; OkHttp voice client, recorder, player, settings; `AssistantViewModel`, overlay, Filament orb (`voice/orb/`, `assets/orb`), `rememberAssistantSlot` |
+| Export | `:feature:export:{domain,data,presentation}` | `ExportProject`, `CsvExport`, `IcsExport`; `GanttPdfWriter` (PdfDocument), `CacheExportFiles` + FileProvider; `ExportViewModel`, `ExportSheet` (shown by the shell from the project menu) |
 | Tests | each module's `src/test/…`; `:app` `src/androidTest/…` | domain and engine tests in the pure modules, ViewModel tests with fake use cases/repositories, data tests; Room transaction and rotation on a device |
 
 ## Server and the rest

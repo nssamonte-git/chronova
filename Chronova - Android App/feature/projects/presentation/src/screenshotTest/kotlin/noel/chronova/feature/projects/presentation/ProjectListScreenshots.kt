@@ -22,6 +22,7 @@ private fun ProjectList(state: ProjectListState, sync: SyncUi) = ChronovaTheme {
         onCreate = {},
         onEdit = {},
         onDuplicate = {},
+        onExport = {},
         onDelete = {},
         onOpenAccount = {},
         syncUi = sync,

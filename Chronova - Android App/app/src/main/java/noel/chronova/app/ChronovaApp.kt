@@ -1,5 +1,6 @@
 package noel.chronova.app
 
+import noel.chronova.app.di.ExportGraph
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -129,4 +130,5 @@ class AppContainer(context: Context) {
     val sync = SyncGraph(this)
     val account = AccountGraph(this)
     val assistant = AssistantGraph(this, context)
+    val export = ExportGraph(this, context)
 }

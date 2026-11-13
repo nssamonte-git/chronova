@@ -1,5 +1,10 @@
 package noel.chronova.app.navigation
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import noel.chronova.feature.export.presentation.ExportScreen
+import noel.chronova.feature.export.presentation.ExportViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -95,6 +100,9 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
     }
     NavHost(navController = navController, startDestination = ProjectListRoute, modifier = modifier) {
         composable<ProjectListRoute> {
+            // The project being exported (its sheet); kept across rotation.
+            var exportId by rememberSaveable { mutableStateOf<String?>(null) }
+            var exportName by rememberSaveable { mutableStateOf("") }
             ProjectListScreen(
                 viewModel = viewModel(factory = ProjectListViewModel.factory(container.projects.queries, container.projects::useCases)),
                 onOpenProject = { id -> navController.navigate(ProjectTimelineRoute(id)) },
@@ -103,7 +111,17 @@ private fun ChronovaScreens(container: AppContainer, modifier: Modifier, openNot
                 onSync = sync::syncNow,
                 unreadNotifications = unread,
                 onOpenNotifications = { navController.navigate(NotificationsRoute) },
+                onExport = { id, name ->
+                    exportId = id
+                    exportName = name
+                },
             )
+            exportId?.let { id ->
+                ExportScreen(
+                    viewModel = viewModel(key = "export-$id", factory = ExportViewModel.factory(id, exportName, container.export::exportProject)),
+                    onDismiss = { exportId = null },
+                )
+            }
         }
         composable<NotificationsRoute> {
             NotificationsScreen(

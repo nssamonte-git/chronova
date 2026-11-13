@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="export_title">Export “%1$s”</string>
+    <string name="export_pdf">PDF Gantt chart</string>
+    <string name="export_pdf_body">The whole project as a chart, to print or send.</string>
+    <string name="export_csv">Spreadsheet (CSV)</string>
+    <string name="export_csv_body">One row per task, for Excel, Sheets or Numbers.</string>
+    <string name="export_calendar">Calendar (.ics)</string>
+    <string name="export_calendar_body">Every task as an event, for Google Calendar, Outlook or Apple Calendar.</string>
+    <string name="export_include_notes">Include task notes</string>
+    <string name="export_action">Export</string>
+    <string name="export_share_title">Share export</string>
+    <string name="export_project_gone">That project no longer exists.</string>
+    <string name="export_failed">The file couldn’t be written. Free some space and try again.</string>
+</resources>
