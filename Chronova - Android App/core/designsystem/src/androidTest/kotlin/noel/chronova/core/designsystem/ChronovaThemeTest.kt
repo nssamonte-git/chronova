@@ -3,10 +3,12 @@ package noel.chronova.core.designsystem
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import noel.chronova.core.model.TaskColor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,6 +49,27 @@ class ChronovaThemeTest {
         // Sheets and menus use the containers: slate too, not Material's default dark greys.
         assertEquals(ChronovaDarkSurfaceLow, scheme.surfaceContainerLow)
         assertEquals(ChronovaDarkSurfaceContainer, scheme.surfaceContainer)
+    }
+
+    @Test
+    fun snackbarActionsAreReadableInBothThemes() {
+        lateinit var light: ColorScheme
+        lateinit var dark: ColorScheme
+        compose.setContent {
+            ChronovaTheme(darkTheme = false) { light = MaterialTheme.colorScheme }
+            ChronovaTheme(darkTheme = true) { dark = MaterialTheme.colorScheme }
+        }
+        compose.waitForIdle()
+        // An action button's text (inversePrimary) on the snackbar (inverseSurface): WCAG AA, 4.5:1.
+        for (scheme in listOf(light, dark)) {
+            assertTrue(contrast(scheme.inversePrimary, scheme.inverseSurface) >= 4.5f)
+            assertTrue(contrast(scheme.inverseOnSurface, scheme.inverseSurface) >= 4.5f)
+        }
+    }
+
+    private fun contrast(a: Color, b: Color): Float {
+        val (light, dark) = listOf(a.luminance(), b.luminance()).sortedDescending()
+        return (light + 0.05f) / (dark + 0.05f)
     }
 
     @Test

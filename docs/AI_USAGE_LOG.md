@@ -1136,3 +1136,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the switch first made the settings row 8 dp taller, shifting every timeline screenshot; it now matches the segmented buttons' 48 dp.
   - **Checks:** `tools/check.sh` PASS (409 unit tests, 99 screenshots, lint 0 errors / 21 warnings).
   - **Noticed, not changed:** at the widest Days zoom-out the header's date label runs into the first hour label (it was already so).
+- Device tests and phone check (with your OK), on the phone:
+  - **Device tests**, each as its own test app: timeline 23/23, `:core:database` 5/5 (upgrades from v1 to v5 into v6), `:core:data` 6/6.
+  - **Install:** your data backed up first, then the build installed over it; the v5 → v6 upgrade ran on your data and your project opened as before.
+  - **Push:** on a throwaway project (Alpha, Beta waiting for Alpha, Gamma unlinked), linking Beta offered nothing (nothing broken); dragging Alpha an hour onto Beta offered "1 task now starts before “Alpha” ends · Push"; Push moved Beta just past Alpha and said "Pushed 1 task later · Undo"; Undo put it back. Saving Alpha in the editor offered Push too. Two early taps missed only because the offer (10 s) and the Undo (4 s) had closed while my UI dumps ran.
+  - **Found and fixed:** in dark mode the snackbar's Push and Undo were almost invisible (pale blue on the pale snackbar): the dark theme's `inversePrimary` was the light blue container. It is now the dark blue (about 9:1 contrast), and `ChronovaThemeTest` checks the snackbar's text and action contrast (4.5:1) in both themes (4/4 on the phone). Seen fixed on the phone.
+  - **Critical path:** turning the switch on outlined Alpha and Beta in red (the broken link counts) with red name marks and faded Gamma; it stayed on after leaving and reopening the project. The editor said "On the critical path: any delay moves the finish (Fri 13 Nov, 11:00)" for Beta and "Can slip 4 h without delaying the finish" for Gamma.
+  - **Clean-up:** the throwaway project deleted and the deletion synced through a briefly started local server ("All changes synced"); the server stopped, the port forward removed, `local.properties` restored after each build.
+  - **Checks after the fix:** `tools/check.sh` PASS (409 unit tests, 99 screenshots).

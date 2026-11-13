@@ -64,7 +64,8 @@ internal val ChronovaDarkColors = darkColorScheme(
     surfaceContainerHighest = ChronovaDarkSurfaceHighest,
     inverseSurface = ChronovaDarkText,
     inverseOnSurface = ChronovaDarkSurface,
-    inversePrimary = ChronovaBlueContainer,
+    // Snackbar actions (Undo, Push) sit on the light inverse surface, so they need the dark blue.
+    inversePrimary = ChronovaOnBlueContainer,
     outline = ChronovaDarkOutline,
     outlineVariant = ChronovaDarkOutlineVariant,
 )
