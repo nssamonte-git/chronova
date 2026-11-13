@@ -67,6 +67,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 ├── docs/
 │   ├── sync-protocol.md          the app ↔ server sync contract
 │   ├── voice-api.md              voice endpoints, privacy, measured cost and the release checklist
+│   ├── push.md                   push notifications: devices, reminders, alerts, settings
 │   ├── brand/                    the logo as supplied
 │   ├── AI_USAGE_LOG.md           per-batch development log
 │   └── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it
@@ -107,6 +108,8 @@ php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (s
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
 composer test                 # Pest (289 tests)
 ```
+
+Push notifications use a fake sender by default (recorded, not sent). To send through Firebase, put the service-account key file at `server/storage/credentials/firebase-service-account.json` (git-ignored) and set `PUSH_SENDER=fcm` and `FCM_CREDENTIALS=<its absolute path>` in `server/.env`; reminders also need `php artisan schedule:work` (see `docs/push.md`).
 
 Voice uses fakes by default (no keys, no network: a fixed transcript, a rule-based interpreter, a plain summary and a recorded clip). For the real providers, put `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` in `server/.env` and set `VOICE_TRANSCRIBER=elevenlabs`, `VOICE_INTERPRETER=openai`, `VOICE_EXPLAINER=openai`, `VOICE_SPEECH=elevenlabs` (see `docs/voice-api.md`).
 
@@ -195,6 +198,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - While the assistant is open, or still saying what it changed, the screen keeps its orientation; it turns with the phone again once the assistant is done.
 - The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes). A yes quieter than someone talking to the phone gets "Sorry, was that a yes?" first; the level is tuned on one phone.
 - The 3D orb (Filament 1.79) adds native libraries: the debug APK is about 40 MB (15 MB before); Play's per-device delivery ships one CPU type, about 6 MB more. It needs OpenGL ES 3.0, and falls back to the mic icon otherwise or after the 3D view has failed once.
+- Pushes are Firebase data messages: a phone where the app was force-stopped gets none until the app is opened again, and Android's or the phone maker's battery saving (ColorOS, for one) can hold them back. The phone's own reminder alarm still works. The privacy policy and Play Data safety form must name Firebase Cloud Messaging before release (reminders carry task titles and project names; notes never leave the phone).
 - Voice needs a connection and an account; it sends recordings and task names to ElevenLabs and words plus task names/times to OpenAI (the privacy policy and Play Data safety form must say so before release). Task names are passed to the transcriber as words to listen for, which fixes most sound-alike mistakes; anything still ambiguous gets a question.
 
 ## AI usage

@@ -1365,4 +1365,21 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **App:** two new notification kinds, "Changes on another device" and "New sign-in", both in the shade. Tapping the first opens the sync prompt, now with a "Changes on another device" wording (sync still never starts by itself). A sign-in alert within 5 minutes of this phone's own sign-in is dropped, since it is about this phone. `account_changed` asks the server (`checkSession`, `GET /v1/me`), and only a 401 signs the phone out; the plan had a "password changed" note when the sign-in still works, but every sender revokes all sign-ins, so a working one means the alert is stale or about this phone's own reset, and nothing is recorded.
   - **Docs:** DECISIONS (offline-first revision), README, `docs/push.md`.
   - **Tests:** 7 server tests (who gets each alert, the throttle, nothing for a sync that changed nothing, no job without another device) and app tests (`HandleAlert` 4, `checkSession`, the prompt from another device). 2 new screenshots (the notifications page and the prompt). Server 420 passed, Pint clean; `tools/check.sh` PASS (454 unit tests, 105 screenshots); the notifications and sync device tests pass on the phone (8 and 5).
+- Batch 5, real Firebase, the app icon, infra and docs:
+  - **Local server on Firebase:** `server/.env` got `PUSH_SENDER=fcm` and `FCM_CREDENTIALS` (the key file's path; I didn't open the key). Run with `serve`, `queue:work` and `schedule:work`.
+  - **Phone checks with real pushes** (your app data backed up first; your local test account):
+    - "New sign-in": sent through the queue worker; in the shade within a second.
+    - "Changes on another device": a second, temporary sign-in synced a harmless deletion record; the alert came, and tapping it opened the new "Changes on another device… Sync now?" prompt. I tapped Later, so nothing synced.
+    - "Account changed": sent without revoking anything. The phone asked the server (`GET /v1/me`), got a working sign-in, and stayed signed in with nothing recorded, as designed.
+    - Reminder: with reminders set to "When a task starts", the second sign-in synced a throwaway "Push check" project with a task starting 90 s later. The scheduler's next run pushed it, and it arrived once (19:40:04), recorded in the phone's "posted" log.
+  - **Your request mid-batch, "use app icon for the fcm notif":** both notification posters now show the full-colour app icon (drawn from the launcher icon) beside the text. The status bar keeps the logo's hourglass, since Android allows only one colour there. Reminders had a bell; they now use the hourglass too. Seen on the phone.
+  - **Clean-up:** the throwaway project and task deleted through the second sign-in, which was then revoked; reminders set back to Off (phone and server). The alerts the checks raised stay in the phone's notifications page.
+  - **A safety fix found on the way:** `phpunit.xml` didn't pin the push sender, so with `fcm` in `.env` the test suite would have called Firebase. It now forces `PUSH_SENDER=fake`. No test ran in between.
+  - **My mistakes:**
+    - The first phone build had no server URL. `local.properties` has no final newline, which `Learn/04-validation.md` already warns about and I hadn't read.
+    - A tap meant for the app's account icon landed on the home screen and opened a Google assistant prompt; I dismissed it with Back, choosing nothing.
+    - The phone's port forward dropped after a USB reconnect, so a registration didn't arrive until I re-added it.
+  - **Infra (not deployed):** `-c push=on|off` (off by default). A `PushKey` secret created with a placeholder; when on, `PUSH_SENDER=fcm` and `FCM_CREDENTIALS_JSON` go to the web, worker and scheduler containers only. DEPLOY.md says how to put the key in, rotate it and turn it off. 19 infra tests, `tsc` clean, synth with `push=on` succeeds, and the key file is not in `cdk.out`.
+  - **Docs:** DECISIONS (push notifications), README (server setup, limitations), `docs/push.md` (look, AWS, release checklist), HANDOFF and Learn baselines.
+  - **Checks:** `tools/check.sh` PASS (454 unit tests, 105 screenshots, 23 lint warnings); server 420 passed, Pint clean.
 

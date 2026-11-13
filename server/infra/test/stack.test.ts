@@ -2,8 +2,8 @@ import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { ChronovaStack } from '../lib/chronova-stack';
 
-const synth = (stage: string, voice?: boolean) =>
-  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com', voice }));
+const synth = (stage: string, voice?: boolean, push?: boolean) =>
+  Template.fromStack(new ChronovaStack(new App(), `Test-${stage}`, { stage, mailFrom: 'no-reply@example.com', voice, push }));
 const containersOf = (template: Template) =>
   Object.values(template.findResources('AWS::ECS::TaskDefinition')).flatMap(
     (r) => r.Properties.ContainerDefinitions as Array<Record<string, any>>,
@@ -150,5 +150,31 @@ describe('voice', () => {
     const web = containersOf(on).find((c) => c.Command[0] === 'web')!;
     const openai = (web.Secrets as Array<{ Name: string; ValueFrom: unknown }>).find((s) => s.Name === 'OPENAI_API_KEY')!;
     expect(JSON.stringify(openai.ValueFrom)).toContain(':openai::');
+  });
+});
+
+describe('push', () => {
+  it('keeps a secret for the Firebase key, created without a real one', () => {
+    dev.hasResourceProperties('AWS::SecretsManager::Secret', {
+      GenerateSecretString: Match.objectLike({ SecretStringTemplate: '{"type":"placeholder"}', GenerateStringKey: 'placeholder' }),
+    });
+    dev.hasOutput('PushKeySecret', Match.anyValue());
+  });
+
+  it('is off by default: the fake sender and no Firebase key in any container', () => {
+    for (const container of containersOf(dev)) {
+      expect(envOf(container)).toMatchObject({ PUSH_SENDER: 'fake' });
+      expect(secretNamesOf(container)).not.toContain('FCM_CREDENTIALS_JSON');
+    }
+  });
+
+  it('when on, gives the key to every container that sends pushes, as a secret', () => {
+    const on = synth('dev', false, true);
+    for (const container of containersOf(on)) {
+      const env = envOf(container);
+      expect(env).toMatchObject({ PUSH_SENDER: 'fcm' });
+      expect(Object.keys(env)).not.toContain('FCM_CREDENTIALS_JSON');
+      expect(secretNamesOf(container).includes('FCM_CREDENTIALS_JSON')).toBe(['web', 'worker', 'scheduler'].includes(container.Command[0]));
+    }
   });
 });

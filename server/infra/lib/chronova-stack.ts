@@ -31,6 +31,11 @@ export interface ChronovaStackProps extends StackProps {
    * VoiceKeys secret first (DEPLOY.md). Deploying with it off is also the kill switch.
    */
   readonly voice?: boolean;
+  /**
+   * Push notifications through Firebase Cloud Messaging. Off by default: put the service-account JSON
+   * in the PushKey secret first (DEPLOY.md). Off, the server records pushes and sends none.
+   */
+  readonly push?: boolean;
 }
 
 /**
@@ -45,9 +50,10 @@ export interface ChronovaStackProps extends StackProps {
  *   CloudFront, and the app can trust CloudFront-Viewer-Address for client IPs.
  * - No NAT gateway: tasks sit in public subnets (to pull images and call AWS APIs)
  *   but accept traffic only from the load balancer's security group.
- * - Secrets (app key, database password, voice provider keys) live in Secrets Manager and
- *   are injected at start; email goes through SES with the task role (no SMTP credentials).
- *   Only the web container gets the voice provider keys.
+ * - Secrets (app key, database password, voice provider keys, the Firebase service account) live
+ *   in Secrets Manager and are injected at start; email goes through SES with the task role (no
+ *   SMTP credentials). Only the web container gets the voice provider keys; the web, worker and
+ *   scheduler containers get the Firebase key when push is on (each of them sends pushes).
  */
 export class ChronovaStack extends Stack {
   constructor(scope: Construct, id: string, props: ChronovaStackProps) {
@@ -106,6 +112,18 @@ export class ChronovaStack extends Stack {
     });
     const voiceOn = props.voice ?? false;
 
+    // The Firebase service account (docs/push.md): the whole key file's JSON, put in by hand
+    // (never in code or the template) — see DEPLOY.md. Created with a placeholder.
+    const pushKey = new secretsmanager.Secret(this, 'PushKey', {
+      description: 'Chronova Firebase Cloud Messaging service-account JSON (the downloaded key file)',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ type: 'placeholder' }),
+        generateStringKey: 'placeholder',
+        excludePunctuation: true,
+      },
+    });
+    const pushOn = props.push ?? false;
+
     // --- Email (SES) ----------------------------------------------------------------
     const mailIdentity = new ses.EmailIdentity(this, 'MailFrom', { identity: ses.Identity.email(props.mailFrom) });
 
@@ -137,8 +155,10 @@ export class ChronovaStack extends Stack {
       VOICE_INTERPRETER: voiceOn ? 'openai' : 'fake',
       VOICE_EXPLAINER: voiceOn ? 'openai' : 'fake',
       VOICE_SPEECH: voiceOn ? 'elevenlabs' : 'fake',
+      // Off: pushes are recorded, not sent (the app's own reminder alarm still works). On: Firebase.
+      PUSH_SENDER: pushOn ? 'fcm' : 'fake',
     };
-    const secrets: Record<string, ecs.Secret> = {
+    const baseSecrets: Record<string, ecs.Secret> = {
       APP_KEY: ecs.Secret.fromSecretsManager(appKey),
       DB_HOST: ecs.Secret.fromSecretsManager(dbSecret, 'host'),
       DB_PORT: ecs.Secret.fromSecretsManager(dbSecret, 'port'),
@@ -146,6 +166,10 @@ export class ChronovaStack extends Stack {
       DB_USERNAME: ecs.Secret.fromSecretsManager(dbSecret, 'username'),
       DB_PASSWORD: ecs.Secret.fromSecretsManager(dbSecret, 'password'),
     };
+    // The containers that send pushes (web, worker, scheduler); migrations don't.
+    const secrets: Record<string, ecs.Secret> = pushOn
+      ? { ...baseSecrets, FCM_CREDENTIALS_JSON: ecs.Secret.fromSecretsManager(pushKey) }
+      : baseSecrets;
 
     // The web container alone calls the providers.
     const webSecrets: Record<string, ecs.Secret> = voiceOn
@@ -194,7 +218,7 @@ export class ChronovaStack extends Stack {
 
     // Migrations: a one-off task, run before (or right after) each deploy — see DEPLOY.md.
     const migrateTask = taskDefinition('MigrateTask', 256, 512);
-    migrateTask.addContainer('migrate', { image, command: ['migrate'], environment, secrets, logging: logDriver('migrate') });
+    migrateTask.addContainer('migrate', { image, command: ['migrate'], environment, secrets: baseSecrets, logging: logDriver('migrate') });
 
     const serviceSecurityGroup = new ec2.SecurityGroup(this, 'ServiceSg', { vpc, description: 'App tasks: inbound from the load balancer only' });
     dbSecurityGroup.addIngressRule(serviceSecurityGroup, ec2.Port.tcp(5432), 'App tasks to Postgres');
@@ -325,6 +349,7 @@ export class ChronovaStack extends Stack {
     new CfnOutput(this, 'TaskSecurityGroup', { value: serviceSecurityGroup.securityGroupId });
     new CfnOutput(this, 'MailIdentity', { value: mailIdentity.emailIdentityName });
     new CfnOutput(this, 'JobsService', { value: jobs.serviceName });
+    new CfnOutput(this, 'PushKeySecret', { value: pushKey.secretName, description: 'Put the Firebase service-account JSON here (DEPLOY.md)' });
     new CfnOutput(this, 'VoiceKeysSecret', { value: voiceKeys.secretName, description: 'Put the OpenAI and ElevenLabs keys here (DEPLOY.md)' });
   }
 }

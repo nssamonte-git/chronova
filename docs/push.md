@@ -60,4 +60,15 @@ No job is queued when the user has no other device.
   - It makes no token until the app asks, so a signed-out app makes none (`firebase_messaging_auto_init_enabled=false`).
   - Analytics is off and not included; only messaging is.
 - **Messages:** the service hands them to the Application (`PushHost`); a message the app doesn't understand is ignored.
+- **Look:** the status bar shows the logo's hourglass in one colour (Android allows no other); the notification shows the full-colour app icon beside its text, drawn from the launcher icon.
+
+## On AWS
+
+Off by default (`PUSH_SENDER=fake`). `-c push=on` sets `PUSH_SENDER=fcm` and gives the web, worker and scheduler containers `FCM_CREDENTIALS_JSON` from the `PushKey` secret (the migrate task gets nothing). Putting the key in and rotating it: `server/infra/DEPLOY.md`.
+
+## Before release
+
+- [ ] Privacy policy: Firebase Cloud Messaging (Google) receives a device token per phone, and reminder pushes carry task titles and project names; notes never do.
+- [ ] Play Console Data safety: device or other IDs (the FCM token) and app content (task titles, project names) shared with a service provider, for app functionality.
+- [ ] Restrict the Firebase API key in `google-services.json` to the package and signing certificate (Google Cloud console).
 
