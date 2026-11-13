@@ -47,8 +47,20 @@ class PreferencesReminderLog(private val prefs: SharedPreferences) : ReminderLog
         get() = prefs.getLong(KEY, 0L)
         set(value) = prefs.edit { putLong(KEY, value) }
 
+    /** Posted reminders as "key=millis" entries, kept two days (a reminder is never posted a day late). */
+    @Synchronized
+    override fun firstTime(key: String, nowMillis: Long): Boolean {
+        val kept = prefs.getStringSet(POSTED, emptySet()).orEmpty()
+            .filter { entry -> entry.substringAfterLast('=').toLongOrNull()?.let { nowMillis - it < KEEP_MILLIS } == true }
+        if (kept.any { it.substringBeforeLast('=') == key }) return false
+        prefs.edit(commit = true) { putStringSet(POSTED, (kept + "$key=$nowMillis").toSet()) }
+        return true
+    }
+
     private companion object {
         const val KEY = "handled_up_to"
+        const val POSTED = "posted"
+        const val KEEP_MILLIS = 2 * 24 * 60 * 60_000L
     }
 }
 

@@ -15,7 +15,10 @@ data class Reminder(
     val isMilestone: Boolean,
     val startMillis: Long,
     val atMillis: Long,
-)
+) {
+    /** The same reminder however it arrives (the phone's alarm or a push from the server). */
+    val key: String get() = "$taskId@$atMillis"
+}
 
 /** Which reminders exist, which are due now, and when the next one is. */
 object ReminderPlanner {
@@ -60,6 +63,12 @@ fun interface ReminderPoster {
 /** When reminders were last handled (posted, or the plan was reset), so none is posted twice. */
 interface ReminderLog {
     var handledUpToMillis: Long
+
+    /**
+     * Records that the reminder [key] is being posted now ([nowMillis]); false when it already was
+     * (by the alarm or a push), so it is never posted twice. Old records are forgotten.
+     */
+    fun firstTime(key: String, nowMillis: Long): Boolean
 }
 
 /**
@@ -67,6 +76,9 @@ interface ReminderLog {
  * Rescheduling (a task or the setting changed, sign-in, boot, a time change) starts the
  * plan afresh from now, so a reminder whose time has already passed is never posted
  * late for a task just added or moved. Signed out, there are no reminders.
+ *
+ * The server also pushes reminders for synced tasks ([onPush]); a reminder is posted once,
+ * whichever comes first, and the phone's own copy of a task wins over the server's.
  */
 class ReminderEngine(
     private val projects: ProjectQueries,
@@ -91,10 +103,29 @@ class ReminderEngine(
             return
         }
         val reminders = current()
-        val due = ReminderPlanner.due(reminders, log.handledUpToMillis, now)
+        val due = ReminderPlanner.due(reminders, log.handledUpToMillis, now).filter { log.firstTime(it.key, now) }
         if (due.isNotEmpty()) poster.post(due)
         log.handledUpToMillis = now
         alarm.set(ReminderPlanner.next(reminders, now))
+    }
+
+    /**
+     * A reminder the server pushed (from its copy of the tasks, as of the last sync). Posted
+     * unless reminders are off here, it was already posted, it is too late, or this phone knows
+     * the task differently (done, or at another time: an unsynced change, which the alarm covers).
+     * A task this phone doesn't have yet (made on another device) is reminded as the server says.
+     */
+    suspend fun onPush(reminder: Reminder) {
+        val now = clock()
+        if (!signedIn() || settings.lead.value == ReminderLead.OFF) return
+        if (now - reminder.atMillis > ReminderPlanner.MAX_LATE_MILLIS) return
+        val here = projects.observeTasks(reminder.projectId).first().firstOrNull { it.id == reminder.taskId }
+        if (here != null) {
+            if (here.isDone) return
+            val mine = current().firstOrNull { it.taskId == reminder.taskId } ?: return
+            if (mine.atMillis != reminder.atMillis) return
+        }
+        if (log.firstTime(reminder.key, now)) poster.post(listOf(reminder))
     }
 
     private suspend fun current(): List<Reminder> {

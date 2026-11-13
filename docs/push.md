@@ -29,6 +29,14 @@ Task reminders and account and sync alerts reach the phone through Firebase Clou
 
 The service-account key is a private key: never in git, never in the app.
 
+## Reminders
+
+- **When:** `App\Jobs\SendDueReminders`, every minute on the scheduler (`routes/console.php`, the scheduler container), with a daily clean-up of `sent_reminders` older than 2 days.
+- **What:** for each device whose `reminderLead` isn't `off`, the user's tasks and milestones that are synced, not deleted, not done (progress under 100), scheduled, and in a live project, whose reminder time (start minus the lead) came since the last run. The first run looks back 2 minutes; no run looks back more than a day.
+- **Once per device:** `sent_reminders` (device, task, reminder time) is unique; a moved task gets a new reminder time and so a new reminder.
+- **The message:** `type=reminder`, `taskId`, `projectId`, `projectName`, `title`, `milestone` (`true`/`false`), `startMillis`, `atMillis`; high priority, no collapse key. The phone words it.
+- **On the phone:** dropped when signed out, reminders are off, it is over a day late, or the phone's own copy of the task is done or due at another time (an unsynced change; the phone's alarm covers it). Otherwise it is posted through the same poster and notification id as the alarm, and a shared "posted" log (`taskId@atMillis`, 2 days) means push and alarm show it once between them.
+
 ## The app
 
 - **Modules:** `:feature:push:domain` (pure Kotlin: `PushMessage.parse`, `RegisterDevice`) and `:feature:push:data` (`ChronovaMessagingService`, `FirebasePushTokens`, `OkHttpPushApi`). The app module applies the google-services plugin, which reads `app/google-services.json` (Firebase project `chronova-ece3c`).

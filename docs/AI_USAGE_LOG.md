@@ -1355,4 +1355,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **`ChronovaApp`:** registers at start, on sign-in and on a changed reminder choice, and when Firebase hands over a new token. It hands pushes to `handlePush`, which acts on them from batch 3.
   - **Tests:** 7 domain and 2 API tests. `tools/check.sh` PASS (444 unit tests).
   - **Phone check** (your data backed up first): opening the app registered a real Firebase token (142 characters) with the local server, with Asia/Manila and reminders off.
+- Batch 3, reminders through Firebase with the phone's alarm as backup:
+  - **Server:** `SendDueReminders`, every minute on the scheduler, pushes each device's due reminders from synced tasks (its own lead; done, deleted, unscheduled tasks, deleted projects and other accounts skipped; at most a day late). `sent_reminders` makes it once per device; a daily job prunes it.
+  - **App:** `ReminderEngine.onPush` posts a pushed reminder through the same poster and notification id. Push and alarm share a "posted" log (`taskId@atMillis`, 2 days), so you see it once whichever comes first. The phone's copy of the task wins: done here or moved here (not synced yet), the push is dropped and the alarm covers it.
+  - **Docs:** DECISIONS revises "Task reminders"; README and `docs/push.md` describe the push.
+  - **Tests:** 6 server tests (due since the last run, never twice, what is skipped, per-device lead and milestones, the look-back limits, the schedule) and 4 app tests (push then alarm and alarm then push post once, an unknown task is posted, the phone's copy wins, off / signed out / too late). Server 413 passed, Pint clean; `tools/check.sh` PASS. A first run failed one test: my test helper merged its defaults over the task's own project; fixed in the test.
 

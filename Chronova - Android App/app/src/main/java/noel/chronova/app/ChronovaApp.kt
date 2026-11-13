@@ -1,5 +1,6 @@
 package noel.chronova.app
 
+import noel.chronova.feature.reminders.domain.Reminder
 import noel.chronova.feature.push.domain.RegisterDevice
 import noel.chronova.feature.push.data.OkHttpPushApi
 import noel.chronova.feature.push.data.FirebasePushTokens
@@ -198,10 +199,14 @@ class AppContainer(context: Context) {
         settings = reminderSettings,
     )
 
-    /** Acts on a push from the server (reminders and alerts arrive in the next steps of this work). */
+    /** Acts on a push from the server (docs/push.md). */
     suspend fun handlePush(message: PushMessage) {
         when (message) {
-            is PushMessage.Reminder, PushMessage.SyncAvailable, PushMessage.SignedIn, PushMessage.AccountChanged -> Unit
+            is PushMessage.Reminder -> reminderEngine.onPush(
+                Reminder(message.taskId, message.projectId, message.projectName, message.title, message.isMilestone, message.startMillis, message.atMillis),
+            )
+            // The account and sync alerts arrive in the next step of this work.
+            PushMessage.SyncAvailable, PushMessage.SignedIn, PushMessage.AccountChanged -> Unit
         }
     }
 

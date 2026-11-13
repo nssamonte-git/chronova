@@ -64,6 +64,8 @@ class RemindersTest {
         val repository = FakeProjectRepository(listOf(project), tasks)
         val log = object : ReminderLog {
             override var handledUpToMillis = 0L
+            val keys = mutableSetOf<String>()
+            override fun firstTime(key: String, nowMillis: Long) = keys.add(key)
         }
         val engine = ReminderEngine(
             repository, settings, signedIn = { signedIn },
@@ -116,5 +118,58 @@ class RemindersTest {
         out.engine.onAlarm()
         assertEquals(listOf<Long?>(null, null), out.alarms)
         assertTrue(out.posted.isEmpty())
+    }
+
+    // Pushed by the server (from its copy, as of the last sync).
+
+    private fun pushed(task: SchedulerTask, at: Long = task.startMillis) =
+        Reminder(task.id, task.projectId, "Office move", task.title, task.isMilestone, task.startMillis, at)
+
+    @Test
+    fun aPushAndTheAlarmPostTheSameReminderOnceWhicheverComesFirst() = runTest {
+        // The push first: the alarm later finds it posted.
+        val h = Harness()
+        h.engine.reschedule()
+        h.clock = now + 2 * hour
+        h.engine.onPush(pushed(build))
+        h.engine.onAlarm()
+        assertEquals(listOf(listOf("Build")), h.posted)
+        // The alarm first: the push later finds it posted.
+        val g = Harness()
+        g.engine.reschedule()
+        g.clock = now + 2 * hour
+        g.engine.onAlarm()
+        g.engine.onPush(pushed(build))
+        assertEquals(listOf(listOf("Build")), g.posted)
+    }
+
+    @Test
+    fun aPushForATaskThisPhoneDoesntHaveYetIsPosted() = runTest {
+        val h = Harness()
+        h.clock = now + 2 * hour
+        h.engine.onPush(pushed(SchedulerTask("other", "p2", "Paint", now + 2 * hour, now + 3 * hour)))
+        assertEquals(listOf(listOf("Paint")), h.posted)
+    }
+
+    @Test
+    fun thePhonesOwnCopyWinsOverAnOlderSync() = runTest {
+        val h = Harness()
+        h.clock = now + hour
+        // Done here (not synced yet): no reminder.
+        h.engine.onPush(pushed(done))
+        // Moved here to another time: the alarm will remind at the new one.
+        h.engine.onPush(pushed(build.copy(startMillis = now + hour), at = now + hour))
+        assertTrue(h.posted.isEmpty())
+    }
+
+    @Test
+    fun aPushIsIgnoredWhenRemindersAreOffSignedOutOrTooLate() = runTest {
+        val off = Harness(lead = ReminderLead.OFF).apply { clock = now + 2 * hour }
+        off.engine.onPush(pushed(build))
+        val out = Harness().apply { signedIn = false; clock = now + 2 * hour }
+        out.engine.onPush(pushed(build))
+        val late = Harness().apply { clock = now + 27 * hour }
+        late.engine.onPush(pushed(SchedulerTask("x", "p2", "Old", now + 2 * hour, now + 3 * hour)))
+        assertTrue(off.posted.isEmpty() && out.posted.isEmpty() && late.posted.isEmpty())
     }
 }
