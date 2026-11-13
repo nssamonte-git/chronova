@@ -21,6 +21,13 @@ final class ProposalSchema
 
     public const UNITS = ['minutes', 'hours', 'days', 'weeks'];
 
+    /** The timeline's scales, its zoom steps and row sizes, as actions name them. */
+    public const SCALES = ['hours', 'days', 'weeks', 'months'];
+
+    public const ZOOMS = ['in', 'out', 'reset'];
+
+    public const ROW_SIZES = ['bigger', 'smaller'];
+
     public const DATE = '^\d{4}-\d{2}-\d{2}$';
 
     public const TIME = '^\d{2}:\d{2}$';
@@ -60,6 +67,10 @@ final class ProposalSchema
             'go_to_today' => [],
             'go_to_date' => ['date' => ['type' => 'string', 'pattern' => self::DATE]],
             'show_task' => ['taskId' => ['type' => 'string']],
+            'set_scale' => ['scale' => ['type' => 'string', 'enum' => self::SCALES]],
+            'zoom' => ['direction' => ['type' => 'string', 'enum' => self::ZOOMS]],
+            'row_height' => ['size' => ['type' => 'string', 'enum' => self::ROW_SIZES]],
+            'critical_path' => ['on' => ['type' => 'boolean']],
         ];
     }
 

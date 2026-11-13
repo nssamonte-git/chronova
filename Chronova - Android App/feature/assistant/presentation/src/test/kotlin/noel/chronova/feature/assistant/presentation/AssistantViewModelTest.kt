@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.ViewScale
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import noel.chronova.feature.assistant.domain.VoiceAction
 import noel.chronova.feature.assistant.domain.ProposedAction
@@ -432,6 +433,15 @@ class AssistantViewModelTest {
         advanceUntilIdle()
         assertNull(viewModel.view.value)
         assertFalse(viewModel.busy.value)
+    }
+
+    @Test
+    fun aViewSettingIsHandedToTheScreenInItsTerms() = runTest(dispatcher) {
+        api.answer = { _, c -> Proposal(c.revision, "actions", emptyList(), null, null, actions = listOf(ProposedAction("set_scale", scale = "days"))) }
+        says("show days")
+        talk()
+        assertEquals(AssistantViewAction.SetScale(ViewScale.DAYS), viewModel.view.value?.action)
+        assertEquals("showing SetScale(scale=DAYS)", api.said.last())
     }
 
     @Test

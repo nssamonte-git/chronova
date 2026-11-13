@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.TimeScale
 import java.time.format.DateTimeFormatter
 import noel.chronova.feature.assistant.domain.VoiceAction
 import android.content.res.Resources
@@ -66,6 +67,23 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
         VoiceAction.GoToToday -> resources.getString(R.string.assistant_showing_today)
         is VoiceAction.GoToDate -> resources.getString(R.string.assistant_showing_day, action.date.format(SPOKEN_DAY))
         is VoiceAction.ShowTask -> resources.getString(R.string.assistant_showing_task, action.title)
+        is VoiceAction.SetScale -> resources.getString(
+            when (action.scale) {
+                TimeScale.HOURS -> R.string.assistant_showing_hours
+                TimeScale.DAYS -> R.string.assistant_showing_days
+                TimeScale.WEEKS -> R.string.assistant_showing_weeks
+                TimeScale.MONTHS -> R.string.assistant_showing_months
+            },
+        )
+        is VoiceAction.Zoom -> resources.getString(
+            when (action.step) {
+                VoiceAction.ZoomStep.IN -> R.string.assistant_zoomed_in
+                VoiceAction.ZoomStep.OUT -> R.string.assistant_zoomed_out
+                VoiceAction.ZoomStep.RESET -> R.string.assistant_zoom_reset
+            },
+        )
+        is VoiceAction.RowHeight -> resources.getString(if (action.bigger) R.string.assistant_rows_bigger else R.string.assistant_rows_smaller)
+        is VoiceAction.CriticalPath -> resources.getString(if (action.on) R.string.assistant_critical_path_on else R.string.assistant_critical_path_off)
     }
 
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long): String {

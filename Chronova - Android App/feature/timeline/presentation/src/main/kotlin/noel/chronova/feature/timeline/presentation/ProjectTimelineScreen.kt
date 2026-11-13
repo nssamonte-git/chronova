@@ -1,5 +1,7 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.ui.assistant.ViewZoom
+import noel.chronova.core.ui.assistant.AssistantViewAction
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.rememberCoroutineScope
@@ -241,6 +243,24 @@ internal fun TimelineContent(
         snackbarHost.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
         actions.onPushBlockedShown()
     }
+    // The assistant asked for a view setting (scale, zoom, rows, critical path): as if the settings row was used.
+    val viewSetting = assistant.viewRequest?.takeIf { it.action.isViewSetting() }
+    val currentActions by rememberUpdatedState(actions)
+    LaunchedEffect(viewSetting?.key) {
+        val request = viewSetting ?: return@LaunchedEffect
+        when (val action = request.action) {
+            is AssistantViewAction.SetScale -> currentActions.onTimeScale(TimeScale.valueOf(action.scale.name))
+            is AssistantViewAction.Zoom -> when (action.step) {
+                ViewZoom.IN -> currentActions.onZoomIn()
+                ViewZoom.OUT -> currentActions.onZoomOut()
+                ViewZoom.RESET -> currentActions.onZoomReset()
+            }
+            is AssistantViewAction.RowHeight -> currentActions.onRowHeightStep(if (action.bigger) 1 else -1)
+            is AssistantViewAction.CriticalPath -> currentActions.onCriticalPath(action.on)
+            else -> Unit
+        }
+        request.onHandled()
+    }
     val scope = rememberCoroutineScope()
     val todayBefore = stringResource(R.string.today_before)
     val todayAfter = stringResource(R.string.today_after)
@@ -335,7 +355,8 @@ internal fun TimelineContent(
                 contentPadding = PaddingValues(bottom = 88.dp),
                 now = now,
                 onTodayOutside = onTodayOutside,
-                viewRequest = assistant.viewRequest,
+                // Settings changes are done above; the grid only scrolls and selects.
+                viewRequest = assistant.viewRequest?.takeUnless { it.action.isViewSetting() },
             )
         }
     }
@@ -405,4 +426,10 @@ private fun TimelineContentPreview() {
     ChronovaTheme {
         TimelineContent(state = TimelineUiState.sample(ZoneOffset.UTC), actions = TimelineActions())
     }
+}
+
+/** A change to how the timeline is shown, rather than where it is scrolled to. */
+private fun AssistantViewAction.isViewSetting(): Boolean = when (this) {
+    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath -> true
+    AssistantViewAction.GoToToday, is AssistantViewAction.GoToDate, is AssistantViewAction.ShowTask -> false
 }

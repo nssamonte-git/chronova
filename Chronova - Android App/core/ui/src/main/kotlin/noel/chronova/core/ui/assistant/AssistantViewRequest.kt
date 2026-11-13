@@ -25,4 +25,14 @@ sealed interface AssistantViewAction {
 
     /** Select the task and scroll to it. */
     data class ShowTask(val taskId: String) : AssistantViewAction
+
+    // How the timeline is shown: as if the settings row had been used (remembered for the project).
+    data class SetScale(val scale: ViewScale) : AssistantViewAction
+    data class Zoom(val step: ViewZoom) : AssistantViewAction
+    data class RowHeight(val bigger: Boolean) : AssistantViewAction
+    data class CriticalPath(val on: Boolean) : AssistantViewAction
 }
+
+enum class ViewScale { HOURS, DAYS, WEEKS, MONTHS }
+
+enum class ViewZoom { IN, OUT, RESET }

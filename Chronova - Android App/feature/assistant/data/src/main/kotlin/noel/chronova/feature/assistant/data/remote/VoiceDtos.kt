@@ -172,7 +172,15 @@ internal data class InterpretResponseDto(
 )
 
 @Serializable
-internal data class ActionDto(val type: String, val date: String? = null, val taskId: String? = null)
+internal data class ActionDto(
+    val type: String,
+    val date: String? = null,
+    val taskId: String? = null,
+    val scale: String? = null,
+    val direction: String? = null,
+    val size: String? = null,
+    val on: Boolean? = null,
+)
 
 @Serializable
 internal data class OperationDto(
@@ -215,7 +223,7 @@ internal fun InterpretResponseDto.toDomain() = Proposal(
     question = question,
     reason = reason,
     alternative = alternative?.map { it.toDomain() },
-    actions = actions.map { ProposedAction(it.type, it.date, it.taskId) },
+    actions = actions.map { ProposedAction(it.type, it.date, it.taskId, it.scale, it.direction, it.size, it.on) },
 )
 
 internal fun OperationDto.toDomain() = ProposedOperation(

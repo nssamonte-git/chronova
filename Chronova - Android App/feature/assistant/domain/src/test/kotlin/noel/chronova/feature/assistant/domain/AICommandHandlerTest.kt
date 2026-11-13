@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.TimeScale
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -40,6 +41,39 @@ class AICommandHandlerTest {
             HandledProposal.Act(listOf(VoiceAction.GoToToday, VoiceAction.GoToDate(LocalDate.of(2026, 3, 3)), VoiceAction.ShowTask("review", "Review"))),
             handled,
         )
+    }
+
+    @Test
+    fun viewActionsNameTheScaleZoomRowsAndCriticalPath() {
+        val handled = handler.handle(
+            context,
+            state,
+            actions(
+                ProposedAction("set_scale", scale = "weeks"),
+                ProposedAction("zoom", direction = "reset"),
+                ProposedAction("row_height", size = "smaller"),
+                ProposedAction("critical_path", on = true),
+            ),
+        )
+        assertEquals(
+            HandledProposal.Act(
+                listOf(
+                    VoiceAction.SetScale(TimeScale.WEEKS),
+                    VoiceAction.Zoom(VoiceAction.ZoomStep.RESET),
+                    VoiceAction.RowHeight(bigger = false),
+                    VoiceAction.CriticalPath(on = true),
+                ),
+            ),
+            handled,
+        )
+        for (bad in listOf(
+            ProposedAction("set_scale", scale = "years"),
+            ProposedAction("zoom"),
+            ProposedAction("row_height", size = "huge"),
+            ProposedAction("critical_path"),
+        )) {
+            assertEquals(bad.toString(), HandledProposal.Unreadable, handler.handle(context, state, actions(bad)))
+        }
     }
 
     @Test

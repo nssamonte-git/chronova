@@ -87,6 +87,21 @@ class OkHttpVoiceApiTest {
             listOf(ProposedAction("go_to_today"), ProposedAction("go_to_date", date = "2026-03-03"), ProposedAction("show_task", taskId = "review")),
             proposal.actions,
         )
+        reply(
+            200,
+            """{"revision":"r1","result":"actions","operations":[],"question":null,"reason":null,"alternative":null,
+               "actions":[{"type":"set_scale","scale":"days"},{"type":"zoom","direction":"in"},{"type":"row_height","size":"bigger"},{"type":"critical_path","on":false}]}""",
+        )
+        assertEquals(
+            listOf(
+                ProposedAction("set_scale", scale = "days"),
+                ProposedAction("zoom", direction = "in"),
+                ProposedAction("row_height", size = "bigger"),
+                ProposedAction("critical_path", on = false),
+            ),
+            api.interpret("token-1", "show days", context).actions,
+        )
+        server.takeRequest()
         // An answer without actions (an older server) has none.
         reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
         assertEquals(emptyList<ProposedAction>(), api.interpret("token-1", "delete design", context).actions)

@@ -257,6 +257,12 @@ it('understands the "go to" actions with the fake interpreter, for apps that can
     'tomorrow' => ['show tomorrow', ['type' => 'go_to_date', 'date' => '2026-11-13']],
     'a date' => ['jump to 2026-11-16', ['type' => 'go_to_date', 'date' => '2026-11-16']],
     'a task' => ['where is review', ['type' => 'show_task', 'taskId' => 't3']],
+    'a scale' => ['switch to weeks', ['type' => 'set_scale', 'scale' => 'weeks']],
+    'zoom in' => ['zoom in', ['type' => 'zoom', 'direction' => 'in']],
+    'reset the zoom' => ['reset the zoom', ['type' => 'zoom', 'direction' => 'reset']],
+    'bigger rows' => ['make the rows bigger', ['type' => 'row_height', 'size' => 'bigger']],
+    'the critical path' => ['show the critical path', ['type' => 'critical_path', 'on' => true]],
+    'no critical path' => ['hide the critical path', ['type' => 'critical_path', 'on' => false]],
 ]);
 
 it('tells an app from before actions to update instead of sending it any', function () {
@@ -286,7 +292,7 @@ it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
         ->and(ProposalSchema::jsonSchema()['properties']['result']['enum'])->toContain('actions')
-        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task'])
+        ->and(array_map(fn ($v) => $v['properties']['type']['enum'][0], $actions['items']['anyOf']))->toBe(['go_to_today', 'go_to_date', 'show_task', 'set_scale', 'zoom', 'row_height', 'critical_path'])
         ->and(OpenAiInterpreter::instructions())->toContain('go_to_today')->toContain('show_task')->toContain('result "actions"');
 });
 
@@ -316,6 +322,10 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'action on an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'show_task', 'taskId' => 't9']]]],
     'action on an impossible date' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_date', 'date' => '2026-02-30']]]],
     'action with an extra field' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today', 'zoom' => 2]]]],
+    'an unknown scale' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'set_scale', 'scale' => 'years']]]],
+    'a zoom with no direction' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'zoom', 'direction' => null]]]],
+    'a row size as a number' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'row_height', 'size' => 2]]]],
+    'critical path as text' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'critical_path', 'on' => 'yes']]]],
     'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
     'actions with nothing to do' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]],
     'actions answer with operations' => [['result' => 'actions', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],

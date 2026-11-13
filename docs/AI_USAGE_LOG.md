@@ -1177,3 +1177,18 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - The screen test had missed this: its bar check also matched the name cell's text. It now checks the bar itself, and fails without the fix.
     - After the fix, "show beta" scrolled to 09:00 with Beta selected on the phone.
   - **Seen once, not reproduced:** in the first run the orb opened a second time by itself after "show beta". It didn't happen again in the re-check or while I watched for 15 s; I'll keep watching in the next batches.
+- Batch 2, the view:
+  - **Server:** the actions `set_scale` (`scale`), `zoom` (`direction`: in, out, reset), `row_height` (`size`: bigger, smaller) and `critical_path` (`on`), each with a strict enum or boolean.
+    - The prompt gives example phrasings ("show the whole month", "closer", "what's holding up the finish?").
+    - The fake interpreter knows "show/switch to days", "zoom in/out", "reset the zoom", "(make the rows) bigger/smaller" and "show/hide the critical path".
+    - 10 new tests (6 phrases, 4 rejections); 347 passed, Pint clean.
+  - **App:** the domain actions and the `:core:ui` ones (`ViewScale`, `ViewZoom`).
+    - The timeline screen does them through its existing intents, as if the settings row was used, so they're remembered per project. The grid only scrolls and selects.
+    - Spoken lines: "Showing days.", "Zoomed in.", "Rows are bigger.", "Here's the critical path: the tasks that would delay the finish."
+  - **Tests:** handler (mapping, 4 bad values), API fields, a ViewModel hand-off test, and a screen test (Days, zoom in and reset, bigger rows, critical path on, all saved).
+    - `tools/check.sh` PASS (417 unit tests). Timeline device tests 25/25 on the phone.
+  - **Phone check** on VoiceCheck, with the fake interpreter and the Mac's speaker:
+    - "show days", "zoom in", "make the rows bigger" and "show the critical path" each closed the orb and changed the view (Days, 125%, 64 dp, Beta outlined in red with its mark).
+    - All four were still so after leaving the project and opening it again.
+    - The orb opened exactly once per command this time.
+

@@ -1,5 +1,7 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.ui.assistant.ViewZoom
+import noel.chronova.core.ui.assistant.ViewScale
 import androidx.compose.ui.test.onFirst
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import noel.chronova.core.model.TimelineConfig
@@ -178,6 +180,30 @@ class ProjectTimelineScreenTest {
         compose.waitUntil(5_000) { screen.handledRequests.size == 2 }
         compose.waitUntil(5_000) { exists("Inspect") }
         screen.nameCell("Inspect").assertIsDisplayed()
+    }
+
+    @Test
+    fun theAssistantCanChangeTheViewAsTheSettingsRowWould() {
+        screen.show(listOf(survey))
+        fun config() = (screen.viewModel.state.value as TimelineScreenState.Ready).timeline.config
+        fun asked(action: AssistantViewAction, count: Int) {
+            screen.ask(action)
+            compose.waitUntil(5_000) { screen.handledRequests.size == count }
+            compose.waitForIdle()
+        }
+        asked(AssistantViewAction.SetScale(ViewScale.DAYS), 1)
+        assertEquals(TimeScale.DAYS, config().timeScale)
+        asked(AssistantViewAction.Zoom(ViewZoom.IN), 2)
+        assertEquals(125, config().zoomPercent)
+        asked(AssistantViewAction.Zoom(ViewZoom.RESET), 3)
+        assertEquals(100, config().zoomPercent)
+        asked(AssistantViewAction.RowHeight(bigger = true), 4)
+        assertEquals(64f, config().rowHeightDp)
+        asked(AssistantViewAction.CriticalPath(on = true), 5)
+        assertTrue(config().showCriticalPath)
+        // Remembered for the project, as the settings row does.
+        assertEquals(config(), screen.repository.viewSettings[TimelineScreenHarness.PROJECT_ID])
+        compose.onNode(hasText("Survey") and hasStateDescription(screen.string(R.string.task_bar_state_critical))).assertExists()
     }
 
     // Search and Today.

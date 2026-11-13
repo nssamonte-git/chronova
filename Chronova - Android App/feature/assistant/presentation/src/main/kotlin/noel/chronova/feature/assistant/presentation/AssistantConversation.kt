@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.ViewZoom
+import noel.chronova.core.ui.assistant.ViewScale
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import noel.chronova.feature.assistant.domain.VoiceAction
 import java.time.ZoneId
@@ -283,4 +285,8 @@ internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
     VoiceAction.GoToToday -> AssistantViewAction.GoToToday
     is VoiceAction.GoToDate -> AssistantViewAction.GoToDate(date)
     is VoiceAction.ShowTask -> AssistantViewAction.ShowTask(taskId)
+    is VoiceAction.SetScale -> AssistantViewAction.SetScale(ViewScale.valueOf(scale.name))
+    is VoiceAction.Zoom -> AssistantViewAction.Zoom(ViewZoom.valueOf(step.name))
+    is VoiceAction.RowHeight -> AssistantViewAction.RowHeight(bigger)
+    is VoiceAction.CriticalPath -> AssistantViewAction.CriticalPath(on)
 }

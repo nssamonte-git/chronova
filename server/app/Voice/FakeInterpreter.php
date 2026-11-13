@@ -10,7 +10,8 @@ use DateTimeImmutable;
  * "push design by 2 hours", "move review to 2026-11-14", "move review to tomorrow",
  * "extend QA by 1 day", "rename QA to Testing", "delete review", "mark review done",
  * "... and everything after it"; and the actions "go to today", "go to tomorrow",
- * "go to 2026-11-14", "show review".
+ * "go to 2026-11-14", "show review", "show days", "zoom in", "reset the zoom", "bigger rows",
+ * "show the critical path", "hide the critical path".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -70,6 +71,11 @@ final class FakeInterpreter implements Interpreter
     {
         return match (true) {
             (bool) preg_match('/^(go to|show|show me|jump to|take me to) today$/', $text) => [['type' => 'go_to_today']],
+            (bool) preg_match('/^(show|switch to|change to) (hours|days|weeks|months)$/', $text, $m) => [['type' => 'set_scale', 'scale' => $m[2]]],
+            (bool) preg_match('/^zoom (in|out)$/', $text, $m) => [['type' => 'zoom', 'direction' => $m[1]]],
+            (bool) preg_match('/^reset (the )?zoom$/', $text) => [['type' => 'zoom', 'direction' => 'reset']],
+            (bool) preg_match('/^(make the rows |)(bigger|smaller)( rows)?$/', $text, $m) => [['type' => 'row_height', 'size' => $m[2]]],
+            (bool) preg_match('/^(show|hide) the critical path$/', $text, $m) => [['type' => 'critical_path', 'on' => $m[1] === 'show']],
             (bool) preg_match('/^(go to|show|show me|jump to|take me to) (\d{4}-\d{2}-\d{2}|tomorrow)$/', $text, $m) => [['type' => 'go_to_date', 'date' => $this->day($m[2], $context['today'])]],
             $task !== null && (bool) preg_match('/^(show|show me|find|where is|go to) /', $text) => [['type' => 'show_task', 'taskId' => $task['id']]],
             default => null,

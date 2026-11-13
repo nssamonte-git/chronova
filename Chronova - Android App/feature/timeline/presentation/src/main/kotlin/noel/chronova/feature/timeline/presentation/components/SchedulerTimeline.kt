@@ -216,6 +216,8 @@ fun SchedulerTimeline(
                             snapshotFlow { latestShown.value.firstOrNull { it.id == action.taskId } }.filterNotNull().first()
                         }?.let { bringIntoView(it) }
                     }
+                    // View settings are done by the screen, above the grid.
+                    is AssistantViewAction.SetScale, is AssistantViewAction.Zoom, is AssistantViewAction.RowHeight, is AssistantViewAction.CriticalPath -> Unit
                 }
                 request.onHandled()
             }

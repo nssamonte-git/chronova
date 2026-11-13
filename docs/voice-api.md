@@ -86,6 +86,10 @@ Actions (every field is always present):
 | `go_to_today` | | Scrolls to now (or the nearer end of the project, saying so) |
 | `go_to_date` | `date` | Scrolls to that day: its first task, or 08:00 |
 | `show_task` | `taskId` | Selects the task and scrolls to its row and time |
+| `set_scale` | `scale` (`hours`/`days`/`weeks`/`months`) | Switches the timeline's scale, as the settings row does (remembered for the project) |
+| `zoom` | `direction` (`in`/`out`/`reset`) | One zoom step, or back to 100% |
+| `row_height` | `size` (`bigger`/`smaller`) | One row-height step |
+| `critical_path` | `on` (boolean) | Shows or hides the critical path |
 
 Operations (every field is always present):
 

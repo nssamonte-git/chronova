@@ -36,6 +36,17 @@
     <string name="assistant_showing_today">Here’s today.</string>
     <string name="assistant_showing_day">Here’s %1$s.</string>
     <string name="assistant_showing_task">Here’s %1$s.</string>
+    <string name="assistant_showing_hours">Showing hours.</string>
+    <string name="assistant_showing_days">Showing days.</string>
+    <string name="assistant_showing_weeks">Showing weeks.</string>
+    <string name="assistant_showing_months">Showing months.</string>
+    <string name="assistant_zoomed_in">Zoomed in.</string>
+    <string name="assistant_zoomed_out">Zoomed out.</string>
+    <string name="assistant_zoom_reset">Zoom is back to normal.</string>
+    <string name="assistant_rows_bigger">Rows are bigger.</string>
+    <string name="assistant_rows_smaller">Rows are smaller.</string>
+    <string name="assistant_critical_path_on">Here’s the critical path: the tasks that would delay the finish.</string>
+    <string name="assistant_critical_path_off">Critical path hidden.</string>
     <string name="assistant_schedule_changed">The schedule changed in the meantime, so nothing was changed. Try again.</string>
     <string name="assistant_unknown_task">I couldn’t find that task.</string>
     <string name="assistant_task_blank_title">A task needs a name.</string>

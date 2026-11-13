@@ -165,6 +165,10 @@ final class ProposalValidator
             'amount' => is_int($value) && $value !== 0 && abs($value) <= (self::MAX_AMOUNT[$operation['unit'] ?? ''] ?? 0),
             'unit' => in_array($value, ProposalSchema::UNITS, true),
             'title' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TITLE,
+            'scale' => in_array($value, ProposalSchema::SCALES, true),
+            'direction' => in_array($value, ProposalSchema::ZOOMS, true),
+            'size' => in_array($value, ProposalSchema::ROW_SIZES, true),
+            'on' => is_bool($value),
             default => false,
         };
     }
