@@ -1,0 +1,7 @@
+#!/bin/sh
+# Runs the full check (tools/check.sh) before every push; a failing check stops the push.
+# Turn it on once per clone:  git config core.hooksPath tools/git-hooks
+# Skip it in an emergency:    git push --no-verify
+root=$(git rev-parse --show-toplevel)
+echo "pre-push: running tools/check.sh (a few minutes)..."
+exec sh "$root/tools/check.sh"

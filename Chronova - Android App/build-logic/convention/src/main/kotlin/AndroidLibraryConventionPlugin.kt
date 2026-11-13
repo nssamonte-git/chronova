@@ -13,6 +13,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 minSdk = Chronova.MIN_SDK
                 testInstrumentationRunner = Chronova.TEST_RUNNER
             }
+            testOptions.managedDevices.addTestEmulator()
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_11
                 targetCompatibility = JavaVersion.VERSION_11

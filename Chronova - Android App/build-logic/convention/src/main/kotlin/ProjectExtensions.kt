@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.ManagedDevices
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
@@ -22,6 +23,19 @@ internal object Chronova {
     /** 26+: java.time without core-library desugaring. */
     const val MIN_SDK = 26
     const val TEST_RUNNER = "androidx.test.runner.AndroidJUnitRunner"
+
+    /** The managed emulator device tests run on (`tools/check.sh --devices`). */
+    const val TEST_DEVICE = "pixel6api35"
+}
+
+/** Every module's device tests can run on a throwaway emulator: `./gradlew pixel6api35DebugAndroidTest`. */
+internal fun ManagedDevices.addTestEmulator() {
+    localDevices.create(Chronova.TEST_DEVICE) { device ->
+        device.device = "Pixel 6"
+        device.sdkVersion = 35
+        device.systemImageSource = "google"
+        device.require64Bit = true
+    }
 }
 
 /** Unit-test libraries every module gets. */

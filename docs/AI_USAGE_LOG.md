@@ -964,3 +964,16 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the screenshot suite failed on exactly the 6 affected images before re-recording; the new images show "99+" in full;
     - on the phone, `:core:ui` 9/9 and projects 7/7 with their tests unchanged;
     - 332 unit tests, lint 0 errors, module graph, UI-model and screenshot checks OK.
+- One-command check, emulator device tests and CI, at your request:
+  - **`tools/check.sh`** (committed, repository root) runs unit tests, the app and device-test APKs, lint, both architecture checks, every screenshot suite and the build gate, then prints a summary; exit 0 only when all pass. `--devices` adds the device tests on a Gradle managed emulator; `--devices-only` runs just those.
+  - **Managed emulator `pixel6api35`** (Pixel 6, API 35 Google APIs) added to every module through the library and application conventions.
+  - **`.github/workflows/android.yml`:** `tools/check.sh` on macOS (screenshot references are Mac-rendered), and `--devices-only` on Ubuntu with KVM and software rendering. Reports are kept when a job fails.
+  - **`tools/git-hooks/pre-push`** runs the check before a push; not turned on yet.
+  - **Checks:**
+    - the check passes on the clean tree (332 unit tests, 46 screenshots, 0 lint errors, both architecture checks OK);
+    - run through the hook with a planted failing unit test, it exited 1 and named the test; the plant was removed;
+    - the workflow parses as valid YAML with the expected jobs, but it can't run until the repository is on GitHub (no remote yet).
+  - **Not done on this Mac:** the emulator device tests. With your OK I downloaded the API 35 Google APIs image (about 1.5 GB download, 3.8 GB installed; I had first said no download was needed, but the folder was empty). The emulator then refused to start: it needs 7.4 GB for its data partition and the disk has about 9 GB free (96% full). Nothing was deleted.
+  - **AI mistakes:**
+    - the summary first counted 0 screenshots (their results live under `intermediates`) and expected a fixed attribute order; both fixed and rechecked;
+    - an early idea to run the whole check on Linux was replaced by `--devices-only`, so the Mac-recorded screenshots are only checked on macOS.
