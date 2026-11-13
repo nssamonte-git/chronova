@@ -1695,3 +1695,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - TalkBack was not turned on, so the spoken snap labels are checked only by the semantics change and the passing tests, not heard;
   - no screenshot shows the row-height value (the toolbar previews show its start);
   - the new build was not installed on the phone.
+
+### The copy fixes on the phone
+
+- **Your request:** install the build with the copy fixes on the phone.
+- **What was installed:** a debug build of `aee85f8`, with the phone's server address as before, installed over the existing app; `local.properties` is restored byte for byte.
+- **Checked on the phone:**
+  - the app opens signed in, with the same data (Jnn, 31 changes not synced, 35 unread notifications); the first install date is unchanged;
+  - the account button's label reads "Account & sync";
+  - in Jnn's timeline toolbar, row height shows "100%";
+  - the snap chips carry the spoken labels "15 minutes", "30 minutes", "1 hour" (read from the phone's accessibility tree).
+- **How:** I only scrolled the toolbar, which was already showing. No chip, stepper or switch was tapped, nothing was synced or marked read, and I went back to the project list.
+- **Not verified:** TalkBack was not turned on, so the labels were read from the tree, not heard.
