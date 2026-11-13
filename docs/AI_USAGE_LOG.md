@@ -1053,3 +1053,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - the first theme device test set its content twice in one test, which Compose refuses; it now composes both themes in one pass;
     - the first full check failed on one dark search screenshot (0.02% different), because the search field took focus and its cursor blinks; previews no longer focus it, and three reruns matched.
   - **Checks:** `tools/check.sh` PASS (374 unit tests, 87 screenshots, lint 0 errors / 21 warnings, module graph and UI-model checks OK). On the phone, on this batch's build: `:core:designsystem` 3/3, account 11/11, timeline 21/21 and projects 8/8 (run after the phone came back from another USB drop). AI mistake: the first version of this entry said the timeline and projects suites had already passed with this batch's changes; they hadn't been run yet, so they were run and this line corrected.
+- On the phone, with your go-ahead:
+  - **Setup:** backed up the app's data to the Mac first, then built with the local server URL (a temporary `local.properties` line, removed straight after the build) and installed over your app, keeping its data.
+  - **Results:**
+    - the app opened on "Jnn" (5 tasks);
+    - Appearance → Dark switched at once, with light status-bar icons;
+    - Duplicate on "Jnn" opened "Copy “Jnn”" (13–19 Nov, 7 days) and Create opened the copy, its evening tasks at the same local times a day later;
+    - the Today button scrolled to 12:42 with the now line;
+    - searching "eat" listed 1 of 5 tasks and scrolled from 12:42 to 19:00.
+  - **Cleanup:** deleted the copy and synced its 6 deletion records to the local server (started only for that sync and stopped again); "Jnn" untouched. Appearance set back to System, which still shows dark because the phone itself is in dark mode. The phone keeps this build.
