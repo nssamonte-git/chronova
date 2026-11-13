@@ -13,6 +13,7 @@ import noel.chronova.core.data.local.toEntity
 import noel.chronova.core.domain.SampleTasks
 import noel.chronova.core.model.Project
 import noel.chronova.core.model.ProjectSummary
+import noel.chronova.core.model.TaskOutline
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TaskDependency
@@ -41,6 +42,9 @@ class RoomProjectRepository(
 
     override fun observeTasks(projectId: String): Flow<List<SchedulerTask>> =
         db.taskDao().observeTasks(projectId).map { rows -> rows.mapNotNull { it.toDomain() } }
+
+    override fun observeTaskOutlines(): Flow<List<TaskOutline>> =
+        db.taskDao().observeTaskOutlines().map { rows -> rows.map { it.toDomain() } }
 
     override fun observeOpenTasks(): Flow<List<SchedulerTask>> =
         db.taskDao().observeOpenTasks().map { rows -> rows.mapNotNull { it.toDomain() } }

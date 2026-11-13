@@ -5,12 +5,23 @@ import com.android.tools.screenshot.PreviewTest
 import java.time.LocalDate
 import noel.chronova.core.designsystem.ChronovaScreenshots
 import noel.chronova.core.designsystem.ChronovaTheme
+import noel.chronova.core.model.TaskColor
 import noel.chronova.core.ui.sync.SyncPhase
 import noel.chronova.core.ui.sync.SyncUi
 
 private val projects = listOf(
-    ProjectRowUi("office", "Office move", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 20), taskCount = 3, doneCount = 1),
-    ProjectRowUi("launch", "Website launch", LocalDate.of(2026, 12, 1), LocalDate.of(2026, 12, 14), taskCount = 1),
+    ProjectRowUi(
+        "office", "Office move", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 20), taskCount = 3, doneCount = 1,
+        bars = listOf(
+            ProjectBarUi(0f, 0.3f, TaskColor.BLUE),
+            ProjectBarUi(0.25f, 0.7f, TaskColor.GREEN),
+            ProjectBarUi(0.85f, 0.85f, TaskColor.AMBER, milestone = true),
+        ),
+    ),
+    ProjectRowUi(
+        "launch", "Website launch", LocalDate.of(2026, 12, 1), LocalDate.of(2026, 12, 14), taskCount = 1,
+        bars = listOf(ProjectBarUi(0.4f, 0.42f, TaskColor.PURPLE)),
+    ),
     ProjectRowUi("kitchen", "Kitchen", LocalDate.of(2026, 11, 28), LocalDate.of(2026, 11, 28), taskCount = 0),
 )
 

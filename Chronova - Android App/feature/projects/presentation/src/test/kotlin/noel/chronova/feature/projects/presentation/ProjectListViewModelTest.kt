@@ -36,12 +36,29 @@ class ProjectListViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         repository = FakeProjectRepository(listOf(SampleTasks.project), SampleTasks.tasks(zone))
-        viewModel = ProjectListViewModel(repository, projectUseCases(repository, zone), today = { today })
+        viewModel = ProjectListViewModel(repository, projectUseCases(repository, zone), today = { today }, zone = { zone })
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun eachProjectsRowCarriesItsOwnTasksAsBars() = runTest {
+        val other = noel.chronova.core.model.Project("other", "Other", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 2))
+        repository.projects.value = repository.projects.value + other
+        val rows = listed().associateBy { it.id }
+        val sample = SampleTasks.tasks(zone)
+        assertEquals(sample.take(MAX_CARD_BARS).map { it.color }, rows.getValue(SampleTasks.PROJECT_ID).bars.map { it.color })
+        assertEquals(emptyList<ProjectBarUi>(), rows.getValue("other").bars)
+    }
+
+    @Test
+    fun aNewTaskAppearsOnItsProjectsCard() = runTest {
+        assertEquals(4, listed().single().bars.size)
+        repository.tasks.value = repository.tasks.value + SampleTasks.tasks(zone).first().copy(id = "added", sortOrder = 99)
+        assertEquals(5, (viewModel.state.value as ProjectListState.Loaded).projects.single().bars.size)
     }
 
     @Test

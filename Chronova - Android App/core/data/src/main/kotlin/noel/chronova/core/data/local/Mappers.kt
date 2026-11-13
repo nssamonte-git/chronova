@@ -9,6 +9,8 @@ import noel.chronova.core.model.TaskDependency
 import noel.chronova.core.database.DependencyEntity
 import noel.chronova.core.database.ProjectEntity
 import noel.chronova.core.database.ProjectWithTaskCount
+import noel.chronova.core.database.TaskOutlineRow
+import noel.chronova.core.model.TaskOutline
 import noel.chronova.core.database.TaskEntity
 
 internal fun ProjectEntity.toDomain() = Project(
@@ -53,6 +55,15 @@ internal fun TaskEntity.toDomain(): SchedulerTask? = runCatching {
         isMilestone = isMilestone,
     )
 }.getOrNull()
+
+/** A task's place and colour. An unknown colour falls back to the default, as in [TaskEntity.toDomain]. */
+internal fun TaskOutlineRow.toDomain() = TaskOutline(
+    projectId = projectId,
+    startMillis = startMillis,
+    endMillis = endMillis,
+    color = TaskColor.entries.firstOrNull { it.name == color } ?: TaskColor.BLUE,
+    isMilestone = isMilestone,
+)
 
 internal fun DependencyEntity.toDomain() = TaskDependency(id, projectId, predecessorId, successorId)
 

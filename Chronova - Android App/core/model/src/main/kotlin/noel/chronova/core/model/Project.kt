@@ -25,6 +25,18 @@ data class Project(
     )
 }
 
+/**
+ * Where a task sits and its colour, without its words: all a small chart of a project needs
+ * (the project list draws one on each card).
+ */
+data class TaskOutline(
+    val projectId: String,
+    val startMillis: Long,
+    val endMillis: Long,
+    val color: TaskColor,
+    val isMilestone: Boolean = false,
+)
+
 /** A project plus what the project list shows about it: its tasks and how many are done. */
 data class ProjectSummary(
     val project: Project,

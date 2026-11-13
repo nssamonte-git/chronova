@@ -1,5 +1,6 @@
 package noel.chronova.feature.projects.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -41,6 +43,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -55,6 +60,7 @@ import java.time.ZoneId
 import noel.chronova.core.designsystem.ChronovaSpacing
 import noel.chronova.core.designsystem.ChronovaTheme
 import noel.chronova.core.designsystem.numeric
+import noel.chronova.core.designsystem.toColor
 import noel.chronova.core.ui.BadgedIconButton
 import noel.chronova.core.ui.R as CoreUiR
 import noel.chronova.core.ui.TimeFormat
@@ -281,23 +287,67 @@ private fun ProjectCard(
                 }
                 ProjectMenu(projectName = summary.name, onEdit = onEdit, onDuplicate = onDuplicate, onExport = onExport, onDelete = onDelete)
             }
-            // How much is done, as a bar across the card; the count below says it in words.
-            if (summary.taskCount > 0) {
-                ProgressMeter(
-                    fraction = summary.doneCount.toFloat() / summary.taskCount,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).fillMaxWidth().height(6.dp),
-                )
+            if (summary.bars.isNotEmpty()) {
+                MiniChart(summary.bars, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth())
             }
-            val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
-            Text(
-                text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
-                style = MaterialTheme.typography.labelMedium.numeric(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
-            )
+            // The count in words and, beside it, how much is done as a short bar (apart from the
+            // chart above, so it isn't read as one more task).
+            Row(
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val tasks = pluralStringResource(R.plurals.task_count, summary.taskCount, summary.taskCount)
+                Text(
+                    text = if (summary.doneCount > 0) pluralStringResource(R.plurals.task_count_done, summary.doneCount, tasks, summary.doneCount) else tasks,
+                    style = MaterialTheme.typography.labelMedium.numeric(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (summary.taskCount > 0) {
+                    ProgressMeter(
+                        fraction = summary.doneCount.toFloat() / summary.taskCount,
+                        modifier = Modifier.size(width = 72.dp, height = 6.dp),
+                    )
+                }
+            }
         }
     }
 }
+
+/**
+ * The project's first tasks as a small chart: one thin bar per task in its colour, placed
+ * along the project's days, and a dot for a milestone. A picture of the project's shape, not
+ * something to read: the dates and the count beside it say the same in words, so it has no
+ * description of its own.
+ */
+@Composable
+private fun MiniChart(bars: List<ProjectBarUi>, modifier: Modifier = Modifier) {
+    val colors = bars.map { it.color.toColor() }
+    val track = MaterialTheme.colorScheme.surfaceContainerHigh
+    Canvas(modifier.height(MiniBarHeight * bars.size + MiniBarGap * (bars.size - 1))) {
+        val barHeight = MiniBarHeight.toPx()
+        val step = barHeight + MiniBarGap.toPx()
+        val radius = CornerRadius(barHeight / 2f)
+        bars.forEachIndexed { row, bar ->
+            val top = row * step
+            // A faint track for each row, so a short bar still reads as "part of this length".
+            drawRoundRect(track, topLeft = Offset(0f, top), size = Size(size.width, barHeight), cornerRadius = radius)
+            if (bar.milestone) {
+                val x = (size.width * bar.start).coerceIn(barHeight / 2f, size.width - barHeight / 2f)
+                drawCircle(colors[row], radius = barHeight * 0.8f, center = Offset(x, top + barHeight / 2f))
+            } else {
+                // Never thinner than a dot, however short the task is against a long project.
+                val width = (size.width * (bar.end - bar.start)).coerceAtLeast(barHeight)
+                val left = (size.width * bar.start).coerceAtMost(size.width - width)
+                drawRoundRect(colors[row], topLeft = Offset(left, top), size = Size(width, barHeight), cornerRadius = radius)
+            }
+        }
+    }
+}
+
+private val MiniBarHeight = 5.dp
+private val MiniBarGap = 4.dp
 
 @Composable
 private fun ProjectMenu(projectName: String, onEdit: () -> Unit, onDuplicate: () -> Unit, onExport: () -> Unit, onDelete: () -> Unit) {

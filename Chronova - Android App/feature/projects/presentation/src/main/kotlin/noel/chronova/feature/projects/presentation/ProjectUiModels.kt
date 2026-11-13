@@ -1,6 +1,7 @@
 package noel.chronova.feature.projects.presentation
 
 import java.time.LocalDate
+import noel.chronova.core.model.TaskColor
 
 /** One project on the list, as the screen shows it. */
 data class ProjectRowUi(
@@ -11,6 +12,20 @@ data class ProjectRowUi(
     val taskCount: Int,
     /** How many of its tasks are done. */
     val doneCount: Int = 0,
+    /** Its first tasks, for the card's small chart; empty when it has none. */
+    val bars: List<ProjectBarUi> = emptyList(),
+)
+
+/**
+ * One task on a project card's small chart: where it starts and ends, as shares of the
+ * project's length (0 is its first midnight, 1 the midnight after its last day).
+ */
+data class ProjectBarUi(
+    val start: Float,
+    val end: Float,
+    val color: TaskColor,
+    /** A moment rather than a span: drawn as a dot at [start]. */
+    val milestone: Boolean = false,
 )
 
 /** Why the entered project can't be saved, as the editor words it. */

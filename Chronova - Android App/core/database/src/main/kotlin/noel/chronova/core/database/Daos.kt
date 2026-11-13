@@ -37,6 +37,14 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE project_id = :projectId AND deleted = 0 ORDER BY sort_order, start_millis")
     fun observeTasks(projectId: String): Flow<List<TaskEntity>>
 
+    /** Every live task of every live project, place and colour only, in row order within its project. */
+    @Query(
+        "SELECT t.project_id, t.start_millis, t.end_millis, t.color, t.is_milestone FROM tasks t " +
+            "JOIN projects p ON p.id = t.project_id " +
+            "WHERE t.deleted = 0 AND p.deleted = 0 ORDER BY t.project_id, t.sort_order, t.start_millis",
+    )
+    fun observeTaskOutlines(): Flow<List<TaskOutlineRow>>
+
     /** Tasks not yet done in every live project, earliest first. */
     @Query(
         "SELECT t.* FROM tasks t JOIN projects p ON p.id = t.project_id " +

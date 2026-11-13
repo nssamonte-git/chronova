@@ -44,7 +44,7 @@ class ModuleGraphConventionPlugin : Plugin<Project> {
     private companion object {
         /** Domain entities, results and statuses that screens get as UI models instead. */
         val UI_DENIED_IMPORTS = listOf(
-            """core\.model\.(SchedulerTask|TaskDependency|Project|ProjectSummary)""",
+            """core\.model\.(SchedulerTask|TaskDependency|Project|ProjectSummary|TaskOutline)""",
             """core\.domain\.(SampleTasks|TaskProblem|ProjectProblem)""",
             """core\.domain\.schedule\.(ScheduleChange|ApplyResult|ScheduleState)""",
             """core\.domain\.notifications\.AppNotification""",

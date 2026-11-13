@@ -13,6 +13,7 @@ import noel.chronova.core.model.Project
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskDependency
 import noel.chronova.core.model.TaskColor
+import noel.chronova.core.model.TaskOutline
 import noel.chronova.core.model.TimeScale
 import noel.chronova.core.model.TimelineConfig
 import org.junit.After
@@ -100,6 +101,30 @@ class RoomProjectRepositoryTest {
         assertTrue(db.syncDao().dirtyProjects().single().deleted)
         assertTrue(db.syncDao().dirtyTasks().all { it.deleted && it.updatedAt == 3_000L })
         assertTrue(db.syncDao().dirtyDependencies().all { it.deleted })
+    }
+
+    @Test
+    fun taskOutlinesAreTheLiveTasksOfLiveProjectsInRowOrder() = runTest {
+        val kept = newProject()
+        val design = repository.createTask(kept, "Design", 0L, 3_600_000L, TaskColor.BLUE)
+        repository.createTask(kept, "Build", 3_600_000L, 7_200_000L, TaskColor.GREEN)
+        val gone = repository.createProject("Gone", LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 4))
+        repository.createTask(gone, "Lost", 0L, 3_600_000L, TaskColor.AMBER)
+
+        // Place and colour only, in row order; no title or notes come with them.
+        assertEquals(
+            listOf(TaskOutline(kept, 0L, 3_600_000L, TaskColor.BLUE), TaskOutline(kept, 3_600_000L, 7_200_000L, TaskColor.GREEN)),
+            repository.observeTaskOutlines().first().filter { it.projectId == kept },
+        )
+        assertEquals(1, repository.observeTaskOutlines().first().count { it.projectId == gone })
+
+        // A deleted project's tasks and a deleted task are left out.
+        repository.deleteProject(gone)
+        db.taskDao().markDeleted(design, now)
+        assertEquals(
+            listOf(TaskOutline(kept, 3_600_000L, 7_200_000L, TaskColor.GREEN)),
+            repository.observeTaskOutlines().first().filter { it.projectId == kept || it.projectId == gone },
+        )
     }
 
     @Test

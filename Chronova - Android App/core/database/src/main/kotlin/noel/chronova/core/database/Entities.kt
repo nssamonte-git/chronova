@@ -65,6 +65,15 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/** Row of the task-outline query: a live task's place and colour, without its title or notes. */
+data class TaskOutlineRow(
+    @ColumnInfo(name = "project_id") val projectId: String,
+    @ColumnInfo(name = "start_millis") val startMillis: Long,
+    @ColumnInfo(name = "end_millis") val endMillis: Long,
+    val color: String,
+    @ColumnInfo(name = "is_milestone") val isMilestone: Boolean,
+)
+
 /** Row of the project-list query: a live project with its live task count and how many are done. */
 data class ProjectWithTaskCount(
     val id: String,

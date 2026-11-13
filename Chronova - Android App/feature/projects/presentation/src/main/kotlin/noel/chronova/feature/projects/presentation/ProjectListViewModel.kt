@@ -11,25 +11,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import noel.chronova.core.model.ProjectSummary
 import noel.chronova.core.domain.CopyProjectResult
+import noel.chronova.core.domain.repository.ProjectQueries
 import noel.chronova.feature.projects.domain.ProjectUseCases
 import noel.chronova.feature.projects.domain.SaveProjectResult
-import noel.chronova.core.domain.repository.ProjectQueries
 
 class ProjectListViewModel(
     projects: ProjectQueries,
     private val useCases: ProjectUseCases,
     private val today: () -> LocalDate = { LocalDate.now(ZoneId.systemDefault()) },
+    /** The viewer's time zone: a project's days, and so where its tasks sit on its card, depend on it. */
+    private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : ViewModel() {
 
-    val state: StateFlow<ProjectListState> = projects.observeProjects()
-        .map<List<ProjectSummary>, ProjectListState> { summaries -> ProjectListState.Loaded(summaries.map { it.toUi() }) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectListState.Loading)
+    val state: StateFlow<ProjectListState> = combine(projects.observeProjects(), projects.observeTaskOutlines()) { summaries, outlines ->
+        val byProject = outlines.groupBy { it.projectId }
+        val zone = zone()
+        ProjectListState.Loaded(summaries.map { it.toUi(byProject[it.project.id].orEmpty(), zone) }) as ProjectListState
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectListState.Loading)
 
     private val _editor = MutableStateFlow<ProjectEditorState?>(null)
     val editor: StateFlow<ProjectEditorState?> = _editor.asStateFlow()

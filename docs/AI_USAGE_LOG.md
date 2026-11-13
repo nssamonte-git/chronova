@@ -1594,3 +1594,14 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Tests:** 4 new unit tests for the weekend spans (a plain week, weekdays only, a window starting mid-Saturday, a 23-hour Sunday in Paris).
 - **Checks:** `tools/check.sh` PASS on the final tree: 472 unit tests, 141 screenshots (12 new for the shared pieces), lint 0 errors and 23 warnings, both architecture checks, the app and the device-test APKs build. I looked at every screen's phone and dark images side by side; I did not look at every large-font image.
 - **Not checked:** nothing was run on a phone or an emulator, and the device tests were not run. In particular, untested on a device: the fading edges while scrolling, the gradient button's ripple and TalkBack reading, sheets with the keyboard open (the import sheet now also pads for the keyboard), and the weekend shade while panning a long project.
+
+### Project cards: a small chart of each project's tasks
+
+- **Your request:** "Add mini chart", the item I had left out of the design pass because it needed a data-layer read.
+- **The read:** `ProjectQueries.observeTaskOutlines()`, one Room query joining live tasks to live projects and returning only each task's project, start, end, colour and milestone flag (`TaskOutline`). No schema change (the exported schema files are untouched). It is a separate read rather than more fields on `observeProjects()`, because the assistant, reminders and notifications read that list too and don't need tasks.
+- **The card:** the first five tasks in row order as thin bars along the project's days, a dot for a milestone, each on a faint track; under it the count, with the done share as a short bar at the right.
+- **Changed after looking at the first render:** the full-width progress bar sat directly under the chart and read as one more task, so it moved beside the count.
+- **Trade-off I left as is:** the query returns every live task and the mapper keeps five per project. Limiting to five per project in SQL needs a correlated subquery (window functions aren't on every phone the app supports); I judged the simpler query fine for a personal scheduler's sizes and did not measure it.
+- **Rule kept:** `TaskOutline` is added to the types `verifyUiModels` keeps out of composables; the screen gets `ProjectBarUi`.
+- **Tests:** 6 new unit tests: bars as shares of the project's days, a task outside the days clamped, only the first five drawn, shares following the viewer's zone, each project's row getting its own tasks, a new task appearing on its card. One new Room device test for the query (live tasks of live projects, in row order); it compiles and was not run.
+- **Checks:** `tools/check.sh` PASS: 478 unit tests, 141 screenshots (the project list's re-recorded), lint 0 errors and 23 warnings, both architecture checks. I looked at the list's phone and dark images. Not run on a phone or an emulator.

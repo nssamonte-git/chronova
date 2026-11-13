@@ -10,6 +10,7 @@ import noel.chronova.core.model.ProjectSummary
 import noel.chronova.core.model.SchedulerTask
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TaskDependency
+import noel.chronova.core.model.TaskOutline
 import noel.chronova.core.model.TimelineConfig
 import noel.chronova.core.domain.repository.ProjectRepository
 import noel.chronova.core.domain.schedule.ScheduleChange
@@ -32,6 +33,13 @@ class FakeProjectRepository(
                 ProjectSummary(p, own.size, own.count { it.isDone })
             }
         }
+
+    override fun observeTaskOutlines(): Flow<List<TaskOutline>> = combine(projects, tasks) { projects, tasks ->
+        val live = projects.map { it.id }.toSet()
+        tasks.filter { it.projectId in live }
+            .sortedWith(compareBy({ it.projectId }, { it.sortOrder }, { it.startMillis }))
+            .map { TaskOutline(it.projectId, it.startMillis, it.endMillis, it.color, it.isMilestone) }
+    }
 
     override fun observeProject(projectId: String): Flow<Project?> =
         projects.map { list -> list.firstOrNull { it.id == projectId } }
