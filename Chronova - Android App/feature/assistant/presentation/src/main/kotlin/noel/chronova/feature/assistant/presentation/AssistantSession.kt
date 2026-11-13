@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.feature.assistant.domain.ViewContext
 import kotlinx.coroutines.flow.update
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +27,9 @@ internal class AssistantSession(val scope: CoroutineScope, noticeAccepted: Boole
 
     /** What the last applied change's undo would apply, while its message offers Undo. */
     var lastUndo: List<ScheduleChange> = emptyList()
+
+    /** What the screen shows (from [AssistantViewModel.onView]); sent with each request. */
+    var view: ViewContext? = null
 
     /** Things asked to be shown (go to today, show a task), in order, until the screen has done each. */
     val views = MutableStateFlow<List<PendingView>>(emptyList())

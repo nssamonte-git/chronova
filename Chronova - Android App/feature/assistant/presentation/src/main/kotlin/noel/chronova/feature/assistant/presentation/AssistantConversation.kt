@@ -1,5 +1,9 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.TimeScale
+import noel.chronova.core.model.TaskColor
+import noel.chronova.feature.assistant.domain.ViewContext
+import noel.chronova.core.ui.assistant.AssistantViewState
 import noel.chronova.core.ui.assistant.ViewKind
 import noel.chronova.core.ui.assistant.ViewColor
 import noel.chronova.core.ui.assistant.ViewZoom
@@ -137,9 +141,13 @@ internal class AssistantConversation(
 
     private suspend fun interpret(text: String): Outcome {
         session.ui.update { it.copy(mode = OrbMode.Thinking) }
-        return when (val interpreted = useCases.interpret(projectId, text)) {
+        return when (val interpreted = useCases.interpret(projectId, text, session.view)) {
             is Interpretation.Planned -> Outcome.Proposal(interpreted.plan, interpreted.actions)
             is Interpretation.Act -> Outcome.Act(interpreted.actions)
+            // Undoing is a change like any other: said and asked about first.
+            is Interpretation.UndoLast -> useCases.planUndo(projectId, session.lastUndo)
+                ?.let { Outcome.Proposal(it, interpreted.actions) }
+                ?: Outcome.Problem(phrases.nothingToUndo())
             is Interpretation.Question -> Outcome.Question(interpreted.text)
             is Interpretation.Unsupported -> Outcome.Problem(phrases.unsupported(interpreted.reason))
             is Interpretation.CannotDo -> Outcome.Problem(phrases.cannotDo(interpreted.problem, interpreted.titles, interpreted.projectEndMillis))
@@ -299,3 +307,17 @@ internal fun VoiceAction.toViewAction(): AssistantViewAction = when (this) {
     VoiceAction.ClearSearch -> AssistantViewAction.ClearSearch
     is VoiceAction.OpenTask -> AssistantViewAction.OpenTask(taskId)
 }
+
+/** What the screen shows, in the domain's terms. */
+internal fun AssistantViewState.toDomain() = ViewContext(
+    scale = TimeScale.valueOf(scale.name),
+    criticalPath = criticalPath,
+    selectedTaskId = selectedTaskId,
+    search = search?.let { shown ->
+        ViewContext.Search(
+            query = shown.query,
+            colors = shown.colors.mapTo(mutableSetOf()) { TaskColor.valueOf(it.name) },
+            kinds = shown.kinds.mapTo(mutableSetOf()) { VoiceAction.SearchKind.valueOf(it.name) },
+        )
+    },
+)

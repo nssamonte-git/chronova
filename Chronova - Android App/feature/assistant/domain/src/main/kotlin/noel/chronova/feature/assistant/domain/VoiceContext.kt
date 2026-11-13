@@ -1,5 +1,7 @@
 package noel.chronova.feature.assistant.domain
 
+import noel.chronova.core.model.TimeScale
+import noel.chronova.core.model.TaskColor
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
@@ -24,6 +26,8 @@ data class VoiceContext(
     val now: LocalDateTime,
     val revision: String,
     val tasks: List<Task>,
+    /** What the timeline shows, so "this task" or "zoom in" can be understood; null when unknown. */
+    val view: ViewContext? = null,
 ) {
     data class Task(
         val id: String,
@@ -37,7 +41,7 @@ data class VoiceContext(
     )
 
     companion object {
-        fun from(state: ScheduleState, zone: ZoneId, nowMillis: Long): VoiceContext {
+        fun from(state: ScheduleState, zone: ZoneId, nowMillis: Long, view: ViewContext? = null): VoiceContext {
             val now = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDateTime().truncatedTo(ChronoUnit.MINUTES)
             val predecessors = state.links.groupBy({ it.successorId }, { it.predecessorId })
             return VoiceContext(
@@ -61,6 +65,8 @@ data class VoiceContext(
                         milestone = task.isMilestone,
                     )
                 },
+                // A selection whose task has gone (deleted meanwhile) isn't sent.
+                view = view?.let { shown -> if (state.tasks.any { it.id == shown.selectedTaskId }) shown else shown.copy(selectedTaskId = null) },
             )
         }
 
@@ -80,4 +86,15 @@ object ScheduleRevision {
         val digest = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
         return digest.take(8).joinToString("") { "%02x".format(it) }
     }
+}
+
+/** What the timeline shows when a request is made (`context.view`). */
+data class ViewContext(
+    val scale: TimeScale,
+    val criticalPath: Boolean,
+    val selectedTaskId: String?,
+    /** The open search, or null when none narrows the list. */
+    val search: Search? = null,
+) {
+    data class Search(val query: String?, val colors: Set<TaskColor>, val kinds: Set<VoiceAction.SearchKind>)
 }

@@ -17,4 +17,5 @@ class AssistantUseCases(
     val recordChange: RecordVoiceChange,
     val undo: UndoVoiceChange,
     val endSession: EndVoiceSession,
+    val planUndo: PlanUndo,
 )

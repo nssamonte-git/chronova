@@ -1,5 +1,8 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.model.TaskColor
+import noel.chronova.core.ui.assistant.AssistantSearchState
+import noel.chronova.core.ui.assistant.AssistantViewState
 import noel.chronova.core.ui.assistant.ViewColor
 import noel.chronova.core.ui.assistant.ViewZoom
 import noel.chronova.core.ui.assistant.ViewScale
@@ -226,6 +229,21 @@ class ProjectTimelineScreenTest {
         asked(AssistantViewAction.OpenTask("plaster"), 3)
         compose.onNodeWithText(screen.string(R.string.task_edit)).assertIsDisplayed()
         compose.onNode(hasSetTextAction() and hasText("Plaster")).assertIsDisplayed()
+    }
+
+    @Test
+    fun theScreenTellsTheAssistantWhatItShows() {
+        screen.show(listOf(survey), config = TimelineConfig().withTimeScale(TimeScale.DAYS))
+        compose.waitUntil(5_000) { screen.reportedViews.isNotEmpty() }
+        assertEquals(AssistantViewState(ViewScale.DAYS, criticalPath = false, selectedTaskId = null), screen.reportedViews.last())
+        screen.viewModel.selectTask("survey")
+        screen.viewModel.setShowCriticalPath(true)
+        screen.viewModel.searchFor("sur", setOf(TaskColor.BLUE), emptySet())
+        compose.waitForIdle()
+        assertEquals(
+            AssistantViewState(ViewScale.DAYS, criticalPath = true, selectedTaskId = "survey", search = AssistantSearchState("sur", setOf(ViewColor.BLUE), emptySet())),
+            screen.reportedViews.last(),
+        )
     }
 
     // Search and Today.

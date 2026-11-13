@@ -9,6 +9,7 @@ import noel.chronova.feature.assistant.data.AndroidSpeechPlayer
 import noel.chronova.feature.assistant.data.AndroidVoiceRecorder
 import noel.chronova.feature.assistant.data.PreferencesAssistantSettings
 import noel.chronova.feature.assistant.domain.AICommandHandler
+import noel.chronova.feature.assistant.domain.PlanUndo
 import noel.chronova.feature.assistant.domain.ApplyVoicePlan
 import noel.chronova.feature.assistant.domain.AssistantSettings
 import noel.chronova.feature.assistant.domain.AssistantUseCases
@@ -68,6 +69,7 @@ class AssistantGraph(private val app: AppContainer, private val context: Context
             apply = ApplyVoicePlan(applyChanges),
             recordChange = RecordVoiceChange(app.notificationRepository, repository, zone),
             undo = UndoVoiceChange(applyChanges),
+            planUndo = PlanUndo(repository),
             endSession = EndVoiceSession(app.authRepository),
         )
     }

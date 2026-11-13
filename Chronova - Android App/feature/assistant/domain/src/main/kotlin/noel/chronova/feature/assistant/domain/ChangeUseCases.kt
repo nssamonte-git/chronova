@@ -16,6 +16,18 @@ class ApplyVoicePlan(private val applyChanges: ApplyScheduleChanges) {
     suspend operator fun invoke(projectId: String, plan: VoicePlan): ApplyResult = applyChanges(projectId, plan.changes)
 }
 
+/**
+ * What undoing [undo] (the assistant's last change) would do, as a plan to ask about like any
+ * other; null when there is nothing to undo or the project has gone.
+ */
+class PlanUndo(private val repository: ProjectRepository) {
+    suspend operator fun invoke(projectId: String, undo: List<ScheduleChange>): VoicePlan? {
+        if (undo.isEmpty()) return null
+        val state = repository.schedule(projectId) ?: return null
+        return VoicePlan(PreviewItem.from(undo, state), undo, ScheduleWarning.from(undo, state))
+    }
+}
+
 /** Reverses an applied change set, unless those tasks were edited again since. */
 class UndoVoiceChange(private val applyChanges: ApplyScheduleChanges) {
     suspend operator fun invoke(projectId: String, undo: List<ScheduleChange>): ApplyResult = applyChanges(projectId, undo)

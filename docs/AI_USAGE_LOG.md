@@ -1207,4 +1207,22 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
     - The voice search opened the keyboard over the timeline, because the search bar always takes focus when it opens. It now does so only when opened to type in (`TaskSearchUi.typing`).
     - The match was left cut off at the screen's edge. Scrolling to a task (a search's first match, "show", the assistant's highlight) happened only when none of it was on screen; it now happens unless the task's start is well in view.
     - After both fixes, on the phone: the green search showed Gamma's bar 20% in, with no keyboard.
+- Batch 4, what's on screen, combined requests and undo:
+  - **Server:**
+    - `context.view` (scale, critical path, selected task, open search; checked and passed to the model as data).
+    - The operation `undo_last_change`: always alone, only for apps with actions.
+    - The prompt reads "this task"/"it" as the selected one, doesn't repeat what's already shown, and does several actions in order.
+    - The fake interpreter knows "undo that"/"put it back", "this"/"it" for the selected task, and two requests joined by "and". "Show/open" now need the bare task title, so "show the critical path and push design…" isn't read as "show Design".
+    - 9 new tests; 366 passed, Pint clean.
+  - **App:**
+    - The timeline tells the assistant what it shows (`AssistantSlot.reportView`), and that view goes with each request. A selection whose task has gone isn't sent.
+    - "undo that" plans the reverse of the assistant's last applied change (`PlanUndo`) and asks like any change, with clashes named. On a yes it applies through the same path, and that can be undone in turn. With nothing to undo it says "I haven't changed anything here to undo."
+  - **Tests:** handler (undo alone or unreadable; the view sent, a gone selection dropped), API (the view in the API's terms), 3 ViewModel tests (undo asked first, no keeps it, yes puts it back; nothing to undo; the view sent), and a screen test (the timeline reports scale, critical path, selection and search).
+    - `tools/check.sh` PASS (425 unit tests). Timeline device tests 27/27 on the phone.
+  - **Phone check** on VoiceCheck, against the fake interpreter:
+    - "show the critical path and push beta by 1 hour" previewed Beta 09:00–10:00 → 10:00–11:00, and a yes applied it. The path was already on from batch 2, so that half showed nothing new.
+    - "undo that" previewed Beta back to 09:00–10:00, warning that it would overlap Gamma again (as before); a yes put it back.
+    - "hide the critical path and show beta" did both: the red marks went and Beta was selected.
+    - "mark this done" previewed Mark "Beta" done, and a no changed nothing.
+  - **Getting the phone check to work:** the Mac's speaker was too quiet for a "yes" to count, so the assistant asked "was that a yes?" and gave up. That's the existing guard against a voice across the room working as meant. The words are now played louder through `afplay`, and answers timed to the 8 s listening window.
 

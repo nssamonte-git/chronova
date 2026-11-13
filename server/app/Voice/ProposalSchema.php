@@ -62,6 +62,8 @@ final class ProposalSchema
             'reschedule_dependents' => ['taskId' => $id],
             'set_progress' => ['taskId' => $id, 'percent' => ['type' => 'integer']],
             'create_milestone' => ['title' => ['type' => 'string'], 'at' => $dateTime, 'predecessorIds' => ['type' => 'array', 'items' => $id]],
+            // Undoes the assistant's last applied change (the app knows what it was); always alone, and asked about first.
+            'undo_last_change' => [],
         ];
     }
 

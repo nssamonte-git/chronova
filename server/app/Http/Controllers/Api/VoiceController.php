@@ -9,6 +9,7 @@ use App\Voice\ChangeList;
 use App\Voice\Explainer;
 use App\Voice\Interpreter;
 use App\Voice\KeyTerms;
+use App\Voice\ProposalSchema;
 use App\Voice\ProposalValidator;
 use App\Voice\ProviderUnavailable;
 use App\Voice\Speaker;
@@ -236,6 +237,18 @@ class VoiceController extends Controller
             'context.tasks.*.milestone' => ['sometimes', 'boolean'],
             'context.tasks.*.predecessorIds' => ['present', 'array', 'list', 'max:'.$limits['tasks']],
             'context.tasks.*.predecessorIds.*' => ['string', 'max:100'],
+            // What the screen shows, from apps with actions; optional.
+            'context.view' => ['sometimes', 'array'],
+            'context.view.screen' => ['required_with:context.view', Rule::in(['timeline'])],
+            'context.view.scale' => ['required_with:context.view', Rule::in(ProposalSchema::SCALES)],
+            'context.view.criticalPath' => ['required_with:context.view', 'boolean'],
+            'context.view.selectedTaskId' => ['nullable', 'string', 'max:100'],
+            'context.view.search' => ['nullable', 'array'],
+            'context.view.search.query' => ['nullable', 'string', 'max:100'],
+            'context.view.search.colors' => ['sometimes', 'array', 'list'],
+            'context.view.search.colors.*' => [Rule::in(ProposalSchema::COLORS)],
+            'context.view.search.kinds' => ['sometimes', 'array', 'list'],
+            'context.view.search.kinds.*' => [Rule::in(ProposalSchema::KINDS)],
         ];
     }
 
@@ -368,7 +381,17 @@ class VoiceController extends Controller
                 'milestone' => (bool) ($task['milestone'] ?? false),
                 'predecessorIds' => array_values($task['predecessorIds']),
             ], $context['tasks']),
-        ];
+        ] + (isset($context['view']) ? ['view' => [
+            'screen' => $context['view']['screen'],
+            'scale' => $context['view']['scale'],
+            'criticalPath' => (bool) $context['view']['criticalPath'],
+            'selectedTaskId' => $context['view']['selectedTaskId'] ?? null,
+            'search' => isset($context['view']['search']) ? [
+                'query' => $context['view']['search']['query'] ?? null,
+                'colors' => array_values($context['view']['search']['colors'] ?? []),
+                'kinds' => array_values($context['view']['search']['kinds'] ?? []),
+            ] : null,
+        ]] : []);
     }
 
     /** Usage metrics only: counts and timing, never content. */

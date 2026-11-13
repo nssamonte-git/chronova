@@ -293,6 +293,49 @@ it('passes on actions that come with operations, and only to apps that can do th
     interpret('show build and delete review')->assertOk()->assertJson(['operations' => $answer['operations']])->assertJsonMissingPath('actions');
 });
 
+it('undoes the last change only for apps that can, and only alone', function () {
+    interpret('undo that', capabilities: ['actions'])
+        ->assertOk()
+        ->assertJson(['result' => 'operations', 'operations' => [['type' => 'undo_last_change']], 'actions' => []]);
+    interpret('put it back')->assertOk()->assertJson(['result' => 'unsupported', 'reason' => 'Update the app to do that.']);
+});
+
+it('reads "this" as the selected task, from the view the app sends', function () {
+    $view = ['screen' => 'timeline', 'scale' => 'days', 'criticalPath' => false, 'selectedTaskId' => 't2', 'search' => null];
+    interpret('mark this done', ['view' => $view], ['actions'])
+        ->assertOk()
+        ->assertJson(['operations' => [['type' => 'set_progress', 'taskId' => 't2', 'percent' => 100]]]);
+});
+
+it('does two things joined by "and", the actions first', function () {
+    interpret('show the critical path and push design by 2 hours', capabilities: ['actions'])
+        ->assertOk()
+        ->assertJson([
+            'result' => 'operations',
+            'operations' => [['type' => 'shift_task', 'taskId' => 't1', 'amount' => 2, 'unit' => 'hours']],
+            'actions' => [['type' => 'critical_path', 'on' => true]],
+        ]);
+    interpret('show days and go to today', capabilities: ['actions'])
+        ->assertOk()
+        ->assertJson(['result' => 'actions', 'actions' => [['type' => 'set_scale', 'scale' => 'days'], ['type' => 'go_to_today']]]);
+});
+
+it('passes the view on to the model as data', function () use ($shift) {
+    useOpenAi();
+    Http::fake(['api.openai.com/*' => Http::response(openAiAnswer($shift))]);
+    $view = ['screen' => 'timeline', 'scale' => 'weeks', 'criticalPath' => true, 'selectedTaskId' => 't1',
+        'search' => ['query' => 'des', 'colors' => ['blue'], 'kinds' => []]];
+
+    interpret('push it by 2 hours', ['view' => $view], ['actions'])->assertOk();
+
+    Http::assertSent(function (ClientRequest $request) use ($view) {
+        $input = json_decode($request->data()['input'][1]['content'], true);
+
+        return $input['schedule']['view'] === $view;
+    });
+    expect(OpenAiInterpreter::instructions())->toContain('view.selectedTaskId')->toContain('undo_last_change');
+});
+
 it('asks for actions in the schema and the rules', function () {
     $actions = ProposalSchema::jsonSchema()['properties']['actions'];
     expect(ProposalSchema::jsonSchema()['required'])->toContain('actions')
@@ -336,6 +379,8 @@ it('rejects proposals that break the contract', function (array $proposal) {
     'a colour twice' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => null, 'colors' => ['blue', 'blue'], 'kinds' => []]]]],
     'a query too long' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'search', 'query' => str_repeat('a', 101), 'colors' => [], 'kinds' => []]]]],
     'open an unknown task' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'open_task', 'taskId' => 't9']]]],
+    'undo with something else' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change'], ['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
+    'undo with a field' => [['result' => 'operations', 'operations' => [['type' => 'undo_last_change', 'taskId' => 't1']], 'question' => null, 'reason' => null]],
     'too many actions' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => array_fill(0, 6, ['type' => 'go_to_today'])]],
     'actions with nothing to do' => [['result' => 'actions', 'operations' => [], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []]],
     'actions answer with operations' => [['result' => 'actions', 'operations' => [['type' => 'delete_task', 'taskId' => 't1']], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => [['type' => 'go_to_today']]]],
@@ -398,6 +443,9 @@ it('validates the request', function (array $body) {
     'epoch instead of local time' => [['transcript' => 'x', 'context' => voiceContext(['now' => 1_800_000_000_000])]],
     'capabilities not a list' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => 'actions']],
     'too many capabilities' => [['transcript' => 'x', 'context' => voiceContext(), 'capabilities' => array_fill(0, 11, 'actions')]],
+    'a view on another screen' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'settings', 'scale' => 'days', 'criticalPath' => false]])]],
+    'a view with an unknown scale' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'timeline', 'scale' => 'years', 'criticalPath' => false]])]],
+    'a view searching for a colour it lacks' => [['transcript' => 'x', 'context' => voiceContext(['view' => ['screen' => 'timeline', 'scale' => 'days', 'criticalPath' => false, 'search' => ['query' => null, 'colors' => ['red'], 'kinds' => []]]])]],
 ]);
 
 it('accepts zone names, UTC and fixed offsets', function (string $zone) {

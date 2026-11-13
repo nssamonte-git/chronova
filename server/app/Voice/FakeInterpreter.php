@@ -12,7 +12,8 @@ use DateTimeImmutable;
  * "... and everything after it"; and the actions "go to today", "go to tomorrow",
  * "go to 2026-11-14", "show review", "show days", "zoom in", "reset the zoom", "bigger rows",
  * "show the critical path", "hide the critical path", "search for design", "show only green tasks
- * that aren't done", "show milestones", "clear the search", "open review".
+ * that aren't done", "show milestones", "clear the search", "open review"; "undo that"; "this" or "it"
+ * for the selected task; and two of these joined by "and".
  */
 final class FakeInterpreter implements Interpreter
 {
@@ -30,6 +31,36 @@ final class FakeInterpreter implements Interpreter
     private function proposal(string $text, array $context): array
     {
         $text = rtrim($text, '.!?');
+        if (preg_match('/^(undo( that| it| your last change)?|put it back)$/', $text)) {
+            return ['result' => 'operations', 'operations' => [['type' => 'undo_last_change']], 'question' => null, 'reason' => null];
+        }
+        // "this" or "it" is the selected task.
+        $selected = $context['view']['selectedTaskId'] ?? null;
+        if ($selected !== null && preg_match('/\b(this|it)\b/', $text) && ! preg_match('/everything after it/', $text)) {
+            $title = mb_strtolower(collect($context['tasks'])->firstWhere('id', $selected)['title'] ?? '');
+            $text = preg_replace('/\b(this|it)\b/', $title, $text, 1);
+        }
+        $single = $this->single($text, $context);
+        if ($single['result'] !== 'unsupported' || ! str_contains($text, ' and ') || str_contains($text, 'everything after it')) {
+            return $single;
+        }
+        // "show the critical path and push beta by an hour": each part on its own, actions first.
+        $operations = [];
+        $actions = [];
+        foreach (explode(' and ', $text) as $part) {
+            $one = $this->single(trim($part), $context);
+            if (! in_array($one['result'], ['operations', 'actions'], true)) {
+                return $single;
+            }
+            $operations = [...$operations, ...$one['operations']];
+            $actions = [...$actions, ...($one['actions'] ?? [])];
+        }
+
+        return ['result' => $operations === [] ? 'actions' : 'operations', 'operations' => $operations, 'question' => null, 'reason' => null, 'actions' => $actions];
+    }
+
+    private function single(string $text, array $context): array
+    {
         $task = $this->task($text, $context['tasks']);
         if ($task === false) {
             return $this->clarify('Which task do you mean?');
@@ -90,10 +121,17 @@ final class FakeInterpreter implements Interpreter
                 ])),
             ]],
             (bool) preg_match('/^(clear|close) the search$/', $text) => [['type' => 'clear_search']],
-            $task !== null && (bool) preg_match('/^(open|edit) /', $text) => [['type' => 'open_task', 'taskId' => $task['id']]],
-            $task !== null && (bool) preg_match('/^(show|show me|find|where is|go to) /', $text) => [['type' => 'show_task', 'taskId' => $task['id']]],
+            // Only the task's title after the verb: "show the critical path and push design" isn't "show design".
+            $task !== null && $this->namesOnly($text, '(open|edit)', $task) => [['type' => 'open_task', 'taskId' => $task['id']]],
+            $task !== null && $this->namesOnly($text, '(show|show me|find|where is|go to)', $task) => [['type' => 'show_task', 'taskId' => $task['id']]],
             default => null,
         };
+    }
+
+    /** Whether $text is $verbs followed by nothing but $task's title ("the" allowed). */
+    private function namesOnly(string $text, string $verbs, array $task): bool
+    {
+        return (bool) preg_match('/^'.$verbs.' (the )?'.preg_quote(mb_strtolower($task['title']), '/').'$/', $text);
     }
 
     /** The one task whose title appears in the text; null if none, false if several. */

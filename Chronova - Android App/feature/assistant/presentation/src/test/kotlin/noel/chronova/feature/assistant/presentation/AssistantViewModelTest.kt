@@ -1,5 +1,9 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.model.TimeScale
+import noel.chronova.core.ui.assistant.AssistantViewState
+import noel.chronova.feature.assistant.domain.ViewContext
+import noel.chronova.feature.assistant.domain.PlanUndo
 import noel.chronova.core.ui.assistant.ViewScale
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import noel.chronova.feature.assistant.domain.VoiceAction
@@ -256,6 +260,7 @@ private object FakePhrases : AssistantPhrases {
     override fun failure(kind: VoiceApiException.Kind) = "failure $kind"
     override fun cannotDo(problem: CommandProblem, titles: Map<String, String>, projectEndMillis: Long) = "cannot do"
     override fun showing(action: VoiceAction) = "showing $action"
+    override fun nothingToUndo() = "nothing to undo"
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -310,6 +315,7 @@ class AssistantViewModelTest {
             recordChange = RecordVoiceChange(notifications, repository, zone),
             undo = UndoVoiceChange(applyChanges),
             endSession = EndVoiceSession(auth),
+            planUndo = PlanUndo(repository),
         )
     }
 
@@ -459,6 +465,48 @@ class AssistantViewModelTest {
         assertEquals(AssistantViewAction.ShowTask("review"), viewModel.view.value?.action)
         assertEquals(listOf(ExplainStage.Proposal), api.explained.filterIsInstance<ExplainRequest.Changes>().map { it.stage })
         assertEquals(originalReview, review)
+    }
+
+    @Test
+    fun undoThatAsksFirstThenPutsTheLastChangeBack() = runTest(dispatcher) {
+        api.answer = { text, c ->
+            if (text.startsWith("undo")) {
+                Proposal(c.revision, "operations", listOf(ProposedOperation("undo_last_change")), null, null)
+            } else {
+                shift(1)(text, c)
+            }
+        }
+        says("push review by an hour", "yes")
+        talk()
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+
+        says("undo that", "no")
+        talk()
+        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis) // a no keeps it
+        assertEquals("moved", (api.explained.last { it is ExplainRequest.Changes && it.stage == ExplainStage.Proposal } as ExplainRequest.Changes).changes.single().change)
+
+        says("undo that", "yes")
+        talk()
+        assertEquals(originalReview, review)
+    }
+
+    @Test
+    fun undoThatWithNothingToUndoSaysSo() = runTest(dispatcher) {
+        api.answer = { _, c -> Proposal(c.revision, "operations", listOf(ProposedOperation("undo_last_change")), null, null) }
+        says("undo that")
+        talk()
+        assertTrue("nothing to undo" in api.said)
+        assertEquals(SampleTasks.tasks(zone), repository.tasks.value)
+    }
+
+    @Test
+    fun whatTheScreenShowsIsSentWithTheRequest() = runTest(dispatcher) {
+        var sent: ViewContext? = null
+        api.answer = { _, c -> sent = c.view; Proposal(c.revision, "unsupported", emptyList(), null, "no") }
+        viewModel.onView(AssistantViewState(ViewScale.DAYS, criticalPath = false, selectedTaskId = "review"))
+        says("mark this done")
+        talk()
+        assertEquals(ViewContext(TimeScale.DAYS, criticalPath = false, selectedTaskId = "review"), sent)
     }
 
     @Test

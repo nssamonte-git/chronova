@@ -109,6 +109,21 @@ class AICommandHandlerTest {
     }
 
     @Test
+    fun undoingTheLastChangeIsLeftToTheCallerAndStandsAlone() {
+        val undo = ProposedOperation("undo_last_change")
+        assertEquals(HandledProposal.UndoLast(emptyList()), handler.handle(context, state, proposal(undo)))
+        assertEquals(HandledProposal.Unreadable, handler.handle(context, state, proposal(undo, ProposedOperation("delete_task", taskId = "review"))))
+    }
+
+    @Test
+    fun theViewIsSentButASelectionThatHasGoneIsNot() {
+        val view = ViewContext(TimeScale.DAYS, criticalPath = true, selectedTaskId = "review")
+        assertEquals(view, VoiceContext.from(state, zone, now, view).view)
+        val gone = view.copy(selectedTaskId = "deleted")
+        assertEquals(gone.copy(selectedTaskId = null), VoiceContext.from(state, zone, now, gone).view)
+    }
+
+    @Test
     fun actionsThatComeWithChangesAreDoneBeforeTheChangesAreAskedAbout() {
         val delete = ProposedOperation("delete_task", taskId = "review")
         val handled = handler.handle(context, state, actions(ProposedAction("show_task", taskId = "qa-testing"), result = "operations", operations = listOf(delete)))

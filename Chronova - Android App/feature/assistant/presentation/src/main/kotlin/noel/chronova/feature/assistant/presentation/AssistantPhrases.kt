@@ -35,6 +35,9 @@ interface AssistantPhrases {
 
     /** What it says after doing [action] (the last one, when there were several). */
     fun showing(action: VoiceAction): String
+
+    /** Asked to undo, but it has changed nothing (or its change was already undone). */
+    fun nothingToUndo(): String
 }
 
 /** [AssistantPhrases] from the app's string resources. */
@@ -62,6 +65,8 @@ class ResourcePhrases(private val resources: Resources, private val zone: ZoneId
             VoiceApiException.Kind.UNAVAILABLE, VoiceApiException.Kind.REJECTED -> R.string.assistant_unavailable
         },
     )
+
+    override fun nothingToUndo() = resources.getString(R.string.assistant_nothing_to_undo)
 
     override fun showing(action: VoiceAction): String = when (action) {
         VoiceAction.GoToToday -> resources.getString(R.string.assistant_showing_today)

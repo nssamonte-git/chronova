@@ -75,6 +75,17 @@ final class ProposalValidator
         if ($clean === null) {
             return null;
         }
+        if (in_array('undo_last_change', array_column($clean, 'type'), true)) {
+            // Undo stands alone: nothing else to plan with it, and no alternative.
+            if (count($clean) !== 1) {
+                return null;
+            }
+            if (! $actions) {
+                return $answer('unsupported', [], null, self::UPDATE_APP);
+            }
+
+            return $answer($result, $clean, null, null, null, $proposedActions);
+        }
         // A broken alternative only loses the alternative (the app can still ask for one).
         $alternative = is_array($proposal['alternative'] ?? null) ? $this->operations($proposal['alternative'], $taskIds, $maxOperations) : null;
 

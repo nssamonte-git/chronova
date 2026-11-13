@@ -25,6 +25,9 @@ sealed interface Interpretation {
 
     /** Only things to do at once (nothing changes). */
     data class Act(val actions: List<VoiceAction>) : Interpretation
+
+    /** Undo the assistant's last applied change (only it knows what that was); asked about first. */
+    data class UndoLast(val actions: List<VoiceAction> = emptyList()) : Interpretation
     data class Question(val text: String) : Interpretation
     data class Unsupported(val reason: String?) : Interpretation
     data class CannotDo(val problem: CommandProblem, val titles: Map<String, String>, val projectEndMillis: Long) : Interpretation
@@ -49,9 +52,10 @@ class InterpretRequest(
     private val zone: ZoneId,
     private val clock: () -> Long,
 ) {
-    suspend operator fun invoke(projectId: String, text: String): Interpretation {
+    /** [view]: what the timeline shows, sent so "this task" or "zoom in" can be understood. */
+    suspend operator fun invoke(projectId: String, text: String, view: ViewContext? = null): Interpretation {
         val sent = repository.schedule(projectId) ?: return Interpretation.ScheduleChanged
-        val context = VoiceContext.from(sent, zone, clock())
+        val context = VoiceContext.from(sent, zone, clock(), view)
         val proposal = voiceApi.interpret(token(), text, context)
         val now = repository.schedule(projectId) ?: return Interpretation.ScheduleChanged
         return when (val handled = handler.handle(context, now, proposal)) {
@@ -63,6 +67,7 @@ class InterpretRequest(
                 )
             }
             is HandledProposal.Act -> Interpretation.Act(handled.actions)
+            is HandledProposal.UndoLast -> Interpretation.UndoLast(handled.actions)
             is HandledProposal.Clarify -> Interpretation.Question(handled.question)
             is HandledProposal.Unsupported -> Interpretation.Unsupported(handled.reason)
             is HandledProposal.CannotDo -> Interpretation.CannotDo(

@@ -112,6 +112,7 @@ fun rememberAssistantSlot(assistant: AssistantViewModel): AssistantSlot {
         highlighted = highlighted,
         snackbar = snackbar,
         viewRequest = view?.let { request -> AssistantViewRequest(request.id, request.action) { assistant.viewShown(request.id) } },
+        reportView = assistant::onView,
         screenEffects = {
             // Leaving the app stops the assistant; turning the phone (the activity is only recreated) doesn't.
             val activity = LocalActivity.current

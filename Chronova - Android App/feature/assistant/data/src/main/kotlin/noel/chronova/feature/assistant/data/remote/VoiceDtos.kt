@@ -99,7 +99,21 @@ internal data class VoiceContextDto(
     val now: String,
     val revision: String,
     val tasks: List<VoiceTaskDto>,
+    val view: ViewContextDto? = null,
 )
+
+/** What the timeline shows; the API's lower-case names. */
+@Serializable
+internal data class ViewContextDto(
+    val screen: String,
+    val scale: String,
+    val criticalPath: Boolean,
+    val selectedTaskId: String?,
+    val search: SearchContextDto?,
+)
+
+@Serializable
+internal data class SearchContextDto(val query: String?, val colors: List<String>, val kinds: List<String>)
 
 @Serializable
 internal data class VoiceTaskDto(
@@ -217,6 +231,17 @@ internal fun VoiceContext.toDto() = VoiceContextDto(
     now = now.wire(),
     revision = revision,
     tasks = tasks.map { VoiceTaskDto(it.id, it.title, it.start.wire(), it.end.wire(), it.predecessorIds, it.progress, it.milestone) },
+    view = view?.let { shown ->
+        ViewContextDto(
+            screen = "timeline",
+            scale = shown.scale.name.lowercase(),
+            criticalPath = shown.criticalPath,
+            selectedTaskId = shown.selectedTaskId,
+            search = shown.search?.let { search ->
+                SearchContextDto(search.query, search.colors.map { it.name.lowercase() }.sorted(), search.kinds.map { it.name.lowercase() }.sorted())
+            },
+        )
+    },
 )
 
 internal fun InterpretResponseDto.toDomain() = Proposal(

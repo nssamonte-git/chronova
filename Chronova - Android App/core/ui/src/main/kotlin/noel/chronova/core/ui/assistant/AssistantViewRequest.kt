@@ -50,3 +50,16 @@ enum class ViewKind { NOT_DONE, DONE, MILESTONE }
 enum class ViewScale { HOURS, DAYS, WEEKS, MONTHS }
 
 enum class ViewZoom { IN, OUT, RESET }
+
+/** What the screen shows, told to the assistant so it understands "this task" or "zoom in". */
+@Immutable
+data class AssistantViewState(
+    val scale: ViewScale,
+    val criticalPath: Boolean,
+    val selectedTaskId: String?,
+    /** The open search, or null when none narrows the list. */
+    val search: AssistantSearchState? = null,
+)
+
+@Immutable
+data class AssistantSearchState(val query: String?, val colors: Set<ViewColor>, val kinds: Set<ViewKind>)

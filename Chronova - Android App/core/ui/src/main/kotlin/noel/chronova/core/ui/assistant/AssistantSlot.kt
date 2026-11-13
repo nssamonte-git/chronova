@@ -26,6 +26,8 @@ class AssistantSlot(
     val overlay: @Composable (zone: ZoneId) -> Unit,
     /** Something it asked the screen to show (go to today, show a task), until the screen has done it. */
     val viewRequest: AssistantViewRequest? = null,
+    /** The screen tells it what it shows, whenever that changes. */
+    val reportView: (AssistantViewState) -> Unit = {},
 ) {
     companion object {
         /** No assistant (previews, tests). */

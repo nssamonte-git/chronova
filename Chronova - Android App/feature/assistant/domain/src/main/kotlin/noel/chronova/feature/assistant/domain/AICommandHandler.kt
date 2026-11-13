@@ -54,6 +54,9 @@ sealed interface HandledProposal {
     /** Only things to do at once: nothing changes, so nothing is asked. */
     data class Act(val actions: List<VoiceAction>) : HandledProposal
 
+    /** Undo the last applied change: the caller knows what it was, and asks first. */
+    data class UndoLast(val actions: List<VoiceAction>) : HandledProposal
+
     data class Clarify(val question: String) : HandledProposal
 
     data class Unsupported(val reason: String?) : HandledProposal
@@ -93,6 +96,9 @@ class AICommandHandler(private val planner: CommandPlanner) {
             "unsupported" -> HandledProposal.Unsupported(proposal.reason?.takeIf { it.isNotBlank() })
             "actions" -> if (actions.isEmpty() || proposal.operations.isNotEmpty()) HandledProposal.Unreadable else HandledProposal.Act(actions)
             "operations" -> {
+                if (proposal.operations.any { it.type == UNDO }) {
+                    return if (proposal.operations.size == 1) HandledProposal.UndoLast(actions) else HandledProposal.Unreadable
+                }
                 val commands = proposal.operations.map { toCommand(it) ?: return HandledProposal.Unreadable }
                 if (commands.isEmpty()) return HandledProposal.Unreadable
                 when (val plan = planner.plan(current, commands)) {
@@ -147,6 +153,11 @@ class AICommandHandler(private val planner: CommandPlanner) {
     }
 
     private class MissingField : RuntimeException()
+
+    private companion object {
+        /** The operation that undoes the assistant's last change (always alone). */
+        const val UNDO = "undo_last_change"
+    }
 
     private fun <T : Any> T?.req(): T = this ?: throw MissingField()
 

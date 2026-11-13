@@ -51,6 +51,8 @@ Dates (`YYYY-MM-DD`) and date-times (`YYYY-MM-DDTHH:MM`, no offset) are local to
 
 Each task may also carry `progress` (integer 0–100; 100 is done) and `milestone` (boolean; a milestone's `start` equals its `end`). Both are optional: an app from before them leaves them out, and they then read as `0` and `false`. A task's notes are never sent.
 
+An app with actions may also send `context.view`, what its timeline shows: `screen` (`timeline`), `scale` (`hours`/`days`/`weeks`/`months`), `criticalPath` (boolean), `selectedTaskId` (or null; "this task" and "it" mean it) and `search` (null, or `query`, `colors`, `kinds` as in the `search` action). It is passed to the model as data.
+
 `capabilities` (optional, ≤ 10 strings) says what the app can do besides schedule edits. Apps that send `"actions"` can be answered with actions (below); an app that sends nothing is never sent any, so its answers keep the shape it knows.
 
 Response (200):
@@ -110,6 +112,7 @@ Operations (every field is always present):
 | `reschedule_dependents` | `taskId` — the app pushes everything downstream just enough |
 | `set_progress` | `taskId`, `percent` (integer 0–100; a milestone takes only 0 or 100) |
 | `create_milestone` | `title`, `at` (date-time), `predecessorIds` |
+| `undo_last_change` | (none) — always alone, with no alternative; only for apps with the `actions` capability (others get "unsupported"). The app knows what its last applied change was, previews undoing it and asks first |
 
 A milestone moves with `move_task`, `shift_task` or `set_times` (the given start, or end, becomes its moment); the app refuses `change_duration` and `set_duration` on one, and doesn't count a milestone as overlapping a task.
 

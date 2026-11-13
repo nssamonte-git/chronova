@@ -1,5 +1,9 @@
 package noel.chronova.feature.assistant.data.remote
 
+import noel.chronova.core.model.TaskColor
+import noel.chronova.core.model.TimeScale
+import noel.chronova.feature.assistant.domain.VoiceAction
+import noel.chronova.feature.assistant.domain.ViewContext
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -118,6 +122,24 @@ class OkHttpVoiceApiTest {
         // An answer without actions (an older server) has none.
         reply(200, """{"revision":"r1","result":"operations","operations":[{"type":"delete_task","taskId":"t1"}],"question":null,"reason":null}""")
         assertEquals(emptyList<ProposedAction>(), api.interpret("token-1", "delete design", context).actions)
+    }
+
+    @Test
+    fun theViewIsSentInTheApisTerms() = runTest {
+        reply(200, """{"revision":"r1","result":"unsupported","operations":[],"question":null,"reason":"no"}""")
+        val view = ViewContext(
+            TimeScale.WEEKS, criticalPath = true, selectedTaskId = "review",
+            search = ViewContext.Search(null, setOf(TaskColor.GREEN, TaskColor.BLUE), setOf(VoiceAction.SearchKind.NOT_DONE)),
+        )
+        api.interpret("token-1", "zoom in", context.copy(view = view))
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(
+            body,
+            body.contains(
+                """"view":{"screen":"timeline","scale":"weeks","criticalPath":true,"selectedTaskId":"review",""" +
+                    """"search":{"colors":["blue","green"],"kinds":["not_done"]}}""",
+            ),
+        )
     }
 
     @Test

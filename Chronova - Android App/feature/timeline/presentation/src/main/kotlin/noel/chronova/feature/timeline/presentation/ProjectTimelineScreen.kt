@@ -1,5 +1,10 @@
 package noel.chronova.feature.timeline.presentation
 
+import noel.chronova.core.ui.assistant.ViewKind
+import noel.chronova.core.ui.assistant.ViewColor
+import noel.chronova.core.ui.assistant.ViewScale
+import noel.chronova.core.ui.assistant.AssistantSearchState
+import noel.chronova.core.ui.assistant.AssistantViewState
 import noel.chronova.core.ui.assistant.ViewZoom
 import noel.chronova.core.ui.assistant.AssistantViewAction
 import androidx.compose.ui.platform.LocalResources
@@ -246,6 +251,21 @@ internal fun TimelineContent(
         snackbarHost.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
         actions.onPushBlockedShown()
     }
+    // The assistant is told what is shown, so it understands "this task" or "zoom in".
+    val shownView = AssistantViewState(
+        scale = ViewScale.valueOf(state.config.timeScale.name),
+        criticalPath = state.config.showCriticalPath,
+        selectedTaskId = state.selectedTaskId,
+        search = state.search?.filter?.takeIf { it.isActive }?.let { filter ->
+            AssistantSearchState(
+                query = filter.query.trim().ifEmpty { null },
+                colors = filter.colors.mapTo(mutableSetOf()) { ViewColor.valueOf(it.name) },
+                kinds = filter.kinds.mapTo(mutableSetOf()) { ViewKind.valueOf(it.name) },
+            )
+        },
+    )
+    val reportView by rememberUpdatedState(assistant.reportView)
+    LaunchedEffect(shownView) { reportView(shownView) }
     // The assistant asked for a view setting (scale, zoom, rows, critical path), a search or a task's editor:
     // as if the settings row, the search bar or the task's name had been used.
     val viewSetting = assistant.viewRequest?.takeIf { it.action.isViewSetting() }

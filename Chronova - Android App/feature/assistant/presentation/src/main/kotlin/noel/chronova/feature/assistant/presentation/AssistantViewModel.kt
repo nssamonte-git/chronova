@@ -1,5 +1,6 @@
 package noel.chronova.feature.assistant.presentation
 
+import noel.chronova.core.ui.assistant.AssistantViewState
 import kotlinx.coroutines.flow.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -70,6 +71,11 @@ class AssistantViewModel(
 
     /** The screen has shown request [id]. */
     fun viewShown(id: Long) = session.shown(id)
+
+    /** What the screen shows now; sent with the next request. */
+    fun onView(view: AssistantViewState) {
+        session.view = view.toDomain()
+    }
 
     /**
      * The assistant is at work: the orb is open (listening, thinking, talking, applying) or, once it
