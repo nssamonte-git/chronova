@@ -126,7 +126,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (507 tests)
+composer test                 # Pest (514 tests)
 ```
 
 Push notifications use a fake sender by default (recorded, not sent). To send through Firebase, put the service-account key file at `server/storage/credentials/firebase-service-account.json` (git-ignored) and set `PUSH_SENDER=fcm` and `FCM_CREDENTIALS=<its absolute path>` in `server/.env`; reminders also need `php artisan schedule:work` (see `docs/push.md`).
@@ -178,6 +178,7 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 - `POST /v1/sync`: one transaction per request with the user's row locked (a user's syncs run one at a time); each push is a Postgres upsert that only replaces an older copy; stale pushes return the winning copy; pulls page by a per-user sequence number. Tombstones drop the deleted content.
 - `/v1/auth/*`: enumeration-safe sign-up/forgot (always "check your email"), hashed one-time codes with attempt limits, rate limits per email and IP, Sanctum tokens (60 days, `sync` ability), disabled accounts refused.
+- **No public website**: the site root (`/`) redirects to `/admin`; the app talks only to `/v1`, and `/up` is the health check.
 - **Admin** (`/admin`, separate `staff` guard): authenticator-app 2FA required by default; roles admin/support; staff management (admins), including **Disable 2FA** and **Require 2FA** for other staff; user search, disable/enable, sign out everywhere, delete (admins, typed confirmation + reason); dashboard (accounts, active users, sign-ups, sync volume, error rate, latency); support data access (reason → 30 minutes, read-only, re-checked on every request). Every privileged action goes to an append-only audit log; user pages never show project content.
 - **Voice** (`/v1/voice/transcribe`, `/interpret`, `/explain`): provider keys only on the server; the model's answer is constrained by a strict JSON schema and re-validated (known operation types, ids from the request, real dates); the user's words and task titles are sent as data, never as instructions; OpenAI with `store: false`; no audio or words stored or logged — `voice_events` keeps counts, timing and token use for the dashboard. Kill switch, per-user/per-endpoint rate limits, fakes for development and tests.
 - **Container**: one FrankenPHP/PHP 8.4 image, roles `web`, `worker`, `scheduler`, `migrate`; non-root; caches built at start from the injected environment.
@@ -200,7 +201,7 @@ tools/check.sh --devices      # also every module's device tests on a managed em
 | Device tests on a managed emulator (Pixel 6, API 35): Compose UI tests of the screens, Room migrations and transactions, the PDF writer, rotation (Compose UI test, UiAutomator; 18 files in 13 modules) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 110 |
 | App device tests on a phone (Room transaction, rotation, pinch) | build both APKs, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it). Never `connectedAndroidTest`, which uninstalls the app and its data | 11 |
 | Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations and checks for crashes, leaked activities, memory growth and lost state; backs the app's data up and restores it | 16 scenarios |
-| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 507 |
+| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 514 |
 | Server inside the production image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` | 23 |
 

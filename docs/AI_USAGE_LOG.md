@@ -2150,3 +2150,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** move "Everything Chronova does beyond the take-home" next to "How the timeline works".
 - **Done:** both feature pages now follow page 3 (they are pages 4 and 5); architecture, modules, voice, running and testing move up to pages 6–10, and AWS stays on page 11. The running page's pointer now says pages 4 and 5; the "(page 11)" references to AWS still hold. Re-rendered: 18 pages, footers 1–18 of 18, order checked from the PDF text.
 - Documentation only: no build or test run for this entry.
+
+### README: server count and the root redirect
+
+- **Your request:** update the README.
+- **Checked first:** the two admin commits from 14 Nov evening (`3804f03` staff 2FA exemptions and Philippine time, `b076a3c` admin entry and dashboard) had already updated the README's 2FA and time-zone lines. Still stale: the server test count (507, while those commits' log entries record 513 and then 514 passing) and nothing about the site root now redirecting to `/admin`.
+- **Changed:** server tests 507 → 514 in "Running the server" and the Testing table (the count recorded in this log; not re-run here, since the suite needs the Docker PostgreSQL); a "No public website" line in the server section (`/` → `/admin`, the app uses `/v1`, `/up` is the health check, from `routes/web.php` and `bootstrap/app.php`).
+- **Not changed:** `Learn/04-validation.md` still gives 507 as the server baseline, and the take-home PDF still says 507 server tests and "required authenticator MFA" for the admin panel.
+- Documentation only: no build or test run for this entry.
