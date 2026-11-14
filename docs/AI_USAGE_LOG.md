@@ -2003,3 +2003,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `VoiceInterpretTest`: the rules mention both limits (failed before the rule change).
 - **Results:** `tools/check.sh` passed (515 unit tests, 180 screenshots, lint 0 errors, both architecture checks); server 507 tests and lint pass.
 - **Not checked:** on the phone, or with the real model.
+
+### Handoff files brought up to date
+
+- **Your request:** update the handoff files after the walkthrough bug fixes.
+- **HANDOFF.md:** three short invariants: working time (09:00–17:00, Monday to Friday, used only by the critical path and the voice alternatives check), `SensibleAlternative`, and the 55 s limit on the three routes that wait on two provider calls. Test counts were already current (515 app, 180 screenshots, 507 server).
+- **Learn/02-architecture.md:** the same three rules in detail (voice section, invariants, server rules).
+- **Learn/04-validation.md:** baselines from 483 / 171 / 480 to 515 / 180 / 507.
+- **CURRENT_TASK.md** (local only, not committed): today's fixes, the new baselines, next steps (check the fixes with the real providers, the device tests and on the phone, with approval), and the phone's state. The phone is signed in to the walkthrough's demo account, with a build of `d3ae557`.
+- Documentation only: no build or test run for this entry.
