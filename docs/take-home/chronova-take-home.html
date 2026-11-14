@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chronova Take-Home Writeup</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body{counter-reset:pg;}
+  .page{counter-increment:pg;}
+  .band{position:absolute;top:0;left:0;right:0;height:0.09in;background:linear-gradient(90deg,#22D3EE 0%,#2B5CFF 55%,#A855F7 100%);}
+  .mini{position:absolute;top:0.33in;left:var(--pad);right:var(--pad);display:flex;align-items:center;justify-content:space-between;}
+  .mini .brand{display:flex;align-items:center;gap:0.09in;font-family:var(--font-head);font-weight:700;font-size:8.4pt;letter-spacing:0.22em;color:var(--blue-ink);}
+  .mini img{height:0.30in;width:0.30in;border-radius:0.07in;}
+  .mini .sec{font-family:var(--font-head);font-size:7.4pt;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  .pfoot .pn::after{content:counter(pg);}
+  .pfoot-teal{background:linear-gradient(90deg,#22D3EE,#2B5CFF 55%,#A855F7);height:3px;}
+  .content{top:0.98in;}
+  h1.ptitle{font-size:21pt;}
+  .lede{font-size:11pt;margin-bottom:0.18in;}
+  h3.sect{margin:0.22in 0 0.10in;}
+  p.body,ul.dash li,ol.steps li{font-size:9.6pt;}
+  table.formal{font-size:8.9pt;}
+  table.formal td{padding:0.065in 0.10in;}
+  table.formal th{padding:0.075in 0.10in;font-size:7.8pt;}
+  .ok{display:inline-block;background:#E3F5EF;color:#0B6B5F;font-family:var(--font-head);font-weight:700;font-size:7.4pt;letter-spacing:.08em;padding:0.02in 0.07in;border-radius:3px;}
+  code{font-family:var(--font-mono);font-size:8.3pt;color:var(--blue-mid);}
+  .tile p,.tile li{font-size:8.9pt;}
+  svg text{font-family:Inter,Arial,sans-serif;}
+  .small{font-size:8.6pt;color:var(--muted);line-height:1.45;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0.22in;}
+  /* cover */
+  .cover-top{position:absolute;top:0;left:0;right:0;height:4.35in;background:radial-gradient(circle at 78% 30%,#1D2A6B 0%,#0B1226 62%);color:#fff;}
+  .cover-top .band{top:auto;bottom:0;height:0.07in;}
+  .cover-logo{position:absolute;top:0.62in;left:0.75in;width:1.05in;height:1.05in;border-radius:0.22in;box-shadow:0 0 0.35in rgba(34,211,238,.35);}
+  .cover-kicker{position:absolute;top:1.95in;left:0.75in;font-family:var(--font-head);font-weight:700;font-size:8.6pt;letter-spacing:0.3em;color:#22D3EE;text-transform:uppercase;}
+  .cover-h{position:absolute;top:2.22in;left:0.75in;right:0.75in;font-family:var(--font-head);font-weight:700;font-size:30pt;line-height:1.1;}
+  .cover-s{position:absolute;top:3.38in;left:0.75in;right:0.75in;font-size:11.5pt;color:#C9D4F2;line-height:1.5;}
+  .cover-main{position:absolute;top:4.75in;left:0.75in;right:0.75in;display:grid;grid-template-columns:2.15in 1fr;gap:0.38in;}
+  .shot{width:2.15in;border-radius:0.16in;border:1px solid var(--line);box-shadow:0 0.06in 0.2in rgba(11,18,38,.12);}
+  .facts td{padding:0.05in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
+  .facts td.k{width:1.25in;font-family:var(--font-head);font-weight:600;font-size:7.6pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:0.07in;}
+</style>
+</head>
+<body>
+
+<!-- ============================ 1. COVER ============================ -->
+<div class="page">
+  <div class="cover-top">
+    <img class="cover-logo" src="assets/chronova-logo.webp" alt="Chronova logo">
+    <div class="cover-kicker">PicCollage take-home · Android</div>
+    <div class="cover-h">Chronova: a timeline / Gantt scheduler in Jetpack Compose</div>
+    <div class="cover-s">A short writeup: what was built against each requirement, how the app is designed, how to run it, and how AI was used, checked and steered.</div>
+    <div class="band"></div>
+  </div>
+  <div class="cover-main">
+    <img class="shot" src="assets/timeline.png" alt="Timeline screen with sample tasks">
+    <div>
+      <div class="eyebrow">Overview</div>
+      <p class="body">Chronova shows tasks as bars on a horizontally scrollable time axis. You can scroll through time, drag a bar to move it, drag its edges to resize it, and every edit snaps to a configurable grid. The timeline is custom Compose (layout, drawing and gestures written by hand), with <b>no third-party chart or Gantt library</b>.</p>
+      <p class="body">The take-home as submitted is kept at git tag <code>submission-v1</code>. The app kept growing after that; this document describes the timeline as it is today and lists the extras briefly.</p>
+      <table class="facts mt-s">
+        <tr><td class="k">Language</td><td>Kotlin, Jetpack Compose, Material 3</td></tr>
+        <tr><td class="k">Architecture</td><td>MVVM in a clean three-layer design (presentation → domain ← data) across 36 Gradle modules</td></tr>
+        <tr><td class="k">Platform</td><td>minSdk 26, compile/target SDK 37</td></tr>
+        <tr><td class="k">AI tool</td><td>Claude Code (Claude Opus 5.5)</td></tr>
+        <tr><td class="k">Repository</td><td>Full git history included; small, logged batches</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 2. REQUIREMENTS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Requirements</div></div>
+  <div class="content">
+    <div class="eyebrow">The brief</div>
+    <h1 class="ptitle">Every required item, and where it lives</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <table class="formal">
+      <thead><tr><th style="width:2.35in">Requirement</th><th style="width:0.62in">Status</th><th>How, and where in the code</th></tr></thead>
+      <tbody>
+        <tr><td class="k" style="white-space:normal">Time axis header with readable labels</td><td><span class="ok">DONE</span></td><td>Calendar-based ticks (<code>TimelineMath.ticks</code>) drawn by <code>TimelineHeader</code>; grid lines by <code>TimelineGrid</code>. Minor ticks get labels only when there is room.</td></tr>
+        <tr><td class="k" style="white-space:normal">Header and content scroll in sync</td><td><span class="ok">DONE</span></td><td>One scroll position, <code>TimelineViewportState</code>, read by both header and body while drawing, so they can't drift. Task names stay fixed on the left.</td></tr>
+        <tr><td class="k" style="white-space:normal">Bars in rows, positioned by start and duration</td><td><span class="ok">DONE</span></td><td><code>TaskLane</code> + <code>TaskBar</code>; x = (time − origin) × px per minute, computed only in <code>TimelineMath</code>.</td></tr>
+        <tr><td class="k" style="white-space:normal">Drag to move</td><td><span class="ok">DONE</span></td><td><code>detectTaskGestures</code> → <code>TaskEdits.move</code>; duration is kept, start time updated and saved on release.</td></tr>
+        <tr><td class="k" style="white-space:normal">Resize from either edge</td><td><span class="ok">DONE</span></td><td><code>HandleHitTest</code> picks move / resize-start / resize-end at pointer-down; <code>TaskEdits.resizeStart</code> / <code>resizeEnd</code>.</td></tr>
+        <tr><td class="k" style="white-space:normal">Snapping to a configurable grid</td><td><span class="ok">DONE</span></td><td><code>SnapGrid</code>: <code>FixedGrid</code> for sub-day steps, <code>DayGrid</code> on local midnights (safe across daylight saving).</td></tr>
+        <tr><td class="k" style="white-space:normal">Configurable scale, zoom, snap, row height</td><td><span class="ok">DONE</span></td><td><code>TimelineConfig</code> (state), changed from <code>TimelineControls</code>; saved per project.</td></tr>
+        <tr><td class="k" style="white-space:normal">Sample data</td><td><span class="ok">DONE</span></td><td><code>SampleTasks</code> fills a sample project on first launch.</td></tr>
+        <tr><td class="k" style="white-space:normal">No third-party Gantt library</td><td><span class="ok">DONE</span></td><td>Only Compose and AndroidX for the view; all layout, drawing and gesture code is in the project.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sect">The configurable parameters</h3>
+    <table class="formal compact">
+      <thead><tr><th style="width:1.35in">Parameter</th><th>Values</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Time scale</td><td>Hours, Days, Weeks, Months (ticks follow the real calendar)</td></tr>
+        <tr><td class="k">Zoom</td><td>Width of one unit, for example Hours 48 to 288 dp per hour (default 96); buttons, reset, or pinch</td></tr>
+        <tr><td class="k">Snap interval</td><td>Per scale: Hours 15 / 30 / 60 min; Days 1 h / 6 h / 1 day; Weeks 1 day; Months 1 day / 1 week</td></tr>
+        <tr><td class="k">Row height</td><td>40 to 80 dp, default 56</td></tr>
+      </tbody>
+    </table>
+    <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 3. TIMELINE INTERNALS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">How the timeline works</div></div>
+  <div class="content">
+    <div class="eyebrow">Custom Compose</div>
+    <h1 class="ptitle">How the timeline works</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">Correctness lives in plain Kotlin (<code>:core:timeline</code>), which has no Android code and is unit-tested. The Compose layer only turns time into pixels and finger movement back into time.</p>
+
+    <div class="grid2">
+      <div class="tile"><span class="tag">Coordinates</span><h4>One time origin</h4>
+        <p>Times are epoch milliseconds. Every x comes from <code>TimelineMath</code>: x = (t − project start) minutes × px per minute. Pixel → time rounds to whole minutes, because a float at large x can't hold milliseconds. Zoom and scale only change px per minute.</p></div>
+      <div class="tile teal-top"><span class="tag">Scrolling</span><h4>One scroll position</h4>
+        <p><code>TimelineViewportState</code> is the only horizontal position. Header and grid read it while drawing; bars read it in the layout phase, so scrolling doesn't recompose rows. Nothing is measured at full content width, since a long project at high zoom is wider than Compose can measure. Rows are a <code>LazyColumn</code>.</p></div>
+      <div class="tile teal-top"><span class="tag">Gestures</span><h4>Decide once, recompute from the start</h4>
+        <p>One <code>pointerInput</code> per bar, keyed on the task id. The drag type is fixed at pointer-down. Every move recomputes the bar from the task as it was at gesture start plus the total distance, so rounding never builds up and slow drags don't stick. The preview stays until the saved task arrives (no one-frame flash).</p></div>
+      <div class="tile"><span class="tag">Snapping</span><h4>The dragged edge snaps</h4>
+        <p>Sub-day steps snap from local midnight; whole days follow real midnights. The 15-minute minimum and the project end are rounded inward, so a clamped edge still lands on the grid. Pinch-to-zoom takes every move until all fingers lift, so it never reaches a bar.</p></div>
+    </div>
+
+    <h3 class="sect">Interaction choices</h3>
+    <ul class="dash">
+      <li><b>Direct drag.</b> Dragging a bar moves it at once; dragging empty space scrolls. No long-press needed.</li>
+      <li><b>Resize handles only on the selected bar.</b> Tap to select, then drag an edge. It costs one tap but prevents accidental resizes on small bars.</li>
+      <li><b>Drags move only their own task.</b> If a drag leaves later tasks overlapping their dependency, a message offers <b>Push</b>, with Undo.</li>
+      <li><b>Every task always has a row.</b> When its bar is off-screen, an arrow points to it and scrolls it into view.</li>
+    </ul>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">App architecture</div></div>
+  <div class="content">
+    <div class="eyebrow">Design architecture</div>
+    <h1 class="ptitle">MVVM inside a clean three-layer design</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">Dependencies point inward: <b>presentation → domain ← data</b>. The domain layer is plain Kotlin and knows nothing about Compose, Room or the network.</p>
+
+    <svg viewBox="0 0 710 352" width="7.1in" height="3.52in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+      </defs>
+      <!-- column headers -->
+      <rect x="0" y="0" width="200" height="30" rx="5" fill="#2B5CFF"/>
+      <text x="100" y="20" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff">PRESENTATION</text>
+      <rect x="255" y="0" width="200" height="30" rx="5" fill="#7C3AED"/>
+      <text x="355" y="20" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff">DOMAIN (pure Kotlin)</text>
+      <rect x="510" y="0" width="200" height="30" rx="5" fill="#0B8577"/>
+      <text x="610" y="20" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff">DATA</text>
+      <!-- column backgrounds -->
+      <rect x="0" y="36" width="200" height="314" rx="6" fill="#F3F6FF" stroke="#E3EAFF"/>
+      <rect x="255" y="36" width="200" height="314" rx="6" fill="#F7F2FF" stroke="#EFE7FF"/>
+      <rect x="510" y="36" width="200" height="314" rx="6" fill="#EFF8F6" stroke="#D6EFEA"/>
+
+      <!-- presentation boxes -->
+      <rect x="12" y="48" width="176" height="62" rx="5" fill="#fff" stroke="#2B5CFF"/>
+      <text x="100" y="68" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">View: Compose screen</text>
+      <text x="100" y="84" text-anchor="middle" font-size="8.8" fill="#4A5578">ProjectTimelineScreen,</text>
+      <text x="100" y="97" text-anchor="middle" font-size="8.8" fill="#4A5578">SchedulerTimeline, TaskLane, TaskBar</text>
+
+      <rect x="12" y="198" width="176" height="62" rx="5" fill="#fff" stroke="#2B5CFF"/>
+      <text x="100" y="218" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">ViewModel</text>
+      <text x="100" y="234" text-anchor="middle" font-size="8.8" fill="#4A5578">ProjectTimelineViewModel</text>
+      <text x="100" y="247" text-anchor="middle" font-size="8.8" fill="#4A5578">exposes StateFlow, takes intents</text>
+
+      <rect x="12" y="276" width="176" height="62" rx="5" fill="#fff" stroke="#2B5CFF" stroke-dasharray="4 3"/>
+      <text x="100" y="296" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">UI models</text>
+      <text x="100" y="312" text-anchor="middle" font-size="8.8" fill="#4A5578">TimelineUiState, TaskUi,</text>
+      <text x="100" y="325" text-anchor="middle" font-size="8.8" fill="#4A5578">mapped in TimelineUiMappers</text>
+
+      <!-- MVVM loop arrows -->
+      <line x1="62" y1="112" x2="62" y2="196" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="56" y="146" text-anchor="end" font-size="8.4" fill="#0B1226">intents</text>
+      <text x="56" y="158" text-anchor="end" font-size="7.8" fill="#4A5578">drag, select,</text>
+      <text x="56" y="169" text-anchor="end" font-size="7.8" fill="#4A5578">undo, settings</text>
+      <line x1="138" y1="196" x2="138" y2="112" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="144" y="146" font-size="8.4" fill="#0B1226">state</text>
+      <text x="144" y="158" font-size="7.8" fill="#4A5578">StateFlow</text>
+      <text x="144" y="169" font-size="7.8" fill="#4A5578">&lt;UiState&gt;</text>
+
+      <!-- domain boxes -->
+      <rect x="267" y="48" width="176" height="54" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="355" y="68" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Models</text>
+      <text x="355" y="84" text-anchor="middle" font-size="8.8" fill="#4A5578">Project, SchedulerTask, TimelineConfig</text>
+
+      <rect x="267" y="118" width="176" height="62" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="355" y="138" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Read-only queries</text>
+      <text x="355" y="154" text-anchor="middle" font-size="8.8" fill="#4A5578">ProjectQueries (a ViewModel</text>
+      <text x="355" y="167" text-anchor="middle" font-size="8.8" fill="#4A5578">holding one cannot write)</text>
+
+      <rect x="267" y="198" width="176" height="62" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="355" y="218" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Use cases</text>
+      <text x="355" y="234" text-anchor="middle" font-size="8.8" fill="#4A5578">TimelineUseCases (one class per</text>
+      <text x="355" y="247" text-anchor="middle" font-size="8.8" fill="#4A5578">operation), ApplyScheduleChanges</text>
+
+      <rect x="267" y="276" width="176" height="62" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="355" y="296" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Repository interfaces</text>
+      <text x="355" y="312" text-anchor="middle" font-size="8.8" fill="#4A5578">ProjectRepository</text>
+      <text x="355" y="325" text-anchor="middle" font-size="8.8" fill="#4A5578">(extends the queries)</text>
+
+      <!-- data boxes -->
+      <rect x="522" y="118" width="176" height="62" rx="5" fill="#fff" stroke="#0B8577"/>
+      <text x="610" y="138" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Network</text>
+      <text x="610" y="154" text-anchor="middle" font-size="8.8" fill="#4A5578">sync and voice clients, DTOs</text>
+      <text x="610" y="167" text-anchor="middle" font-size="8.8" fill="#4A5578">(feature data modules)</text>
+
+      <rect x="522" y="198" width="176" height="62" rx="5" fill="#fff" stroke="#0B8577"/>
+      <text x="610" y="218" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Room</text>
+      <text x="610" y="234" text-anchor="middle" font-size="8.8" fill="#4A5578">:core:database: entities, DAOs,</text>
+      <text x="610" y="247" text-anchor="middle" font-size="8.8" fill="#4A5578">schema v6 with migrations</text>
+
+      <rect x="522" y="276" width="176" height="62" rx="5" fill="#fff" stroke="#0B8577"/>
+      <text x="610" y="296" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0B1226">Repository implementation</text>
+      <text x="610" y="312" text-anchor="middle" font-size="8.8" fill="#4A5578">RoomProjectRepository</text>
+      <text x="610" y="325" text-anchor="middle" font-size="8.8" fill="#4A5578">(stamps updatedAt, marks dirty)</text>
+
+      <!-- cross-layer arrows -->
+      <line x1="190" y1="214" x2="265" y2="160" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="200" y="176" font-size="8.2" fill="#0B1226" transform="rotate(-35 200 176)">reads</text>
+      <line x1="190" y1="238" x2="265" y2="238" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="227" y="232" text-anchor="middle" font-size="8.2" fill="#0B1226">writes</text>
+      <line x1="355" y1="262" x2="355" y2="274" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <line x1="520" y1="307" x2="445" y2="307" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="482" y="300" text-anchor="middle" font-size="8.2" fill="#0B1226">implements</text>
+      <line x1="610" y1="274" x2="610" y2="262" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+      <line x1="100" y1="262" x2="100" y2="274" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a4)"/>
+    </svg>
+
+    <h3 class="sect">One drag, end to end</h3>
+    <ol class="steps">
+      <li><b>View.</b> <code>TaskLane</code> holds the drag preview (transient UI state). <code>detectTaskGestures</code> and <code>TaskEdits</code> compute the snapped time span on every move.</li>
+      <li><b>ViewModel.</b> On release the screen sends the intent <code>commitEdit(original, edited)</code>, where <code>original</code> is the task at drag start.</li>
+      <li><b>Domain.</b> A use case calls <code>ApplyScheduleChanges</code>: one Room transaction that refuses the change if the task changed since the drag started, and returns the inverse for Undo.</li>
+      <li><b>Back up.</b> Room's flow emits, the ViewModel maps it to <code>TaskUi</code>, the <code>StateFlow</code> updates, and the screen redraws.</li>
+    </ol>
+    <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 5. MODULARIZATION ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Modularization</div></div>
+  <div class="content">
+    <div class="eyebrow">Gradle modules</div>
+    <h1 class="ptitle">Modules make the layers a compile-time rule</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">36 modules: the <code>:app</code> shell, 9 core modules, and each feature split into <code>domain</code> / <code>data</code> / <code>presentation</code> (a layer module exists only where that layer has code).</p>
+
+    <svg viewBox="0 0 710 330" width="7.1in" height="3.3in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+      </defs>
+      <!-- app -->
+      <rect x="0" y="0" width="710" height="44" rx="6" fill="#0B1226"/>
+      <text x="355" y="19" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff">:app (shell and composition root)</text>
+      <text x="355" y="35" text-anchor="middle" font-size="8.8" fill="#C9D4F2">Application, AppContainer and one graph per feature, navigation, MainActivity. The only place features meet.</text>
+      <line x1="355" y1="46" x2="355" y2="66" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a5)"/>
+      <text x="363" y="60" font-size="8" fill="#4A5578">wires</text>
+
+      <!-- features -->
+      <text x="0" y="80" font-size="8.6" font-weight="700" fill="#4A5578" letter-spacing="1.2">:feature:*</text>
+      <!-- feature columns -->
+      <g>
+        <!-- 1 timeline -->
+        <rect x="0" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="33" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">timeline</text>
+        <rect x="5" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="33" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="5" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="33" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="5" y="161" width="56" height="22" rx="3" fill="none" stroke="#8A94B2" stroke-dasharray="3 2"/>
+        <!-- 2 projects -->
+        <rect x="71.6" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="104.6" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">projects</text>
+        <rect x="76.6" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="104.6" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="76.6" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="104.6" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="76.6" y="161" width="56" height="22" rx="3" fill="none" stroke="#8A94B2" stroke-dasharray="3 2"/>
+        <!-- 3 sync -->
+        <rect x="143.2" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="176.2" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">sync</text>
+        <rect x="148.2" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="176.2" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="148.2" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="176.2" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="148.2" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="176.2" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 4 account -->
+        <rect x="214.8" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="247.8" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">account</text>
+        <rect x="219.8" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="247.8" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="219.8" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="247.8" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="219.8" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="247.8" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 5 assistant -->
+        <rect x="286.4" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="319.4" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">assistant</text>
+        <rect x="291.4" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="319.4" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="291.4" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="319.4" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="291.4" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="319.4" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 6 export -->
+        <rect x="358" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="391" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">export</text>
+        <rect x="363" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="391" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="363" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="391" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="363" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="391" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 7 notifications -->
+        <rect x="429.6" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="462.6" y="100" text-anchor="middle" font-size="7.8" font-weight="700" fill="#0B1226">notifications</text>
+        <rect x="434.6" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="462.6" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="434.6" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="462.6" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="434.6" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="462.6" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 8 chartimport -->
+        <rect x="501.2" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="534.2" y="100" text-anchor="middle" font-size="8.2" font-weight="700" fill="#0B1226">chartimport</text>
+        <rect x="506.2" y="107" width="56" height="22" rx="3" fill="#2B5CFF"/><text x="534.2" y="121" text-anchor="middle" font-size="7.4" fill="#fff">presentation</text>
+        <rect x="506.2" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="534.2" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="506.2" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="534.2" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 9 reminders -->
+        <rect x="572.8" y="86" width="66" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="605.8" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">reminders</text>
+        <rect x="577.8" y="107" width="56" height="22" rx="3" fill="none" stroke="#8A94B2" stroke-dasharray="3 2"/>
+        <rect x="577.8" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="605.8" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="577.8" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="605.8" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+        <!-- 10 push -->
+        <rect x="644.4" y="86" width="65.6" height="104" rx="5" fill="#F3F6FF" stroke="#E3EAFF"/>
+        <text x="677.2" y="100" text-anchor="middle" font-size="8.6" font-weight="700" fill="#0B1226">push</text>
+        <rect x="649.4" y="107" width="56" height="22" rx="3" fill="none" stroke="#8A94B2" stroke-dasharray="3 2"/>
+        <rect x="649.4" y="134" width="56" height="22" rx="3" fill="#7C3AED"/><text x="677.2" y="148" text-anchor="middle" font-size="7.4" fill="#fff">domain</text>
+        <rect x="649.4" y="161" width="56" height="22" rx="3" fill="#0B8577"/><text x="677.2" y="175" text-anchor="middle" font-size="7.4" fill="#fff">data</text>
+      </g>
+
+      <!-- feature ✕ feature -->
+      <line x1="66" y1="76" x2="143" y2="76" stroke="#C62828" stroke-width="1.4" stroke-dasharray="3 2"/>
+      <text x="104.6" y="80" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">✕</text>
+      <text x="150" y="80" font-size="8" fill="#C62828">features never depend on each other</text>
+
+      <line x1="355" y1="194" x2="355" y2="216" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a5)"/>
+      <text x="363" y="210" font-size="8" fill="#4A5578">depend on (core never depends on features)</text>
+
+      <!-- core -->
+      <text x="0" y="230" font-size="8.6" font-weight="700" fill="#4A5578" letter-spacing="1.2">:core:*</text>
+      <rect x="0" y="236" width="230" height="56" rx="6" fill="#F7F2FF" stroke="#D9C8FB"/>
+      <text x="115" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#7C3AED" letter-spacing="1">PURE KOTLIN (JVM, NO ANDROID)</text>
+      <g font-size="8.6" text-anchor="middle" fill="#0B1226">
+        <rect x="8" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="42" y="275">model</text>
+        <rect x="81" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="115" y="275">timeline</text>
+        <rect x="154" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="188" y="275">domain</text>
+      </g>
+      <rect x="240" y="236" width="470" height="56" rx="6" fill="#EFF8F6" stroke="#C9E8E2"/>
+      <text x="475" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#0B8577" letter-spacing="1">ANDROID LIBRARIES</text>
+      <g font-size="8.6" text-anchor="middle" fill="#0B1226">
+        <rect x="248" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="283" y="275">database</text>
+        <rect x="324" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="359" y="275">data</text>
+        <rect x="400" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="435" y="275">network</text>
+        <rect x="476" y="258" width="76" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="514" y="275">designsystem</text>
+        <rect x="558" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="593" y="275">ui</text>
+        <rect x="634" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="669" y="275">testing</text>
+      </g>
+      <!-- legend -->
+      <g font-size="8" fill="#4A5578">
+        <rect x="0" y="308" width="12" height="10" rx="2" fill="#2B5CFF"/><text x="17" y="317">presentation (Compose, ViewModels)</text>
+        <rect x="190" y="308" width="12" height="10" rx="2" fill="#7C3AED"/><text x="207" y="317">domain (use cases, contracts)</text>
+        <rect x="360" y="308" width="12" height="10" rx="2" fill="#0B8577"/><text x="377" y="317">data (Room, network)</text>
+        <rect x="490" y="308" width="12" height="10" rx="2" fill="none" stroke="#8A94B2" stroke-dasharray="3 2"/><text x="507" y="317">no module: that layer has no code</text>
+      </g>
+    </svg>
+
+    <h3 class="sect">How the rules are enforced</h3>
+    <ul class="dash">
+      <li><b><code>verifyModuleGraph</code></b> fails the build on a forbidden edge (feature → feature, core → feature, domain → data or presentation).</li>
+      <li><b>Domain modules use the plain Kotlin JVM plugin</b>, so an Android or Compose import there simply doesn't compile.</li>
+      <li><b><code>verifyUiModels</code></b> fails if a composable or UI-state file imports a domain entity: screens render their own UI models.</li>
+      <li><b>Convention plugins</b> in <code>build-logic</code> (<code>androidApplication</code>, <code>androidLibrary</code>, <code>androidCompose</code>, <code>androidRoom</code>, <code>androidScreenshots</code>, <code>jvmLibrary</code>, <code>moduleGraph</code>) keep every module's build file short and the same.</li>
+      <li><b>Cross-feature UI goes through the shell.</b> The timeline hosts the voice assistant only through <code>AssistantSlot</code> in <code>:core:ui</code>, built by the navigation host.</li>
+    </ul>
+    <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">AI voice assistant</div></div>
+  <div class="content">
+    <div class="eyebrow">Beyond the brief</div>
+    <h1 class="ptitle">The voice assistant: from spoken words to a saved change</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">The server and the AI models only <b>propose</b>. The app checks every proposal against its own data, says what will change, and writes only after a spoken <b>yes</b>.</p>
+
+    <svg viewBox="0 0 710 452" width="7.1in" height="4.52in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+        <marker id="a6g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0B8577"/></marker>
+      </defs>
+      <!-- lane headers -->
+      <rect x="0" y="0" width="300" height="26" rx="5" fill="#2B5CFF"/><text x="150" y="17" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">PHONE (the app)</text>
+      <rect x="315" y="0" width="190" height="26" rx="5" fill="#0B1226"/><text x="410" y="17" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">SERVER (Laravel)</text>
+      <rect x="520" y="0" width="190" height="26" rx="5" fill="#7C3AED"/><text x="615" y="17" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">AI PROVIDERS</text>
+      <rect x="0" y="32" width="300" height="420" rx="6" fill="#F3F6FF"/>
+      <rect x="315" y="32" width="190" height="420" rx="6" fill="#F1F3F9"/>
+      <rect x="520" y="32" width="190" height="420" rx="6" fill="#F7F2FF"/>
+
+      <!-- 1 listen -->
+      <circle cx="18" cy="58" r="10" fill="#2B5CFF"/><text x="18" y="62" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">1</text>
+      <rect x="34" y="40" width="256" height="38" rx="5" fill="#fff" stroke="#2B5CFF"/>
+      <text x="42" y="55" font-size="9.4" font-weight="700" fill="#0B1226">Tap the orb, speak</text>
+      <text x="42" y="69" font-size="8.2" fill="#4A5578">ListenForSpeech records until a short silence</text>
+      <!-- 2 transcribe -->
+      <line x1="290" y1="70" x2="323" y2="92" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <rect x="325" y="84" width="170" height="40" rx="5" fill="#fff" stroke="#0B1226"/>
+      <text x="333" y="99" font-size="9.2" font-weight="700" fill="#0B1226">2 · /voice/transcribe</text>
+      <text x="333" y="113" font-size="8" fill="#4A5578">audio + task titles to listen for</text>
+      <line x1="495" y1="104" x2="528" y2="104" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <rect x="530" y="84" width="170" height="40" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="538" y="99" font-size="9.2" font-weight="700" fill="#0B1226">ElevenLabs Scribe</text>
+      <text x="538" y="113" font-size="8" fill="#4A5578">speech → text</text>
+      <!-- 3 interpret -->
+      <rect x="325" y="140" width="170" height="54" rx="5" fill="#fff" stroke="#0B1226"/>
+      <text x="333" y="155" font-size="9.2" font-weight="700" fill="#0B1226">3 · /voice/interpret</text>
+      <text x="333" y="169" font-size="8" fill="#4A5578">words + schedule as data; answer</text>
+      <text x="333" y="182" font-size="8" fill="#4A5578">re-validated: ids, dates, shape</text>
+      <line x1="410" y1="126" x2="410" y2="138" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <line x1="495" y1="167" x2="528" y2="167" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <rect x="530" y="140" width="170" height="54" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="538" y="155" font-size="9.2" font-weight="700" fill="#0B1226">OpenAI</text>
+      <text x="538" y="169" font-size="8" fill="#4A5578">strict JSON schema, store: false;</text>
+      <text x="538" y="182" font-size="8" fill="#4A5578">only allowed operation types</text>
+      <!-- proposal back -->
+      <line x1="323" y1="190" x2="292" y2="214" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <text x="333" y="208" font-size="7.8" fill="#4A5578">↙ proposal back to the phone</text>
+      <!-- 4 plan -->
+      <circle cx="18" cy="242" r="10" fill="#2B5CFF"/><text x="18" y="246" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">4</text>
+      <rect x="34" y="214" width="256" height="58" rx="5" fill="#fff" stroke="#2B5CFF"/>
+      <text x="42" y="229" font-size="9.4" font-weight="700" fill="#0B1226">Plan against current data</text>
+      <text x="42" y="243" font-size="8.2" fill="#4A5578">AICommandHandler → CommandPlanner; stale or</text>
+      <text x="42" y="256" font-size="8.2" fill="#4A5578">invalid changes rejected; clashes found; an alter-</text>
+      <text x="42" y="268" font-size="8.2" fill="#4A5578">native is offered only if SensibleAlternative passes</text>
+      <!-- actions only branch -->
+      <rect x="34" y="282" width="256" height="30" rx="5" fill="#EAF7F7" stroke="#0EA5C6" stroke-dasharray="4 3"/>
+      <text x="42" y="295" font-size="8.2" font-weight="700" fill="#0B1226">View-only actions run at once</text>
+      <text x="42" y="306" font-size="7.8" fill="#4A5578">"go to Friday", "zoom in", "dark mode": nothing to confirm</text>
+      <!-- 5 explain -->
+      <line x1="290" y1="250" x2="323" y2="268" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <rect x="325" y="256" width="170" height="40" rx="5" fill="#fff" stroke="#0B1226"/>
+      <text x="333" y="271" font-size="9.2" font-weight="700" fill="#0B1226">5 · /voice/explain</text>
+      <text x="333" y="285" font-size="8" fill="#4A5578">turn the plan into one sentence</text>
+      <line x1="495" y1="276" x2="528" y2="276" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <rect x="530" y="256" width="170" height="40" rx="5" fill="#fff" stroke="#7C3AED"/>
+      <text x="538" y="271" font-size="9.2" font-weight="700" fill="#0B1226">OpenAI + ElevenLabs</text>
+      <text x="538" y="285" font-size="8" fill="#4A5578">sentence → speech</text>
+      <line x1="323" y1="292" x2="292" y2="330" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <!-- 6 ask -->
+      <circle cx="18" cy="342" r="10" fill="#2B5CFF"/><text x="18" y="346" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">6</text>
+      <rect x="34" y="324" width="256" height="36" rx="5" fill="#fff" stroke="#2B5CFF"/>
+      <text x="42" y="339" font-size="9.4" font-weight="700" fill="#0B1226">Orb asks: "…Shall I apply it?"</text>
+      <text x="42" y="352" font-size="8.2" fill="#4A5578">then listens for the answer (up to 20 s)</text>
+      <!-- outcomes -->
+      <rect x="34" y="372" width="120" height="70" rx="5" fill="#E3F5EF" stroke="#0B8577"/>
+      <text x="42" y="387" font-size="9" font-weight="700" fill="#0B6B5F">"Yes"</text>
+      <text x="42" y="400" font-size="7.8" fill="#0B1226">ApplyScheduleChanges:</text>
+      <text x="42" y="411" font-size="7.8" fill="#0B1226">one Room transaction,</text>
+      <text x="42" y="422" font-size="7.8" fill="#0B1226">stale-checked; then</text>
+      <text x="42" y="433" font-size="7.8" fill="#0B1226">"what changed" + Undo</text>
+      <rect x="162" y="372" width="128" height="32" rx="5" fill="#FFF1F1" stroke="#C62828"/>
+      <text x="170" y="386" font-size="9" font-weight="700" fill="#C62828">"No" or silence</text>
+      <text x="170" y="398" font-size="7.8" fill="#0B1226">nothing changes</text>
+      <rect x="162" y="410" width="128" height="32" rx="5" fill="#FBF6E8" stroke="#C8A84E"/>
+      <text x="170" y="424" font-size="9" font-weight="700" fill="#8A6A10">Anything else</text>
+      <text x="170" y="436" font-size="7.8" fill="#0B1226">a corrected request → 3</text>
+      <line x1="94" y1="362" x2="94" y2="370" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <line x1="226" y1="362" x2="226" y2="370" stroke="#4A5578" stroke-width="1.4" marker-end="url(#a6)"/>
+      <!-- 7 decision -->
+      <line x1="292" y1="400" x2="323" y2="400" stroke="#0B8577" stroke-width="1.4" marker-end="url(#a6g)"/>
+      <rect x="325" y="380" width="170" height="52" rx="5" fill="#fff" stroke="#0B1226" stroke-dasharray="4 3"/>
+      <text x="333" y="395" font-size="9.2" font-weight="700" fill="#0B1226">7 · /voice/decision</text>
+      <text x="333" y="409" font-size="8" fill="#4A5578">the answer, kept 90 days for this</text>
+      <text x="333" y="422" font-size="8" fill="#4A5578">user only, to adapt next proposals</text>
+      <!-- note in providers lane -->
+      <text x="538" y="390" font-size="8" font-weight="700" fill="#7C3AED">Keys stay on the server.</text>
+      <text x="538" y="404" font-size="8" fill="#4A5578">No audio or words are stored</text>
+      <text x="538" y="417" font-size="8" fill="#4A5578">or logged by the server; only</text>
+      <text x="538" y="430" font-size="8" fill="#4A5578">counts and timing for metrics.</text>
+    </svg>
+
+    <div class="grid3 mt-m">
+      <div class="tile"><span class="tag">Safety</span><p>The model can return only listed operation types on tasks from the request. Words and task titles go in as data, never as instructions; a test with an instruction hidden in a task title was ignored.</p></div>
+      <div class="tile teal-top"><span class="tag">One write path</span><p>A spoken yes writes through the same <code>ApplyScheduleChanges</code> as a drag, so voice and touch can't disagree, and Undo works the same way.</p></div>
+      <div class="tile"><span class="tag">Measured (12 Nov 2026)</span><p>Local server, real providers: about 6 to 9 s from the end of speech to the spoken proposal, and about $0.007 per confirmed command.</p></div>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 7. RUNNING + BEYOND ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Running it</div></div>
+  <div class="content">
+    <div class="eyebrow">Setup</div>
+    <h1 class="ptitle">Running the project</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="body"><b>Requirements:</b> Android Studio with AGP 9.5 support, JDK 17 or newer, Android SDK 37. <code>minSdk</code> 26. Open the <code>Chronova - Android App/</code> folder (not the repository root) in Android Studio, or use Gradle from that folder:</p>
+<div class="code">cd "Chronova - Android App"
+./gradlew :app:installDebug   <span class="cm"># build and install on a device or emulator</span>
+./gradlew test                <span class="cm"># JVM unit tests, every module</span>
+../tools/check.sh             <span class="cm"># everything: tests, lint, architecture,</span>
+                              <span class="cm"># screenshots and the security gate</span></div>
+
+    <div class="callout warn">
+      <div class="ctitle">Note</div>
+      <p>Today's app opens on a sign-in page and needs its server (see <code>server/README.md</code>; the server URL goes in the uncommitted <code>local.properties</code>). To review <b>just the take-home</b> with no setup, check out the tag <code>submission-v1</code>: a single-module, single-screen timeline with in-memory sample data, run with <code>./gradlew :app:installDebug</code>.</p>
+    </div>
+<div class="code">git checkout submission-v1        <span class="cm"># the original take-home</span>
+git checkout main                 <span class="cm"># back to the full app</span></div>
+
+    <h3 class="sect">Extras beyond the brief</h3>
+    <div class="grid2">
+      <ul class="dash">
+        <li><b>Four scales:</b> Hours, Days, Weeks, Months on the real calendar, plus pinch-to-zoom.</li>
+        <li><b>Persistence:</b> Room database; view settings saved per project.</li>
+        <li><b>Projects:</b> create, rename, date range, duplicate, delete.</li>
+        <li><b>Task editor:</b> add, edit, delete with Undo; progress, notes, milestones.</li>
+        <li><b>Dependencies:</b> finish-to-start links with arrows; a <b>critical path</b> view.</li>
+        <li><b>Search and filters</b>, a "today" line and jump-to-today.</li>
+      </ul>
+      <ul class="dash">
+        <li><b>Dark theme</b> and brand design system; screenshot tests in light, dark and 1.5× text.</li>
+        <li><b>Offline-first sync</b> with a Laravel server, only when the user agrees.</li>
+        <li><b>Voice assistant</b> (previous page).</li>
+        <li><b>Schedules from images:</b> photograph a chart to make tasks, with a preview.</li>
+        <li><b>Export</b> as PDF Gantt chart, CSV or calendar file.</li>
+        <li><b>Task reminders</b> and push notifications.</li>
+      </ul>
+    </div>
+    <p class="small mt-s">These go well past a single screen. The required timeline items are unchanged by them; the full feature list is in the repository's <code>README.md</code>.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 8. AI USAGE I ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">AI usage writeup</div></div>
+  <div class="content">
+    <div class="eyebrow">AI usage writeup · 1 of 2</div>
+    <h1 class="ptitle">Tools, breakdown, and what the AI got wrong</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+
+    <h3 class="sect" style="margin-top:0">Which tools, and how I broke the problem down</h3>
+    <p class="body"><b>Claude Code</b> (Claude Opus 5.5) in the Claude desktop app, with access to the project, the Gradle build, <code>adb</code> to a real Android phone, and git. No other AI tools.</p>
+    <ol class="steps">
+      <li><b>Spec first.</b> I wrote a detailed prompt: requirements, architecture and state rules, required unit-test scenarios, git and logging rules, and an explicit "no big unreviewed code dump". My first ask was to <i>revalidate</i> the plan and split it into small batches.</li>
+      <li><b>Revalidation.</b> Before coding, it found the project was a Views template (not Compose), <code>minSdk</code> 24 was too low for <code>java.time</code>, and the spec had gaps (timeline range, rounding rule, minimum duration, when a drag is saved). It asked me three questions.</li>
+      <li><b>Ten batches (B0–B9).</b> Each ended with a real build and test run, a check on the phone against <i>predicted</i> values (e.g. "+150 px at 3.2 px/min → 09:45–11:45"), a log entry and a commit. I started each batch after reading the last summary.</li>
+    </ol>
+
+    <h3 class="sect">What the AI got wrong, and how it was caught</h3>
+    <table class="formal compact">
+      <thead><tr><th style="width:2.05in">What it produced</th><th style="width:1.9in">Why it was wrong</th><th style="width:1.35in">How it was caught</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Pixel → time in exact milliseconds</td><td>Floats at ~1300 px can't hold ms; round trips came back 1 ms early</td><td>2 of 24 unit tests failed</td><td>Round to whole minutes</td></tr>
+        <tr><td>Drag distance measured from the touch-slop point</td><td>The bar would trail the finger by ~8 dp</td><td>Reading the code before running</td><td>Measure from pointer-down</td></tr>
+        <tr><td>Drag preview cleared on release</td><td>Bar flashes back for one frame</td><td>Reading the code before running</td><td>Keep preview until saved task arrives</td></tr>
+        <tr><td>Header labelled only major ticks</td><td>A Days view showed a header with no text</td><td>Phone screenshot</td><td>Label minor ticks when ≥ 56 dp apart</td></tr>
+        <tr><td>Limits ignored the snap grid</td><td>At 60-min snap an edge could land on :45</td><td>A requirements review I asked for</td><td>Round limits inward to the grid</td></tr>
+        <tr><td>Bar used <code>width</code> inside a narrower lane</td><td>Wide bars were clamped, 16 px short</td><td>Pixel measurement after zooming</td><td><code>wrapContentWidth(unbounded = true)</code></td></tr>
+        <tr><td>Database and network calls on the main thread</td><td>Crashes that JVM tests can't see</td><td>End-to-end check on the phone</td><td>Move to <code>Dispatchers.IO</code></td></tr>
+      </tbody>
+    </table>
+    <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 9. AI USAGE II ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">AI usage writeup</div></div>
+  <div class="content">
+    <div class="eyebrow">AI usage writeup · 2 of 2</div>
+    <h1 class="ptitle">Assessment, struggles, and where I steered</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+
+    <h3 class="sect" style="margin-top:0">My assessment of the final solution</h3>
+    <div class="grid3">
+      <div class="tile"><span class="tag">Good</span><ul>
+        <li>All time math, snapping and edits are pure Kotlin with unit tests.</li>
+        <li>Header and body share one scroll position, so they can't drift.</li>
+        <li>Edits recompute from gesture start: no rounding drift.</li>
+        <li>One write path with stale checks and Undo.</li></ul></div>
+      <div class="tile teal-top"><span class="tag">Compromise</span><ul>
+        <li>Fixed 15-minute minimum duration.</li>
+        <li>Resize handles only on the selected bar (one extra tap).</li>
+        <li>Dependency arrows update when a drag ends, not during it.</li>
+        <li>Scope grew far past one screen; more for a reviewer to read.</li></ul></div>
+      <div class="tile"><span class="tag">With more time</span><ul>
+        <li>Auto-scroll when dragging near the edge.</li>
+        <li>Toolbar that fits a 360 dp phone without side-scrolling.</li>
+        <li>Accessibility actions such as "move 15 minutes later".</li>
+        <li>Live dependency arrows during a drag.</li></ul></div>
+    </div>
+
+    <h3 class="sect">Where the AI struggled most, and why</h3>
+    <ul class="dash">
+      <li><b>Gesture timing.</b> Touch slop and the one-frame flash were both plausible code that compiled; the defect only exists frame by frame on a screen.</li>
+      <li><b>Layout and measurement.</b> Bars clamped by a narrower parent, and content too wide for Compose to measure, needed real constraints to show up.</li>
+      <li><b>Visual results.</b> Empty header labels and off-brand button colours passed every test; only screenshots revealed them.</li>
+      <li><b>Threading.</b> Main-thread database and network calls pass JVM tests and crash on a phone.</li>
+    </ul>
+    <p class="body"><b>Why:</b> the AI reasons from code and unit tests, but these bugs depend on runtime behaviour: frames, layout constraints, pixels and threads. That's why every batch had to end with a device check against numbers predicted <i>before</i> running it.</p>
+
+    <h3 class="sect">Where I overrode the AI or decided myself</h3>
+    <ul class="dash">
+      <li><b>Process:</b> revalidate first and build in small batches, instead of one large generated pass; never report a check that wasn't run.</li>
+      <li><b>Gesture model:</b> direct drag on the bar (empty space scrolls) rather than long-press; accepted resize handles only on the selected bar.</li>
+      <li><b>Scope:</b> skipped the optional polish batch (B8) in favour of documentation; after submission asked for a review against the brief, which found the snap-limit bug.</li>
+      <li><b>Behaviour:</b> a drag moves only its own task, and later tasks move only through an explicit Push with Undo; sync never starts on its own.</li>
+      <li><b>Hands-on checks:</b> rotated the phone by hand rather than letting the AI force it over <code>adb</code>; versions pinned and at least two weeks old (this caught two too-new server packages).</li>
+    </ul>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 10. PROJECT AI KIT ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">How I work with AI</div></div>
+  <div class="content">
+    <div class="eyebrow">Inside the project repository</div>
+    <h1 class="ptitle">The project AI kit</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">A small set of files in the repo tells any AI session how this project works, so each session starts with the right rules and only the context the task needs.</p>
+
+    <div class="flow">
+      <div class="fstep"><div class="dot">1</div><h5>AGENTS.md</h5><p>Entry rules and instruction priority</p></div>
+      <div class="fstep"><div class="dot">2</div><h5>HANDOFF.md</h5><p>Layout, guardrails, invariants, commands</p></div>
+      <div class="fstep alt"><div class="dot">3</div><h5>manifest.yaml</h5><p>Routes the task to the files it needs</p></div>
+      <div class="fstep alt"><div class="dot">4</div><h5>Routed files</h5><p>Only what the route names</p></div>
+      <div class="fstep"><div class="dot">5</div><h5>Work + gate</h5><p>Build, tests, device check</p></div>
+      <div class="fstep"><div class="dot">6</div><h5>Log + commit</h5><p>AI_USAGE_LOG, conventional commit</p></div>
+    </div>
+
+    <table class="formal compact mt-m">
+      <thead><tr><th style="width:2.2in">File or folder</th><th>What it does</th><th style="width:1.45in">Loaded</th></tr></thead>
+      <tbody>
+        <tr><td class="k">AGENTS.md</td><td>Startup order and instruction priority</td><td>Always</td></tr>
+        <tr><td class="k">HANDOFF.md</td><td>Repository layout, guardrails, invariants, validation commands</td><td>Always</td></tr>
+        <tr><td class="k">manifest.yaml</td><td>Task routes (timeline-ui-change, server-change, voice-change, …), each with its files and validation steps</td><td>Every task</td></tr>
+        <tr><td class="k">CURRENT_TASK.md</td><td>Where the work stands</td><td>Continue / resume</td></tr>
+        <tr><td class="k">DECISIONS.md</td><td>Dated design decisions with reasons</td><td>Architecture changes</td></tr>
+        <tr><td class="k">Learn/01–04</td><td>Project map, architecture, workflow, validation</td><td>When a route names it</td></tr>
+        <tr><td class="k" style="white-space:normal">Relationship map + .tsv</td><td>What loads, validates or documents what; queried with a script, not read in full</td><td>Orientation</td></tr>
+        <tr><td class="k">scripts/</td><td>Context validation (1,300-token startup budget), map queries, learning capture, sanitizing and promotion</td><td>As needed</td></tr>
+        <tr><td class="k">learning-inbox/</td><td>Sanitized lessons waiting for human review</td><td>Never at startup</td></tr>
+        <tr><td class="k">docs/AI_USAGE_LOG.md</td><td>Factual per-batch log: AI mistakes, checks run, my actions</td><td>Written every change</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="ctitle">Priority</div>
+      <p>The user's latest instruction, then <code>AGENTS.md</code>, <code>HANDOFF.md</code>, <code>CURRENT_TASK.md</code>, <code>DECISIONS.md</code>, then on-demand docs. When two disagree, the AI reports the conflict instead of quietly rewriting the guidance.</p>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 11. KIT <-> CANONICAL ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">How I work with AI</div></div>
+  <div class="content">
+    <div class="eyebrow">Two repositories, one relationship</div>
+    <h1 class="ptitle">How the project kit connects to my knowledge repo</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede">I keep a personal <b>AI Knowledge and Skills repo</b>: the reusable, canonical source of playbooks, skills, templates and checks. Each project takes copies or references from it; it is never a runtime dependency.</p>
+
+    <svg viewBox="0 0 710 430" width="7.1in" height="4.3in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2B5CFF"/></marker>
+        <marker id="a11v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+      </defs>
+      <rect x="0" y="0" width="235" height="430" rx="8" fill="#F7F2FF" stroke="#D9C8FB"/>
+      <text x="117" y="20" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7C3AED">CANONICAL KNOWLEDGE REPO</text>
+      <text x="117" y="33" text-anchor="middle" font-size="8" fill="#4A5578">reusable across all projects</text>
+      <rect x="475" y="0" width="235" height="430" rx="8" fill="#F3F6FF" stroke="#C8D6FF"/>
+      <text x="592" y="20" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2B5CFF">CHRONOVA REPO · PROJECT KIT</text>
+      <text x="592" y="33" text-anchor="middle" font-size="8" fill="#4A5578">project rules win over canonical ones</text>
+
+      <g font-size="9" fill="#0B1226">
+        <!-- rows: centers at 70,130,190,250,310,380 -->
+        <rect x="12" y="48" width="211" height="44" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="66" font-weight="700">Usage prompt + md-templates</text>
+        <text x="22" y="80" font-size="8" fill="#4A5578">AGENTS, HANDOFF, DECISIONS, Learn pages</text>
+        <rect x="487" y="48" width="211" height="44" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="66" font-weight="700">AGENTS · HANDOFF · DECISIONS</text>
+        <text x="497" y="80" font-size="8" fill="#4A5578">CURRENT_TASK · manifest · Learn/01–04</text>
+
+        <rect x="12" y="108" width="211" height="44" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="126" font-weight="700">Safe-fix helper scripts</text>
+        <text x="22" y="140" font-size="8" fill="#4A5578">context validation, learning tools</text>
+        <rect x="487" y="108" width="211" height="44" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="126" font-weight="700">scripts/validate-ai-context.sh</text>
+        <text x="497" y="140" font-size="8" fill="#4A5578">+ 1,300-token startup budget check</text>
+
+        <rect x="12" y="168" width="211" height="44" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="186" font-weight="700">Mobile architecture audit</text>
+        <text x="22" y="200" font-size="8" fill="#4A5578">report-only, layer and module rules</text>
+        <rect x="487" y="168" width="211" height="44" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="186" font-weight="700">Android modules</text>
+        <text x="497" y="200" font-size="8" fill="#4A5578">presentation → domain ← data</text>
+
+        <rect x="12" y="228" width="211" height="44" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="246" font-weight="700">mobile-android-production skill</text>
+        <text x="22" y="260" font-size="8" fill="#4A5578">Compose, architecture, testing, release</text>
+        <rect x="487" y="228" width="211" height="44" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="246" font-weight="700">manifest route: timeline-ui-change</text>
+        <text x="497" y="260" font-size="8" fill="#4A5578">lists the skill as optional context</text>
+
+        <rect x="12" y="288" width="211" height="44" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="306" font-weight="700">Mobile build validator</text>
+        <text x="22" y="320" font-size="8" fill="#4A5578">+ threat-card library</text>
+        <rect x="487" y="288" width="211" height="44" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="306" font-weight="700">build-validator/ v1.0.0</text>
+        <text x="497" y="320" font-size="8" fill="#4A5578">41 cards; runs before every preBuild</text>
+
+        <rect x="12" y="358" width="211" height="50" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="22" y="377" font-weight="700">skills-quarantine/</text>
+        <text x="22" y="391" font-size="8" fill="#4A5578">audit + admission gate before a</text>
+        <text x="22" y="402" font-size="8" fill="#4A5578">skill becomes canonical</text>
+        <rect x="487" y="358" width="211" height="50" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="497" y="377" font-weight="700">learning-inbox/</text>
+        <text x="497" y="391" font-size="8" fill="#4A5578">sanitized lessons; promotion is</text>
+        <text x="497" y="402" font-size="8" fill="#4A5578">report-only</text>
+      </g>
+
+      <!-- arrows -->
+      <g font-size="8.4" text-anchor="middle">
+        <line x1="225" y1="70" x2="484" y2="70" stroke="#2B5CFF" stroke-width="1.6" marker-end="url(#a11)"/>
+        <text x="355" y="63" fill="#0B1226" font-weight="700">scaffolded from</text>
+        <line x1="225" y1="130" x2="484" y2="130" stroke="#2B5CFF" stroke-width="1.6" marker-end="url(#a11)"/>
+        <text x="355" y="123" fill="#0B1226" font-weight="700">started from, then extended</text>
+        <line x1="225" y1="190" x2="484" y2="190" stroke="#2B5CFF" stroke-width="1.6" marker-end="url(#a11)"/>
+        <text x="355" y="183" fill="#0B1226" font-weight="700">audited: 31 → 0 layer violations</text>
+        <line x1="225" y1="250" x2="484" y2="250" stroke="#2B5CFF" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#a11)"/>
+        <text x="355" y="243" fill="#0B1226" font-weight="700">referenced, not installed</text>
+        <text x="355" y="263" fill="#4A5578" font-size="7.8">(informed_by edge in the relationship map)</text>
+        <line x1="225" y1="310" x2="484" y2="310" stroke="#2B5CFF" stroke-width="1.6" marker-end="url(#a11)"/>
+        <text x="355" y="303" fill="#0B1226" font-weight="700">copied, provenance in INSTALLED.md</text>
+        <line x1="485" y1="383" x2="226" y2="383" stroke="#7C3AED" stroke-width="1.6" marker-end="url(#a11v)"/>
+        <text x="355" y="376" fill="#7C3AED" font-weight="700">proposes back</text>
+        <text x="355" y="397" fill="#4A5578" font-size="7.8">only after sanitizing and human review</text>
+      </g>
+    </svg>
+
+    <h3 class="sect">Why it is set up this way</h3>
+    <ul class="dash">
+      <li><b>Copies, not links.</b> The build gate and scripts are copied into the project with their source recorded, so the app builds on any machine, in CI, without my knowledge repo.</li>
+      <li><b>References where copying adds nothing.</b> Large guidance like the Android skill stays canonical; a route points to it only when a timeline task needs it.</li>
+      <li><b>Project rules win.</b> When the project and the canonical repo disagree, the project's own files decide, and the conflict is reported.</li>
+      <li><b>Nothing flows back unreviewed.</b> Lessons are sanitized (no secrets, private code or device details), and new skills start in quarantine until they pass an audit.</li>
+    </ul>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 12. WORKFLOW ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">How I work with AI</div></div>
+  <div class="content">
+    <div class="eyebrow">AI-assisted mobile development</div>
+    <h1 class="ptitle">My workflow, from knowledge repo to commit</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+
+    <svg viewBox="0 0 710 520" width="7.1in" height="5.2in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+        <marker id="a12v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+      </defs>
+      <!-- band 1 canonical -->
+      <rect x="0" y="0" width="686" height="104" rx="7" fill="#F7F2FF" stroke="#D9C8FB"/>
+      <text x="12" y="20" font-size="10" font-weight="700" fill="#7C3AED">1 · CANONICAL KNOWLEDGE REPO (reusable)</text>
+      <g font-size="8.2" fill="#4A5578">
+        <rect x="12" y="32" width="125" height="60" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="20" y="49" font-size="9" font-weight="700" fill="#0B1226">Android playbooks</text>
+        <text x="20" y="63">architecture, Compose,</text><text x="20" y="75">testing, debugging, release</text>
+        <rect x="146" y="32" width="125" height="60" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="154" y="49" font-size="9" font-weight="700" fill="#0B1226">Android skill</text>
+        <text x="154" y="63">mobile-android-</text><text x="154" y="75">production</text>
+        <rect x="280" y="32" width="125" height="60" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="288" y="49" font-size="9" font-weight="700" fill="#0B1226">Templates + prompt</text>
+        <text x="288" y="63">AGENTS, HANDOFF,</text><text x="288" y="75">DECISIONS, Learn</text>
+        <rect x="414" y="32" width="125" height="60" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="422" y="49" font-size="9" font-weight="700" fill="#0B1226">Audits + router</text>
+        <text x="422" y="63">AI structure, mobile</text><text x="422" y="75">architecture, manifest</text>
+        <rect x="548" y="32" width="125" height="60" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="556" y="49" font-size="9" font-weight="700" fill="#0B1226">Build validator</text>
+        <text x="556" y="63">security rules +</text><text x="556" y="75">threat cards</text>
+      </g>
+      <line x1="342" y1="106" x2="342" y2="123" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a12)"/>
+
+      <!-- band 2 setup -->
+      <rect x="0" y="126" width="686" height="94" rx="7" fill="#F1F3F9" stroke="#E2E6F0"/>
+      <text x="12" y="146" font-size="10" font-weight="700" fill="#0B1226">2 · PROJECT SETUP (once per project)</text>
+      <g font-size="8.2" fill="#4A5578">
+        <rect x="12" y="156" width="214" height="52" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="20" y="174" font-size="9" font-weight="700" fill="#0B1226">Scaffold the project kit</text>
+        <text x="20" y="188">AGENTS · HANDOFF · manifest · DECISIONS</text>
+        <text x="20" y="200">from the usage prompt and templates</text>
+        <rect x="236" y="156" width="214" height="52" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="244" y="174" font-size="9" font-weight="700" fill="#0B1226">Run the audits</text>
+        <text x="244" y="188">report-only first; fix with approval</text>
+        <text x="244" y="200">(AI structure, mobile architecture)</text>
+        <rect x="460" y="156" width="214" height="52" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="468" y="174" font-size="9" font-weight="700" fill="#0B1226">Install the build gate</text>
+        <text x="468" y="188">copied into the app, wired to Gradle;</text>
+        <text x="468" y="200">baseline triaged, threshold never lowered</text>
+      </g>
+      <line x1="342" y1="222" x2="342" y2="239" stroke="#4A5578" stroke-width="1.5" marker-end="url(#a12)"/>
+
+      <!-- band 3 task loop -->
+      <rect x="0" y="242" width="686" height="148" rx="7" fill="#F3F6FF" stroke="#C8D6FF"/>
+      <text x="12" y="262" font-size="10" font-weight="700" fill="#2B5CFF">3 · EVERY TASK (Claude Code)</text>
+      <g font-size="8" fill="#4A5578">
+        <rect x="12" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="20" y="291" font-size="9" font-weight="700" fill="#0B1226">Route</text>
+        <text x="20" y="305">manifest picks</text><text x="20" y="317">the files and</text><text x="20" y="329">checks</text>
+        <rect x="124" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="132" y="291" font-size="9" font-weight="700" fill="#0B1226">Load</text>
+        <text x="132" y="305">only the routed</text><text x="132" y="317">context, not</text><text x="132" y="329">whole folders</text>
+        <rect x="236" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="244" y="291" font-size="9" font-weight="700" fill="#0B1226">Revalidate</text>
+        <text x="244" y="305">check the ask</text><text x="244" y="317">against the code;</text><text x="244" y="329">plan small batches</text>
+        <rect x="348" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="356" y="291" font-size="9" font-weight="700" fill="#0B1226">Implement</text>
+        <text x="356" y="305">one batch, with</text><text x="356" y="317">its unit tests;</text><text x="356" y="329">I review</text>
+        <rect x="460" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#0B8577" stroke-width="1.6"/>
+        <text x="468" y="291" font-size="9" font-weight="700" fill="#0B1226">Gate</text>
+        <text x="468" y="305">validator, tests,</text><text x="468" y="317">lint, screenshots,</text><text x="468" y="329">device vs predicted</text>
+        <rect x="572" y="274" width="100" height="66" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="580" y="291" font-size="9" font-weight="700" fill="#0B1226">Log + commit</text>
+        <text x="580" y="305">AI_USAGE_LOG</text><text x="580" y="317">entry; one</text><text x="580" y="329">conventional commit</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="112" y1="307" x2="122" y2="307" marker-end="url(#a12)"/>
+        <line x1="224" y1="307" x2="234" y2="307" marker-end="url(#a12)"/>
+        <line x1="336" y1="307" x2="346" y2="307" marker-end="url(#a12)"/>
+        <line x1="448" y1="307" x2="458" y2="307" marker-end="url(#a12)"/>
+        <line x1="560" y1="307" x2="570" y2="307" marker-end="url(#a12)"/>
+      </g>
+      <path d="M622,342 L622,372 L62,372 L62,344" fill="none" stroke="#4A5578" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a12)"/>
+      <text x="342" y="384" text-anchor="middle" font-size="8.2" fill="#4A5578">next batch: I read the summary, then say "continue"</text>
+      <path d="M510,342 L510,358 L470,358" fill="none" stroke="#C62828" stroke-width="1.2" marker-end="url(#a12)"/>
+      <text x="466" y="361" text-anchor="end" font-size="7.8" fill="#C62828">fails → fix before moving on</text>
+
+      <line x1="62" y1="392" x2="62" y2="425" stroke="#7C3AED" stroke-width="1.5" marker-end="url(#a12v)"/>
+      <text x="70" y="412" font-size="8" fill="#7C3AED">a reusable lesson</text>
+
+      <!-- band 4 feedback -->
+      <rect x="0" y="428" width="686" height="88" rx="7" fill="#FBF8FF" stroke="#D9C8FB"/>
+      <text x="12" y="447" font-size="10" font-weight="700" fill="#7C3AED">4 · FEEDBACK (improves the canonical repo)</text>
+      <g font-size="8" fill="#4A5578">
+        <rect x="12" y="456" width="140" height="48" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="20" y="473" font-size="9" font-weight="700" fill="#0B1226">learning-inbox/</text>
+        <text x="20" y="487">capture, then sanitize</text>
+        <rect x="178" y="456" width="140" height="48" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="186" y="473" font-size="9" font-weight="700" fill="#0B1226">Promotion report</text>
+        <text x="186" y="487">report-only candidates</text>
+        <rect x="344" y="456" width="140" height="48" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="352" y="473" font-size="9" font-weight="700" fill="#0B1226">Human review</text>
+        <text x="352" y="487">I decide what's reusable</text>
+        <rect x="510" y="456" width="150" height="48" rx="5" fill="#fff" stroke="#7C3AED"/>
+        <text x="518" y="473" font-size="9" font-weight="700" fill="#0B1226">skills-quarantine/</text>
+        <text x="518" y="487">audit + admission gate</text>
+      </g>
+      <g stroke="#7C3AED" stroke-width="1.4">
+        <line x1="152" y1="480" x2="176" y2="480" marker-end="url(#a12v)"/>
+        <line x1="318" y1="480" x2="342" y2="480" marker-end="url(#a12v)"/>
+        <line x1="484" y1="480" x2="508" y2="480" marker-end="url(#a12v)"/>
+      </g>
+      <path d="M660,480 L702,480 L702,52 L688,52" fill="none" stroke="#7C3AED" stroke-width="1.5" marker-end="url(#a12v)"/>
+    </svg>
+
+    <h3 class="sect">The mobile-specific parts</h3>
+    <ul class="dash">
+      <li><b>Small, routed context.</b> A session reads two short files at startup; the manifest adds only what the task needs, and a script checks the startup stays under its token budget.</li>
+      <li><b>Every Android build passes the gate.</b> The validator runs before each build; the pre-push hook and CI run <code>tools/check.sh</code>: unit tests, lint, module-graph and UI-model checks, and screenshot tests in light, dark and 1.5× text.</li>
+      <li><b>Real-device checks against predictions.</b> Expected numbers are written before running, then compared with screenshots; rotation is stress-tested with a script that backs up and restores the app's data.</li>
+      <li><b>Example from this project:</b> the gate's first run found 0 critical and 0 high issues, with one reasoned exception (a false positive on encrypted token storage) recorded instead of lowering the threshold.</li>
+    </ul>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+<!-- ============================ 13. REMAINING ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Remaining items</div></div>
+  <div class="content">
+    <div class="eyebrow">Honest status</div>
+    <h1 class="ptitle">Known limitations and remaining items</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+
+    <h3 class="sect" style="margin-top:0">On the timeline</h3>
+    <div class="check-row"><div class="box">!</div><p>Dragging a handle past the edge of the screen doesn't auto-scroll.</p></div>
+    <div class="check-row"><div class="box">!</div><p>Dependency arrows update when a drag ends, not during it.</p></div>
+    <div class="check-row"><div class="box">!</div><p>On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen; the toolbar scrolls sideways.</p></div>
+    <div class="check-row"><div class="box">!</div><p>In Months scale, a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).</p></div>
+
+    <h3 class="sect">On the wider app</h3>
+    <div class="check-row"><div class="box">!</div><p>The server and AWS stack are tested locally and synthesized, not deployed.</p></div>
+    <div class="check-row"><div class="box">!</div><p>Voice needs a connection and an account, and its yes/no words are English only. Before release, the privacy policy and Play Data safety form must name the voice providers.</p></div>
+
+    <h3 class="sect">Where to find more</h3>
+    <table class="formal compact">
+      <tbody>
+        <tr><td class="k">README.md</td><td>Full feature list, architecture, testing, decisions and trade-offs</td></tr>
+        <tr><td class="k">docs/AI_USAGE_LOG.md</td><td>Per-batch development log, including every AI mistake and how it was found</td></tr>
+        <tr><td class="k">docs/AI_USAGE_WRITEUP.md</td><td>Longer AI writeup: the take-home, then everything after it</td></tr>
+        <tr><td class="k">docs/voice-api.md</td><td>Voice contract, privacy, measured cost and timings</td></tr>
+        <tr><td class="k">git tag submission-v1</td><td>The take-home exactly as submitted</td></tr>
+      </tbody>
+    </table>
+
+    <div class="hero-band">
+      <p><b>In one line:</b> the required timeline is built by hand in Compose on a tested pure-Kotlin core, and the AI was used as a fast pair programmer that had to prove each step with real builds, tests and device checks before anything was committed.</p>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 13</span></div>
+</div>
+
+</body>
+</html>

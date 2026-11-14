@@ -206,4 +206,4 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 
 ## AI usage
 
-Built with Claude Code. [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
+Built with Claude Code. A short take-home writeup (requirements, architecture, the voice flow, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf). [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
