@@ -14,6 +14,25 @@ Chronova runs in Sydney (`ap-southeast-2`) on a single EC2 instance. Cloudflare 
 
 The instance role reads `chronova/prod/runtime` from Secrets Manager in Sydney. `APP_KEY` and `DB_PASSWORD` go to `web`, `worker`, `scheduler`, and `migrate`. The OpenAI, ElevenLabs, and Meta keys go to `web`. `FCM_CREDENTIALS_JSON` goes to `web`, `worker`, and `scheduler`, along with `PUSH_SENDER=fcm`, which overrides `PUSH_SENDER=fake` in `app.env`. Keep the existing Laravel key when redeploying so encrypted data such as staff 2FA secrets remains readable.
 
+## Check that EC2 runs the latest code
+
+The server doesn't report which commit it runs, so compare its checkout with GitHub. Run these as `ec2-user` (read-only):
+
+```bash
+cd ~/chronova && git -C source fetch origin &&
+git -C source log -1 --format='%h %ci %s' &&
+git -C source status --short &&
+git -C source diff --stat HEAD origin/main -- server ':!server/infra/*.md'
+```
+
+No output from the last command means the server code matches GitHub, and there's nothing to deploy. Files listed mean the server is behind: redeploy (next section). To confirm what's running, before or after a redeploy: `sudo docker compose --profile public ps` (every service up or healthy), `sudo docker image inspect chronova-server:local --format '{{.Created}}'` (newer than the last server change), and `/up` returning `200`.
+
+**If the pull below fails with "Not possible to fast-forward"** (the commit IDs on GitHub changed, as on 15 Nov 2026 when Claude Code was removed as the co-author of the commits): when `git -C source status --short` prints nothing, line the checkout up with GitHub once. This changes only the source files on disk, not the running containers:
+
+```bash
+git -C source reset --hard origin/main && git -C source log -1 --oneline
+```
+
 ## Redeploy a GitHub release
 
 Push the reviewed release to `main`, then run the following as `ec2-user` on EC2. Git pulls as the checkout owner. The deployment uses `sudo` for Compose and fetches the required secrets without printing them.

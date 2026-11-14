@@ -2370,3 +2370,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** commit the `.idea/` changes.
 - **What they are:** Android Studio's own project files: App Quality Insights pointed at the Firebase project (the same IDs as the public `google-services.json`), the Gradle composite build for `build-logic` and the module list, the Kotlin plugin version (2.3.21), the Git mapping, and the project JDK (`temurin-25`, language level 11, was `jbr-25`).
 - **Checked first:** no email, account or path from this Mac in them (paths use `$PROJECT_DIR$`); `workspace.xml`, which has a local path, stays git-ignored. The Gradle build doesn't read these files; on another computer Android Studio may ask which JDK to use.
+
+### EC2 runbook: check that the server runs the latest code
+
+- **Your request:** a way to make sure EC2 runs the latest code; then, to add it to the runbook.
+- **Added to `server/infra/EC2.md`** ("Check that EC2 runs the latest code", before the redeploy steps):
+  - a read-only check: fetch on the server, the checkout's commit, local edits, and the server code that differs from GitHub (none means nothing to deploy);
+  - how to confirm what's running: Compose service state, the image's build date, `/up` 200;
+  - the one-time `git reset --hard origin/main` for when the runbook's pull can't fast-forward because the commit IDs on GitHub changed (15 Nov), only on a clean checkout.
+- **Noted, not built:** the server can't report which commit it runs; building the commit ID into the image and showing it on `/up` or in the admin panel would make this one request.
+- Documentation only: nothing was run on EC2.
