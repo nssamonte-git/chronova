@@ -2364,3 +2364,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Checked:** still 243 commits, each with the same files, authors, dates and subjects as before; no co-author line left; both tags point to commits with their old files. You pushed `main` and the tags to GitHub, which now matches.
 - **Commit IDs:** every commit has a new ID. The 20 places where `CURRENT_TASK.md` and this log quoted an ID now give the new one (each resolves to a single commit).
 - **Backup:** a bundle of the commits as they were before is in the session's scratchpad.
+
+### Android Studio project settings committed
+
+- **Your request:** commit the `.idea/` changes.
+- **What they are:** Android Studio's own project files: App Quality Insights pointed at the Firebase project (the same IDs as the public `google-services.json`), the Gradle composite build for `build-logic` and the module list, the Kotlin plugin version (2.3.21), the Git mapping, and the project JDK (`temurin-25`, language level 11, was `jbr-25`).
+- **Checked first:** no email, account or path from this Mac in them (paths use `$PROJECT_DIR$`); `workspace.xml`, which has a local path, stays git-ignored. The Gradle build doesn't read these files; on another computer Android Studio may ask which JDK to use.

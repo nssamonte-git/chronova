@@ -4,12 +4,73 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/build-logic" name="build-logic">
+                <projects>
+                  <project path="$PROJECT_DIR$/build-logic" />
+                  <project path="$PROJECT_DIR$/build-logic/convention" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/build-logic" />
+            <option value="$PROJECT_DIR$/build-logic/convention" />
+            <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/core/data" />
+            <option value="$PROJECT_DIR$/core/database" />
+            <option value="$PROJECT_DIR$/core/designsystem" />
+            <option value="$PROJECT_DIR$/core/domain" />
+            <option value="$PROJECT_DIR$/core/model" />
+            <option value="$PROJECT_DIR$/core/network" />
+            <option value="$PROJECT_DIR$/core/testing" />
+            <option value="$PROJECT_DIR$/core/timeline" />
+            <option value="$PROJECT_DIR$/core/ui" />
+            <option value="$PROJECT_DIR$/feature" />
+            <option value="$PROJECT_DIR$/feature/account" />
+            <option value="$PROJECT_DIR$/feature/account/data" />
+            <option value="$PROJECT_DIR$/feature/account/domain" />
+            <option value="$PROJECT_DIR$/feature/account/presentation" />
+            <option value="$PROJECT_DIR$/feature/assistant" />
+            <option value="$PROJECT_DIR$/feature/assistant/data" />
+            <option value="$PROJECT_DIR$/feature/assistant/domain" />
+            <option value="$PROJECT_DIR$/feature/assistant/presentation" />
+            <option value="$PROJECT_DIR$/feature/chartimport" />
+            <option value="$PROJECT_DIR$/feature/chartimport/data" />
+            <option value="$PROJECT_DIR$/feature/chartimport/domain" />
+            <option value="$PROJECT_DIR$/feature/chartimport/presentation" />
+            <option value="$PROJECT_DIR$/feature/export" />
+            <option value="$PROJECT_DIR$/feature/export/data" />
+            <option value="$PROJECT_DIR$/feature/export/domain" />
+            <option value="$PROJECT_DIR$/feature/export/presentation" />
+            <option value="$PROJECT_DIR$/feature/notifications" />
+            <option value="$PROJECT_DIR$/feature/notifications/data" />
+            <option value="$PROJECT_DIR$/feature/notifications/domain" />
+            <option value="$PROJECT_DIR$/feature/notifications/presentation" />
+            <option value="$PROJECT_DIR$/feature/projects" />
+            <option value="$PROJECT_DIR$/feature/projects/domain" />
+            <option value="$PROJECT_DIR$/feature/projects/presentation" />
+            <option value="$PROJECT_DIR$/feature/push" />
+            <option value="$PROJECT_DIR$/feature/push/data" />
+            <option value="$PROJECT_DIR$/feature/push/domain" />
+            <option value="$PROJECT_DIR$/feature/reminders" />
+            <option value="$PROJECT_DIR$/feature/reminders/data" />
+            <option value="$PROJECT_DIR$/feature/reminders/domain" />
+            <option value="$PROJECT_DIR$/feature/sync" />
+            <option value="$PROJECT_DIR$/feature/sync/data" />
+            <option value="$PROJECT_DIR$/feature/sync/domain" />
+            <option value="$PROJECT_DIR$/feature/sync/presentation" />
+            <option value="$PROJECT_DIR$/feature/timeline" />
+            <option value="$PROJECT_DIR$/feature/timeline/domain" />
+            <option value="$PROJECT_DIR$/feature/timeline/presentation" />
           </set>
         </option>
       </GradleProjectSettings>
