@@ -185,7 +185,7 @@
     <div class="grp">Look, feel and polish</div>
     <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
     <div class="grp n">The platform behind the app</div>
-    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel with required authenticator MFA: user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 11).</p></div></div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 11).</p></div></div>
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
@@ -638,7 +638,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
         </ul>
       </div>
     </div>
-    <p class="small" style="margin-top:0.06in">Outside the app, the server has 507 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
+    <p class="small" style="margin-top:0.06in">Outside the app, the server has 514 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>

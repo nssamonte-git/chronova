@@ -2158,3 +2158,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Changed:** server tests 507 → 514 in "Running the server" and the Testing table (the count recorded in this log; not re-run here, since the suite needs the Docker PostgreSQL); a "No public website" line in the server section (`/` → `/admin`, the app uses `/v1`, `/up` is the health check, from `routes/web.php` and `bootstrap/app.php`).
 - **Not changed:** `Learn/04-validation.md` still gives 507 as the server baseline, and the take-home PDF still says 507 server tests and "required authenticator MFA" for the admin panel.
 - Documentation only: no build or test run for this entry.
+
+### Take-home PDF and Learn/04: server count and admin 2FA
+
+- **Your request:** bring the take-home PDF and `Learn/04-validation.md` in line with the README.
+- **Changed:** the PDF's testing page now says 514 server tests, and its "Staff admin panel" tile says staff need authenticator 2FA by default, which an admin can lift or restore with an audit entry (from `3804f03` and DECISIONS), instead of "required MFA". `Learn/04-validation.md` gives 514 as the server baseline in both places (dated 14 Nov 2026, the last recorded run). Re-rendered: 18 pages, page 5 looked at, no "507 tests" left in the PDF.
+- Documentation only: no build or test run for this entry.
