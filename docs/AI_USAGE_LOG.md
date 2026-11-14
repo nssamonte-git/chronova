@@ -2209,3 +2209,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** remove the cover paragraph about the `submission-v1` tag and the document describing today's timeline.
 - **Done:** removed from the overview; the cover now goes from the overview straight to the project facts. Re-rendered (18 pages) and the cover looked at. The tag is still listed under "Where to find more" on the last page.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: submission tag row removed
+
+- **Your request:** remove the `git tag submission-v1` row as well.
+- **Done:** removed from "Where to find more" on the last page; the PDF no longer mentions the tag anywhere. Re-rendered (18 pages) and the last page looked at.
+- Documentation only: no build or test run for this entry.
