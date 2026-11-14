@@ -4,3 +4,4 @@
 # Example:
 #   AND-WV-001	app/src/main/java/com/example/help/*	bridge only serves bundled offline help pages (SEC-123)
 AND-RE-001	app/build.gradle.kts	false positive: the release build type uses the AGP 9 optimization DSL (optimization { enable = true }), which runs R8 shrinking and obfuscation on the whole app; the rule only recognises minifyEnabled / isMinifyEnabled. Checked 13 Nov 2026: 618 of 622 app classes renamed, release build signed in, synced and played the assistant on the phone
+SH-SEC-003	feature/account/domain/src/main/kotlin/noel/chronova/feature/account/domain/DemoAccount.kt	accepted, user decision 2026-11-15 (DECISIONS): the shared public demo login behind "Try demo"; it opens only the demo account, which the app cannot delete, and is not a secret

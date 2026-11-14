@@ -15,6 +15,9 @@
     <string name="account_signed_in_body">When you reconnect to the internet, Chronova asks before syncing your changes.</string>
     <string name="account_sign_out">Sign out</string>
     <string name="account_sign_in">Sign in</string>
+    <!-- Signs into the shared demo account (DECISIONS, 2026-11-15). -->
+    <string name="account_try_demo">Try demo</string>
+    <string name="account_or_sign_in">or sign in with your account</string>
     <string name="account_create">Create account</string>
     <string name="account_confirm">Confirm your email</string>
     <string name="account_no_server">Signing in isn’t available in this version of Chronova. Your projects are saved on this device and work fully offline.</string>

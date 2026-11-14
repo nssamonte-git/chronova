@@ -15,6 +15,13 @@ class AccountUiMappersTest {
     }
 
     @Test
+    fun theDemoAccountIsMarkedWhateverTheCase() {
+        assertEquals(AccountAuthUi.SignedIn("test@chronova.com", isDemo = true), AuthState.SignedIn("sub", "test@chronova.com").toUi())
+        assertEquals(AccountAuthUi.SignedIn("Test@Chronova.com", isDemo = true), AuthState.SignedIn("sub", "Test@Chronova.com").toUi())
+        assertEquals(AccountAuthUi.SignedIn("test@chronova.co", isDemo = false), AuthState.SignedIn("sub", "test@chronova.co").toUi())
+    }
+
+    @Test
     fun everyAuthProblemHasItsOwnWording() {
         assertEquals(AuthProblem.entries.map { it.name }, AuthProblem.entries.map { it.toUi().name })
     }

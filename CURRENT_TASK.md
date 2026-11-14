@@ -11,6 +11,7 @@ Chronova is live at `https://chronova.meenux.tech` on Sydney EC2 (`ap-southeast-
 
 Latest application work:
 
+- **Try demo** (15 Nov): a button above the sign-in form signs into the shared demo account `test@chronova.com` and syncs once; the demo can't be deleted from the app. The demo login is committed by the user's choice (DECISIONS, 2026-11-15). Checked on the phone against the live server.
 - **Walkthrough video bugs, all fixed** (`65a21ee` … `b7ced22`). Found while recording the product video (`video/walkthrough/`, local only):
   - voice: an empty project can get its first tasks; noise removal (`VOICE_ISOLATE_NOISE`, off by default); the orb waits 20 s for an answer;
   - import sheet: the Add button stays on screen; each opening starts afresh;

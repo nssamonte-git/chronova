@@ -6,8 +6,10 @@ import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -33,6 +35,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,15 +47,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -109,6 +117,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: (() -> Unit)?) {
                 onPasswordChange = viewModel::onPasswordChange,
                 onRememberChange = viewModel::onRememberChange,
                 onSubmit = viewModel::submit,
+                onTryDemo = viewModel::tryDemo,
                 onSetMode = viewModel::setMode,
                 onResendCode = viewModel::resendCode,
                 onSyncNow = { viewModel.syncNow() },
@@ -178,7 +187,7 @@ internal fun AccountContent(
                         AccountCard { ReminderChoice(page.reminderLead, actions.onReminderLeadChange) }
                     }
                     AccountAuthUi.Checking -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-                    is AccountAuthUi.SignedIn -> SignedIn(state.email, page, actions, now)
+                    is AccountAuthUi.SignedIn -> SignedIn(state.email, state.isDemo, page, actions, now)
                     AccountAuthUi.SignedOut -> SignInForm(page.form, page.sessionEnded, actions, required = onBack == null)
                 }
             }
@@ -192,7 +201,7 @@ private fun Explanation(text: String) {
 }
 
 @Composable
-private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions, now: () -> Long) {
+private fun SignedIn(email: String, isDemo: Boolean, page: AccountPageUi, actions: AccountActions, now: () -> Long) {
     val phase = page.syncPhase
     // Who is signed in, and the way out.
     AccountCard {
@@ -219,7 +228,10 @@ private fun SignedIn(email: String, page: AccountPageUi, actions: AccountActions
     AccountCard { ThemeChoice(page.themeMode, actions.onThemeModeChange) }
     AccountCard { ReminderChoice(page.reminderLead, actions.onReminderLeadChange) }
     // Apart from the cards: it is not a setting, and it can't be undone.
-    DestructiveTextButton(stringResource(R.string.account_delete), actions.onRequestDeleteAccount, Modifier.fillMaxWidth())
+    // Not offered for the shared demo account, so one visitor can't remove it for everyone.
+    if (!isDemo) {
+        DestructiveTextButton(stringResource(R.string.account_delete), actions.onRequestDeleteAccount, Modifier.fillMaxWidth())
+    }
     page.deleteFailure?.let {
         InlineBanner(stringResource(R.string.account_delete_failed, syncFailureText(it)), kind = BannerKind.Error)
     }
@@ -344,6 +356,9 @@ private fun AccountConfirmDialog(dialog: AccountDialog, onConfirm: () -> Unit, o
     ConfirmDialog(title = title, text = body, confirmLabel = confirm, onConfirm = onConfirm, onDismiss = onDismiss, destructive = true)
 }
 
+/** The shortest line worth drawing beside "or sign in with your account". */
+private val MIN_DIVIDER = 24.dp
+
 @Composable
 private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: AccountActions, required: Boolean) {
     val title = when (form.mode) {
@@ -368,6 +383,33 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
             },
         ),
     )
+    if (form.mode == AccountMode.SIGN_IN) {
+        // The shared demo account, above the form so it's the first thing to try.
+        FilledTonalButton(onClick = actions.onTryDemo, enabled = !form.busy, modifier = Modifier.fillMaxWidth()) {
+            if (form.busy && form.demo) {
+                // A fixed size, so the button keeps its height while it works.
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Text(stringResource(R.string.account_try_demo))
+            }
+        }
+        // A line behind the words, drawn only while it shows clearly on both sides (large text fills the row).
+        BoxWithConstraints(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+            var wordsWidth by remember { mutableIntStateOf(0) }
+            val roomForLine = with(LocalDensity.current) { constraints.maxWidth - wordsWidth >= (MIN_DIVIDER * 2).roundToPx() }
+            if (roomForLine) HorizontalDivider(Modifier.fillMaxWidth())
+            Text(
+                stringResource(R.string.account_or_sign_in),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .onSizeChanged { wordsWidth = it.width }
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = ChronovaSpacing.m),
+            )
+        }
+    }
     val needsCode = form.mode == AccountMode.CONFIRM || form.mode == AccountMode.RESET
     val needsPassword = form.mode != AccountMode.CONFIRM && form.mode != AccountMode.FORGOT
     val choosingPassword = form.mode == AccountMode.SIGN_UP || form.mode == AccountMode.RESET
@@ -456,7 +498,7 @@ private fun SignInForm(form: AccountForm, sessionEnded: Boolean, actions: Accoun
     }
 
     Button(onClick = actions.onSubmit, enabled = !form.busy, modifier = Modifier.fillMaxWidth()) {
-        if (form.busy) {
+        if (form.busy && !form.demo) {
             CircularProgressIndicator(Modifier.padding(2.dp).widthIn(max = 20.dp), strokeWidth = 2.dp)
         } else {
             // The button says what it does rather than repeating the page's title.

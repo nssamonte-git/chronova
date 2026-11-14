@@ -2254,3 +2254,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **On the phone:** you typed the password (the live server is production, so I don't enter passwords there). Sign-in went straight to the projects page; after "Sync now", "All changes synced" and the card showed "Sample Project", 16 Nov 2026 – 5 May 2027, 1000 tasks. The timeline (Months) showed bars for the first rows, Phase 03 and Phase 12 rows with arrows to bars off-screen, and the last row, Task 1000, a 17:00 milestone; the arrow jumped to the Phase 20 bars in late April to early May 2027.
 - **Not done:** voice and two-device push checks on the live server; `tools/check.sh` not re-run (no code changed).
 - **Removing the account:** delete the user in the `web` container; its projects and tasks go with it (cascade).
+
+### "Try demo" on the sign-in page
+
+- **Your request:** a "Try Demo" button just above the sign-in form that signs straight into the demo account (`test@chronova.com`, the password you gave).
+- **Your choices:** the demo login hard-coded in the source (committed), although HANDOFF's guardrails keep secrets out of commits (recorded in DECISIONS; HANDOFF's guardrail left as is); sign in and then sync once, so the project appears without Sync now; hide Delete account for the demo account.
+- **Changed:**
+  - `DemoAccount` in `:feature:account:domain` holds the email and password and recognises the account in any case.
+  - `AccountViewModel.tryDemo()` signs in with them (keeping "Remember me"), syncs once on success and otherwise shows the usual error; the password never enters the form.
+  - The sign-in step shows a tonal "Try demo" button (sentence case, like "Sign in") and an "or sign in with your account" line above the email field. The line is drawn only when it has room on both sides, since at 1.5× text it shrank to two dots.
+  - The button's spinner has a fixed size: on the phone the button grew taller while it loaded.
+  - Signed in as the demo account, the account page has no Delete account.
+  - DECISIONS (2026-11-15 "Try demo", and a revision of "Offline first") and HANDOFF's sync invariant record the one sync that doesn't start from Sync now.
+- **Security gate:** it stopped the build on the literal (`SH-SEC-003`, high). It is suppressed for that one file in `.build-validator-ignore`, giving your decision as the reason; the threshold is unchanged.
+- **Tests:**
+  - 4 ViewModel tests (signs in with the demo login and then syncs once; keeps the remember choice; a failure shows the problem and doesn't sync; only on the sign-in step) and 1 mapper test (`isDemo`).
+  - New screenshots: `AccountSignedInDemo` in light, dark and 1.5×. Re-recorded: `AccountSignIn` and `AccountSessionEnded` (all were looked at).
+  - 2 device tests (Try demo signs in and syncs; no Delete account for the demo).
+  - The existing device test `signInAsksForAPassword` failed once: its error banner now sits below the fold with the keyboard up. The test now scrolls to it.
+- **Checks:**
+  - `tools/check.sh` PASS: 520 unit tests, 183 screenshots, lint 0 errors (23 warnings), module graph and UI models OK. This ran before the spinner-size fix; the app built and the gate passed after it.
+  - Account device tests on the managed emulator: 14 run, 0 failed.
+- **On the phone (debug build against the live server, installed over the app):** the sign-in page shows Try demo above the form; one tap showed the spinner, then went straight to the projects page, synced by itself: "All changes synced", Sample Project, 16 Nov 2026 – 5 May 2027, 1000 tasks. The account page has no Delete account. After signing out, a second Try demo did the same, and the button kept its height while loading.
+- **Not done:** dark mode only checked in the screenshots, not on the phone; the full device suite (`--devices`) not run.

@@ -13,7 +13,8 @@ sealed interface AccountAuthUi {
     /** Restoring the saved session. */
     data object Checking : AccountAuthUi
     data object SignedOut : AccountAuthUi
-    data class SignedIn(val email: String) : AccountAuthUi
+    /** [isDemo]: the shared demo account, which can't be deleted from the app. */
+    data class SignedIn(val email: String, val isDemo: Boolean = false) : AccountAuthUi
 }
 
 /** Why the server turned the form down, as the form words it. */
@@ -47,6 +48,8 @@ data class AccountForm(
     /** "Remember me" on the sign-in page: stay signed in on later launches. */
     val remember: Boolean = true,
     val busy: Boolean = false,
+    /** The busy request is "Try demo" (its button shows the progress, not Sign in). */
+    val demo: Boolean = false,
     val formProblem: FormProblem? = null,
     val authProblem: AuthProblemUi? = null,
     /** Shown after a code is (re)sent or an account is confirmed. */
@@ -87,6 +90,7 @@ data class AccountActions(
     val onPasswordChange: (String) -> Unit = {},
     val onRememberChange: (Boolean) -> Unit = {},
     val onSubmit: () -> Unit = {},
+    val onTryDemo: () -> Unit = {},
     val onSetMode: (AccountMode) -> Unit = {},
     val onResendCode: () -> Unit = {},
     val onSyncNow: () -> Unit = {},

@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import noel.chronova.feature.account.domain.AccountUseCases
+import noel.chronova.feature.account.domain.DemoAccount
 import noel.chronova.core.domain.auth.AuthOutcome
 import noel.chronova.core.domain.auth.AuthProblem
 import noel.chronova.core.domain.auth.AuthRepository
@@ -52,7 +53,9 @@ private class FakeAuth : AuthRepository {
         if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
     }
     override suspend fun resendCode(email: String) = next("resend:$email")
+    var lastPassword: String? = null
     override suspend fun signIn(email: String, password: String, remember: Boolean) = next("signIn:$email${if (remember) "" else ":once"}").also {
+        lastPassword = password
         if (it == AuthOutcome.Done) state.value = AuthState.SignedIn("sub", email)
     }
     override suspend fun requestPasswordReset(email: String) = next("forgot:$email")
@@ -71,9 +74,12 @@ private class FakeAccountSync : AccountSync {
     override val status = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     var signOuts = 0
     var deletes = 0
+    var syncs = 0
     var deleteResult: SyncFailure? = null
     override fun lastSyncedAt(): Long? = null
-    override fun syncNow() = Unit
+    override fun syncNow() {
+        syncs++
+    }
     override suspend fun signOutAndClear() {
         signOuts++
     }
@@ -246,6 +252,42 @@ class AccountViewModelTest {
         viewModel.confirmDialog()
         assertNull(viewModel.deleteFailure.value)
         assertEquals(2, sync.deletes)
+    }
+
+    @Test
+    fun tryDemoSignsIntoTheDemoAccountThenSyncsOnce() {
+        viewModel.tryDemo()
+        assertEquals("signIn:${DemoAccount.EMAIL}", auth.calls.single())
+        assertEquals(DemoAccount.PASSWORD, auth.lastPassword)
+        assertEquals(1, sync.syncs)
+        assertEquals(AccountForm(), viewModel.form.value) // the password never reached the form
+    }
+
+    @Test
+    fun tryDemoKeepsTheRememberChoice() {
+        viewModel.onRememberChange(false)
+        viewModel.tryDemo()
+        assertEquals("signIn:${DemoAccount.EMAIL}:once", auth.calls.single())
+    }
+
+    @Test
+    fun failedTryDemoShowsTheProblemAndDoesNotSync() {
+        auth.outcomes += AuthOutcome.Failed(AuthProblem.NETWORK)
+        viewModel.tryDemo()
+        val form = viewModel.form.value
+        assertEquals(AuthProblemUi.NETWORK, form.authProblem)
+        assertEquals(false, form.busy)
+        assertEquals(false, form.demo)
+        assertEquals("", form.password)
+        assertEquals(0, sync.syncs)
+    }
+
+    @Test
+    fun tryDemoIsOnlyOfferedOnTheSignInStep() {
+        viewModel.setMode(AccountMode.SIGN_UP)
+        viewModel.tryDemo()
+        assertTrue(auth.calls.isEmpty())
+        assertEquals(0, sync.syncs)
     }
 }
 

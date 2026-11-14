@@ -88,6 +88,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Constraint: once signed in, the app works fully without a connection; blocking Room and network work runs on `Dispatchers.IO`.
 - Revised 2026-11-13 (user choice, `docs/push.md`): when a sync changes something, the user's other devices get a "changes on another device" push (at most one per device every 10 minutes). It still never syncs by itself: the phone shows a notification, and tapping it opens the sync prompt ("Changes on another device… Sync now?").
 - Revised 2026-11-12 (user request): the app needs an account — signed out, it opens on the sign-in page (`AppGate`) and nothing else is reachable; signing out or deleting the account returns there. A build with no server URL can't sign in, so it stops at that page (user request, same day: sign-in is required even without a server).
+- Revised 2026-11-15 (user choice): one exception. "Try demo" on the sign-in page syncs once right after it signs in, so the demo project appears without a tap on Sync now (see "Try demo" below). Every other sync still starts only from Sync now.
 
 ## 2026-11-11: Backend — Laravel + Postgres + Filament on ECS Fargate + RDS
 
@@ -106,6 +107,11 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 
 - The deployed environment uses Docker Compose on Sydney EC2, local PostgreSQL, Caddy HTTPS, and Cloudflare DNS. The ECS Fargate and RDS design above describes the separate CDK stack.
 - The EC2 role reads `chronova/prod/runtime` in Secrets Manager. The deployment passes credentials to the intended containers through a Compose override. See [the EC2 operations runbook](server/infra/EC2.md).
+
+## 2026-11-15: Try demo
+
+- Decision (user request and choices): the sign-in page has a "Try demo" button above the form. It signs into the shared demo account `test@chronova.com` (created already confirmed on the live server, with "Sample Project" and 1,000 tasks) and then syncs once. The demo login is a constant in `:feature:account:domain` (`DemoAccount`), committed by the user's choice, although HANDOFF's guardrails keep secrets out of commits: it is a public demo login, not a secret, and anyone could read it from the APK either way. The security gate's finding on that file (`SH-SEC-003`) is suppressed with this reason in `.build-validator-ignore`. Signed in as the demo account, the app hides Delete account.
+- Trade-off: everyone who taps Try demo shares one account and its data, sees each other's edits, can use voice under it, and receives its sign-in and sync alerts. The server doesn't protect the account (it could still be deleted through the API); re-run the seed if the demo data needs resetting. Changing the demo password means a new app release.
 
 ## 2026-11-12: One apply path for schedule changes
 

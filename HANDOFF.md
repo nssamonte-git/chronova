@@ -22,7 +22,7 @@ Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose A
 Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in detail", "Server rules").
 
 - Time is epoch millis; pixels come only from `TimelineMath`, from the window start. Snapping goes through `SnapGrid`; configuration never changes timestamps.
-- Projects, tasks and links live in Room (`:core:database`, schema v6 with migrations). Every schedule write goes through `ApplyScheduleChanges`: one transaction that refuses stale changes and returns the Undo inverse. Sync runs only on "Sync now".
+- Projects, tasks and links live in Room (`:core:database`, schema v6 with migrations). Every schedule write goes through `ApplyScheduleChanges`: one transaction that refuses stale changes and returns the Undo inverse. Sync runs only on "Sync now" (and once after "Try demo"; DECISIONS 2026-11-15).
 - `presentation -> domain <- data`; features never depend on each other; core never on features. ViewModels read through `*Queries` and write through use cases; screens render UI models. `verifyModuleGraph` and `verifyUiModels` enforce this.
 - The timeline has one scroll position (`TimelineViewportState`) and measures nothing at full width; every task has a row (an arrow points to a bar off-screen). A drag is recomputed from the gesture-start task (`pointerInput` keyed on the task id); pinch consumes every move until all fingers lift.
 - UI comes from `:core:designsystem` tokens (both themes set every colour role; composables never ask which theme is on) and the shared pieces in `:core:ui/components`; every screen has light, dark and 1.5× text screenshots.

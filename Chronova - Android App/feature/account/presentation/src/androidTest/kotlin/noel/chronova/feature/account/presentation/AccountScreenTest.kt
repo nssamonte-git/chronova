@@ -31,6 +31,7 @@ import noel.chronova.core.testing.FakeAuthRepository
 import noel.chronova.feature.account.domain.AccountUseCases
 import noel.chronova.feature.account.domain.ConfirmSignUp
 import noel.chronova.feature.account.domain.DeleteAccount
+import noel.chronova.feature.account.domain.DemoAccount
 import noel.chronova.feature.account.domain.RequestPasswordReset
 import noel.chronova.feature.account.domain.ResendCode
 import noel.chronova.feature.account.domain.ResetPassword
@@ -116,7 +117,7 @@ class AccountScreenTest {
         show(AuthState.SignedOut)
         field(R.string.account_email).performTextInput("ana@example.com")
         submit(R.string.account_sign_in)
-        compose.onNodeWithText(passwordProblem).assertIsDisplayed()
+        compose.onNodeWithText(passwordProblem).performScrollTo().assertIsDisplayed() // below the fold since Try demo
         assertEquals(emptyList<String>(), auth.calls)
     }
 
@@ -262,6 +263,22 @@ class AccountScreenTest {
         compose.waitUntil(5_000) { sync.calls.isNotEmpty() }
         assertEquals(listOf("signOutAndClear"), sync.calls)
         compose.onNodeWithText(string(R.string.account_sign_out_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun tryDemoSignsIntoTheDemoAccountAndSyncs() {
+        show(AuthState.SignedOut)
+        button(string(R.string.account_try_demo)).assertIsDisplayed().performClick()
+        compose.waitUntil(5_000) { sync.calls.isNotEmpty() }
+        assertEquals(listOf("signIn ${DemoAccount.EMAIL} remember=true"), auth.calls)
+        assertEquals(listOf("syncNow"), sync.calls)
+    }
+
+    @Test
+    fun theDemoAccountCannotBeDeletedFromTheApp() {
+        show(AuthState.SignedIn("user-1", DemoAccount.EMAIL))
+        compose.onNodeWithText(string(R.string.account_sign_out)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.account_delete)).assertDoesNotExist()
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextExists(text: String) =

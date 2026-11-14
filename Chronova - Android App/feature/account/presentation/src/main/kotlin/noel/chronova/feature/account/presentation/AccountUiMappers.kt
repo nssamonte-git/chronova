@@ -2,6 +2,7 @@ package noel.chronova.feature.account.presentation
 
 import noel.chronova.core.domain.auth.AuthProblem
 import noel.chronova.core.domain.auth.AuthState
+import noel.chronova.feature.account.domain.DemoAccount
 
 // Domain to screen: the account screen never sees the domain's auth types.
 
@@ -9,7 +10,7 @@ internal fun AuthState.toUi(): AccountAuthUi = when (this) {
     AuthState.NotConfigured -> AccountAuthUi.NotConfigured
     AuthState.Checking -> AccountAuthUi.Checking
     AuthState.SignedOut -> AccountAuthUi.SignedOut
-    is AuthState.SignedIn -> AccountAuthUi.SignedIn(email)
+    is AuthState.SignedIn -> AccountAuthUi.SignedIn(email, isDemo = DemoAccount.isDemo(email))
 }
 
 internal fun AuthProblem.toUi(): AuthProblemUi = when (this) {

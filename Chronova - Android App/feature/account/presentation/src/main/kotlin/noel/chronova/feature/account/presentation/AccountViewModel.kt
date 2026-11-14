@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noel.chronova.feature.account.domain.AccountUseCases
+import noel.chronova.feature.account.domain.DemoAccount
 import noel.chronova.core.domain.auth.AuthOutcome
 import noel.chronova.core.domain.sync.SyncFailure
 import noel.chronova.core.ui.sync.SyncPhase
@@ -97,6 +98,21 @@ class AccountViewModel(
         }
     }
 
+    /**
+     * "Try demo": signs into the shared demo account, then syncs once so its projects appear
+     * without a tap on Sync now (DECISIONS, 2026-11-15). The password never enters the form.
+     */
+    fun tryDemo() {
+        val form = _form.value.takeUnless { it.busy || it.mode != AccountMode.SIGN_IN } ?: return
+        val demo = form.copy(email = DemoAccount.EMAIL, password = "", busy = true, demo = true, formProblem = null, authProblem = null, notice = null)
+        _form.value = demo
+        viewModelScope.launch {
+            val outcome = useCases.signIn(DemoAccount.EMAIL, DemoAccount.PASSWORD, form.remember)
+            if (outcome == AuthOutcome.Done) useCases.syncNow()
+            _form.value = next(demo, outcome)
+        }
+    }
+
     fun resendCode() {
         val form = _form.value.takeUnless { it.busy || it.mode != AccountMode.CONFIRM } ?: return
         _form.value = form.copy(busy = true)
@@ -147,7 +163,7 @@ class AccountViewModel(
         }
         AuthOutcome.NeedsConfirmation ->
             form.copy(mode = AccountMode.CONFIRM, password = "", busy = false, notice = AccountNotice.CODE_SENT, authProblem = null)
-        is AuthOutcome.Failed -> form.copy(busy = false, authProblem = outcome.problem.toUi(), code = "")
+        is AuthOutcome.Failed -> form.copy(busy = false, demo = false, authProblem = outcome.problem.toUi(), code = "")
     }
 
     private fun validate(form: AccountForm): FormProblem? = when (form.mode) {

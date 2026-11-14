@@ -96,3 +96,11 @@ fun AccountDeleteDialog() = Account(
 @ChronovaScreenshots
 @Composable
 fun AccountNotConfigured() = Account(AccountPageUi(auth = AccountAuthUi.NotConfigured))
+
+/** Signed in to the shared demo account: no Delete account. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AccountSignedInDemo() = Account(
+    AccountPageUi(auth = AccountAuthUi.SignedIn("test@chronova.com", isDemo = true), lastSyncedAt = now - 10 * 60_000L),
+)
