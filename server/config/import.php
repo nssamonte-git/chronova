@@ -17,6 +17,11 @@ return [
     // "openai" in production; "fake" turns the matched bars into tasks by rule.
     'builder' => env('IMPORT_BUILDER', 'fake'),
 
+    // Seconds an import may run. PHP stops a request after 30 (max_execution_time), counting the
+    // time spent waiting for the providers; CloudFront gives up on the server at 60
+    // (server/infra/lib/chronova-stack.ts). The two provider timeouts below must add up to less.
+    'time_limit' => (int) env('IMPORT_TIME_LIMIT', 55),
+
     'meta' => [
         'key' => env('META_API_KEY'),
         'base_url' => env('META_BASE_URL', 'https://api.meta.ai/v1'),
@@ -32,12 +37,13 @@ return [
         // Muse Spark reasons before answering: measured on real charts, "minimal" read as well as the
         // default and took ~14 s instead of ~30 s.
         'reasoning_effort' => env('IMPORT_META_REASONING_EFFORT', 'minimal'),
-        'timeout' => (int) env('IMPORT_META_TIMEOUT', 40),
+        // Three calls at once; a read takes ~14 s (measured on real charts).
+        'timeout' => (int) env('IMPORT_META_TIMEOUT', 30),
     ],
 
     // The OpenAI key and model are the voice assistant's (config/voice.php); its own timeout.
     'openai' => [
-        'timeout' => (int) env('IMPORT_OPENAI_TIMEOUT', 30),
+        'timeout' => (int) env('IMPORT_OPENAI_TIMEOUT', 20),
         'reasoning_effort' => env('IMPORT_OPENAI_REASONING_EFFORT', 'low'),
     ],
 

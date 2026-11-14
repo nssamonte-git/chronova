@@ -143,6 +143,7 @@ Your 7-week "Project Timeline" template and three generated images, through the 
 | `IMPORT_META_BAR_PHRASE` / `IMPORT_META_MILESTONE_PHRASE` | `bar` / `diamond shape` | What SAM looks for (a plain noun works; "gantt chart bar" found nothing) |
 | `IMPORT_META_REASONING_EFFORT` | `minimal` | Muse Spark's thinking before it answers |
 | `IMPORT_OPENAI_REASONING_EFFORT` | `low` | |
-| `IMPORT_META_TIMEOUT` / `IMPORT_OPENAI_TIMEOUT` | `40` / `30` | Seconds per call |
+| `IMPORT_META_TIMEOUT` / `IMPORT_OPENAI_TIMEOUT` | `30` / `20` | Seconds per call. The calls run one after the other, so together they must stay under `IMPORT_TIME_LIMIT` (a test checks the defaults). |
+| `IMPORT_TIME_LIMIT` | `55` | Seconds an import request may run. PHP's usual limit is 30 s and counts time spent waiting for the providers; CloudFront stops waiting for the server at 60 s. |
 
 The OpenAI key and model are the voice assistant's (`OPENAI_API_KEY`, `VOICE_OPENAI_MODEL`). In production `upload_max_filesize` is 6 MB; a local PHP may still cap uploads at 2 MB.

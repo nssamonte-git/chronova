@@ -97,6 +97,34 @@ it('answers 503 when switched off, without calling anyone', function () {
     expect(VoiceEvent::sole()->outcome)->toBe('disabled');
 });
 
+it('gives an import more than PHP\'s 30 seconds, then puts the limit back', function () {
+    $before = ini_get('max_execution_time');
+    $seen = null;
+    app()->bind(ChartAnalyzer::class, function () use (&$seen) {
+        return new class($seen) implements ChartAnalyzer
+        {
+            public function __construct(private mixed &$seen) {}
+
+            public function analyze(string $image, string $mime, int $width, int $height): ChartAnalysis
+            {
+                $this->seen = ini_get('max_execution_time');
+                throw new ProviderUnavailable('stop here');
+            }
+        };
+    });
+
+    importImage()->assertStatus(502);
+
+    expect($seen)->toBe('55')
+        ->and(ini_get('max_execution_time'))->toBe($before);
+});
+
+it('keeps the provider timeouts inside the time limit, and the limit inside CloudFront\'s 60 seconds', function () {
+    // The two calls run one after the other (Meta, then OpenAI); the rest of the request takes well under a second.
+    expect(config('import.meta.timeout') + config('import.openai.timeout'))->toBeLessThan(config('import.time_limit'))
+        ->and(config('import.time_limit'))->toBeLessThan(60);
+});
+
 it('answers 502 when a provider fails, and records it', function () {
     app()->bind(ChartAnalyzer::class, fn () => new class implements ChartAnalyzer
     {

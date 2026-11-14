@@ -62,6 +62,10 @@ class ImportController extends Controller
         // Resolved here, so a switched-off import never builds a provider.
         $analyzer = app(ChartAnalyzer::class);
         $builder = app(ScheduleBuilder::class);
+        // Reading an image takes longer than PHP's usual 30 s allows (it counts the time spent waiting
+        // for the providers): this request gets the import's own limit, and the usual one afterwards.
+        $usualLimit = (int) ini_get('max_execution_time');
+        set_time_limit(config('import.time_limit'));
         try {
             $analysis = $analyzer->analyze($bytes, $size['mime'], $size[0], $size[1]);
             $tokens['input_tokens'] += $analysis->inputTokens ?? 0;
@@ -84,6 +88,8 @@ class ImportController extends Controller
             $this->record($request, 502, 'provider_error', $started, $tokens);
 
             return response()->json(['error' => 'provider_unavailable'], 502);
+        } finally {
+            set_time_limit($usualLimit);
         }
 
         $schedule = (new ImportValidator($limits))->validate($built->schedule);

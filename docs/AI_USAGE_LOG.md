@@ -1953,3 +1953,17 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### Decision: one-day imports without hours stay whole days
 
 - **Your choice:** a one-day item imported from an image with no readable hours keeps its whole day (00:00 to 24:00) rather than taking the 09:00–17:00 working day. That is how it already worked, so no code changed; DECISIONS (Schedules from images) records it.
+
+### Server: an image import may run 55 seconds
+
+- **Your request:** fix the 30-second limit found while recording the walkthrough.
+- **Problem:** production PHP stops a request after 30 s (`max_execution_time`, PHP's default; `production.ini` doesn't set it), and on the server's runtime that counts time spent waiting for the providers. An import could wait up to 70 s (Meta 40 s, then OpenAI 30 s), so a slow read would have been cut off with a 500 instead of the import's own 502.
+- **Fix:**
+  - The import route raises the limit to `IMPORT_TIME_LIMIT` (55 s, under CloudFront's 60 s) for the provider calls and puts the usual limit back afterwards. Every other route keeps 30 s.
+  - The provider timeouts are now 30 s (Meta, about 14 s measured) and 20 s (OpenAI), 50 s together. The server now answers 502 itself before the limit is reached.
+  - `docs/import-api.md` lists the new setting and defaults.
+- **Tests:** two in `ImportImageTest`. An import runs with a 55 s limit and the usual one comes back; the timeout defaults fit inside the limit, and the limit inside 60 s. Both failed before the fix (the limit was unchanged; there was no setting). My first version of the first test failed for the wrong reason: it copied the recorded value instead of sharing it. Fixed before the change.
+- **Checked on the production runtime:** in a throwaway container of the server's base image with `production.ini`, a request that raised its limit to 55 s and waited 50 s finished (200), with the limit back at 30 afterwards. One that waited 58 s was stopped at 55 s. The container was removed.
+- **Noticed, not changed:** with noise removal on (`VOICE_ISOLATE_NOISE`, off by default), a voice turn makes two calls of up to 20 s each (isolation, then transcription), which could also pass 30 s.
+- **Results:** server 502 tests pass, lint passes. The app is unchanged.
+- **Not done:** nothing deployed; the real providers weren't called.
