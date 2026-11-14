@@ -15,7 +15,25 @@ def bvScript = ["${rootDir}/build-validator", "${rootDir}/../build-validator"]
 if (bvScript == null) {
     throw new GradleException("Mobile build validator: build-validator/validate-build.sh was not found next to this project. Re-run install.sh.")
 }
-def bvShell = System.getProperty("os.name").toLowerCase().contains("windows") ? "bash" : "sh"
+// The scan is a POSIX shell script (sh, sed, grep, sort...). macOS and Linux have them; on Windows
+// it needs Git for Windows' bash, which brings those tools. Look in Git's usual install folders
+// before PATH, so neither a PATH setting nor WSL's System32\bash.exe (Linux paths) is used by mistake.
+def bvShell = "sh"
+if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+    def env = System.getenv()
+    def gitBash = [
+            env["ProgramFiles"], env["ProgramW6432"], env["ProgramFiles(x86)"],
+            env["LOCALAPPDATA"] ? "${env["LOCALAPPDATA"]}\\Programs" : null,
+    ].findAll { it }.collect { file("${it}\\Git\\bin\\bash.exe") }.find { it.exists() }
+    def onPath = (env["PATH"] ?: env["Path"] ?: "").split(File.pathSeparator)
+            .findAll { it && !it.toLowerCase().contains("system32") }
+            .collect { new File(it, "bash.exe") }.find { it.exists() }
+    def found = gitBash ?: onPath
+    if (found == null) {
+        throw new GradleException("Mobile build validator: Git for Windows' bash.exe was not found (it runs the security scan before every build). Install Git for Windows (https://git-scm.com/download/win) and build again.")
+    }
+    bvShell = found.absolutePath
+}
 def bvReport = layout.buildDirectory.file("reports/build-validator/report.json").get().asFile.absolutePath
 
 def validateThreats = tasks.register("validateThreats", Exec) {

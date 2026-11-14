@@ -2404,3 +2404,18 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 
   `Learn/04` and CURRENT_TASK now say so; the cause hasn't been looked at.
 - Documentation only: no build or test run for this entry.
+
+### Self-contained build: Windows shell, JDK 25 and the IDE's JDK name
+
+- **Your request:** check that the project is self-contained and builds with a standard, recent Android Studio / Gradle setup, noting any special steps; then fix the gaps.
+- **Conforms:**
+  - a fresh clone from GitHub built with only `ANDROID_HOME` set (macOS, this session);
+  - Gradle wrapper 9.6.0, AGP 9.5.1, Kotlin 2.3.21, compile and target SDK 37;
+  - Google, Maven Central and the Gradle Plugin Portal only; no NDK, no local secrets; `google-services.json` committed.
+- **Gaps found and fixed:**
+  - **Windows shell:** the security gate (run before every build) is a shell script, and on Windows the hook called a bare `bash`, which works only when Git's folder is on PATH. `build-validator/build-validator.gradle` now finds Git for Windows' `bash.exe` in its usual install folders, then on PATH (skipping `System32`, which is WSL's), and otherwise stops with a message to install Git for Windows. macOS and Linux still use `sh`; the scan and threshold are unchanged. Recorded in `build-validator/INSTALLED.md` as a local change the canonical validator doesn't have yet.
+  - **JDK:** the docs said "JDK 17+", but `gradle/gradle-daemon-jvm.properties` makes Gradle run on JDK 25 and download it from foojay.io on the first build (this Mac did). README, page 2 and page 3 of the writeup now say so.
+  - **IDE's JDK name:** `.idea/misc.xml`, which names this Mac's JDK (`temurin-25`), is no longer tracked and is in `.idea/.gitignore`; Android Studio writes its own on each machine.
+  - **Special steps written down:** README "Special steps" (internet on the first build, Git for Windows, release signing); page 2's boxes; a page 3 row for the Windows message.
+- **Checks:** `tools/check.sh` PASS with the new hook (520 unit tests, 183 screenshots, lint 0 errors, gate PASS). Pages 2 and 3 re-rendered and looked at; still 23 pages, fonts embedded.
+- **Not checked:** the Windows path, which couldn't run on this Mac, a Linux build, and the Android Studio interface.

@@ -1,3 +1,5 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+# Names this computer's JDK (project-jdk-name); Android Studio writes its own on each machine.
+/misc.xml

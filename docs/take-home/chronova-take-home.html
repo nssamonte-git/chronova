@@ -117,13 +117,13 @@
     <div class="eyebrow">Setup</div>
     <h1 class="ptitle">Running the project: from GitHub to an APK</h1>
     <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
-    <p class="lede" style="margin-bottom:0.12in;font-size:10.5pt">Everything the Android build needs is in the repository. Nothing to configure: the app connects to the live server and has a demo account.</p>
+    <p class="lede" style="margin-bottom:0.12in;font-size:10.5pt">Everything the Android build needs is in the repository. Nothing to configure: the app connects to the live server and has a demo account. The only extra steps are the ones in the boxes below.</p>
 
     <div class="grid4" style="gap:0.12in">
       <div class="tile"><span class="tag">Android Studio</span><p>Recent enough for AGP 9.5; brings its own JDK. Install <b>Android SDK 37</b> when asked.</p></div>
-      <div class="tile teal-top"><span class="tag">The code</span><p><b>Git</b>, or only a browser to download the ZIP from GitHub.</p></div>
+      <div class="tile teal-top"><span class="tag">The code</span><p><b>Git</b>, or a browser for the ZIP. <b>On Windows, install Git for Windows</b>: every build runs a shell script through its bash.</p></div>
       <div class="tile"><span class="tag">A device</span><p>A phone (Android 8.0+) with USB debugging on, or an emulator.</p></div>
-      <div class="tile teal-top"><span class="tag">Terminal only</span><p>Without Android Studio: <b>JDK 17+</b> and <code>ANDROID_HOME</code> set to the SDK.</p></div>
+      <div class="tile teal-top"><span class="tag">Java, internet</span><p>Gradle runs on <b>JDK 25</b> and downloads it on the first build, with the dependencies: internet needed. Terminal only: any JDK 17+ and <code>ANDROID_HOME</code>.</p></div>
     </div>
 
     <div class="gstep"><div class="gnum">1</div><div><h4>Get the code</h4>
@@ -168,8 +168,9 @@
     <div class="grp" style="margin-top:0.08in">Getting the code and building</div>
     <table class="formal tight trouble">
       <tbody>
+        <tr><td class="k">Windows: "Git for Windows' bash.exe was not found"</td><td>Install Git for Windows, then build again. The security scan that runs before every build is a shell script.</td></tr>
         <tr><td class="k">"SDK location not found"</td><td>Open the Android folder in Android Studio once, or set <code>ANDROID_HOME</code> to the SDK.</td></tr>
-        <tr><td class="k">A Java version error</td><td>Use JDK 17 or newer. Android Studio: <b>Settings → Build Tools → Gradle → Gradle JDK</b>.</td></tr>
+        <tr><td class="k">A Java version error, or JDK 25 won't download</td><td>Gradle runs on JDK 25 and fetches it from foojay.io. Offline or behind a proxy, install JDK 25 yourself.</td></tr>
         <tr><td class="k">"Requires a newer Android Gradle plugin"</td><td>Android Studio is too old for AGP 9.5. Update it.</td></tr>
         <tr><td class="k">Downloads fail on the first sync</td><td>It needs the internet (Gradle, Google Maven, Maven Central). Behind a proxy: <b>Settings → System Settings → HTTP Proxy</b>.</td></tr>
         <tr><td class="k"><code>./gradlew: Permission denied</code></td><td>Usually after the ZIP download: <code>chmod +x gradlew</code>.</td></tr>

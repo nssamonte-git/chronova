@@ -100,7 +100,15 @@ App commands run from `Chronova - Android App/`; server and infrastructure comma
 
 ## Running the app
 
-Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. A fresh clone (`git clone https://github.com/nssamonte-git/chronova.git`, or Code → Download ZIP on GitHub) builds as it is: open `Chronova - Android App/` in Android Studio (it finds the SDK itself), or use Gradle from that folder with `ANDROID_HOME` pointing at the SDK:
+Requirements: Android Studio with AGP 9.5 support (Gradle 9.6 comes with the wrapper), Android SDK 37; `minSdk` 26. Gradle runs itself on **JDK 25** (`gradle/gradle-daemon-jvm.properties`) and downloads it on the first build when the computer doesn't have it; any JDK 17+ can start the wrapper from a terminal, and Android Studio handles it.
+
+Special steps, beyond opening the project:
+
+- **Internet on the first build:** Gradle, JDK 25 (from foojay.io, unless JDK 25 is installed), the dependencies, and the live server for signing in. Behind a proxy, set it in Android Studio (Settings → System Settings → HTTP Proxy).
+- **Windows:** install [Git for Windows](https://git-scm.com/download/win). Every build first runs the security gate, a shell script, through Git's `bash.exe`; the build stops with a message saying so if it's missing. macOS and Linux need nothing extra.
+- **Release APK:** sign it with your own key (Build → Generate Signed App Bundle or APK); no signing keys are in the repository. Debug builds need nothing.
+
+A fresh clone (`git clone https://github.com/nssamonte-git/chronova.git`, or Code → Download ZIP on GitHub) builds as it is: open `Chronova - Android App/` in Android Studio (it finds the SDK itself), or use Gradle from that folder with `ANDROID_HOME` pointing at the SDK:
 
 ```bash
 cd "Chronova - Android App"
