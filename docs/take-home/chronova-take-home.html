@@ -50,6 +50,9 @@
   .cover-run .code{font-size:7.9pt;line-height:1.55;padding:0.09in 0.15in;}
   .cover-run p.body{font-size:9pt;margin-bottom:0.07in;}
   .shot{width:1.85in;border-radius:0.16in;border:1px solid var(--line);}
+  table.formal.tight td{font-size:8pt;padding:0.04in 0.09in;line-height:1.35;}
+  table.formal.tight th{padding:0.05in 0.09in;font-size:7.2pt;}
+  table.formal.tight code{font-size:7.5pt;}
   .facts td{padding:0.05in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
   .facts td.k{width:1.25in;font-family:var(--font-head);font-weight:600;font-size:7.6pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:0.07in;}
 </style>
@@ -90,7 +93,7 @@
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -129,7 +132,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -162,7 +165,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 4-5. BEYOND THE BRIEF ============================ -->
@@ -179,7 +182,7 @@
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <div class="page">
@@ -200,7 +203,7 @@
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -313,7 +316,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -450,7 +453,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -565,7 +568,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 9. AI MODEL APIS ============================ -->
@@ -597,7 +600,7 @@
     <p class="small" style="margin-top:0.04in">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 8. TESTING ============================ -->
@@ -653,7 +656,7 @@
     <p class="small" style="margin-top:0.06in">Outside the app, the server has 514 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 11. AWS ============================ -->
@@ -736,7 +739,252 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
+</div>
+
+<!-- ============================ 12. ACCOUNT FLOWS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Accounts</div></div>
+  <div class="content">
+    <div class="eyebrow">Accounts</div>
+    <h1 class="ptitle">Three ways in: sign in, sign up, try the demo</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede" style="margin-bottom:0.12in">The app needs an account: signed out, it opens on the sign-in page and nothing else is reachable. Each way in ends with the same thing, a <b>token</b> the app keeps and sends with every later request.</p>
+
+    <svg viewBox="0 0 710 468" width="7.1in" height="4.68in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+      </defs>
+      <!-- legend -->
+      <g font-size="8.2" fill="#4A5578">
+        <rect x="0" y="2" width="11" height="11" rx="2" fill="#fff" stroke="#2B5CFF" stroke-width="1.6"/><text x="16" y="11">On the phone</text>
+        <rect x="96" y="2" width="11" height="11" rx="2" fill="#fff" stroke="#0B1226" stroke-width="1.6"/><text x="112" y="11">Server request (HTTPS, /v1)</text>
+        <rect x="248" y="2" width="11" height="11" rx="2" fill="#fff" stroke="#0B8577" stroke-width="1.6"/><text x="264" y="11">Email</text>
+        <rect x="314" y="2" width="11" height="11" rx="2" fill="#FFF1F1" stroke="#C62828" stroke-width="1.2"/><text x="330" y="11">Refused</text>
+      </g>
+
+      <!-- ===== Row 1: sign in ===== -->
+      <rect x="0" y="22" width="710" height="20" rx="4" fill="#2B5CFF"/>
+      <text x="10" y="36" font-size="9.6" font-weight="700" fill="#fff">1 · SIGN IN</text>
+      <text x="96" y="36" font-size="8.2" fill="#DCE5FF">an account that already exists and is confirmed</text>
+      <g font-size="8" fill="#4A5578">
+        <rect x="0" y="50" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="8" y="65" font-size="9" font-weight="700" fill="#0B1226">Email + password</text>
+        <text x="8" y="79">the form checks the email</text><text x="8" y="91">shape first; "Remember me"</text><text x="8" y="103">keeps the session</text>
+        <rect x="146" y="50" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="154" y="65" font-size="9" font-weight="700" fill="#0B1226">POST auth/login</text>
+        <text x="154" y="79">no token needed; limited</text><text x="154" y="91">to 5 a minute per email</text><text x="154" y="103">+ IP, and 30 per IP</text>
+        <rect x="292" y="50" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="300" y="65" font-size="9" font-weight="700" fill="#0B1226">Server checks</text>
+        <text x="300" y="79">password against its</text><text x="300" y="91">bcrypt hash; confirmed?</text><text x="300" y="103">disabled?</text>
+        <rect x="438" y="50" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="446" y="65" font-size="9" font-weight="700" fill="#0B1226">200 {token, user}</text>
+        <text x="446" y="79">new token, 60 days, kept</text><text x="446" y="91">as a SHA-256 hash; other</text><text x="446" y="103">devices: "new sign-in"</text>
+        <rect x="584" y="50" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="592" y="65" font-size="9" font-weight="700" fill="#0B1226">Signed in</text>
+        <text x="592" y="79">token encrypted in the</text><text x="592" y="91">Android Keystore; opens</text><text x="592" y="103">the projects</text>
+        <!-- refusals -->
+        <rect x="146" y="118" width="418" height="22" rx="4" fill="#FFF1F1" stroke="#C62828"/>
+        <text x="154" y="133" fill="#0B1226"><tspan font-weight="700" fill="#C62828">401</tspan> wrong email or password   ·   <tspan font-weight="700" fill="#C62828">403</tspan> not confirmed → code step (row 2)   ·   <tspan font-weight="700" fill="#C62828">403</tspan> account disabled</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="127" y1="80" x2="144" y2="80" marker-end="url(#a12)"/>
+        <line x1="273" y1="80" x2="290" y2="80" marker-end="url(#a12)"/>
+        <line x1="419" y1="80" x2="436" y2="80" marker-end="url(#a12)"/>
+        <line x1="565" y1="80" x2="582" y2="80" marker-end="url(#a12)"/>
+      </g>
+      <line x1="355" y1="111" x2="355" y2="116" stroke="#C62828" stroke-width="1.4"/>
+
+      <!-- ===== Row 2: create account ===== -->
+      <rect x="0" y="160" width="710" height="20" rx="4" fill="#0B1226"/>
+      <text x="10" y="174" font-size="9.6" font-weight="700" fill="#fff">2 · CREATE AN ACCOUNT</text>
+      <text x="152" y="174" font-size="8.2" fill="#C9D4F2">a new email; the code proves the inbox is yours</text>
+      <g font-size="8" fill="#4A5578">
+        <rect x="0" y="188" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="8" y="203" font-size="9" font-weight="700" fill="#0B1226">Email + new password</text>
+        <text x="8" y="217">at least 10 characters,</text><text x="8" y="229">upper and lower case and</text><text x="8" y="241">a number</text>
+        <rect x="146" y="188" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="154" y="203" font-size="9" font-weight="700" fill="#0B1226">POST auth/register</text>
+        <text x="154" y="217">always 202, so it never</text><text x="154" y="229">reveals whether an email</text><text x="154" y="241">already has an account</text>
+        <rect x="292" y="188" width="126" height="60" rx="5" fill="#fff" stroke="#0B8577"/>
+        <text x="300" y="203" font-size="9" font-weight="700" fill="#0B1226">6-digit code by email</text>
+        <text x="300" y="217">kept only as HMAC-SHA256;</text><text x="300" y="229">15 minutes, 5 tries; a</text><text x="300" y="241">taken email gets a note</text>
+        <rect x="438" y="188" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="446" y="203" font-size="9" font-weight="700" fill="#0B1226">Enter the code</text>
+        <text x="446" y="217">"Send again" asks for a</text><text x="446" y="229">new one (auth/resend),</text><text x="446" y="241">which replaces the old</text>
+        <rect x="584" y="188" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="592" y="203" font-size="9" font-weight="700" fill="#0B1226">POST auth/verify</text>
+        <text x="592" y="217">email confirmed;</text><text x="592" y="229">200 {token, user};</text><text x="592" y="241">signed in, as in row 1</text>
+        <rect x="146" y="256" width="564" height="22" rx="4" fill="#FBF6E8" stroke="#C8A84E" stroke-dasharray="4 3"/>
+        <text x="154" y="271" fill="#0B1226"><tspan font-weight="700" fill="#8A6A10">Live server today:</tspan> mail is held in memory, so codes aren't delivered yet. Until real email is set up, use the demo (row 3).</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="127" y1="218" x2="144" y2="218" marker-end="url(#a12)"/>
+        <line x1="273" y1="218" x2="290" y2="218" marker-end="url(#a12)"/>
+        <line x1="419" y1="218" x2="436" y2="218" marker-end="url(#a12)"/>
+        <line x1="565" y1="218" x2="582" y2="218" marker-end="url(#a12)"/>
+      </g>
+
+      <!-- ===== Row 3: try demo ===== -->
+      <rect x="0" y="298" width="710" height="20" rx="4" fill="#7C3AED"/>
+      <text x="10" y="312" font-size="9.6" font-weight="700" fill="#fff">3 · TRY DEMO</text>
+      <text x="96" y="312" font-size="8.2" fill="#EDE3FF">one tap, no typing: a shared account with a 1,000-task sample project</text>
+      <g font-size="8" fill="#4A5578">
+        <rect x="0" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="8" y="341" font-size="9" font-weight="700" fill="#0B1226">Tap "Try demo"</text>
+        <text x="8" y="355">above the form; the built-</text><text x="8" y="367">in demo login never shows</text><text x="8" y="379">in the form</text>
+        <rect x="146" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="154" y="341" font-size="9" font-weight="700" fill="#0B1226">POST auth/login</text>
+        <text x="154" y="355">test@chronova.com, the</text><text x="154" y="367">same request as row 1;</text><text x="154" y="379">already confirmed: no code</text>
+        <rect x="292" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="300" y="341" font-size="9" font-weight="700" fill="#0B1226">200 {token, user}</text>
+        <text x="300" y="355">token saved in the</text><text x="300" y="367">Keystore, as for any</text><text x="300" y="379">account</text>
+        <rect x="438" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
+        <text x="446" y="341" font-size="9" font-weight="700" fill="#0B1226">POST sync, twice</text>
+        <text x="446" y="355">runs by itself, once;</text><text x="446" y="367">cursor 0 → 500 → done:</text><text x="446" y="379">1,001 records</text>
+        <rect x="584" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="592" y="341" font-size="9" font-weight="700" fill="#0B1226">Sample Project</text>
+        <text x="592" y="355">1,000 tasks, Nov 2026 to</text><text x="592" y="367">May 2027; Delete account</text><text x="592" y="379">is hidden</text>
+        <rect x="0" y="394" width="710" height="22" rx="4" fill="#F7F2FF" stroke="#7C3AED" stroke-dasharray="4 3"/>
+        <text x="8" y="409" fill="#0B1226"><tspan font-weight="700" fill="#7C3AED">Shared by everyone:</tspan> every visitor sees the same data and each other's edits. Seeded once on the server through the normal sync code.</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="127" y1="356" x2="144" y2="356" marker-end="url(#a12)"/>
+        <line x1="273" y1="356" x2="290" y2="356" marker-end="url(#a12)"/>
+        <line x1="419" y1="356" x2="436" y2="356" marker-end="url(#a12)"/>
+        <line x1="565" y1="356" x2="582" y2="356" marker-end="url(#a12)"/>
+      </g>
+
+      <!-- after sign-in -->
+      <rect x="0" y="430" width="710" height="34" rx="5" fill="#F3F6FF" stroke="#2B5CFF"/>
+      <text x="10" y="445" font-size="8.6" font-weight="700" fill="#0B1226">After any of the three</text>
+      <text x="10" y="457" font-size="8" fill="#4A5578">Every request sends Authorization: Bearer &lt;token&gt;. Sign out (POST auth/logout) cancels the token on the server at once and removes this device's copy of the data.</text>
+    </svg>
+
+    <div class="grid3 mt-s">
+      <div class="tile"><span class="tag">The token</span><p>An opaque Sanctum token, not a JWT. The server keeps only its SHA-256 hash and looks it up on every request, so signing out, a password reset or a disabled account takes effect at once.</p></div>
+      <div class="tile teal-top"><span class="tag">Staying signed in</span><p>A token lasts 60 days and moves forward each day the app is used. With "Remember me" off, the session lasts only while the app runs.</p></div>
+      <div class="tile"><span class="tag">Forgot password</span><p>The same pattern as sign-up: <code>auth/forgot</code> emails a code, <code>auth/reset</code> sets the new password with it, signs out the other devices and signs in here.</p></div>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
+</div>
+
+<!-- ============================ 13. APP TO SERVER ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">App and server</div></div>
+  <div class="content">
+    <div class="eyebrow">System</div>
+    <h1 class="ptitle">How the app talks to the server</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede" style="margin-bottom:0.08in;font-size:10.5pt"><b>REST-style JSON over HTTPS</b>, under <code>/v1</code>: no GraphQL, no open sockets. Push is the only way back.</p>
+
+    <svg viewBox="0 0 710 262" width="7.1in" height="2.62in" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a13" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker>
+        <marker id="a13v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+      </defs>
+      <g font-size="8" fill="#4A5578">
+        <!-- app -->
+        <rect x="0" y="20" width="150" height="160" rx="6" fill="#F3F6FF" stroke="#2B5CFF"/>
+        <text x="10" y="37" font-size="9.6" font-weight="700" fill="#0B1226">Android app</text>
+        <text x="10" y="54">One API class per feature</text><text x="10" y="66">(auth, sync, push, voice,</text><text x="10" y="78">import) on OkHttp</text>
+        <text x="10" y="96">JSON: kotlinx.serialization;</text><text x="10" y="108">audio and images: multipart</text>
+        <text x="10" y="126">Authorization: Bearer token,</text><text x="10" y="138">read from the Keystore</text>
+        <text x="10" y="156">Release builds refuse</text><text x="10" y="168">plain HTTP</text>
+        <!-- TLS link -->
+        <text x="190" y="84" text-anchor="middle" font-size="8.4" font-weight="700" fill="#0B8577">HTTPS</text>
+        <text x="190" y="96" text-anchor="middle" font-size="7.6">TLS 1.3, both</text><text x="190" y="107" text-anchor="middle" font-size="7.6">directions</text>
+        <!-- DNS -->
+        <rect x="160" y="138" width="64" height="40" rx="5" fill="#fff" stroke="#0EA5C6" stroke-dasharray="4 3"/>
+        <text x="192" y="154" text-anchor="middle" font-size="8.2" font-weight="700" fill="#0B1226">Cloudflare</text>
+        <text x="192" y="167" text-anchor="middle" font-size="7.6">DNS lookup only</text>
+        <!-- EC2 -->
+        <rect x="232" y="0" width="318" height="236" rx="8" fill="#F1F3F9" stroke="#0B1226" stroke-dasharray="5 3"/>
+        <text x="242" y="14" font-size="8.6" font-weight="700" fill="#0B1226">EC2 instance (Sydney)</text>
+        <rect x="242" y="22" width="92" height="96" rx="5" fill="#0B1226"/>
+        <text x="250" y="38" font-size="9.2" font-weight="700" fill="#fff">Caddy</text>
+        <text x="250" y="54" fill="#C9D4F2">Let's Encrypt</text><text x="250" y="65" fill="#C9D4F2">certificate</text>
+        <text x="250" y="81" fill="#C9D4F2">TLS ends here;</text><text x="250" y="92" fill="#C9D4F2">passes on over</text><text x="250" y="103" fill="#C9D4F2">127.0.0.1:8080</text>
+        <rect x="352" y="22" width="188" height="150" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="362" y="38" font-size="9.2" font-weight="700" fill="#0B1226">Laravel "web": each request</text>
+        <g font-size="7.9">
+          <circle cx="368" cy="53" r="6" fill="#2B5CFF"/><text x="368" y="56" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">1</text><text x="380" y="56">matched to a route under /v1</text>
+          <circle cx="368" cy="71" r="6" fill="#2B5CFF"/><text x="368" y="74" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">2</text><text x="380" y="74">auth:sanctum: SHA-256 of the</text>
+          <text x="380" y="85">token looked up, else 401</text>
+          <circle cx="368" cy="100" r="6" fill="#2B5CFF"/><text x="368" y="103" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">3</text><text x="380" y="103">abilities:sync, account active,</text>
+          <text x="380" y="114">token kept alive (60 days)</text>
+          <circle cx="368" cy="129" r="6" fill="#2B5CFF"/><text x="368" y="132" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">4</text><text x="380" y="132">rate limit (429 when over)</text>
+          <circle cx="368" cy="147" r="6" fill="#2B5CFF"/><text x="368" y="150" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">5</text><text x="380" y="150">body validated, controller → JSON</text>
+          <text x="380" y="164" fill="#8A93AD">sign-in requests skip 2–3</text>
+        </g>
+        <rect x="352" y="184" width="188" height="42" rx="5" fill="#EFF8F6" stroke="#0B8577"/>
+        <text x="362" y="200" font-size="9" font-weight="700" fill="#0B1226">PostgreSQL</text>
+        <text x="362" y="214">same instance: users, token</text><text x="362" y="224">hashes, projects, tasks</text>
+        <rect x="242" y="130" width="92" height="96" rx="5" fill="#fff" stroke="#0B1226" stroke-dasharray="4 3"/>
+        <text x="250" y="146" font-size="9" font-weight="700" fill="#0B1226">worker,</text><text x="250" y="158" font-size="9" font-weight="700" fill="#0B1226">scheduler</text>
+        <text x="250" y="174">send queued mail</text><text x="250" y="185">and push, and</text><text x="250" y="196">reminders; take no</text><text x="250" y="207">app requests</text>
+        <!-- third parties -->
+        <rect x="572" y="20" width="138" height="78" rx="6" fill="#F7F2FF" stroke="#7C3AED"/>
+        <text x="582" y="37" font-size="9.2" font-weight="700" fill="#0B1226">AI providers</text>
+        <text x="582" y="53">OpenAI, ElevenLabs, Meta</text><text x="582" y="65">for voice and image import;</text><text x="582" y="77">keys only in "web", HTTPS</text><text x="582" y="89">from the server</text>
+        <rect x="572" y="116" width="138" height="78" rx="6" fill="#fff" stroke="#7C3AED"/>
+        <text x="582" y="133" font-size="9.2" font-weight="700" fill="#0B1226">Firebase (FCM)</text>
+        <text x="582" y="149">server signs an RS256 JWT</text><text x="582" y="161">for Google's OAuth, then</text><text x="582" y="173">sends data messages:</text><text x="582" y="185">the only way back</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="151" y1="70" x2="240" y2="70" marker-end="url(#a13)"/>
+        <line x1="335" y1="70" x2="350" y2="70" marker-end="url(#a13)"/>
+        <line x1="446" y1="173" x2="446" y2="182" marker-end="url(#a13)"/>
+        <line x1="541" y1="58" x2="570" y2="58" marker-end="url(#a13)"/>
+      </g>
+      <path d="M641,195 L641,246 L75,246 L75,183" fill="none" stroke="#7C3AED" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a13v)"/>
+      <text x="240" y="259" font-size="7.8" fill="#7C3AED">push to the phone: "changes on another device", "new sign-in", reminders</text>
+    </svg>
+
+    <h3 class="sect" style="margin:0.10in 0 0.06in">The requests</h3>
+    <table class="formal tight">
+      <thead><tr><th style="width:0.95in">Area</th><th>Requests (all under <code style="color:#fff">/v1</code>)</th><th style="width:1.95in">Token · body</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Sign-in pages</td><td><code>auth/register</code>, <code>verify</code>, <code>resend</code>, <code>login</code>, <code>forgot</code>, <code>reset</code> (POST)</td><td>none · JSON</td></tr>
+        <tr><td class="k">Account</td><td><code>GET me</code>, <code>POST auth/logout</code>, <code>DELETE account</code></td><td>Bearer · JSON</td></tr>
+        <tr><td class="k">Sync</td><td><code>POST sync</code>: up to 500 changes up, then 500 changed records a page down</td><td>Bearer · JSON, 60 a minute</td></tr>
+        <tr><td class="k">Push devices</td><td><code>PUT devices</code> (push token, time zone, reminders), <code>DELETE devices</code></td><td>Bearer · JSON</td></tr>
+        <tr><td class="k">Voice</td><td><code>voice/transcribe</code>, <code>interpret</code>, <code>explain</code>, <code>resolve</code>, <code>decision</code> (POST)</td><td>Bearer · JSON; audio as multipart</td></tr>
+        <tr><td class="k">Image import</td><td><code>POST import/image</code> (off on the live server)</td><td>Bearer · image multipart</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sect" style="margin:0.12in 0 0.06in">Encryption, from the app to the server and back</h3>
+    <table class="formal tight">
+      <tbody>
+        <tr><td class="k" style="width:1.2in">On the wire</td><td>TLS 1.3 both ways: X25519MLKEM768 key exchange, AES-128-GCM, ECDSA P-256 certificate (from a Mac; a phone may pick X25519 or ChaCha20). Release builds refuse plain HTTP.</td></tr>
+        <tr><td class="k">The token</td><td>On the phone: AES-256-GCM with an Android Keystore key. On the server: only its SHA-256 hash.</td></tr>
+        <tr><td class="k">Other secrets</td><td>Passwords bcrypt, emailed codes HMAC-SHA256 (both one-way); staff 2FA secrets AES-256-CBC with the app key (in Secrets Manager).</td></tr>
+        <tr><td class="k">Projects, tasks</td><td>Not encrypted at rest (PostgreSQL, the phone's database). Caddy passes requests on over plain HTTP inside the same machine.</td></tr>
+      </tbody>
+    </table>
+    <p class="small" style="margin-top:0.03in">Not in place: certificate pinning, an HSTS header, database encryption (EC2 disk encryption not checked).</p>
+
+    <h3 class="sect" style="margin:0.10in 0 0.06in">A sample exchange <span style="font-weight:400;font-size:8.6pt;color:var(--muted)">(made-up token; without a valid one, all but the sign-in requests get 401)</span></h3>
+    <div class="two" style="gap:0.14in">
+      <div class="code" style="font-size:7.2pt;line-height:1.45;padding:0.08in 0.12in">POST /v1/auth/login
+{"email":"ana@example.com",
+ "password":"…","device_name":"pixel"}
+← 200 {"token":"42|Xk9fQ2…",
+       "user":{"id":"01a1…","email":"ana@…"}}</div>
+      <div class="code" style="font-size:7.2pt;line-height:1.45;padding:0.08in 0.12in">POST /v1/sync
+Authorization: Bearer 42|Xk9fQ2…
+{"cursor":"0","changes":[]}
+← 200 {"results":[],"changes":[…500 records],
+       "cursor":"500","hasMore":true}</div>
+    </div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -772,7 +1020,7 @@
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -822,7 +1070,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -866,7 +1114,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -966,7 +1214,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -1096,7 +1344,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1189,7 +1437,7 @@
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1224,7 +1472,7 @@
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 20</span></div>
 </div>
 
 </body>

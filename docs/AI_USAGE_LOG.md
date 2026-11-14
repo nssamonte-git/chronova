@@ -2277,3 +2277,21 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Account device tests on the managed emulator: 14 run, 0 failed.
 - **On the phone (debug build against the live server, installed over the app):** the sign-in page shows Try demo above the form; one tap showed the spinner, then went straight to the projects page, synced by itself: "All changes synced", Sample Project, 16 Nov 2026 – 5 May 2027, 1000 tasks. The account page has no Delete account. After signing out, a second Try demo did the same, and the button kept its height while loading.
 - **Not done:** dark mode only checked in the screenshots, not on the phone; the full device suite (`--devices`) not run.
+
+### Take-home writeup: account flows and the app-to-server page
+
+- **Your request:** add to the report a sample flow for sign-in, sign-up and the demo account, and a system flow of how the app connects to the server: the HTTP requests, the encryption from app to server, and how requests are handled.
+- **Done:** two new pages after "Running in AWS", so the PDF is now 20 pages (footers 1–20 of 20; the "(page 11)" reference to AWS still holds).
+  - **Page 12, "Three ways in":** one diagram with three flows: sign in (`auth/login`, its refusals 401/403); create an account (`auth/register` → emailed code → `auth/verify`, with the note that the live server doesn't send mail yet); Try demo (login, then the automatic sync in two pages). Three notes: the token, staying signed in, forgot password. The demo password isn't printed.
+  - **Page 13, "How the app talks to the server":**
+    - a system diagram: app → TLS 1.3 → Caddy on EC2 → Laravel's steps for each request (route, Sanctum token lookup, ability, active account, token kept alive, rate limit, controller) → PostgreSQL; side boxes for the AI providers and Firebase push; Cloudflare as DNS only;
+    - a table of every `/v1` request with its token and body type;
+    - an encryption table (TLS details as measured, token, passwords and codes, other secrets, what isn't encrypted or in place);
+    - a sample login and sync exchange with a made-up token.
+- **Facts used:** from the code and from this session's live checks (TLS handshake, `/up`, the middleware, `KeepTokenAlive`, `EmailCodes`, the rate limits, the multipart requests). README's two descriptions of the PDF now mention the new pages.
+- **Rendered and checked:** same Chrome for Testing headless shell. Page 13 needed three passes:
+  - the push arrow ran through the PostgreSQL box, and a worker-to-Firebase arrow crossed the Laravel box: rerouted and removed;
+  - the tables ran past the page bottom: tightened.
+
+  Pages 12 and 13 were looked at in poppler and in macOS's renderer (`sips`); fonts are embedded; the page order was checked from the PDF text.
+- Documentation only: no build or test run for this entry.
