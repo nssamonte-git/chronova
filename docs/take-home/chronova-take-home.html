@@ -79,7 +79,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -118,7 +118,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -151,7 +151,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -264,7 +264,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -401,7 +401,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -516,7 +516,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 7. RUNNING + BEYOND ============================ -->
@@ -536,7 +536,7 @@
 
     <div class="callout warn">
       <div class="ctitle">Note</div>
-      <p>Today's app opens on a sign-in page and needs its server (see <code>server/README.md</code>; the server URL goes in the uncommitted <code>local.properties</code>). To review <b>just the take-home</b> with no setup, check out the tag <code>submission-v1</code>: a single-module, single-screen timeline with in-memory sample data, run with <code>./gradlew :app:installDebug</code>.</p>
+      <p>Today's app opens on a sign-in page and needs its server (see <code>server/README.md</code>; the server URL goes in the uncommitted <code>local.properties</code>). A live server runs on AWS (page 11). To review <b>just the take-home</b> with no setup, check out the tag <code>submission-v1</code>: a single-module, single-screen timeline with in-memory sample data, run with <code>./gradlew :app:installDebug</code>.</p>
     </div>
 <div class="code">git checkout submission-v1        <span class="cm"># the original take-home</span>
 git checkout main                 <span class="cm"># back to the full app</span></div>
@@ -547,7 +547,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 8. TESTING ============================ -->
@@ -603,7 +603,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small" style="margin-top:0.06in">Outside the app, the server has 507 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 9-10. BEYOND THE BRIEF ============================ -->
@@ -620,7 +620,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <div class="page">
@@ -637,11 +637,94 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <div class="grp">Look, feel and polish</div>
     <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
     <div class="grp n">The platform behind the app</div>
-    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel with required authenticator MFA: user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS infrastructure</h4><p>Infrastructure as code with CDK: CloudFront, a private load balancer, ECS Fargate, RDS PostgreSQL and SES email. Synthesized and tested; <b>not deployed yet</b>.</p></div></div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel with required authenticator MFA: user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance in Sydney (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 11).</p></div></div>
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+</div>
+
+<!-- ============================ 11. AWS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">AWS</div></div>
+  <div class="content">
+    <div class="eyebrow">Deployment</div>
+    <h1 class="ptitle">Running in AWS</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede" style="margin-bottom:0.12in">The server is <b>live</b> on one EC2 instance in Sydney. A fuller production design is written as code (CDK) and tested, but <b>not deployed</b> yet.</p>
+
+    <h3 class="sect" style="margin-top:0.06in">Live today: one EC2 instance (Sydney, ap-southeast-2)</h3>
+    <svg viewBox="0 0 710 210" width="7.1in" height="2.1in" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4A5578"/></marker></defs>
+      <g font-size="8.2" fill="#4A5578">
+        <rect x="0" y="62" width="92" height="52" rx="6" fill="#fff" stroke="#2B5CFF"/>
+        <text x="46" y="84" text-anchor="middle" font-size="9.4" font-weight="700" fill="#0B1226">Android app</text>
+        <text x="46" y="98" text-anchor="middle">and /admin</text>
+        <rect x="112" y="62" width="92" height="52" rx="6" fill="#fff" stroke="#0EA5C6"/>
+        <text x="158" y="84" text-anchor="middle" font-size="9.4" font-weight="700" fill="#0B1226">Cloudflare</text>
+        <text x="158" y="98" text-anchor="middle">DNS, own domain</text>
+        <!-- instance -->
+        <rect x="224" y="0" width="300" height="206" rx="8" fill="#F3F6FF" stroke="#2B5CFF" stroke-dasharray="5 3"/>
+        <text x="236" y="17" font-size="9" font-weight="700" fill="#2B5CFF">EC2 instance · Docker Compose</text>
+        <rect x="236" y="28" width="276" height="34" rx="5" fill="#0B1226"/>
+        <text x="246" y="43" font-size="9.2" font-weight="700" fill="#fff">Caddy</text>
+        <text x="246" y="55" font-size="7.8" fill="#C9D4F2">HTTPS certificates, in the server image</text>
+        <rect x="236" y="72" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="244" y="88" font-size="9" font-weight="700" fill="#0B1226">web</text><text x="244" y="101">Laravel API, admin, voice</text>
+        <rect x="380" y="72" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="388" y="88" font-size="9" font-weight="700" fill="#0B1226">worker</text><text x="388" y="101">queued jobs, such as mail</text>
+        <rect x="236" y="120" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF"/>
+        <text x="244" y="136" font-size="9" font-weight="700" fill="#0B1226">scheduler</text><text x="244" y="149">pushed task reminders</text>
+        <rect x="380" y="120" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF" stroke-dasharray="4 3"/>
+        <text x="388" y="136" font-size="9" font-weight="700" fill="#0B1226">migrate</text><text x="388" y="149">one-shot, exits with 0</text>
+        <rect x="236" y="168" width="276" height="30" rx="5" fill="#EFF8F6" stroke="#0B8577"/>
+        <text x="246" y="187" font-size="9" font-weight="700" fill="#0B1226">PostgreSQL</text><text x="318" y="187">on a persistent volume</text>
+        <!-- right side -->
+        <rect x="548" y="0" width="162" height="62" rx="6" fill="#F7F2FF" stroke="#7C3AED"/>
+        <text x="558" y="18" font-size="9.2" font-weight="700" fill="#0B1226">Secrets Manager</text>
+        <text x="558" y="32">app key, DB password, AI and</text><text x="558" y="44">Firebase keys; read by the</text><text x="558" y="56">instance's IAM role at deploy</text>
+        <rect x="548" y="76" width="162" height="62" rx="6" fill="#fff" stroke="#7C3AED"/>
+        <text x="558" y="94" font-size="9.2" font-weight="700" fill="#0B1226">AI providers</text>
+        <text x="558" y="108">OpenAI (interpret, explain),</text><text x="558" y="120">ElevenLabs (speech); keys</text><text x="558" y="132">only in the web container</text>
+        <rect x="548" y="152" width="162" height="46" rx="6" fill="#fff" stroke="#7C3AED"/>
+        <text x="558" y="170" font-size="9.2" font-weight="700" fill="#0B1226">Firebase Cloud Messaging</text>
+        <text x="558" y="184">push to phones (sender: fcm)</text>
+      </g>
+      <g stroke="#4A5578" stroke-width="1.4">
+        <line x1="93" y1="88" x2="110" y2="88" marker-end="url(#a15)"/>
+        <line x1="205" y1="45" x2="234" y2="45" marker-end="url(#a15)"/>
+        <path d="M205,88 L215,88 L215,45" fill="none"/>
+        <line x1="526" y1="31" x2="546" y2="31" marker-end="url(#a15)"/>
+        <line x1="514" y1="92" x2="546" y2="107" marker-end="url(#a15)"/>
+        <line x1="514" y1="140" x2="546" y2="175" marker-end="url(#a15)"/>
+      </g>
+      <text x="216" y="40" font-size="7.6" fill="#4A5578" text-anchor="end">HTTPS</text>
+    </svg>
+
+    <div class="two mt-s">
+      <div class="tile"><span class="tag">How a release goes out</span><ul>
+        <li>Push the reviewed release to <code>main</code>; on the instance, a clean checkout pulls it (fast-forward only).</li>
+        <li>Secrets are fetched from Secrets Manager into the environment, never printed or written to a file.</li>
+        <li>Compose checks its config, builds, migrates, and starts with <code>--wait</code>; then <code>/up</code> must answer 200.</li>
+        <li>Rollback: revert the release commit, push, redeploy.</li></ul></div>
+      <div class="tile teal-top"><span class="tag">Status (14 Nov 2026)</span><ul>
+        <li><b>Checked:</b> <code>/up</code> 200, a signed-out API call 401, all services healthy, push sender set to Firebase.</li>
+        <li><b>Still open:</b> voice and push checked end to end from phones; real email (mail is held in memory, so sign-up codes aren't sent yet); a tested database restore.</li>
+        <li><b>Off:</b> schedules from images, until approved.</li></ul></div>
+    </div>
+
+    <h3 class="sect">Planned production stack: CDK, tested but not deployed</h3>
+    <div class="code" style="font-size:7.9pt;line-height:1.5;padding:0.10in 0.15in">phone ─HTTPS─▶ CloudFront ─VPC origin─▶ internal ALB ─▶ Fargate "web" (ARM64)
+                                                    Fargate "jobs" (worker, scheduler)
+                                                    RDS PostgreSQL 16 (isolated subnets)</div>
+    <ul class="dash mt-s">
+      <li><b>Why this shape:</b> HTTPS on CloudFront's own domain, an internal load balancer (ALB) only CloudFront can reach (so client IPs for rate limits and the audit log can be trusted), no NAT gateway, secrets injected from Secrets Manager, email through SES (optionally verified for a whole domain with DKIM); voice, image import and push each behind an on/off switch.</li>
+      <li><b>Checked:</b> 23 infrastructure tests and a clean <code>cdk synth</code>. Rough cost about $60–70 a month for a dev stack; production adds Multi-AZ, deletion protection and 14-day backups.</li>
+    </ul>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -677,7 +760,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -727,7 +810,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -771,7 +854,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -871,7 +954,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -1001,7 +1084,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1094,7 +1177,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1113,7 +1196,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <div class="check-row"><div class="box">!</div><p>In Months scale, a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).</p></div>
 
     <h3 class="sect">On the wider app</h3>
-    <div class="check-row"><div class="box">!</div><p>The server and AWS stack are tested locally and synthesized, not deployed.</p></div>
+    <div class="check-row"><div class="box">!</div><p>The server is live on a single EC2 instance (no load balancer or managed database yet); real email, an end-to-end voice and push check from phones, and a tested database restore are still open. The CDK production stack is not deployed.</p></div>
     <div class="check-row"><div class="box">!</div><p>Voice needs a connection and an account, and its yes/no words are English only. Before release, the privacy policy and Play Data safety form must name the voice providers.</p></div>
 
     <h3 class="sect">Where to find more</h3>
@@ -1123,13 +1206,14 @@ git checkout main                 <span class="cm"># back to the full app</span>
         <tr><td class="k">docs/AI_USAGE_LOG.md</td><td>Per-batch development log, including every AI mistake and how it was found</td></tr>
         <tr><td class="k">docs/AI_USAGE_WRITEUP.md</td><td>Longer AI writeup: the take-home, then everything after it</td></tr>
         <tr><td class="k">docs/voice-api.md</td><td>Voice contract, privacy, measured cost and timings</td></tr>
+        <tr><td class="k">server/infra/EC2.md, DEPLOY.md</td><td>Running and redeploying the live EC2 server; deploying the CDK stack</td></tr>
         <tr><td class="k">git tag submission-v1</td><td>The take-home exactly as submitted</td></tr>
       </tbody>
     </table>
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 17</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 </body>

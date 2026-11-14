@@ -2122,3 +2122,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - The EC2 rollout served the homepage redirect and returned HTTP 200 on `/up` and 401 for signed-out `/v1/me`. The user confirmed IAM access to the runtime secret, matched the Laravel key and database password, and removed both from `app.env` after deploying with Secrets Manager.
 - The user enabled the voice providers and Firebase. The EC2 output showed healthy Laravel services, with `web`, `worker`, and `scheduler` reporting `sender=fcm, credential=SET`. Live Android voice and push delivery checks are still open.
 - Updated the handoff and documented the EC2 deployment command. The AI context validator, command syntax, and simulated secret injection passed. Documentation only.
+
+### Take-home writeup: AWS page
+
+- **Your request:** update the PDF report with the AWS implementation.
+- **Found first:** the server went live on 14 Nov (commit `26a4f14`, `server/infra/EC2.md`, DECISIONS "Live EC2 deployment"): one EC2 instance in Sydney with Docker Compose (web, worker, scheduler, one-shot migrate, PostgreSQL on a volume), Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager through the instance role. The CDK stack (CloudFront, internal ALB, Fargate, RDS, SES) is still the separate, undeployed design. The PDF said "not deployed" in two places.
+- **Made:** a new page 11, "Running in AWS" (the PDF is now 18 pages): a diagram of the live EC2 setup, how a release goes out (from the runbook), its status (checked: `/up` 200, signed-out API 401, healthy services, push sender Firebase; still open: voice and push from phones, real email (mail held in memory), a tested restore; image import off), and the planned CDK stack with why it is shaped that way, its 23 tests and rough cost. Corrected the AWS tile on page 10, the limitation on page 18 and the note on the running page; added the two deployment guides to "Where to find more".
+- **Left out on purpose:** the live domain name and the secret's name (the PDF goes to outside reviewers).
+- **Rendered and checked:** the planned-stack line ran past the page edge and was shortened; pages 7, 10, 11 and 18 looked at; footers 1–18 of 18.
+- Documentation only: no build or test run for this entry.
