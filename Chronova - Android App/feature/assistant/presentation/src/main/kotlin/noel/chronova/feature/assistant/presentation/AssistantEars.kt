@@ -3,6 +3,7 @@ package noel.chronova.feature.assistant.presentation
 import kotlinx.coroutines.flow.update
 import noel.chronova.feature.assistant.domain.AssistantUseCases
 import noel.chronova.feature.assistant.domain.EndpointDetector
+import noel.chronova.feature.assistant.domain.ListenForSpeech
 import noel.chronova.feature.assistant.domain.Listened
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
 
@@ -51,7 +52,8 @@ internal class AssistantEars(
 
     private suspend fun hear(answering: Boolean): Heard {
         session.ui.update { it.copy(mode = OrbMode.Listening, saying = null) }
-        val recorded = useCases.listen { session.level.value = it } as? Listened.Recorded ?: return Heard.Silence
+        val wait = if (answering) ListenForSpeech.ANSWER_WAIT_MS else ListenForSpeech.REQUEST_WAIT_MS
+        val recorded = useCases.listen(wait) { session.level.value = it } as? Listened.Recorded ?: return Heard.Silence
         session.ui.update { it.copy(mode = OrbMode.Thinking) }
         val heard = useCases.transcribe(projectId, recorded.recording, language(), answering)
         heardLanguage = heard.language ?: language()

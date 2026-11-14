@@ -1862,3 +1862,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Results:** `tools/check.sh` passed (485 unit tests, 174 screenshots, lint 0 errors, both architecture checks).
 - **Checked on the phone:** a debug build of `d3ae557` was installed (`local.properties` restored byte for byte). Reading the whiteboard image gave three notes and seven rows; "Add 7 tasks", then "Add 3 tasks" after four rows were unticked, stayed on screen, and three tasks were added. After Done, the picture button opened a fresh "Take photo / Choose image" sheet.
 - **Local server, not the app:** one earlier read failed with "The image couldn't be read right now". PHP's built-in server (`php -S`, as `artisan serve` uses) stops a request after 30 s (`max_execution_time`), and that read took longer. The walkthrough server now runs with `-d max_execution_time=180`. Production settings weren't changed or checked here.
+
+### The orb waits longer for an answer
+
+- **Your report:** while recording the walkthrough, the orb's "nothing changed" came too early and the proposed tasks were rejected.
+- **Cause:** an answer to "Shall I apply it?" was listened for with the same 8 s no-speech limit as a new request, and silence counts as no. A proposal of several changes (four times in one request here) takes longer than that to read, and the "was that a yes?" follow-up had the same short limit.
+- **Fix:** `ListenForSpeech` takes the no-speech limit per turn. A new request still waits 8 s; an answer to a question waits 20 s (`ANSWER_WAIT_MS`). Silence still changes nothing. `docs/voice-api.md` notes it.
+- **Tests:** `ListenForSpeechTest` (new, 3): a request still gives up after 8 s of silence; an answer started after 12 s is heard; an answer that never comes ends at 20 s. The assistant ViewModel tests pass unchanged.
+- **Results:** `tools/check.sh` passed (488 unit tests, 174 screenshots, lint 0 errors, both architecture checks).

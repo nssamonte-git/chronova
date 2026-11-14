@@ -17,12 +17,14 @@ sealed interface Listened {
 
 /**
  * Records from the microphone until the speaker stops ([EndpointDetector]), reporting the
- * level (0..1) for the orb's pulse as it goes. @throws RecorderUnavailable if the microphone can't be used.
+ * level (0..1) for the orb's pulse as it goes. [noSpeechTimeoutMs] is how long to wait for the
+ * first word: a new request gets the detector's default, an answer to a question longer
+ * ([ANSWER_WAIT_MS]). @throws RecorderUnavailable if the microphone can't be used.
  */
 class ListenForSpeech(private val recorder: VoiceRecorder, private val sampleMs: Long = SAMPLE_MS) {
-    suspend operator fun invoke(onLevel: (Float) -> Unit): Listened {
+    suspend operator fun invoke(noSpeechTimeoutMs: Long = REQUEST_WAIT_MS, onLevel: (Float) -> Unit): Listened {
         recorder.start()
-        val detector = EndpointDetector()
+        val detector = EndpointDetector(noSpeechTimeoutMs = noSpeechTimeoutMs)
         var elapsed = 0L
         var decision: EndpointDetector.Decision = EndpointDetector.Decision.Continue
         try {
@@ -49,6 +51,16 @@ class ListenForSpeech(private val recorder: VoiceRecorder, private val sampleMs:
 
     companion object {
         const val SAMPLE_MS = 100L
+
+        /** How long a new request waits for the first word. */
+        const val REQUEST_WAIT_MS = 8_000L
+
+        /**
+         * How long an answer to "Shall I apply it?" waits for the first word. A proposal of several
+         * changes takes time to read, and silence there counts as no (seen on the phone: after a
+         * four-change proposal, "nothing changed" came before the user had finished reading).
+         */
+        const val ANSWER_WAIT_MS = 20_000L
     }
 }
 
