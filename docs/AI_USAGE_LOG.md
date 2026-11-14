@@ -1911,3 +1911,22 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the timeline's row label shows clock times only for a timed task that spans days ("16:00 – 16:00" for 24 hours from 16:00).
 - **Not checked on the phone.**
 - **AI mistake:** my first fixture for the screenshot had long captions. At 1.5× text they pushed the lines under test out of the picture. Shortened and re-recorded.
+
+### Walkthrough bugs looked into, not changed: critical path, clash alternatives, the server's time limit
+
+- **Asked:** look into two more bugs seen while recording the walkthrough, fix only what has a clear, testable cause, and say where production's 30-second limit is set. No code was changed for any of the three.
+- **Common ground:** the app has no working day. A project is a name and two dates, `TimelineConfig` holds view settings, and weekends are only shaded in the drawing. The one time-of-day convention is "a day with no time means 09:00".
+- **Critical path ignores working hours:**
+  - `CriticalPath` measures slack in calendar time (DECISIONS, Critical path), so a night between two linked 09:00–17:00 tasks counts as 16 hours of slack and only the last task is critical.
+  - Proposed, not built: convert each task's start and end to working time before the existing calculation. Where working time comes from is your decision: fixed for now (09:00–17:00, Monday to Friday), inferred from the project's own tasks, or a setting per project.
+  - Worked through by hand for the walkthrough's schedule: Train staff ends Wed 25 17:00 and the Soft opening is Fri 27 09:00, with Thursday free. In working time every task of the chain could still slip 8 hours, so only the milestone would be critical there even after a fix.
+- **Clash-free alternatives are sometimes odd:**
+  - The model chooses them, by the "alternative" rules in `OpenAiInterpreter`. The app (`InterpretRequest.alternative`) takes any that is valid, clash-free and not the same change. The server checks only their shape.
+  - Seen in the recordings: a three-day task moved out of the way of a one-day one; three tasks moved for one clash, one to a Sunday; a tasting offered at 06:00–09:00.
+  - Causes: the first rule says to keep the day the user named and move the other tasks; only the model is asked to change as few tasks as possible; nothing knows working hours.
+  - No single testable cause, so nothing was changed. A rule change needs the real model to verify, and a stricter check in the app changes "the model suggests, the app checks" (DECISIONS, Voice editing).
+- **The server's time limit:**
+  - `max_execution_time` is not set in `server/docker/php/production.ini`, so PHP's default of 30 seconds applies.
+  - Checked in a throwaway container of the production base image with that file mounted: the setting read 30, and a request that only waited 35 s was stopped at 30.1 s ("Maximum execution time of 30 seconds exceeded"). The container was removed.
+  - An import can wait up to 70 s (Meta 40 s, then OpenAI 30 s). CloudFront's origin read timeout is 60 s (`chronova-stack.ts`), and the load balancer's idle timeout is AWS's default, also 60 s. The app's import call already waits 90 s.
+- **Not done:** nothing was run against the real providers or on the phone.
