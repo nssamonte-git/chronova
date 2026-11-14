@@ -84,3 +84,35 @@ fun ImportNotASchedule() = Sheet(ImportSheetUi.Problem(ImportProblemUi.NotASched
 @ChronovaScreenshots
 @Composable
 fun ImportDone() = Sheet(ImportSheetUi.Done(ImportDoneUi("p9", "Project Timeline", 9, newProject = true)))
+
+/**
+ * A whiteboard read with five things to check, on a phone-sized sheet: the warnings scroll with the
+ * rows and the button stays on screen (it was pushed off a 720 × 1600 phone before).
+ */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun ImportPreviewManyWarnings() = Sheet(
+    ImportSheetUi.Preview(
+        ImportPreviewUi(
+            newProject = false, projectName = "Cafe Opening", projectStart = monday, projectEnd = monday.plusDays(11),
+            relative = false, start = monday,
+            rows = listOf(
+                row("t1", "DESIGN", 0, 1),
+                row("t2", "BUILD", 2, 5, links = 1),
+                row("t3", "EQUIPMENT INSTALL", 3, 3, links = 1),
+                row("t4", "HIRE STAFF", 0, 2),
+                row("t5", "TRAIN STAFF", 9, 9, links = 2),
+                row("t6", "MENU TASTING", 10, 10),
+                row("m1", "SOFT OPENING", 11, 11, links = 2, milestone = true),
+            ),
+            uncertain = listOf(
+                "Year inferred as 2026 from the open project and today.",
+                "BUILD and HIRE STAFF measurements differ from the seen bar ends; measurements used.",
+                "EQUIPMENT INSTALL text date overrides its bar.",
+                "TRAIN STAFF and MENU TASTING measurements appear shifted; seen dates used.",
+                "SOFT OPENING milestone position falls outside the axis; seen date used.",
+            ),
+        ),
+    ),
+)

@@ -6,6 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
+import noel.chronova.core.designsystem.ChronovaSpacing
 import noel.chronova.core.designsystem.numeric
 import noel.chronova.core.ui.R as CoreUiR
 import noel.chronova.core.ui.TimeFormat
@@ -130,7 +132,7 @@ fun ImportSheetContent(state: ImportSheetUi, actions: ImportActions) {
 }
 
 @Composable
-private fun ImportSheetBody(state: ImportSheetUi, actions: ImportActions) {
+private fun ColumnScope.ImportSheetBody(state: ImportSheetUi, actions: ImportActions) {
     when (state) {
         is ImportSheetUi.Choose -> Choose(state, actions)
         ImportSheetUi.Reading -> Reading(actions)
@@ -190,7 +192,7 @@ private fun Reading(actions: ImportActions) {
 }
 
 @Composable
-private fun Preview(preview: ImportPreviewUi, actions: ImportActions) {
+private fun ColumnScope.Preview(preview: ImportPreviewUi, actions: ImportActions) {
     var pickingStart by rememberSaveable { mutableStateOf(false) }
     var pickingDays by rememberSaveable { mutableStateOf(false) }
 
@@ -211,13 +213,22 @@ private fun Preview(preview: ImportPreviewUi, actions: ImportActions) {
     } else if (preview.newProject) {
         LabelledChange(stringResource(R.string.import_project_days, TimeFormat.dateRange(preview.projectStart, preview.projectEnd))) { pickingDays = true }
     }
-    if (preview.uncertain.isNotEmpty()) {
-        // Things the reader wasn't sure of: a warning, not an error, and not the accent colour.
-        InlineBanner(text = "", kind = BannerKind.Warning, title = stringResource(R.string.import_check_these)) {
-            preview.uncertain.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+    // The warnings scroll with the rows, and together they take only the room that is left, so the
+    // button below always stays on screen (seen on a 720 × 1600 phone: five warnings pushed it off).
+    LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 440.dp)) {
+        if (preview.uncertain.isNotEmpty()) {
+            item(key = "check-these") {
+                // Things the reader wasn't sure of: a warning, not an error, and not the accent colour.
+                InlineBanner(
+                    text = "",
+                    kind = BannerKind.Warning,
+                    title = stringResource(R.string.import_check_these),
+                    modifier = Modifier.padding(bottom = ChronovaSpacing.s),
+                ) {
+                    preview.uncertain.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                }
+            }
         }
-    }
-    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
         items(preview.rows, key = { it.ref }) { row -> TaskRow(row, onToggle = { actions.toggle(row.ref) }) }
     }
     preview.problem?.let { problem ->

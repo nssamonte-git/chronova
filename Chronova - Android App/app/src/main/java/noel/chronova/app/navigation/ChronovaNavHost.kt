@@ -16,6 +16,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import android.os.Build
 import android.Manifest
 import noel.chronova.feature.assistant.presentation.AppRequestUi
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -170,8 +171,10 @@ private fun ChronovaScreens(
         composable<ProjectListRoute> {
             // The project being exported (its sheet); kept across rotation.
             var exportId by rememberSaveable { mutableStateOf<String?>(null) }
-            // An open import sheet (a new project from an image), numbered so each opening starts afresh.
+            // An open import sheet (a new project from an image), numbered so each opening starts afresh:
+            // the count only goes up, so a closed sheet's number (and its ViewModel) is never reused.
             var importing by rememberSaveable { mutableStateOf<Int?>(null) }
+            var importOpenings by rememberSaveable { mutableIntStateOf(0) }
             var exportName by rememberSaveable { mutableStateOf("") }
             // The assistant on the list of projects: where to go (no project is open here).
             val assistant: AssistantViewModel = viewModel(
@@ -192,7 +195,7 @@ private fun ChronovaScreens(
                     exportId = id
                     exportName = name
                 },
-                onImportImage = { importing = (importing ?: 0) + 1 },
+                onImportImage = { importing = ++importOpenings },
             )
             importing?.let { session ->
                 ImportSheetHost(container, projectId = null, session = session, onDismiss = { importing = null }) { id ->
@@ -225,13 +228,15 @@ private fun ChronovaScreens(
                 factory = AssistantViewModel.factory(route.projectId, container.assistant::useCases, container.assistant.phrases),
             )
             AssistantRequests(assistant, doRequest)
+            // As on the list: each opening of the import sheet gets a number never used before.
             var importing by rememberSaveable { mutableStateOf<Int?>(null) }
+            var importOpenings by rememberSaveable { mutableIntStateOf(0) }
             ProjectTimelineScreen(
                 viewModel = viewModel(factory = ProjectTimelineViewModel.factory(route.projectId, container.timeline::useCases)),
                 // The timeline knows the assistant only through this slot.
                 assistant = rememberAssistantSlot(assistant),
                 onBack = { navController.popBackStack(ProjectListRoute, inclusive = false) },
-                onImportImage = { importing = (importing ?: 0) + 1 },
+                onImportImage = { importing = ++importOpenings },
             )
             importing?.let { session ->
                 ImportSheetHost(container, projectId = route.projectId, session = session, onDismiss = { importing = null }) {}

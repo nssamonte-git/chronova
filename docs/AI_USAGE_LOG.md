@@ -1850,3 +1850,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Server: five in `VoiceTranscribeTest` (the cleaned audio is what's transcribed; fallback on an error or an empty answer; short recordings skip it; off unless switched on).
   - Results: `tools/check.sh` passed (485 unit tests, 171 screenshots, lint 0 errors, both architecture checks). Server: 487 tests and lint pass.
 - **On the phone:** a debug build of this change was installed over the app (`local.properties` restored byte for byte). With noise removal on, "Add Design on Monday and Tuesday, Build from Wednesday to Friday, and Equipment install on the 23rd and 24th", played from the Mac speaker, ended its turn after 10.7 s of audio. The three tasks were proposed, and applied on "yes".
+
+### Import sheet: the button stays on screen, and each opening starts afresh
+
+- **Found while:** recording the walkthrough on the phone (OPPO, 720 × 1600, normal text size).
+- **Bug 1, the button off screen:** reading a whiteboard image gave five "Check these" notes. The notes, then a list capped at 360 dp, then the "Add N tasks" button were stacked in a sheet column that doesn't scroll, so the button was pushed below the screen and couldn't be tapped. In an earlier read with four notes, 4 px of it showed.
+  - **Fix:** the notes are now the first item of the scrolling list. The list takes only the room that is left (`weight(1f, fill = false)`, at most 440 dp), so the button always stays on screen.
+- **Bug 2, a stale sheet:** after an import, opening "Add tasks from an image" again showed the previous "Tasks added" result. Each opening is meant to get its own ViewModel, keyed by a session number, but closing the sheet set the number to null and the next opening counted from 1 again, reusing the old ViewModel.
+  - **Fix:** a count that only goes up (`importOpenings`), on the project list and on the timeline.
+- **Tests:** a new screenshot, `ImportPreviewManyWarnings` (the five real notes, seven rows), in light, dark and 1.5× text: the button is on screen in all three. The `ImportPreviewNewProject` screenshots were updated for the gap under the notes; checked by eye. Bug 2 has no automated test, as it lives in the navigation host; checked on the phone.
+- **Results:** `tools/check.sh` passed (485 unit tests, 174 screenshots, lint 0 errors, both architecture checks).
