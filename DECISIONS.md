@@ -99,6 +99,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 
 - Decision: CloudFront (default domain, HTTPS) → CloudFront VPC origin → internal ALB → ECS Fargate (ARM64) web + jobs; RDS Postgres in isolated subnets; no NAT gateway (tasks in public subnets, ingress only from the ALB); Secrets Manager for APP_KEY and DB credentials; SES via the task role; ECS Exec only on the jobs service (for `chronova:create-staff`). Voice provider keys live in a `VoiceKeys` secret (created empty, filled by hand) given only to the web container; voice is off unless deployed with `-c voice=on`, and deploying with it off is the kill switch.
 - Reason: no domain needed, no way to bypass CloudFront (so `CloudFront-Viewer-Address` is trustworthy for rate limits), lowest fixed cost; provider keys never in code, the template or other containers.
+- Revised 2026-11-14 (user choices for the first deploy): the `prod` stage straight away, in ap-southeast-1 (Singapore), starting with an empty database (nothing copied from the local server), Docker images as before. Mail comes from the user's own domain: `-c mailIdentity=domain` verifies the whole domain in SES with Easy DKIM (three CNAME records, printed as stack outputs and added by hand at the domain's DNS host, which is not Route 53) and limits sending to that domain; without it, SES still verifies the single address by email.
 
 ## 2026-11-12: One apply path for schedule changes
 

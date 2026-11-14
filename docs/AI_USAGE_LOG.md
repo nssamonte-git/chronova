@@ -2012,3 +2012,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Learn/04-validation.md:** baselines from 483 / 171 / 480 to 515 / 180 / 507.
 - **CURRENT_TASK.md** (local only, not committed): today's fixes, the new baselines, next steps (check the fixes with the real providers, the device tests and on the phone, with approval), and the phone's state. The phone is signed in to the walkthrough's demo account, with a build of `d3ae557`.
 - Documentation only: no build or test run for this entry.
+
+### AWS: ready to deploy, and mail from your own domain
+
+- **Your request:** prepare putting the server on AWS, plan the move and guide you through it. Your choices: the `prod` stage straight away, Singapore (ap-southeast-1), an empty database, mail from your own domain (DNS not on Route 53), Docker images as before.
+- **Readiness checked (nothing deployed):** the infra's packages were not installed on this Mac; `npm ci` installed them from the lock file (no new dependencies). Infra type-check, 22 tests and synth passed. Server 507 tests and lint passed. The production image built for ARM64 locally; it holds no `.env`, Firebase key or tests and runs as `www-data`. Started in the web role against the local Postgres, it answered `/up` and `/admin/login` with 200.
+- **Gap found:** the stack verified the sender as a single SES email address, which needs someone to click a link sent to it; a `no-reply@` address on your domain has no reader.
+- **Fix:** `-c mailIdentity=domain` verifies the whole domain of `mailFrom` with Easy DKIM, prints the three CNAME records as stack outputs (`DkimRecord1`–`3`), and lets the containers send only from that domain. Without it, nothing changes.
+- **Tests:** a new infra test (domain identity, sending limited to the domain, three DKIM outputs only in domain mode). Its first version failed because it used a wildcard `findOutputs` does not support; the stack itself was right (the prod synth showed the records). Infra now 23 tests; synth passes for the default and for `-c stage=prod -c mailIdentity=domain` in ap-southeast-1.
+- **Docs:** DEPLOY.md ("Sending from your own domain": DKIM records, a DMARC record, SES production access), DECISIONS (AWS shape, revised), HANDOFF and `Learn/04-validation.md` (22 → 23 infra tests).
+- **Not done:** the AWS CLI and Session Manager plugin are not installed on this Mac; no AWS profile; nothing deployed.

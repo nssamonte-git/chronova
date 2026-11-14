@@ -106,6 +106,20 @@ describe('containers', () => {
     }
   });
 
+  it('can verify the sender\'s whole domain with DKIM, and then sends only from that domain', () => {
+    const stack = new ChronovaStack(new App(), 'Test-domain', { stage: 'prod', mailFrom: 'no-reply@example.com', mailDomain: true });
+    const template = Template.fromStack(stack);
+    template.hasResourceProperties('AWS::SES::EmailIdentity', { EmailIdentity: 'example.com' });
+    const statements = Object.values(template.findResources('AWS::IAM::Policy'))
+      .flatMap((r) => r.Properties.PolicyDocument.Statement as Array<Record<string, any>>)
+      .filter((s) => [s.Action].flat().some((a: string) => a.startsWith('ses:')));
+    expect(statements.length).toBeGreaterThan(0);
+    for (const statement of statements) expect(JSON.stringify(statement.Resource)).toMatch(/identity\/example\.com"/);
+    const dkimOutputs = (t: Template) => Object.keys(t.findOutputs('*')).filter((id) => id.startsWith('DkimRecord'));
+    expect(dkimOutputs(template)).toEqual(['DkimRecord1', 'DkimRecord2', 'DkimRecord3']);
+    expect(dkimOutputs(dev)).toEqual([]);
+  });
+
   it('keeps container logs for a month', () => {
     dev.allResourcesProperties('AWS::Logs::LogGroup', { RetentionInDays: 30 });
   });

@@ -10,6 +10,11 @@ if (!mailFrom || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailFrom)) {
   throw new Error('Set the sender address: -c mailFrom=no-reply@your-domain.com');
 }
 
+const mailIdentity: string = app.node.tryGetContext('mailIdentity') ?? 'address';
+if (mailIdentity !== 'address' && mailIdentity !== 'domain') {
+  throw new Error(`Invalid mailIdentity: ${mailIdentity} (use -c mailIdentity=domain or -c mailIdentity=address)`);
+}
+
 const voice: string = app.node.tryGetContext('voice') ?? 'off';
 if (voice !== 'on' && voice !== 'off') throw new Error(`Invalid voice: ${voice} (use -c voice=on or -c voice=off)`);
 const push: string = app.node.tryGetContext('push') ?? 'off';
@@ -20,6 +25,7 @@ if (imports !== 'on' && imports !== 'off') throw new Error(`Invalid import: ${im
 new ChronovaStack(app, `Chronova-${stage}`, {
   stage,
   mailFrom,
+  mailDomain: mailIdentity === 'domain',
   voice: voice === 'on',
   push: push === 'on',
   import: imports === 'on',

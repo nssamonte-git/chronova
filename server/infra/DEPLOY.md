@@ -40,6 +40,8 @@ npx cdk deploy -c stage=dev -c mailFrom=no-reply@your-domain.com \
   [-c alarmEmail=ops@your-domain.com] --profile chronova
 ```
 
+Sending from your own domain (a `no-reply@` address nobody reads): add `-c mailIdentity=domain`, and see "Sending from your own domain" below instead of step 1.
+
 Outputs: `ApiUrl` (put it in the app's `Chronova - Android App/local.properties` as `chronova.apiUrl`), `AdminUrl`, `ClusterName`, `MigrateTaskDefinition`, `TaskSubnets`, `TaskSecurityGroup`, `JobsService`, `PushKeySecret`, `VoiceKeysSecret`.
 
 1. **Verify the sender**: SES emails `mailFrom` a verification link — click it. New accounts start in the SES *sandbox* (mail only to verified addresses); request production access in the SES console before real users sign up.
@@ -61,6 +63,16 @@ Outputs: `ApiUrl` (put it in the app's `Chronova - Android App/local.properties`
 
    Then open `AdminUrl`, sign in, and enrol an authenticator app.
 4. **Smoke test**: `curl -fsS <ApiUrl>/up`, sign up from the app, confirm the code arrives, sync.
+
+## Sending from your own domain
+
+With `-c mailIdentity=domain`, SES verifies the whole domain of `mailFrom` with Easy DKIM instead of emailing the address a link, and the containers may send only from that domain.
+
+1. **Add the DKIM records**: the deploy prints `DkimRecord1`–`DkimRecord3`, each `<name> CNAME <value>`. Add them as CNAME records at the domain's DNS host (some hosts want the name without the domain at the end). SES checks for a few days; the domain shows *Verified* in the SES console once they resolve, usually within an hour.
+2. **Add a DMARC record** if the domain has none, so mailbox providers trust the DKIM signature: a TXT record `_dmarc.<domain>` with `v=DMARC1; p=none;` to start.
+3. **Request production access** (First deploy, step 1): a verified domain still starts in the SES sandbox.
+
+`cdk deploy` doesn't wait for this: the stack finishes while the domain is still pending, and mail fails until it is verified.
 
 ## Voice editing
 

@@ -22,6 +22,12 @@ export interface ChronovaStackProps extends StackProps {
   readonly stage: string;
   /** Address the app sends verification emails from; SES emails it a verification link on first deploy. */
   readonly mailFrom: string;
+  /**
+   * Verify the whole domain of `mailFrom` with DKIM (three CNAME records, printed as outputs) instead of
+   * the single address. Needed when nobody reads that mailbox (no-reply@…). Off: SES emails the address
+   * a verification link.
+   */
+  readonly mailDomain?: boolean;
   /** Optional: where alarm notifications go. */
   readonly alarmEmail?: string;
   /** Build context of the server image (the Laravel app). Defaults to ../ (server/). */
@@ -132,7 +138,11 @@ export class ChronovaStack extends Stack {
     const pushOn = props.push ?? false;
 
     // --- Email (SES) ----------------------------------------------------------------
-    const mailIdentity = new ses.EmailIdentity(this, 'MailFrom', { identity: ses.Identity.email(props.mailFrom) });
+    // A domain identity signs mail with Easy DKIM once its three CNAME records are in the domain's DNS.
+    const mailIdentityName = props.mailDomain ? props.mailFrom.split('@')[1] : props.mailFrom;
+    const mailIdentity = new ses.EmailIdentity(this, 'MailFrom', {
+      identity: props.mailDomain ? ses.Identity.domain(mailIdentityName) : ses.Identity.email(mailIdentityName),
+    });
 
     // --- Containers -----------------------------------------------------------------
     const cluster = new ecs.Cluster(this, 'Cluster', { vpc, containerInsightsV2: ecs.ContainerInsights.DISABLED });
@@ -192,7 +202,7 @@ export class ChronovaStack extends Stack {
 
     const sendMail = new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/${props.mailFrom}`],
+      resources: [`arn:${this.partition}:ses:${this.region}:${this.account}:identity/${mailIdentityName}`],
     });
 
     const taskDefinition = (id: string, cpu: number, memoryLimitMiB: number) =>
@@ -360,6 +370,12 @@ export class ChronovaStack extends Stack {
     new CfnOutput(this, 'TaskSubnets', { value: vpc.publicSubnets.map((s) => s.subnetId).join(',') });
     new CfnOutput(this, 'TaskSecurityGroup', { value: serviceSecurityGroup.securityGroupId });
     new CfnOutput(this, 'MailIdentity', { value: mailIdentity.emailIdentityName });
+    if (props.mailDomain) {
+      // The records to add at the domain's DNS host (CNAME name → value); SES verifies the domain once they resolve.
+      mailIdentity.dkimRecords.forEach((record, i) =>
+        new CfnOutput(this, `DkimRecord${i + 1}`, { value: `${record.name} CNAME ${record.value}`, description: 'Add to the sending domain\'s DNS' }),
+      );
+    }
     new CfnOutput(this, 'JobsService', { value: jobs.serviceName });
     new CfnOutput(this, 'PushKeySecret', { value: pushKey.secretName, description: 'Put the Firebase service-account JSON here (DEPLOY.md)' });
     new CfnOutput(this, 'VoiceKeysSecret', { value: voiceKeys.secretName, description: 'Put the OpenAI and ElevenLabs keys here (DEPLOY.md)' });
