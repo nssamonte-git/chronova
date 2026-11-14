@@ -2144,3 +2144,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Done:** removed from the take-home PDF (the AWS page's lede and heading, which also gave the region code, and the AWS tile on the features page) and from the README (the intro's AWS line and the live-EC2 decision). Neither file mentions the city or region code now; the PDF re-rendered (18 pages) and the AWS page looked at.
 - **Left as they are:** `HANDOFF.md`, `CURRENT_TASK.md`, `DECISIONS.md`, `server/infra/EC2.md` and `DEPLOY.md` still name the region (the runbook's deploy command needs the region code), and earlier entries in this log keep their wording.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: features moved next to the timeline
+
+- **Your request:** move "Everything Chronova does beyond the take-home" next to "How the timeline works".
+- **Done:** both feature pages now follow page 3 (they are pages 4 and 5); architecture, modules, voice, running and testing move up to pages 6–10, and AWS stays on page 11. The running page's pointer now says pages 4 and 5; the "(page 11)" references to AWS still hold. Re-rendered: 18 pages, footers 1–18 of 18, order checked from the PDF text.
+- Documentation only: no build or test run for this entry.
