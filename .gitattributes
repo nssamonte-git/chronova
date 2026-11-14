@@ -1,0 +1,8 @@
+# Line endings that work on every computer. Without these, git on Windows can turn the
+# shell scripts' line endings into CRLF, and `./gradlew`, `tools/check.sh` or the server's
+# Docker entrypoint then fail with "bad interpreter" (Git Bash, WSL, Docker).
+gradlew   text eol=lf
+*.sh      text eol=lf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.jar     binary

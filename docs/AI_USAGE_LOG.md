@@ -2315,3 +2315,17 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Checked the guide against GitHub:** a fresh `git clone https://github.com/nssamonte-git/chronova.git` (at `4eb9481`) into an empty folder, then `./gradlew :app:assembleDebug` with only `ANDROID_HOME` set. It built (security gate PASS), the APK is at the path the guide gives, and it points at the live server. Not checked: the Android Studio menu names in the newest Studio release, and a Windows build.
 - **Rendered and checked:** 21 pages, footers 1–21 of 21, page order and both page references from the PDF text, fonts embedded. The first render cut off the last table row on page 2, so the page was tightened. Cover and page 2 looked at in poppler and in macOS's renderer.
 - Documentation only: no app code changed.
+
+### Line endings for every computer, and a troubleshooting page
+
+- **Your request:** add the `.gitattributes` and a troubleshooting page, so the setup works on any computer.
+- **`.gitattributes` (repository root):** `gradlew` and `*.sh` always LF, `*.bat` and `*.cmd` always CRLF, `*.jar` binary (the rules Gradle generates). Before it, git on Windows could check the shell scripts out with CRLF, and `./gradlew`, `tools/check.sh` and the server's Docker entrypoint would fail with "bad interpreter". Every script in the repository was already stored as LF, so `git add --renormalize` changed no file; `git check-attr` confirms the rules apply. (`--renormalize .` also staged the uncommitted `.idea/` changes by mistake; I unstaged them before committing, and the files on disk were untouched.)
+- **New page 3, "If something goes wrong":** causes and fixes grouped by step.
+  - Building: SDK location, Java version, an old Android Studio, downloads behind a proxy, `gradlew` permission after the ZIP, CRLF line endings, Windows path length, memory, stale caches, the security gate.
+  - Installing: phone not found or unauthorized, `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (each computer's debug key differs; uninstalling deletes the app's data on that phone), `INSTALL_FAILED_OLDER_SDK`, a slow emulator, release signing.
+  - Signing in: "Too many attempts" (the server's rate limits), "Can't connect", a sign-up code that never arrives.
+
+  The error texts match the app's strings.
+- **Page 2:** its checks table became a tile pointing to page 3 (it also says `check.sh` runs in Git Bash or WSL on Windows). The PDF is 22 pages; the AWS reference now says page 13, and page 2 points to page 15 for how the app talks to the server.
+- **Rendered and checked:** the first render ran past the bottom of page 3 and the key columns differed between tables, so the wording was tightened and the column fixed. Footers 1–22 of 22, page order and references from the PDF text, fonts embedded; pages 2 and 3 looked at in poppler and in macOS's renderer. README's descriptions of the PDF mention the troubleshooting.
+- **Not checked:** the fixes on Windows itself, or with a proxy.
