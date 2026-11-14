@@ -11,7 +11,7 @@ class SignupsChart extends ChartWidget
 
     protected ?string $heading = 'Sign-ups per day';
 
-    protected ?string $description = 'Last 30 days, UTC';
+    protected ?string $description = 'Last 30 days, Philippine time';
 
     protected function getData(): array
     {

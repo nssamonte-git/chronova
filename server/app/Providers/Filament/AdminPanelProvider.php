@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\StaffLogin;
+use App\Http\Middleware\EnsureStaffMultiFactorAuthentication;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -53,11 +55,11 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(true, isForced: true)
             // Staff only: a separate guard and table from app users.
             ->authGuard('staff')
-            ->login()
-            // Every staff member must enrol an authenticator app before using the panel.
+            ->login(StaffLogin::class)
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable()->brandName('Chronova Admin'),
             ], isRequired: true)
+            ->multiFactorAuthenticationRequiredMiddlewareName(EnsureStaffMultiFactorAuthentication::class)
             ->colors([
                 // From the logo: cyan stroke, sky/blue middle, teal glow; grays tinted to its navy.
                 'primary' => Color::generatePalette('#00f9fb'),
@@ -87,6 +89,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+                EnsureStaffMultiFactorAuthentication::class,
+            ], isPersistent: true);
     }
 }

@@ -94,6 +94,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Decision: replace the (never deployed) AWS serverless backend (Cognito, HTTP API, Lambda, DynamoDB; kept at git tag `serverless-backend-v1`) with a Laravel 13 app in `server/`: Postgres, Sanctum tokens, Filament 5 admin, hosted on ECS Fargate + RDS in the user's AWS account. The `/v1/sync` contract (`docs/sync-protocol.md`) is unchanged.
 - Reason: the user wants an admin back-office (user management, health dashboard, staff roles + MFA + audit log, audited support data access) and the data is relational; cross-user reporting on DynamoDB would need extra pipelines.
 - Trade-off: a database and containers that run all the time (≈ $60–70/month for dev on AWS, see DEPLOY.md) and auth flows that are now ours to secure.
+- Revised 2026-11-14 (user request). Staff need 2FA by default. An admin can disable or restore the requirement for another staff member, with both changes audited. The admin panel and server scheduler use Philippine time. Stored timestamps use UTC.
 
 ## 2026-11-12: AWS shape
 

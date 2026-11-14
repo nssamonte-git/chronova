@@ -26,6 +26,7 @@ use App\Voice\Speaker;
 use App\Voice\Transcriber;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Http\Request;
@@ -89,6 +90,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // The admin panel's Chronova look; `php artisan filament:assets` publishes it to public/css/app.
         FilamentAsset::register([Css::make('chronova-admin', resource_path('css/admin-theme.css'))]);
+        FilamentTimezone::set(config('app.admin_timezone'));
 
         if (config('app.behind_cloudfront')) {
             URL::forceScheme('https');

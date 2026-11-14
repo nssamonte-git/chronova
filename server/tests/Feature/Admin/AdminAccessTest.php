@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Auth\StaffLogin;
 use App\Filament\Resources\Staff\Pages\CreateStaff;
 use App\Filament\Resources\Staff\Pages\EditStaff;
 use App\Filament\Resources\Staff\Pages\ListStaff;
@@ -30,6 +31,69 @@ describe('panel access', function () {
 
     it('lets enrolled staff in', function () {
         $this->actingAs(staffMember(), 'staff')->get('/admin')->assertOk();
+    });
+
+    it('lets staff with an exemption sign in with their password', function (bool $enrolled) {
+        $staff = $enrolled ? staffMember() : Staff::factory()->create();
+        $staff->forceFill(['mfa_required' => false])->save();
+
+        Livewire::test(StaffLogin::class)
+            ->fillForm(['email' => $staff->email, 'password' => 'Staff-password-1'])
+            ->call('authenticate')
+            ->assertRedirect('/admin');
+
+        $this->assertAuthenticatedAs($staff, 'staff');
+        $this->get('/admin')->assertOk();
+        $this->get('/admin/multi-factor-authentication/set-up')->assertRedirect('/admin');
+    })->with([false, true]);
+
+    it('requires the authenticator step on login for enrolled staff without an exemption', function () {
+        $staff = staffMember();
+
+        $login = Livewire::test(StaffLogin::class)
+            ->fillForm(['email' => $staff->email, 'password' => 'Staff-password-1'])
+            ->call('authenticate')
+            ->assertNoRedirect();
+
+        $this->assertGuest('staff');
+
+        $code = Filament::getMultiFactorAuthenticationProviders()['app']->getCurrentCode($staff);
+        $login->set('data.multiFactor.app.code', $code)
+            ->call('authenticate')
+            ->assertRedirect('/admin');
+
+        $this->assertAuthenticatedAs($staff, 'staff');
+    });
+
+    it('still denies password sign-in for disabled staff and invalid passwords', function () {
+        $staff = Staff::factory()->create(['mfa_required' => false, 'disabled_at' => now()]);
+
+        Livewire::test(StaffLogin::class)
+            ->fillForm(['email' => $staff->email, 'password' => 'Staff-password-1'])
+            ->call('authenticate')
+            ->assertHasFormErrors(['email']);
+
+        $staff->forceFill(['disabled_at' => null])->save();
+
+        Livewire::test(StaffLogin::class)
+            ->fillForm(['email' => $staff->email, 'password' => 'Wrong-password-1'])
+            ->call('authenticate')
+            ->assertHasFormErrors(['email']);
+
+        $this->assertGuest('staff');
+    });
+
+    it('ends a password-only session when the account requires 2FA again', function () {
+        $staff = staffMember(attributes: ['mfa_required' => false]);
+        Livewire::test(StaffLogin::class)
+            ->fillForm(['email' => $staff->email, 'password' => 'Staff-password-1'])
+            ->call('authenticate')
+            ->assertRedirect('/admin');
+
+        $staff->forceFill(['mfa_required' => true])->save();
+
+        $this->actingAs($staff, 'staff')->get('/admin')->assertRedirect('/admin/login');
+        $this->assertGuest('staff');
     });
 
     it('shuts out disabled staff', function () {
@@ -73,6 +137,7 @@ describe('managing staff', function () {
         $sam = Staff::where('email', 'sam@example.com')->sole();
         expect(Hash::check('Long-password-123', $sam->password))->toBeTrue()
             ->and($sam->hasMfa())->toBeFalse()
+            ->and($sam->requiresMfa())->toBeTrue()
             ->and(AuditLog::sole()->only(['staff_id', 'action']))->toBe(['staff_id' => $admin->id, 'action' => 'staff.created']);
     });
 
@@ -102,7 +167,47 @@ describe('managing staff', function () {
     it('does not let admins edit or disable themselves', function () {
         $admin = staffMember(Staff::ROLE_ADMIN);
         $this->actingAs($admin, 'staff')->get("/admin/staff/{$admin->id}/edit")->assertForbidden();
-        Livewire::test(ListStaff::class)->assertActionHidden(TestAction::make('disable')->table($admin));
+        Livewire::test(ListStaff::class)
+            ->assertActionHidden(TestAction::make('disable')->table($admin))
+            ->assertActionHidden(TestAction::make('disableMfa')->table($admin))
+            ->mountAction(TestAction::make('disableMfa')->table($admin))
+            ->call('callMountedAction');
+        expect($admin->fresh()->requiresMfa())->toBeTrue()->and(AuditLog::count())->toBe(0);
+    });
+
+    it('lets admins turn off and restore 2FA for one staff member and audits both changes', function () {
+        $admin = staffMember(Staff::ROLE_ADMIN);
+        $sam = staffMember();
+        $secret = $sam->getAppAuthenticationSecret();
+        $sam->saveAppAuthenticationRecoveryCodes(['test-recovery-code']);
+        $oldToken = $sam->getRememberToken();
+        $this->actingAs($admin, 'staff');
+
+        Livewire::test(ListStaff::class)
+            ->assertActionVisible(TestAction::make('disableMfa')->table($sam))
+            ->callAction(TestAction::make('disableMfa')->table($sam));
+        $sam->refresh();
+        expect($sam->requiresMfa())->toBeFalse()
+            ->and($sam->getRememberToken())->not->toBe($oldToken)
+            ->and($sam->getAppAuthenticationSecret())->toBeNull()
+            ->and($admin->fresh()->requiresMfa())->toBeTrue();
+
+        Livewire::test(ListStaff::class)
+            ->assertActionHidden(TestAction::make('resetMfa')->table($sam))
+            ->assertActionVisible(TestAction::make('requireMfa')->table($sam))
+            ->callAction(TestAction::make('requireMfa')->table($sam));
+        $sam->refresh();
+        expect($sam->requiresMfa())->toBeTrue()
+            ->and($sam->getAppAuthenticationSecret())->toBe($secret)
+            ->and($sam->getAppAuthenticationRecoveryCodes())->toBe(['test-recovery-code']);
+
+        $events = AuditLog::orderBy('id')->get();
+        expect($events->pluck('action')->all())->toBe(['staff.mfa_requirement_changed', 'staff.mfa_requirement_changed'])
+            ->and($events->pluck('staff_id')->all())->toBe([$admin->id, $admin->id])
+            ->and($events->pluck('details')->all())->toBe([
+                ['staff_id' => $sam->id, 'mfa_required' => false],
+                ['staff_id' => $sam->id, 'mfa_required' => true],
+            ]);
     });
 
     it('audits which fields changed on edit', function () {

@@ -57,7 +57,7 @@ class UserData extends Page
             ->where('user_id', $this->record->getKey())
             ->max('expires_at');
 
-        return $this->record->email.' · access ends at '.Carbon::parse($expires)->format('H:i').' UTC';
+        return $this->record->email.' · access ends at '.Carbon::parse($expires)->setTimezone(config('app.admin_timezone'))->format('H:i').' (PH time)';
     }
 
     protected function getHeaderActions(): array
@@ -110,9 +110,10 @@ class UserData extends Page
 
     private function taskLine(Task $task): string
     {
-        $start = Carbon::createFromTimestampMs($task->start_millis, 'UTC');
-        $end = Carbon::createFromTimestampMs($task->end_millis, 'UTC');
+        $timezone = config('app.admin_timezone');
+        $start = Carbon::createFromTimestampMs($task->start_millis, $timezone);
+        $end = Carbon::createFromTimestampMs($task->end_millis, $timezone);
 
-        return sprintf('%s — %s → %s UTC', $task->title, $start->format('D j M H:i'), $end->format('D j M H:i'));
+        return sprintf('%s — %s → %s (PH time)', $task->title, $start->format('D j M H:i'), $end->format('D j M H:i'));
     }
 }

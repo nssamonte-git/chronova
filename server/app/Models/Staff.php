@@ -17,7 +17,7 @@ use SensitiveParameter;
 /**
  * Someone who uses the admin panel (separate guard from app users).
  * Support staff handle users; admins can also delete users and manage staff.
- * Every staff member must set up an authenticator app (MFA) before using the panel.
+ * Staff must set up an authenticator app unless an admin grants an exemption.
  */
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
@@ -39,6 +39,7 @@ class Staff extends Authenticatable implements FilamentUser, HasAppAuthenticatio
         return [
             'disabled_at' => 'datetime',
             'password' => 'hashed',
+            'mfa_required' => 'boolean',
             'app_authentication_secret' => 'encrypted',
             'app_authentication_recovery_codes' => 'encrypted:array',
         ];
@@ -69,9 +70,14 @@ class Staff extends Authenticatable implements FilamentUser, HasAppAuthenticatio
         return filled($this->app_authentication_secret);
     }
 
+    public function requiresMfa(): bool
+    {
+        return $this->mfa_required ?? true;
+    }
+
     public function getAppAuthenticationSecret(): ?string
     {
-        return $this->app_authentication_secret;
+        return $this->requiresMfa() ? $this->app_authentication_secret : null;
     }
 
     public function saveAppAuthenticationSecret(#[SensitiveParameter] ?string $secret): void

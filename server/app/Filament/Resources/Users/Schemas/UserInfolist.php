@@ -32,9 +32,9 @@ class UserInfolist
                         ->badge()
                         ->state(fn (User $record) => $record->isDisabled() ? 'Disabled' : 'Active')
                         ->color(fn (string $state) => $state === 'Disabled' ? 'danger' : 'success'),
-                    TextEntry::make('created_at')->label('Joined (UTC)')->dateTime(),
-                    TextEntry::make('email_verified_at')->label('Email confirmed (UTC)')->dateTime()->placeholder('Not confirmed'),
-                    TextEntry::make('last_synced_at')->label('Last sync (UTC)')->dateTime()->placeholder('Never'),
+                    TextEntry::make('created_at')->label('Joined (PH time)')->dateTime(),
+                    TextEntry::make('email_verified_at')->label('Email confirmed (PH time)')->dateTime()->placeholder('Not confirmed'),
+                    TextEntry::make('last_synced_at')->label('Last sync (PH time)')->dateTime()->placeholder('Never'),
                 ]),
                 Section::make('Synced data')->description('Counts only.')->gridContainer()->columns(self::COUNT_COLUMNS)->schema([
                     TextEntry::make('live_projects_count')->label('Projects')->numeric(),
@@ -42,7 +42,7 @@ class UserInfolist
                     TextEntry::make('live_links_count')->label('Dependencies')->numeric(),
                     TextEntry::make('devices_count')->label('Signed-in devices')->numeric(),
                 ]),
-                Section::make('Recent syncs')->description('Last 10 requests, in UTC.')->schema([
+                Section::make('Recent syncs')->description('Last 10 requests, Philippine time.')->schema([
                     TextEntry::make('recent_syncs')
                         ->hiddenLabel()
                         ->listWithLineBreaks()
@@ -50,7 +50,7 @@ class UserInfolist
                         ->state(fn (User $record) => $record->syncEvents()->latest('id')->limit(10)->get()
                             ->map(fn ($event) => sprintf(
                                 '%s · %s · pushed %d, pulled %d, stale %d · %d ms',
-                                $event->created_at->format('M j, H:i'),
+                                $event->created_at->setTimezone(config('app.admin_timezone'))->format('M j, H:i'),
                                 $event->status === 200 ? 'OK' : "error {$event->status}",
                                 $event->pushed,
                                 $event->pulled,

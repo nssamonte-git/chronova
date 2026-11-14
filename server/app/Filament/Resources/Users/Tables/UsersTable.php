@@ -30,7 +30,7 @@ class UsersTable
                 TextColumn::make('live_tasks_count')->label('Tasks')->numeric()->sortable(),
                 TextColumn::make('devices_count')->label('Devices')->numeric(),
                 TextColumn::make('last_synced_at')->label('Last sync')->since()->placeholder('Never')->sortable(),
-                TextColumn::make('created_at')->label('Joined (UTC)')->date()->sortable(),
+                TextColumn::make('created_at')->label('Joined (PH time)')->date(timezone: config('app.admin_timezone'))->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('email_verified_at')->label('Email confirmed')->nullable(),

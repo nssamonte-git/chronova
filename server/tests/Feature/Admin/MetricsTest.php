@@ -36,12 +36,15 @@ it('counts accounts, new sign-ups and active users', function () {
     ]);
 });
 
-it('fills days without sign-ups with zero, oldest first, by UTC day', function () {
-    User::factory()->create(['created_at' => Carbon::parse('2026-11-12 00:30', 'UTC')]);
+it('fills days without sign-ups with zero and groups by Philippine midnight', function () {
+    Carbon::setTestNow(Carbon::parse('2026-11-11 17:00', 'UTC'));
+    User::factory()->create(['created_at' => Carbon::parse('2026-11-07 15:59:59', 'UTC')]);
+    User::factory()->create(['created_at' => Carbon::parse('2026-11-07 16:00:00', 'UTC')]);
+    User::factory()->create(['created_at' => Carbon::parse('2026-11-11 16:30', 'UTC')]);
     User::factory()->count(2)->create(['created_at' => Carbon::parse('2026-11-10 23:30', 'UTC')]);
 
     $series = app(Metrics::class)->signupsPerDay(5);
-    expect($series)->toBe(['2026-11-08' => 0, '2026-11-09' => 0, '2026-11-10' => 2, '2026-11-11' => 0, '2026-11-12' => 1]);
+    expect($series)->toBe(['2026-11-08' => 1, '2026-11-09' => 0, '2026-11-10' => 0, '2026-11-11' => 2, '2026-11-12' => 1]);
 });
 
 it('splits sync requests per day into OK and failed', function () {

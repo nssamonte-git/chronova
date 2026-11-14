@@ -57,7 +57,7 @@ it('shows live projects and tasks read-only, and audits every view', function ()
 
     $this->get("/admin/users/{$this->ana->id}/data")->assertOk()
         ->assertSee('Website launch')
-        ->assertSee('Design review — Mon 2 Mar 09:00 → Mon 2 Mar 11:00 UTC')
+        ->assertSee('Design review — Mon 2 Mar 17:00 → Mon 2 Mar 19:00 (PH time)')
         ->assertDontSee('Deleted thing');
     $this->get("/admin/users/{$this->ana->id}/data")->assertOk();
 

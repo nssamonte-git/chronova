@@ -11,7 +11,7 @@ class SyncRequestsChart extends ChartWidget
 
     protected ?string $heading = 'Sync requests per day';
 
-    protected ?string $description = 'Last 14 days, UTC';
+    protected ?string $description = 'Last 14 days, Philippine time';
 
     protected function getData(): array
     {

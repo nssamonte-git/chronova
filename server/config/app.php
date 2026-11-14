@@ -1,5 +1,7 @@
 <?php
 
+$localTimezone = 'Asia/Manila';
+
 return [
 
     /*
@@ -65,13 +67,14 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Database timestamps use UTC. Admin displays, daily reports, and the
+    | scheduler use Philippine time.
     |
     */
 
     'timezone' => 'UTC',
+    'admin_timezone' => $localTimezone,
+    'schedule_timezone' => $localTimezone,
 
     /*
     |--------------------------------------------------------------------------

@@ -2104,3 +2104,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** update the README.
 - **Changed:** the repository layout now lists the project AI kit that is in git (`AGENTS.md`, `HANDOFF.md`, `manifest.yaml`, `CURRENT_TASK.md`, `DECISIONS.md`, `PROJECT_CONTEXT.md`, the relationship map, `Learn/`, `scripts/`, `md-templates/`, `learning-inbox/`); both descriptions of the take-home PDF now include the features, testing and build-gate pages; the Testing table gives file and module counts and the tools for unit, screenshot and device tests (counted from the source earlier today); "AI usage" has a paragraph on how a session starts from the kit, where the kit and build gate come from, and when and how a lesson is captured.
 - Documentation only: no build or test run for this entry.
+
+### Staff 2FA exemptions and Philippine time
+
+- At the user's request, added **Disable 2FA** and **Require 2FA** to other staff members' rows. Existing and new accounts require 2FA by default. The audit log records both changes. Restoring 2FA preserves any existing authenticator enrollment and requires users with password-only sessions to sign in again.
+- Admin timestamps and daily charts use `Asia/Manila`, as does the scheduler. PostgreSQL timestamps and Laravel's timestamp handling use UTC so historical data retains its meaning.
+- The first full test run found that the temporary PostgreSQL cluster inherited the Mac's time zone and shifted an existing UTC metrics test. The suite passed after the temporary database was configured for UTC. The app now also establishes UTC on each PostgreSQL connection.
+- Final verification: `composer test` passed 513 tests on isolated PostgreSQL, `composer lint` passed, and `artisan schedule:list --timezone=Asia/Manila` showed the daily housekeeping jobs due at Philippine midnight.

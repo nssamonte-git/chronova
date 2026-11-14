@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Health numbers for the admin dashboard, from users, sync_events and voice_events
- * only (counts and timing, never content). Days are UTC. Results are cached briefly so the
+ * only (counts and timing, never content). Days use Philippine time. Results are cached briefly so the
  * dashboard stays cheap however often it's opened.
  */
 class Metrics
@@ -33,22 +33,22 @@ class Metrics
         });
     }
 
-    /** @return array<string, int> sign-ups per UTC day for the last [days] days (oldest first, zeros filled) */
+    /** @return array<string, int> sign-ups per day for the last [days] days (oldest first, zeros filled) */
     public function signupsPerDay(int $days = 30): array
     {
         return $this->cached("signups:$days", fn () => $this->perDay(
-            User::query()->where('created_at', '>=', $this->since($days)),
+            User::query()->where('created_at', '>=', $this->since($days)->utc()),
             'created_at',
             $days,
         ));
     }
 
-    /** @return array{ok: array<string, int>, failed: array<string, int>} sync requests per UTC day */
+    /** @return array{ok: array<string, int>, failed: array<string, int>} sync requests per day */
     public function syncsPerDay(int $days = 14): array
     {
         return $this->cached("syncs:$days", fn () => [
-            'ok' => $this->perDay(SyncEvent::query()->where('status', 200)->where('created_at', '>=', $this->since($days)), 'created_at', $days),
-            'failed' => $this->perDay(SyncEvent::query()->where('status', '!=', 200)->where('created_at', '>=', $this->since($days)), 'created_at', $days),
+            'ok' => $this->perDay(SyncEvent::query()->where('status', 200)->where('created_at', '>=', $this->since($days)->utc()), 'created_at', $days),
+            'failed' => $this->perDay(SyncEvent::query()->where('status', '!=', 200)->where('created_at', '>=', $this->since($days)->utc()), 'created_at', $days),
         ]);
     }
 
@@ -119,11 +119,11 @@ class Metrics
         });
     }
 
-    /** @return array<string, array<string, int>> voice requests per UTC day, by endpoint (explain includes spoken questions) */
+    /** @return array<string, array<string, int>> voice requests per day, by endpoint (explain includes spoken questions) */
     public function voicePerDay(int $days = 14): array
     {
         return $this->cached("voice:$days", function () use ($days) {
-            $since = VoiceEvent::query()->where('created_at', '>=', $this->since($days));
+            $since = VoiceEvent::query()->where('created_at', '>=', $this->since($days)->utc());
 
             return [
                 'transcribe' => $this->perDay((clone $since)->where('kind', 'transcribe'), 'created_at', $days),
@@ -157,18 +157,19 @@ class Metrics
 
     private function since(int $days): CarbonImmutable
     {
-        return CarbonImmutable::now('UTC')->startOfDay()->subDays($days - 1);
+        return CarbonImmutable::now(config('app.admin_timezone'))->startOfDay()->subDays($days - 1);
     }
 
     /** @return array<string, int> */
     private function perDay($query, string $column, int $days): array
     {
         $counts = $query
-            ->selectRaw("to_char(($column at time zone 'UTC')::date, 'YYYY-MM-DD') as day, count(*) as total")
+            ->selectRaw("to_char(($column at time zone 'UTC' at time zone ?)::date, 'YYYY-MM-DD') as day, count(*) as total", [config('app.admin_timezone')])
             ->groupBy('day')
             ->pluck('total', 'day');
         $series = [];
-        for ($day = $this->since($days); $day->lte(CarbonImmutable::now('UTC')); $day = $day->addDay()) {
+        $today = CarbonImmutable::today(config('app.admin_timezone'));
+        for ($day = $this->since($days); $day->lte($today); $day = $day->addDay()) {
             $series[$day->toDateString()] = (int) ($counts[$day->toDateString()] ?? 0);
         }
 

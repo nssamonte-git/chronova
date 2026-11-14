@@ -30,7 +30,7 @@ The assistant (`:feature:assistant`) records until silence (`ListenForSpeech`), 
 
 ## Server
 
-`server/` is Laravel 13 on Postgres. `/v1/sync` runs one transaction per request with the user's row locked; `/v1/auth` is enumeration-safe; the admin panel uses a separate `staff` guard with required MFA and an append-only audit log. Voice endpoints keep provider keys on the server, constrain the model with a strict schema and re-validate its answer; no audio or words are stored or logged.
+`server/` is Laravel 13 on Postgres. `/v1/sync` runs one transaction per request with the user's row locked; `/v1/auth` is enumeration-safe; the admin panel uses a separate `staff` guard with MFA required by default and an append-only audit log. Voice endpoints keep provider keys on the server, constrain the model with a strict schema and re-validate its answer; no audio or words are stored or logged.
 
 ## Gotchas
 
@@ -60,7 +60,7 @@ Moved from `HANDOFF.md` (13 Nov 2026), which keeps a short version.
 ## Server rules
 
 - The sync contract is `docs/sync-protocol.md`; `server/tests/Feature/SyncTest.php` holds its conformance scenarios and must keep passing. The old serverless backend lives only at tag `serverless-backend-v1`.
-- Auth answers never reveal whether an email has an account. `/v1` guests always get 401 JSON (never a redirect). The `staff` guard is separate from app users; MFA is required; every privileged admin action is written to the append-only audit log; user pages never show project content (only an active, audited data-access grant does).
+- Auth answers never reveal whether an email has an account. `/v1` guests always get 401 JSON (never a redirect). The `staff` guard is separate from app users. MFA is required by default, and only an admin can grant an exemption to another staff member. Every privileged admin action is written to the append-only audit log. User pages never show project content (only an active, audited data-access grant does).
 - Behind CloudFront (`BEHIND_CLOUDFRONT=true`) client IPs come from `CloudFront-Viewer-Address`, never `X-Forwarded-For`.
 - PHP stops a request after 30 s (`max_execution_time`, unset in `docker/php/production.ini`), and on FrankenPHP that counts time spent waiting. Routes that wait on two provider calls in a row raise it for that request only and restore it after: image import (`IMPORT_TIME_LIMIT`), transcription (`VOICE_TRANSCRIBE_TIME_LIMIT`), spoken explanation (`VOICE_EXPLAIN_TIME_LIMIT`), all 55 s, under CloudFront's 60 s origin timeout. A test per route checks that the provider timeouts add up to less than its limit.
 - Voice (`docs/voice-api.md`): the server only proposes (strict schema, re-validated); the app plans against current data; the assistant is voice-only (a 3D Filament orb, `voice/orb/`), says the change and writes only on a spoken yes, then hides and says what changed while the task is highlighted. If the orb's native start-up ever aborts, a `chronova_orb` pref makes it fall back to the mic icon for that app version (clear app data to retry); previews and screenshots (`LocalInspectionMode`) always get that fallback. Keys stay on the server; no audio or words are stored or logged; fakes are the default.
