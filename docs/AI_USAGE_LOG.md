@@ -2215,3 +2215,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** remove the `git tag submission-v1` row as well.
 - **Done:** removed from "Where to find more" on the last page; the PDF no longer mentions the tag anywhere. Re-rendered (18 pages) and the last page looked at.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: grey box behind the cover screenshot
+
+- **Your request:** fix the alignment around the cover caption (a grey box behind the screenshot ended partway through the caption).
+- **Cause:** the screenshot's soft drop shadow. Chrome writes a blurred shadow into the PDF in a form that macOS's PDF engine (Preview, Quick Look) draws as a solid grey rectangle reaching about 0.26 in past the image, into the caption. poppler (`pdftoppm`, used for my earlier checks) draws it correctly, which is why those checks missed it.
+- **Fix:** removed the shadow; the screenshot keeps its thin border. Checked with macOS's own renderer (`sips` on the PDF): no grey box, caption clear. The logo's glow renders correctly there and was left. No other element uses a shadow. Re-rendered: 18 pages.
+- **Lesson for later checks:** render the cover through macOS's engine as well as poppler, since they can differ.
+- Documentation only: no build or test run for this entry.
