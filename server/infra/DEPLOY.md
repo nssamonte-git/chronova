@@ -1,4 +1,6 @@
-# Deploying the Chronova server to AWS
+# Deploying the Chronova server with CDK
+
+For the live Sydney EC2 deployment, use the [EC2 operations runbook](EC2.md).
 
 Infrastructure as code (CDK, TypeScript) for the Laravel server in `../`. Nothing here deploys on its own; every step below is run by a person with AWS credentials.
 

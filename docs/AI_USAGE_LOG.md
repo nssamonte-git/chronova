@@ -2116,3 +2116,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 
 - The homepage redirects to `/admin` with HTTP 302. Removed the Welcome card from the dashboard and verified that the account menu still offers Sign out.
 - `composer test` passed all 514 tests on isolated PostgreSQL. `composer lint` and `php artisan route:cache` passed.
+
+### EC2 deployment and client handoff
+
+- The EC2 rollout served the homepage redirect and returned HTTP 200 on `/up` and 401 for signed-out `/v1/me`. The user confirmed IAM access to the runtime secret, matched the Laravel key and database password, and removed both from `app.env` after deploying with Secrets Manager.
+- The user enabled the voice providers and Firebase. The EC2 output showed healthy Laravel services, with `web`, `worker`, and `scheduler` reporting `sender=fcm, credential=SET`. Live Android voice and push delivery checks are still open.
+- Updated the handoff and documented the EC2 deployment command. The AI context validator, command syntax, and simulated secret injection passed. Documentation only.

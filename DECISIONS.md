@@ -102,6 +102,11 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Reason: no domain needed, no way to bypass CloudFront (so `CloudFront-Viewer-Address` is trustworthy for rate limits), lowest fixed cost; provider keys never in code, the template or other containers.
 - Revised 2026-11-14 (user choices for the first deploy): the `prod` stage straight away, in ap-southeast-1 (Singapore), starting with an empty database (nothing copied from the local server), Docker images as before. Mail comes from the user's own domain: `-c mailIdentity=domain` verifies the whole domain in SES with Easy DKIM (three CNAME records, printed as stack outputs and added by hand at the domain's DNS host, which is not Route 53) and limits sending to that domain; without it, SES still verifies the single address by email.
 
+## 2026-11-14: Live EC2 deployment
+
+- The deployed environment uses Docker Compose on Sydney EC2, local PostgreSQL, Caddy HTTPS, and Cloudflare DNS. The ECS Fargate and RDS design above describes the separate CDK stack.
+- The EC2 role reads `chronova/prod/runtime` in Secrets Manager. The deployment passes credentials to the intended containers through a Compose override. See [the EC2 operations runbook](server/infra/EC2.md).
+
 ## 2026-11-12: One apply path for schedule changes
 
 - Decision: drags, the task editor, delete/undo and voice or typed commands all write through `ApplyScheduleChanges`: one Room transaction that applies a list of `ScheduleChange`s only if every record is still exactly what the change was computed from (content compare, not an `updatedAt` version) and returns the inverse list for Undo. A drag commits `commitEdit(original, edited)` with the task as it was at drag start.

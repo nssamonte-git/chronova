@@ -2,7 +2,12 @@
 
 ## Current Status
 
-The app is polished for a pre-production handoff. The Sydney EC2 instance has Docker and Docker Compose installed. The backend deployment and Cloudflare DNS are pending. The existing CDK stack provisions ECS Fargate, RDS, and SES separately from the EC2 instance.
+Chronova is live at `https://chronova.meenux.tech` on Sydney EC2 (`ap-southeast-2`). Cloudflare DNS points to the instance and Caddy serves HTTPS. The Android API uses `/v1`. The homepage redirects to `/admin`, and guests reach `/admin/login`. See [the EC2 runbook](server/infra/EC2.md) for the current deployment workflow. The ECS Fargate/RDS/SES CDK stack is a separate deployment option.
+
+- **Verified on EC2:** `/up` returned 200, and signed-out `/v1/me` returned 401. The staff 2FA migration completed. EC2 retrieves `chronova/prod/runtime` through its IAM role. `APP_KEY` and `DB_PASSWORD` matched the running values before the cutover and were removed from `app.env`.
+- **Voice:** Enabled in the web container with OpenAI and ElevenLabs. The web container passed its health check. A live Android voice command and preview still need confirmation.
+- **Push:** `web`, `worker`, and `scheduler` reported healthy and each reported `sender=fcm, credential=SET`. The Compose override takes precedence over `PUSH_SENDER=fake` in `app.env`. Delivery to a second Android device still needs confirmation.
+- **Image import and email:** Image import is off. `MAIL_MAILER=array` keeps mail in the application process, so public sign-up and password reset email delivery remain open.
 
 Latest application work:
 
@@ -32,7 +37,7 @@ Latest application work:
 - **`tools/check.sh`** (`559c55f`): device tests run one module at a time, and a crashed test app now fails the check.
 - Earlier (13 Nov): timeline rows at every zoom, schedules from images, Firebase push.
 
-Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 version warnings); 110 device tests (last passed on the managed emulator on 14 Nov, before today's fixes; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 507; infra 22.
+Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 version warnings); 110 device tests (last passed on the managed emulator on 14 Nov, before today's fixes; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 514 tests and lint passed for the admin homepage release; infra baseline 23 tests.
 
 ## Exact Next Steps
 
@@ -42,20 +47,19 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
    - privacy policy, terms and open-source licences (the Inter OFL), linked from an About item on the account page;
    - the Play Data safety form. It must name OpenAI, ElevenLabs and Meta and the 90-day voice history, because the app no longer says so;
    - British or US spelling (now British: "Colour").
-2. **Check today's fixes for real (needs approval for the providers):** read the whiteboard photo with the real reader and builder (does "10–1" come back as hours?); ask for a clashing move and see which alternative the real model offers; run `tools/check.sh --devices-only`; install on the phone.
+2. **Check the hosted app from Android:** build with `chronova.apiUrl=https://chronova.meenux.tech` for the test and confirm sign-in and sync. On a test project, confirm a live voice command transcribes and shows the expected preview before approval. Sign into the same test account on two Android devices, sync a change from one, and confirm the other receives “Changes on another device.” Run `tools/check.sh --devices-only` for the remaining local device coverage. Provider tests need approval.
 3. **Small, open:**
    - the assistant's spoken answers say "3 p.m." while its preview uses 24-hour times. That wording is written on the server (`OpenAiExplainer`); it also still words a whole-day task by the clock ("midnight on November 18");
    - "Wednesday" means the next Wednesday after today; in the walkthrough the user meant the task's own week. Ask the user before changing the rule;
    - working hours are fixed for every project; a per-project setting would replace the one constant in `WorkingTime`.
-4. **GitHub:** push the existing history and project AI kit. Review the first run of `.github/workflows/android.yml`.
+4. **Handoff readiness:** configure transactional email if the client needs registration or self-service password resets, then verify both flows. Verify the backup and restore procedure before relying on EC2 for client data. The GitHub history and AI kit have been pushed. Review the Android workflow in GitHub Actions.
 5. **Import follow-ups:**
    - untested: real camera photos (glare, curved paper), handwriting, and charts with dozens of rows or months of columns;
    - before release, the items in `docs/import-api.md` ("Before release");
-   - going live on AWS needs the Meta key in the `VoiceKeys` secret and `-c import=on`, only with approval.
+   - EC2 already passes the Meta and OpenAI keys to `web`. If image import is in scope, enable it with approval and use a sample image to verify the preview, including “10–1” as hours.
 6. **Push follow-ups:**
    - before release, the Firebase items in `docs/push.md`;
-   - a second real phone (or the emulator) signed in would exercise sign-in alerts from a real login;
-   - going live on AWS needs the `PushKey` secret and `-c push=on` (DEPLOY.md), only with approval.
+   - use two devices to verify sync alerts and, as needed, sign-in alerts and reminders. A local reminder alarm alone cannot verify Firebase delivery.
 7. **Offered, not started:**
    - Kover coverage reports;
    - contract tests for sign-in, sync and voice against the Laravel server;

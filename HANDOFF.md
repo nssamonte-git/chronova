@@ -6,6 +6,7 @@ Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose A
 
 - Run Gradle inside `Chronova - Android App/`. See its `settings.gradle.kts` for modules and `build-logic/convention` for build settings. Keep `local.properties` local.
 - Run Laravel commands from `server/` and CDK commands from `server/infra/`. Historical AI usage log paths before the directory move are relative to the Android folder.
+- Live deployment: Sydney EC2 with Docker Compose. See [EC2 operations](server/infra/EC2.md) and [client handoff status](CURRENT_TASK.md).
 
 ## Guardrails
 
@@ -40,7 +41,7 @@ Commands only; procedures, baselines and phone quirks are in `Learn/04-validatio
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
-- Server: `cd server && docker compose up -d && composer test && composer lint` (507 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (23 tests).
+- Server: `cd server && docker compose up -d && composer test && composer lint` (514 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (23 tests).
 
 ## On-Demand Context
 
