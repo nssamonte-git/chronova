@@ -12,7 +12,7 @@ Chronova is live at `https://chronova.meenux.tech` on Sydney EC2 (`ap-southeast-
 Latest application work:
 
 - **Try demo** (15 Nov): a button above the sign-in form signs into the shared demo account `test@chronova.com` and syncs once; the demo can't be deleted from the app. The demo login is committed by the user's choice (DECISIONS, 2026-11-15). Checked on the phone against the live server.
-- **Walkthrough video bugs, all fixed** (`65a21ee` … `b7ced22`). Found while recording the product video (`video/walkthrough/`, local only):
+- **Walkthrough video bugs, all fixed** (`9ee75cb` … `c22281f`). Found while recording the product video (`video/walkthrough/`, local only):
   - voice: an empty project can get its first tasks; noise removal (`VOICE_ISOLATE_NOISE`, off by default); the orb waits 20 s for an answer;
   - import sheet: the Add button stays on screen; each opening starts afresh;
   - image import: a one-day item keeps the hours written on it ("10–1" → 10:00–13:00, `startTime`/`endTime` in the answer); without them it stays a whole day (user choice). The assistant's preview shows whole days as days, not "00:00 – 00:00";
@@ -20,7 +20,7 @@ Latest application work:
   - clash-free alternatives: `SensibleAlternative` refuses a model's offer that moves tasks nobody asked about or leaves working hours; the interpreter's rules say the same;
   - server: image import, transcription and spoken explanation may run 55 s instead of PHP's 30 (each route's own limit).
   - None of today's import, voice-alternative or time-limit changes has been tried with the real providers or on the phone.
-- **Handoff polish** (`aee85f8` … `a81052a`):
+- **Handoff polish** (`7280901` … `caa3736`):
   - **Copy:** one wording per idea; "this device" throughout. The app's text names no provider and mentions no API or server (DECISIONS, 2026-11-14).
   - **Screens:**
     - empty states are a title plus a line;
@@ -30,12 +30,12 @@ Latest application work:
     - the name column grows with large text.
   - **Account:** the password pages have "Send code" / "Save password" buttons; the time picker has a heading.
   - Every screen and dialog now has light, dark and 1.5× screenshots.
-- **Aurora design pass** (`93074ec` … `cb3766f`):
+- **Aurora design pass** (`359ac4e` … `2d4f654`):
   - the logo's palette in both themes, Inter, and shape and spacing tokens;
   - shared components in `:core:ui`;
   - project cards with a small chart of their tasks (packed into lanes beyond five);
   - the account page as cards, scale chips, light motion.
-- **`tools/check.sh`** (`559c55f`): device tests run one module at a time, and a crashed test app now fails the check.
+- **`tools/check.sh`** (`658a57e`): device tests run one module at a time, and a crashed test app now fails the check.
 - Earlier (13 Nov): timeline rows at every zoom, schedules from images, Firebase push.
 
 Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 version warnings); 110 device tests (last passed on the managed emulator on 14 Nov, before today's fixes; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 514 tests and lint passed for the admin homepage release; infra baseline 23 tests.
@@ -76,7 +76,7 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
 
 ## Validation Notes
 
-- **Phone:** The last install (15 Nov) is a debug build of `ef7dc9b` against the live server, signed in as the test account. Later fixes from 14 Nov still need a phone check of their own.
+- **Phone:** The last install (15 Nov) is a debug build of `f0cc62e` against the live server, signed in as the test account. Later fixes from 14 Nov still need a phone check of their own.
   - Install over the app (`adb install -r`), never uninstall. Build with `chronova.apiUrl=http://localhost:8000` appended to `local.properties`, then restore the file: an empty URL would lock the app out of signing in.
   - The USB link drops now and then, or shows "unauthorized" for a minute or two; `adb kill-server; adb start-server` and waiting brings it back.
   - `adb reverse tcp:8000 tcp:8000` must be re-added after any USB reconnect.

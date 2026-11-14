@@ -1655,10 +1655,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### The latest build on the phone
 
 - **Your request:** install the latest build on the phone.
-- **What was installed:** a debug build of `559c55f` (the tip of `main`), built with the phone's server address (`http://localhost:8000`) as before, installed over the existing app. `local.properties` is back to what it was, byte for byte.
+- **What was installed:** a debug build of `658a57e` (the tip of `main`), built with the phone's server address (`http://localhost:8000`) as before, installed over the existing app. `local.properties` is back to what it was, byte for byte.
 - **Human action:** the phone showed as "unauthorized" at first; it became available after about two minutes (the USB debugging prompt was accepted on the phone).
 - **Checked after the install:** the app opens on the project list in Light, still signed in, with the same data as before: project "Jnn" with 5 tasks, 31 changes not synced, 35 unread notifications. The first install date is unchanged (11 Nov), so the app's data was kept.
-- **Not done:** nothing was tapped in the app beyond opening it; no sync, no settings changed. The code is the same as the last phone check (`cb3766f`); the only commit since then changed `tools/check.sh`.
+- **Not done:** nothing was tapped in the app beyond opening it; no sync, no settings changed. The code is the same as the last phone check (`2d4f654`); the only commit since then changed `tools/check.sh`.
 
 ## Copy review for the client handoff
 
@@ -1699,7 +1699,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### The copy fixes on the phone
 
 - **Your request:** install the build with the copy fixes on the phone.
-- **What was installed:** a debug build of `aee85f8`, with the phone's server address as before, installed over the existing app; `local.properties` is restored byte for byte.
+- **What was installed:** a debug build of `7280901`, with the phone's server address as before, installed over the existing app; `local.properties` is restored byte for byte.
 - **Checked on the phone:**
   - the app opens signed in, with the same data (Jnn, 31 changes not synced, 35 unread notifications); the first install date is unchanged;
   - the account button's label reads "Account & sync";
@@ -1799,10 +1799,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - device tests: account 12 and timeline 26, 0 failed.
 - **Not done:** this build was not installed on the phone; its changed screens can't be reached there without signing out.
 
-### The latest build on the phone (a81052a)
+### The latest build on the phone (caa3736)
 
 - **Your request:** install the latest build on the phone.
-- **What was installed:** a debug build of `a81052a` (the tip of `main`), built with the phone's server address as before, installed over the existing app. `local.properties` is restored byte for byte.
+- **What was installed:** a debug build of `caa3736` (the tip of `main`), built with the phone's server address as before, installed over the existing app. `local.properties` is restored byte for byte.
 - **Checked:** the app opens on the project list, signed in, with the same data: Jnn with 5 tasks, 31 changes not synced, 36 unread. The first install date is unchanged.
 - **Not done:** nothing was tapped beyond opening the app.
 
@@ -1860,7 +1860,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Fix:** a count that only goes up (`importOpenings`), on the project list and on the timeline.
 - **Tests:** a new screenshot, `ImportPreviewManyWarnings` (the five real notes, seven rows), in light, dark and 1.5× text: the button is on screen in all three. The `ImportPreviewNewProject` screenshots were updated for the gap under the notes; checked by eye. Bug 2 has no automated test, as it lives in the navigation host; checked on the phone.
 - **Results:** `tools/check.sh` passed (485 unit tests, 174 screenshots, lint 0 errors, both architecture checks).
-- **Checked on the phone:** a debug build of `d3ae557` was installed (`local.properties` restored byte for byte). Reading the whiteboard image gave three notes and seven rows; "Add 7 tasks", then "Add 3 tasks" after four rows were unticked, stayed on screen, and three tasks were added. After Done, the picture button opened a fresh "Take photo / Choose image" sheet.
+- **Checked on the phone:** a debug build of `4892f48` was installed (`local.properties` restored byte for byte). Reading the whiteboard image gave three notes and seven rows; "Add 7 tasks", then "Add 3 tasks" after four rows were unticked, stayed on screen, and three tasks were added. After Done, the picture button opened a fresh "Take photo / Choose image" sheet.
 - **Local server, not the app:** one earlier read failed with "The image couldn't be read right now". PHP's built-in server (`php -S`, as `artisan serve` uses) stops a request after 30 s (`max_execution_time`), and that read took longer. The walkthrough server now runs with `-d max_execution_time=180`. Production settings weren't changed or checked here.
 
 ### The orb waits longer for an answer
@@ -2010,7 +2010,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **HANDOFF.md:** three short invariants: working time (09:00–17:00, Monday to Friday, used only by the critical path and the voice alternatives check), `SensibleAlternative`, and the 55 s limit on the three routes that wait on two provider calls. Test counts were already current (515 app, 180 screenshots, 507 server).
 - **Learn/02-architecture.md:** the same three rules in detail (voice section, invariants, server rules).
 - **Learn/04-validation.md:** baselines from 483 / 171 / 480 to 515 / 180 / 507.
-- **CURRENT_TASK.md** (local only, not committed): today's fixes, the new baselines, next steps (check the fixes with the real providers, the device tests and on the phone, with approval), and the phone's state. The phone is signed in to the walkthrough's demo account, with a build of `d3ae557`.
+- **CURRENT_TASK.md** (local only, not committed): today's fixes, the new baselines, next steps (check the fixes with the real providers, the device tests and on the phone, with approval), and the phone's state. The phone is signed in to the walkthrough's demo account, with a build of `4892f48`.
 - Documentation only: no build or test run for this entry.
 
 ### AWS: ready to deploy, and mail from your own domain
@@ -2126,7 +2126,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### Take-home writeup: AWS page
 
 - **Your request:** update the PDF report with the AWS implementation.
-- **Found first:** the server went live on 14 Nov (commit `26a4f14`, `server/infra/EC2.md`, DECISIONS "Live EC2 deployment"): one EC2 instance in Sydney with Docker Compose (web, worker, scheduler, one-shot migrate, PostgreSQL on a volume), Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager through the instance role. The CDK stack (CloudFront, internal ALB, Fargate, RDS, SES) is still the separate, undeployed design. The PDF said "not deployed" in two places.
+- **Found first:** the server went live on 14 Nov (commit `c276b8b`, `server/infra/EC2.md`, DECISIONS "Live EC2 deployment"): one EC2 instance in Sydney with Docker Compose (web, worker, scheduler, one-shot migrate, PostgreSQL on a volume), Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager through the instance role. The CDK stack (CloudFront, internal ALB, Fargate, RDS, SES) is still the separate, undeployed design. The PDF said "not deployed" in two places.
 - **Made:** a new page 11, "Running in AWS" (the PDF is now 18 pages): a diagram of the live EC2 setup, how a release goes out (from the runbook), its status (checked: `/up` 200, signed-out API 401, healthy services, push sender Firebase; still open: voice and push from phones, real email (mail held in memory), a tested restore; image import off), and the planned CDK stack with why it is shaped that way, its 23 tests and rough cost. Corrected the AWS tile on page 10, the limitation on page 18 and the note on the running page; added the two deployment guides to "Where to find more".
 - **Left out on purpose:** the live domain name and the secret's name (the PDF goes to outside reviewers).
 - **Rendered and checked:** the planned-stack line ran past the page edge and was shortened; pages 7, 10, 11 and 18 looked at; footers 1–18 of 18.
@@ -2154,7 +2154,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### README: server count and the root redirect
 
 - **Your request:** update the README.
-- **Checked first:** the two admin commits from 14 Nov evening (`3804f03` staff 2FA exemptions and Philippine time, `b076a3c` admin entry and dashboard) had already updated the README's 2FA and time-zone lines. Still stale: the server test count (507, while those commits' log entries record 513 and then 514 passing) and nothing about the site root now redirecting to `/admin`.
+- **Checked first:** the two admin commits from 14 Nov evening (`f4ba81f` staff 2FA exemptions and Philippine time, `6bc22c9` admin entry and dashboard) had already updated the README's 2FA and time-zone lines. Still stale: the server test count (507, while those commits' log entries record 513 and then 514 passing) and nothing about the site root now redirecting to `/admin`.
 - **Changed:** server tests 507 → 514 in "Running the server" and the Testing table (the count recorded in this log; not re-run here, since the suite needs the Docker PostgreSQL); a "No public website" line in the server section (`/` → `/admin`, the app uses `/v1`, `/up` is the health check, from `routes/web.php` and `bootstrap/app.php`).
 - **Not changed:** `Learn/04-validation.md` still gives 507 as the server baseline, and the take-home PDF still says 507 server tests and "required authenticator MFA" for the admin panel.
 - Documentation only: no build or test run for this entry.
@@ -2162,7 +2162,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 ### Take-home PDF and Learn/04: server count and admin 2FA
 
 - **Your request:** bring the take-home PDF and `Learn/04-validation.md` in line with the README.
-- **Changed:** the PDF's testing page now says 514 server tests, and its "Staff admin panel" tile says staff need authenticator 2FA by default, which an admin can lift or restore with an audit entry (from `3804f03` and DECISIONS), instead of "required MFA". `Learn/04-validation.md` gives 514 as the server baseline in both places (dated 14 Nov 2026, the last recorded run). Re-rendered: 18 pages, page 5 looked at, no "507 tests" left in the PDF.
+- **Changed:** the PDF's testing page now says 514 server tests, and its "Staff admin panel" tile says staff need authenticator 2FA by default, which an admin can lift or restore with an audit entry (from `f4ba81f` and DECISIONS), instead of "required MFA". `Learn/04-validation.md` gives 514 as the server baseline in both places (dated 14 Nov 2026, the last recorded run). Re-rendered: 18 pages, page 5 looked at, no "507 tests" left in the PDF.
 - Documentation only: no build or test run for this entry.
 
 ### Take-home writeup: AI model APIs page
@@ -2312,7 +2312,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Cover:** the old "Running the project" box moved to page 2. The cover's facts gain the GitHub URL and a pointer to page 2, and the screenshot is wider again.
   - **Page numbers:** 21 pages; the AWS reference now says page 12; page 2 points to page 14 for how the app talks to the server.
   - **README:** both descriptions of the PDF and the "Running the app" clone line updated.
-- **Checked the guide against GitHub:** a fresh `git clone https://github.com/nssamonte-git/chronova.git` (at `4eb9481`) into an empty folder, then `./gradlew :app:assembleDebug` with only `ANDROID_HOME` set. It built (security gate PASS), the APK is at the path the guide gives, and it points at the live server. Not checked: the Android Studio menu names in the newest Studio release, and a Windows build.
+- **Checked the guide against GitHub:** a fresh `git clone https://github.com/nssamonte-git/chronova.git` (at `14c0780`) into an empty folder, then `./gradlew :app:assembleDebug` with only `ANDROID_HOME` set. It built (security gate PASS), the APK is at the path the guide gives, and it points at the live server. Not checked: the Android Studio menu names in the newest Studio release, and a Windows build.
 - **Rendered and checked:** 21 pages, footers 1–21 of 21, page order and both page references from the PDF text, fonts embedded. The first render cut off the last table row on page 2, so the page was tightened. Cover and page 2 looked at in poppler and in macOS's renderer.
 - Documentation only: no app code changed.
 
@@ -2356,3 +2356,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** a simple table of contents on the cover, using the pages' header titles.
 - **Done:** under the cover's facts, a two-column "Contents" list of the 18 header titles with their pages, as in each page's top-right label, consecutive pages sharing a title given as a range (Beyond the brief 6–7, AI usage writeup 17–18, How I work with AI 19–21). The facts rows were tightened slightly to make room.
 - **Checked:** each entry's page against the PDF text; the cover in poppler and macOS's renderer (the first render sat too close to the footer, so the spacing was reduced); still 23 pages, fonts embedded.
+
+### Removed Claude Code as the co-author of the commits
+
+- **Your request:** remove Claude Code as the co-author (GitHub showed "nssamonte-git and claude" on commits), for every commit.
+- **Done:** removed the `Co-Authored-By: Claude … <noreply@anthropic.com>` line from all 243 commit messages (229 for Opus 5.5, 10 for Fable 5.2); nothing else in the messages changed. The `submission-v1` and `serverless-backend-v1` tags follow the updated commits. New commits carry no co-author line (a saved preference).
+- **Checked:** still 243 commits, each with the same files, authors, dates and subjects as before; no co-author line left; both tags point to commits with their old files. You pushed `main` and the tags to GitHub, which now matches.
+- **Commit IDs:** every commit has a new ID. The 20 places where `CURRENT_TASK.md` and this log quoted an ID now give the new one (each resolves to a single commit).
+- **Backup:** a bundle of the commits as they were before is in the session's scratchpad.
