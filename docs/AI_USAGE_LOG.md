@@ -2089,3 +2089,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Done:** `chronova-20261114-validator-agp9-optimization-dsl.md`, `chronova-20261114-validator-library-manifest-backup.md` and `chronova-20261114-learning-capture-has-no-trigger.md` copied unchanged into the canonical repo's `learning-inbox/` (the `<project>-<date>-<topic>` naming its usage prompt asks for). No absolute paths in them. The canonical sanitizer passes all three, and its report-only promotion script lists all three with their suggested destinations.
 - **Not done:** nothing committed in the canonical repo (the files are untracked there, like another project's lesson already waiting); `send-learning-proposal.sh` (which submits to the Firebase review app) was not run; no canonical skill, rule or template was changed.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: testing page
+
+- **Your request:** add the app's tests to the report: how many test cases, the types of test, and so on.
+- **Made:** a new page 8, "How the app is tested" (the PDF is now 17 pages): a metric strip, a table by type (JVM unit, device, screenshot, static checks, real-phone checks) with counts, coverage and tools, a bar chart of unit tests by layer, when the tests run, and one line on the server and infrastructure tests.
+- **Counts, from the source:** 515 `@Test` in 71 files under `src/test` (31 modules: core 146, feature domain 124, feature presentation 168, feature data 73, app 4); 110 in 18 files under `src/androidTest` (13 modules); 60 `@PreviewTest` previews in 10 modules and 180 committed reference PNGs. Tools from `gradle/libs.versions.toml`. Device-test, server and infra baselines from `Learn/04-validation.md`.
+- **Results:** the JUnit XML on disk shows 515 tests, 0 failures, 0 skipped (the full check at 16:17–16:18 today, `build/reports/check.log`: BUILD SUCCESSFUL). A fresh `./gradlew test` exited 0 with the test tasks up to date (no code changed since), so it reused that result rather than re-running the tests.
+- **Rendered and checked:** the first render cut off the bottom of the page; text tightened and re-rendered. One statement corrected before committing: `tools/check.sh` runs device tests only with `--devices` (CI runs `--devices-only` as a separate job). Footers read 1–17 of 17.
+- Documentation only: no build or test run beyond the one above.
