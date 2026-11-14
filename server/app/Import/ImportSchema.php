@@ -6,7 +6,8 @@ namespace App\Import;
  * The schedule an import answers with (docs/import-api.md), as a strict JSON schema for the builder.
  * Days are whole and inclusive: a one-day task starts and ends on the same day. With "absolute"
  * dates the chart showed calendar dates (startDate/endDate); with "relative" only columns such as
- * "Week 1" (startDay/endDay, 0 = the chart's first day), and the app asks for a start date.
+ * "Week 1" (startDay/endDay, 0 = the chart's first day), and the app asks for a start date. A task on
+ * one day may also carry the hours written on the chart (startTime/endTime, 24-hour "HH:MM").
  */
 final class ImportSchema
 {
@@ -43,6 +44,8 @@ final class ImportSchema
                 'endDate' => $nullableString,
                 'startDay' => $nullableInteger,
                 'endDay' => $nullableInteger,
+                'startTime' => $nullableString,
+                'endTime' => $nullableString,
                 'milestone' => ['type' => 'boolean'],
                 'progress' => ['type' => 'integer'],
                 'predecessorRefs' => ['type' => 'array', 'items' => $string],

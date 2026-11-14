@@ -35,11 +35,11 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: `tools/check.sh` (repository root) runs everything (488 unit tests, lint, both architecture checks, 174 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 110 device tests on the managed emulator, one module at a time (needs ~8 GB free disk; `--devices-only` passed on this Mac on 2026-11-14 with 31 GB free). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
+- App: `tools/check.sh` (repository root) runs everything (492 unit tests, lint, both architecture checks, 177 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 110 device tests on the managed emulator, one module at a time (needs ~8 GB free disk; `--devices-only` passed on this Mac on 2026-11-14 with 31 GB free). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
-- Server: `cd server && docker compose up -d && composer test && composer lint` (487 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (22 tests).
+- Server: `cd server && docker compose up -d && composer test && composer lint` (500 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (22 tests).
 
 ## On-Demand Context
 

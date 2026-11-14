@@ -8,11 +8,15 @@ use DateTimeImmutable;
  * Checks a builder's answer before it reaches the app, as ProposalValidator does for voice: exact
  * keys, real dates, sizes within limits, links only between the answer's own tasks and never in a
  * loop. Returns the answer in its exact shape (the unused pair of dates set to null; a new
- * project's dates widened to hold every task), or null when it can't be trusted.
+ * project's dates widened to hold every task; hours kept only where they can be used), or null
+ * when it can't be trusted.
  */
 final class ImportValidator
 {
     private const REF = '/^[A-Za-z0-9_-]{1,40}$/';
+
+    /** A time of day, 24-hour: "09:30". */
+    private const TIME = '/^([01][0-9]|2[0-3]):[0-5][0-9]$/';
 
     /** @param  array{tasks: int, days: int, title_chars: int, uncertain: int}  $limits */
     public function __construct(private readonly array $limits) {}
@@ -86,9 +90,10 @@ final class ImportValidator
     /** @return array<string, mixed>|null */
     private function task(mixed $task, bool $absolute): ?array
     {
-        if (! self::hasKeys($task, ['ref', 'title', 'startDate', 'endDate', 'startDay', 'endDay', 'milestone', 'progress', 'predecessorRefs'])
+        if (! self::hasKeys($task, ['ref', 'title', 'startDate', 'endDate', 'startDay', 'endDay', 'startTime', 'endTime', 'milestone', 'progress', 'predecessorRefs'])
             || ! is_string($task['ref']) || ! preg_match(self::REF, $task['ref'])
             || ! is_string($task['title']) || trim($task['title']) === '' || mb_strlen(trim($task['title'])) > $this->limits['title_chars']
+            || ! self::stringOrNull($task['startTime']) || ! self::stringOrNull($task['endTime'])
             || ! is_bool($task['milestone'])
             || ! is_int($task['progress']) || $task['progress'] < 0 || $task['progress'] > 100
             || ! is_array($task['predecessorRefs']) || ! array_is_list($task['predecessorRefs'])) {
@@ -123,11 +128,30 @@ final class ImportValidator
         return [
             'ref' => $task['ref'],
             'title' => trim($task['title']),
-        ] + $span + [
+        ] + $span + self::hours($task, $oneDay) + [
             'milestone' => $task['milestone'],
             'progress' => $task['progress'],
             'predecessorRefs' => array_values(array_unique($task['predecessorRefs'])),
         ];
+    }
+
+    /**
+     * The hours written on a one-day task, when they can be used: both there, on the clock, the end
+     * after the start. Anything else (a guess on a task of several days or a milestone, half a pair,
+     * "10am") leaves the task on whole days rather than failing the import.
+     *
+     * @return array{startTime: ?string, endTime: ?string}
+     */
+    private static function hours(array $task, bool $oneDay): array
+    {
+        $usable = $oneDay && ! $task['milestone']
+            && is_string($task['startTime']) && is_string($task['endTime'])
+            && preg_match(self::TIME, $task['startTime']) && preg_match(self::TIME, $task['endTime'])
+            && $task['endTime'] > $task['startTime'];
+
+        return $usable
+            ? ['startTime' => $task['startTime'], 'endTime' => $task['endTime']]
+            : ['startTime' => null, 'endTime' => null];
     }
 
     /** @return array{startDate: string, endDate: string, days: null}|null */
@@ -206,6 +230,11 @@ final class ImportValidator
         $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 
         return $date !== false && $date->format('Y-m-d') === $value ? $date : null;
+    }
+
+    private static function stringOrNull(mixed $value): bool
+    {
+        return $value === null || is_string($value);
     }
 
     private static function hasKeys(mixed $value, array $keys): bool

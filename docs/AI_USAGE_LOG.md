@@ -1870,3 +1870,27 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Fix:** `ListenForSpeech` takes the no-speech limit per turn. A new request still waits 8 s; an answer to a question waits 20 s (`ANSWER_WAIT_MS`). Silence still changes nothing. `docs/voice-api.md` notes it.
 - **Tests:** `ListenForSpeechTest` (new, 3): a request still gives up after 8 s of silence; an answer started after 12 s is heard; an answer that never comes ends at 20 s. The assistant ViewModel tests pass unchanged.
 - **Results:** `tools/check.sh` passed (488 unit tests, 174 screenshots, lint 0 errors, both architecture checks).
+
+### Image import: a one-day item keeps the hours written on it
+
+- **Found while:** recording the walkthrough (14 Nov). On the whiteboard, "MENU TASTING" was drawn on Thu 26 Nov only, with "10–1" written inside its bar. It was noted as arriving with zero length, "26 Nov 00:00 – 00:00", with the hours ignored.
+- **What it was:** the hours were lost; the task did not have zero length. Checked in the code and in the recording `R7-take1`, where the assistant's preview reads "MENU TASTING: Thu 26 Nov 00:00 – 00:00":
+  - the import answer carried whole days only, so the server had nowhere to put "10–1";
+  - the app places a task from 00:00 of its first day to 24:00 of its last (`PlanImport`), so this one ran 24 hours, Thu 00:00 to Fri 00:00;
+  - the assistant's preview prints that span as "00:00 – 00:00". That label is a separate fix (next entry).
+- **Fix, server:** each task in the answer has `startTime` and `endTime` (24-hour `HH:MM`, or `null`).
+  - The builder's rules ask for them only on a one-day task whose row gives its hours, and never as a guess.
+  - The reader's rules now name what is written inside or beside a bar as part of the row's text.
+  - `ImportValidator` keeps hours only on a one-day task that isn't a milestone, when both are real times and the end is after the start. Anything else is dropped and the task keeps its day, so a bad reading of the hours can't fail an import. A value that isn't text or `null` still fails it.
+  - `docs/import-api.md` updated.
+- **Fix, app:** `ImportedTask` and the preview's rows carry the hours; `PlanImport` places a one-day task on them (10:00–13:00 here). Hours shorter than the 15-minute minimum, half a pair, or hours from an older server leave the task on its whole day. The preview row shows them: "26 Nov 2026 · 10:00 – 13:00".
+- **Default hours, not changed:** I was asked to fall back to the project's working day. There isn't one: a project has a name and two dates, and `TimelineConfig` holds view settings only. A one-day item without readable hours therefore stays a whole day, as before. That is 24 hours, not zero. Default hours need your decision.
+- **Tests:**
+  - Server: `ImportValidatorTest` (hours kept on a one-day task; nine kinds of unusable hours dropped; two new rejections) and `ImportProvidersTest` (the hours reach the answer; the builder is sent the row's "10–1" and a schema with both fields). 17 import tests failed before the change. 500 tests pass (was 487), lint passes.
+  - App: `ImportTest` (the Menu tasting case, and five that keep whole days), `OkHttpImportApiTest`, `ImportViewModelTest`, `TimeFormatTest`. With the fields added but not used, `ImportTest` failed: expected (10:00, 13:00), got none.
+  - A new screenshot, `ImportPreviewHours`, in light, dark and 1.5× text; checked by eye.
+  - `tools/check.sh` passed: 492 unit tests, 177 screenshots, lint 0 errors, both architecture checks.
+- **Not checked:** the real providers were not called (no approval in this session), so whether the reader reports "10–1" from a real photo, and the builder turns it into hours, is untested. Nothing was run on the phone.
+- **AI mistakes:**
+  - I first put the hours on the Menu tasting row of the `ImportPreviewManyWarnings` screenshot. That row is scrolled out of the picture, so re-recording changed nothing. Replaced by the new `ImportPreviewHours` screenshot.
+  - I ran the server suite while the app check was running. One sign-in rate-limit test (`CloudFrontTest`) failed, 401 where it expected 429, in a run that took 291 s. Alone it passed, and the whole suite passed in 82 s once the app check had finished.

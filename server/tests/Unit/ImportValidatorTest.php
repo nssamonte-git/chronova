@@ -8,7 +8,7 @@ function importTask(array $overrides = []): array
 {
     return array_merge([
         'ref' => 't1', 'title' => 'Design', 'startDate' => null, 'endDate' => null, 'startDay' => 0, 'endDay' => 6,
-        'milestone' => false, 'progress' => 0, 'predecessorRefs' => [],
+        'startTime' => null, 'endTime' => null, 'milestone' => false, 'progress' => 0, 'predecessorRefs' => [],
     ], $overrides);
 }
 
@@ -51,6 +51,36 @@ it('keeps calendar dates and widens a new project to hold every task', function 
         ->and($valid['tasks'][0])->toMatchArray(['startDate' => '2026-03-02', 'endDate' => '2026-03-06', 'startDay' => null, 'endDay' => null]);
 });
 
+it('keeps the hours written on a one-day task', function () {
+    $valid = validImport(importAnswer([
+        importTask(['title' => 'Menu tasting', 'startDay' => 10, 'endDay' => 10, 'startTime' => '10:00', 'endTime' => '13:00']),
+        importTask(['ref' => 't2', 'title' => 'Tasting notes', 'startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'startDay' => 10, 'endDay' => 10, 'startTime' => '09:30', 'endTime' => '23:59']),
+    ]));
+    expect($valid['tasks'][0])->toMatchArray(['startDay' => 10, 'endDay' => 10, 'startTime' => '10:00', 'endTime' => '13:00'])
+        ->and($valid['tasks'][1])->toMatchArray(['startTime' => '09:30', 'endTime' => '23:59']);
+
+    $dated = validImport(importAnswer([
+        importTask(['startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'startTime' => '10:00', 'endTime' => '13:00']),
+    ], ['dates' => 'absolute']));
+    expect($dated['tasks'][0])->toMatchArray(['startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'startTime' => '10:00', 'endTime' => '13:00']);
+});
+
+it('imports the task as whole days when its hours cannot be used', function (array $task) {
+    $valid = validImport(importAnswer([importTask($task)]));
+    expect($valid['result'])->toBe('ok')
+        ->and($valid['tasks'][0])->toMatchArray(['startTime' => null, 'endTime' => null]);
+})->with([
+    'over several days' => [['startDay' => 0, 'endDay' => 6, 'startTime' => '10:00', 'endTime' => '13:00']],
+    'a milestone' => [['startDay' => 3, 'endDay' => 3, 'milestone' => true, 'startTime' => '10:00', 'endTime' => '13:00']],
+    'only a start' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '10:00']],
+    'only an end' => [['startDay' => 3, 'endDay' => 3, 'endTime' => '13:00']],
+    'ends before it starts' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '13:00', 'endTime' => '10:00']],
+    'no length' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '10:00', 'endTime' => '10:00']],
+    'not on the clock' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '10:00', 'endTime' => '25:00']],
+    'not 24-hour' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '10am', 'endTime' => '1pm']],
+    'without minutes' => [['startDay' => 3, 'endDay' => 3, 'startTime' => '10', 'endTime' => '13']],
+]);
+
 it('says nothing was found rather than sending an empty or failed schedule', function () {
     expect(validImport(importAnswer([], ['tasks' => []]))['result'])->toBe('unreadable')
         ->and(validImport(importAnswer([], ['result' => 'not_a_schedule', 'uncertain' => ['A photo of a cat.']])))->toBe([
@@ -78,6 +108,8 @@ it('rejects an answer it cannot trust', function (Closure $answer) {
     'not a real date' => [fn () => importAnswer([importTask(['startDate' => '2026-02-30', 'endDate' => '2026-03-02'])], ['dates' => 'absolute'])],
     'over a year of dates' => [fn () => importAnswer([importTask(['startDate' => '2026-01-01', 'endDate' => '2027-01-02'])], ['dates' => 'absolute'])],
     'progress over 100' => [fn () => importAnswer([importTask(['progress' => 101])])],
+    'hours that are not text' => [fn () => importAnswer([importTask(['startDay' => 3, 'endDay' => 3, 'startTime' => 10, 'endTime' => 13])])],
+    'no hours fields' => [fn () => importAnswer([array_diff_key(importTask(), ['startTime' => 0, 'endTime' => 0])])],
     'a milestone over days' => [fn () => importAnswer([importTask(['milestone' => true])])],
     'a half-done milestone' => [fn () => importAnswer([importTask(['milestone' => true, 'endDay' => 0, 'progress' => 50])])],
     'link to nothing' => [fn () => importAnswer([importTask(['predecessorRefs' => ['t9']])])],

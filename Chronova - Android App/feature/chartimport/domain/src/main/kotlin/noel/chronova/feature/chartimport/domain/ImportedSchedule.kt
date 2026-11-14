@@ -1,12 +1,14 @@
 package noel.chronova.feature.chartimport.domain
 
 import java.time.LocalDate
+import java.time.LocalTime
 import noel.chronova.core.model.Project
 
 /**
  * What the server read from an image of a chart (`POST /v1/import/image`, docs/import-api.md).
  * Days are whole and inclusive. With [Dates.ABSOLUTE] each task has calendar dates; with
  * [Dates.RELATIVE] only day numbers (0 = the chart's first day), and the user picks a start date.
+ * A task on one day may also have the hours written on the chart.
  */
 data class ImportedSchedule(
     val result: Result,
@@ -38,6 +40,9 @@ data class ImportedTask(
     val isMilestone: Boolean,
     val progress: Int,
     val predecessorRefs: List<String>,
+    /** The hours written on the chart for a task on one day ("10–1"): both, or neither. */
+    val startTime: LocalTime? = null,
+    val endTime: LocalTime? = null,
 )
 
 /** Where the tasks go: a new project made from the chart, or a project that exists. */

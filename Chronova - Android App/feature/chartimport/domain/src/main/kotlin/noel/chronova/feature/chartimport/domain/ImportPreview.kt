@@ -1,6 +1,9 @@
 package noel.chronova.feature.chartimport.domain
 
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
+import noel.chronova.core.domain.TaskRules
 
 /** One task of the preview, on calendar days, and whether it fits the project it would go into. */
 data class PreviewRow(
@@ -13,6 +16,9 @@ data class PreviewRow(
     val predecessorRefs: List<String>,
     /** False when adding to a project whose dates don't hold the task: unticked at first. */
     val fits: Boolean,
+    /** The hours the task will get on its one day; null when it takes its whole days. */
+    val startTime: LocalTime? = null,
+    val endTime: LocalTime? = null,
 )
 
 /** Turns the server's answer into the preview's rows and first choices. */
@@ -43,11 +49,23 @@ object ImportPreview {
             ImportTarget.NewProject -> true
             is ImportTarget.Existing -> !first.isBefore(target.project.startDate) && !last.isAfter(target.project.endDate)
         }
-        PreviewRow(task.ref, task.title, first, last, task.isMilestone, task.progress, task.predecessorRefs, fits)
+        val hours = hours(task, first, last)
+        PreviewRow(task.ref, task.title, first, last, task.isMilestone, task.progress, task.predecessorRefs, fits, hours?.first, hours?.second)
     }
 
     /** The rows ticked at first: every one that fits. */
     fun defaultSelection(rows: List<PreviewRow>): Set<String> = rows.filter { it.fits }.mapTo(linkedSetOf()) { it.ref }
+
+    /**
+     * The hours a task will be placed on: both written on the chart, for a task on one day, and long
+     * enough to be a task. Anything else keeps its whole days.
+     */
+    private fun hours(task: ImportedTask, first: LocalDate, last: LocalDate): Pair<LocalTime, LocalTime>? {
+        val start = task.startTime ?: return null
+        val end = task.endTime ?: return null
+        if (task.isMilestone || first != last) return null
+        return (start to end).takeIf { Duration.between(start, end).toMinutes() >= TaskRules.MIN_MINUTES }
+    }
 
     private fun day(schedule: ImportedSchedule, date: LocalDate?, day: Int?, start: LocalDate): LocalDate? = when (schedule.dates) {
         ImportedSchedule.Dates.ABSOLUTE -> date

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import java.time.LocalDate
+import java.time.LocalTime
 import noel.chronova.core.designsystem.ChronovaScreenshots
 import noel.chronova.core.designsystem.ChronovaTheme
 
@@ -113,6 +114,25 @@ fun ImportPreviewManyWarnings() = Sheet(
                 "TRAIN STAFF and MENU TASTING measurements appear shifted; seen dates used.",
                 "SOFT OPENING milestone position falls outside the axis; seen date used.",
             ),
+        ),
+    ),
+)
+
+/** A one-day task with "10–1" written inside its bar shows the hours it will get; the others their days. */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun ImportPreviewHours() = Sheet(
+    ImportSheetUi.Preview(
+        ImportPreviewUi(
+            newProject = false, projectName = "Cafe Opening", projectStart = monday, projectEnd = monday.plusDays(11),
+            relative = false, start = monday,
+            rows = listOf(
+                row("t5", "TRAIN STAFF", 9, 9, links = 2),
+                row("t6", "MENU TASTING", 10, 10).copy(startTime = LocalTime.of(10, 0), endTime = LocalTime.of(13, 0)),
+                row("m1", "SOFT OPENING", 11, 11, links = 2, milestone = true),
+            ),
+            uncertain = emptyList(),
         ),
     ),
 )

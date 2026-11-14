@@ -1,6 +1,7 @@
 package noel.chronova.feature.chartimport.presentation
 
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +95,19 @@ class ImportViewModelTest {
         assertEquals(3, preview.selectedCount)
         assertEquals(1, preview.linkCount)
         assertEquals(1, cleared.size) // camera files cleared after every reading
+    }
+
+    @Test
+    fun aOneDayTaskShowsTheHoursItWillGet() {
+        val tasting = ImportedTask("t4", "Menu tasting", null, null, 10, 10, false, 0, emptyList(), LocalTime.of(10, 0), LocalTime.of(13, 0))
+        answer = { chart.copy(tasks = chart.tasks + tasting) }
+        val viewModel = viewModel()
+
+        viewModel.onImageChosen("content://media/picked/7")
+
+        val rows = viewModel.preview.rows
+        assertEquals(LocalTime.of(10, 0) to LocalTime.of(13, 0), rows.last().startTime to rows.last().endTime)
+        assertEquals(null to null, rows.first().startTime to rows.first().endTime) // whole days
     }
 
     @Test

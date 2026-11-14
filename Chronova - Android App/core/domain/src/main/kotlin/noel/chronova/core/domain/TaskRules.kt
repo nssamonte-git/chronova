@@ -20,6 +20,9 @@ object TaskRules {
     /** The longest notes a task can keep (the sync protocol's limit). */
     const val MAX_NOTES_LENGTH = 2000
 
+    /** The shortest a task can be, in minutes. */
+    val MIN_MINUTES: Int = (TaskEdits.MIN_DURATION_MILLIS / 60_000L).toInt()
+
     /**
      * The first problem with the entered values, or null when they can be saved.
      * A milestone has no length: it must end when it starts, and that moment must
@@ -45,7 +48,7 @@ object TaskRules {
         }
         if (endMillis <= startMillis) return TaskProblem.EndNotAfterStart
         if (endMillis - startMillis < TaskEdits.MIN_DURATION_MILLIS) {
-            return TaskProblem.TooShort((TaskEdits.MIN_DURATION_MILLIS / 60_000L).toInt())
+            return TaskProblem.TooShort(MIN_MINUTES)
         }
         if (startMillis < window.startMillis || endMillis > window.endMillis) return TaskProblem.OutsideProject
         return null

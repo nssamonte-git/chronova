@@ -1,6 +1,7 @@
 package noel.chronova.core.ui
 
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -31,6 +32,14 @@ class TimeFormatTest {
         assertEquals("09:05", TimeFormat.clock(tuesdayMorning, utc))
         assertEquals("17:05", TimeFormat.clock(tuesdayMorning, manila))
         assertEquals("00:00", TimeFormat.clock(millis(2026, 3, 3, 0, 0), utc))
+    }
+
+    @Test
+    fun aTimeOfDayIsTwentyFourHourToo() {
+        assertEquals("10:00", TimeFormat.clock(LocalTime.of(10, 0)))
+        assertEquals("13:30", TimeFormat.clock(LocalTime.of(13, 30, 59)))
+        Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+        assertEquals("09:05", TimeFormat.clock(LocalTime.of(9, 5)))
     }
 
     @Test

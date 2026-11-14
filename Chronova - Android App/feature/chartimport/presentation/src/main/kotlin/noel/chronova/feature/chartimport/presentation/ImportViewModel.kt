@@ -209,6 +209,7 @@ class ImportViewModel(
             ImportRowUi(
                 row.ref, row.title, row.firstDay, row.lastDay, row.isMilestone, row.progress,
                 links = row.predecessorRefs.size, fits = row.fits, selected = row.ref in selected,
+                startTime = row.startTime, endTime = row.endTime,
             )
         }
 

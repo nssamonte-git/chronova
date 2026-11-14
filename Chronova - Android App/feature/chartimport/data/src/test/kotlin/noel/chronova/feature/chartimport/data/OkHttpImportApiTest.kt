@@ -1,6 +1,7 @@
 package noel.chronova.feature.chartimport.data
 
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -76,6 +77,25 @@ class OkHttpImportApiTest {
         val body = server.takeRequest().body!!.utf8()
         assertTrue(body.contains("new_project"))
         assertTrue(!body.contains("projectName"))
+    }
+
+    @Test
+    fun theHoursWrittenOnAOneDayTaskAreRead() = runTest {
+        fun task(ref: String, hours: String) =
+            """{"ref":"$ref","title":"Menu Tasting","startDate":"2026-11-26","endDate":"2026-11-26","startDay":null,"endDay":null,$hours"milestone":false,"progress":0,"predecessorRefs":[]}"""
+        reply(
+            200,
+            """{"result":"ok","dates":"absolute","project":{"name":"","startDate":"2026-11-26","endDate":"2026-11-26","days":null},"tasks":[
+            ${task("t1", """"startTime":"10:00","endTime":"13:00",""")},
+            ${task("t2", """"startTime":null,"endTime":null,""")},
+            ${task("t3", "")},
+            ${task("t4", """"startTime":"10am","endTime":"13:00",""")}],"uncertain":[]}""",
+        )
+        val tasks = api.read("t", byteArrayOf(1), "UTC", today, null).tasks
+
+        assertEquals(LocalTime.of(10, 0) to LocalTime.of(13, 0), tasks[0].startTime to tasks[0].endTime)
+        // No hours, a server from before them, or hours this app can't read: the task keeps its day.
+        for (task in tasks.drop(1)) assertEquals(task.ref, null to null, task.startTime to task.endTime)
     }
 
     @Test

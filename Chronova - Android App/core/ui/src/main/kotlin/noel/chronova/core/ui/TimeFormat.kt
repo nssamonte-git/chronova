@@ -14,6 +14,9 @@ object TimeFormat {
 
     fun clock(millis: Long, zone: ZoneId): String = clock.format(Instant.ofEpochMilli(millis).atZone(zone))
 
+    /** A time of day, e.g. "13:30". */
+    fun clock(time: LocalTime): String = clock.format(time)
+
     /** Day and month names follow the current locale, so the formatter is built per call. */
     fun day(millis: Long, zone: ZoneId): String =
         DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(zone))

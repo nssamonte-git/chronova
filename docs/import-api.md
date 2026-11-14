@@ -27,7 +27,7 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
   "project": {"name": "Project Timeline", "startDate": null, "endDate": null, "days": 49},
   "tasks": [
     {"ref": "t1", "title": "Initial Client Consult", "startDate": null, "endDate": null, "startDay": 0, "endDay": 6,
-     "milestone": false, "progress": 0, "predecessorRefs": []}
+     "startTime": null, "endTime": null, "milestone": false, "progress": 0, "predecessorRefs": []}
   ],
   "uncertain": ["No bar found for \"Install\"."]
 }
@@ -38,11 +38,12 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
   - `dates: absolute` means the chart showed calendar dates: `startDate` and `endDate` (`Y-m-d`) are set, and the project's dates hold every task.
   - `dates: relative` means only columns such as "Week 1": `startDay` and `endDay` count from 0, the chart's first day. `project.days` is the length, and the app asks for a start date.
   - The other pair is always `null`.
+- **Hours:** `startTime` and `endTime` (24-hour `HH:MM`) are set only for a task on one day whose hours are written on the chart: "10–1" inside its bar gives `10:00` and `13:00`. Otherwise both are `null`. Hours that can't be used (half a pair, an end not after the start, on a milestone or a task of several days) are dropped, and the task keeps its day, rather than failing the import.
 - **Milestones:** a milestone is one day, with progress 0 or 100.
 - **`ref` and links:** `ref` names a task within this answer; `predecessorRefs` are finish-to-start links between the answer's tasks, never in a loop.
 - **`uncertain`:** up to 20 short notes for the preview.
 - **The app's choices** (none of them the server's):
-  - placing a task from 00:00 of its first day to 24:00 of its last;
+  - placing a task from 00:00 of its first day to 24:00 of its last, or on its hours when a one-day task has them (at least 15 minutes);
   - colours and order;
   - unticked rows;
   - tasks outside an open project's dates.
@@ -61,7 +62,7 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
 1. **Meta Muse Spark** (Chat Completions, strict schema `ChartReadingSchema`, reasoning effort `minimal`) reads the chart:
    - its kind and title;
    - the time-axis labels with their x positions;
-   - its rows: label, vertical centre, text (values after their column headings, e.g. "After: Demolition"), and the axis labels under the ends of the row's bar (`barStart`, `barEnd`);
+   - its rows: label, vertical centre, text (values after their column headings, e.g. "After: Demolition", and anything written inside or beside the bar, e.g. "10–1"), and the axis labels under the ends of the row's bar (`barStart`, `barEnd`);
    - links and notes.
 2. **Meta SAM 3.1** (Responses API) finds the shapes, one concept per request: "bar" and "diamond shape", as pixel boxes.
    - `SamBoxes` reads the box tokens and skips the masks (`metadata.mask_encoding` `one_bit`, `store` `false`).
@@ -83,13 +84,15 @@ A user photographs or picks an image of a schedule or Gantt chart. The server re
 4. **OpenAI** (the voice model, `store: false`, strict schema `ImportSchema`) turns the matched rows into the schedule:
    - measured bars where they agree with what was seen;
    - the seen span where a row has no measured bar or its bar plainly belongs to another row (noted in `uncertain`);
-   - links from arrows, from wording, or from an "After" / "Depends on" column.
+   - links from arrows, from wording, or from an "After" / "Depends on" column;
+   - hours for a one-day task, only when its row's text gives them.
 5. **`ImportValidator`** checks the answer:
    - exact keys and real dates;
    - at most 300 tasks and 366 days;
    - titles at most 200 characters;
    - unique refs, links only to known refs and with no loops;
-   - milestones are one day.
+   - milestones are one day;
+   - hours only on a one-day task that isn't a milestone, as a real time of day, the end after the start.
 
    A new project's dates widen to hold every task. A failure answers 502.
 
@@ -111,7 +114,7 @@ Your 7-week "Project Timeline" template and three generated images, through the 
   - "gantt chart bar" found nothing (SAM wants a plain noun);
   - Muse Spark's positions alone put bars on the wrong rows;
   - reasoning effort `minimal` read as well as the default and halved the time (~14 s against ~30 s).
-- **Not measured yet:** real camera photos (glare, curved paper), handwriting, charts with dozens of rows or months of columns, and dates written inside the bars.
+- **Not measured yet:** real camera photos (glare, curved paper), handwriting, charts with dozens of rows or months of columns, and dates written inside the bars. Hours written inside a bar (`startTime`, `endTime`, added 14 Nov 2026) have been tested with the fakes only, not yet read from a real image.
 
 ## Before release
 

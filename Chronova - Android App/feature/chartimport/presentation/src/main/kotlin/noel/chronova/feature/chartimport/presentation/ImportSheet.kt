@@ -291,6 +291,7 @@ private fun TaskRow(row: ImportRowUi, onToggle: () -> Unit) {
             Text(row.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val details = buildList {
                 add(if (row.milestone) stringResource(R.string.import_milestone) + " · " + TimeFormat.dateRange(row.firstDay, row.firstDay) else TimeFormat.dateRange(row.firstDay, row.lastDay))
+                if (row.startTime != null && row.endTime != null) add(TimeFormat.clock(row.startTime) + " – " + TimeFormat.clock(row.endTime))
                 if (row.progress > 0) add(stringResource(R.string.import_progress, row.progress))
             }.joinToString(" · ")
             Text(details, style = MaterialTheme.typography.bodySmall.numeric(), color = MaterialTheme.colorScheme.onSurfaceVariant)

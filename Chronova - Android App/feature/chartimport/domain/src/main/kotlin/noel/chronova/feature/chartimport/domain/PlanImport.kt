@@ -57,8 +57,9 @@ sealed interface PlannedImport {
 
 /**
  * Turns the preview into what will be written. Each task runs from 00:00 of its first day to
- * 24:00 of its last; a milestone stands at 09:00 of its day. New tasks take the next colours and
- * row order after the project's own; links come only between ticked tasks. Notes stay empty.
+ * 24:00 of its last, or, on one day with hours written on the chart ("10–1"), for those hours; a
+ * milestone stands at 09:00 of its day. New tasks take the next colours and row order after the
+ * project's own; links come only between ticked tasks. Notes stay empty.
  */
 class PlanImport(
     private val zone: ZoneId,
@@ -83,13 +84,19 @@ class PlanImport(
         val ids = rows.associate { it.ref to newId() }
 
         val tasks = rows.mapIndexed { index, row ->
-            val start = if (row.isMilestone) millis(row.firstDay, MILESTONE_TIME) else millis(row.firstDay, LocalTime.MIDNIGHT)
+            val startTime = row.startTime
+            val endTime = row.endTime
+            val (start, end) = when {
+                row.isMilestone -> millis(row.firstDay, MILESTONE_TIME).let { it to it }
+                startTime != null && endTime != null -> millis(row.firstDay, startTime) to millis(row.firstDay, endTime)
+                else -> millis(row.firstDay, LocalTime.MIDNIGHT) to millis(row.lastDay.plusDays(1), LocalTime.MIDNIGHT)
+            }
             val task = SchedulerTask(
                 id = ids.getValue(row.ref),
                 projectId = project.id,
                 title = row.title.trim(),
                 startMillis = start,
-                endMillis = if (row.isMilestone) start else millis(row.lastDay.plusDays(1), LocalTime.MIDNIGHT),
+                endMillis = end,
                 color = TaskColor.entries[(already.size + index) % TaskColor.entries.size],
                 sortOrder = firstOrder + index,
                 progress = if (row.isMilestone && row.progress != SchedulerTask.DONE) 0 else row.progress,

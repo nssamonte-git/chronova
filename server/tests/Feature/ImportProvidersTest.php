@@ -64,7 +64,7 @@ function openAiSchedule(array $schedule): array
 function builtSchedule(): array
 {
     $task = fn ($ref, $title, $start, $end, $after = []) => ['ref' => $ref, 'title' => $title, 'startDate' => null, 'endDate' => null,
-        'startDay' => $start, 'endDay' => $end, 'milestone' => false, 'progress' => 0, 'predecessorRefs' => $after];
+        'startDay' => $start, 'endDay' => $end, 'startTime' => null, 'endTime' => null, 'milestone' => false, 'progress' => 0, 'predecessorRefs' => $after];
 
     return ['result' => 'ok', 'dates' => 'relative', 'project' => ['name' => 'Office Move', 'startDate' => null, 'endDate' => null, 'days' => 14],
         'tasks' => [$task('t1', 'Pack', 0, 6), $task('t2', 'Move', 7, 13, ['t1'])], 'uncertain' => []];
@@ -99,7 +99,7 @@ it('reads with Muse Spark, segments with SAM, and builds with OpenAI from Meta\'
 
     postChart()->assertOk()->assertJsonPath('tasks.1', [
         'ref' => 't2', 'title' => 'Move', 'startDate' => null, 'endDate' => null, 'startDay' => 7, 'endDay' => 13,
-        'milestone' => false, 'progress' => 0, 'predecessorRefs' => ['t1'],
+        'startTime' => null, 'endTime' => null, 'milestone' => false, 'progress' => 0, 'predecessorRefs' => ['t1'],
     ]);
 
     Http::assertSentCount(4);
@@ -133,6 +133,40 @@ it('reads with Muse Spark, segments with SAM, and builds with OpenAI from Meta\'
             // (0.0 travels as JSON 0, so loosely.)
             && $data['chart']['rows'][0] == ['label' => '1. Pack', 'text' => '', 'bars' => [[0, 0.95]], 'milestones' => [], 'seen' => ['from' => '', 'to' => '']]
             && $data['mode'] === 'new_project' && $data['project'] === null;
+    });
+});
+
+it('carries the hours written on a one-day bar through to the answer', function () {
+    fakeProviders(
+        reading: metaReading([
+            'axis' => ['unit' => 'date', 'labels' => [['text' => 'WED 25', 'x' => 150], ['text' => 'THU 26', 'x' => 250]]],
+            'rows' => [['label' => 'MENU TASTING', 'y' => 100, 'text' => '10–1', 'barStart' => 'THU 26', 'barEnd' => 'THU 26']],
+        ]),
+        bars: [[205, 90, 300, 110]],
+        schedule: ['result' => 'ok', 'dates' => 'absolute', 'project' => ['name' => 'Cafe Opening', 'startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'days' => null],
+            'tasks' => [['ref' => 't1', 'title' => 'Menu Tasting', 'startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'startDay' => null, 'endDay' => null,
+                'startTime' => '10:00', 'endTime' => '13:00', 'milestone' => false, 'progress' => 0, 'predecessorRefs' => []]], 'uncertain' => []],
+    );
+
+    postChart()->assertOk()->assertJsonPath('tasks.0', [
+        'ref' => 't1', 'title' => 'Menu Tasting', 'startDate' => '2026-11-26', 'endDate' => '2026-11-26', 'startDay' => null, 'endDay' => null,
+        'startTime' => '10:00', 'endTime' => '13:00', 'milestone' => false, 'progress' => 0, 'predecessorRefs' => [],
+    ]);
+
+    // The reader is told to report what is written inside a bar; the builder gets it and has somewhere to put it.
+    Http::assertSent(fn (Request $r) => $r->url() === META.'/chat/completions'
+        && str_contains($r['messages'][0]['content'], 'written inside or beside its bar'));
+    Http::assertSent(function (Request $r) {
+        if (! str_starts_with($r->url(), 'https://api.openai.com/')) {
+            return false;
+        }
+        $task = $r['text']['format']['schema']['properties']['tasks']['items'];
+
+        return json_decode($r['input'][1]['content'], true)['chart']['rows'][0]['text'] === '10–1'
+            && $task['properties']['startTime'] === ['type' => ['string', 'null']]
+            && $task['properties']['endTime'] === ['type' => ['string', 'null']]
+            && in_array('startTime', $task['required'], true) && in_array('endTime', $task['required'], true)
+            && str_contains($r['input'][0]['content'][0]['text'], 'startTime and endTime');
     });
 });
 

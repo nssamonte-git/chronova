@@ -51,7 +51,7 @@ final class FakeScheduleBuilder implements ScheduleBuilder
     {
         return [
             'ref' => $ref, 'title' => $title, 'startDate' => null, 'endDate' => null, 'startDay' => $start, 'endDay' => $end,
-            'milestone' => $milestone, 'progress' => 0, 'predecessorRefs' => [],
+            'startTime' => null, 'endTime' => null, 'milestone' => $milestone, 'progress' => 0, 'predecessorRefs' => [],
         ];
     }
 }

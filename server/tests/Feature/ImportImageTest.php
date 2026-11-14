@@ -52,7 +52,7 @@ it('reads the test chart into nine tasks over seven weeks, in relative days', fu
         ['Review Finished Project', 42, 48],
     ])->and($tasks->first())->toBe([
         'ref' => 't1', 'title' => 'Initial Client Consult', 'startDate' => null, 'endDate' => null, 'startDay' => 0, 'endDay' => 6,
-        'milestone' => false, 'progress' => 0, 'predecessorRefs' => [],
+        'startTime' => null, 'endTime' => null, 'milestone' => false, 'progress' => 0, 'predecessorRefs' => [],
     ]);
 });
 

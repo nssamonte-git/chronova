@@ -2,6 +2,7 @@ package noel.chronova.feature.chartimport.domain
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.test.runTest
 import noel.chronova.core.domain.ProjectProblem
@@ -107,6 +108,46 @@ class ImportTest {
         assertTrue(golive.isMilestone)
         assertEquals(LocalDateTime.of(2026, 3, 13, 9, 0), local(golive.startMillis))
         assertEquals(golive.startMillis, golive.endMillis)
+    }
+
+    /** The whiteboard: "MENU TASTING" drawn on Thu 26 Nov only, with "10–1" written inside its bar. */
+    @Test
+    fun aOneDayTaskTakesTheHoursWrittenOnTheChart() {
+        val thursday = LocalDate.of(2026, 11, 26)
+        fun oneDay(ref: String, start: LocalTime?, end: LocalTime?, last: LocalDate = thursday, milestone: Boolean = false) =
+            ImportedTask(ref, ref, thursday, last, null, null, milestone, 0, emptyList(), start, end)
+        val board = ImportedSchedule(
+            ImportedSchedule.Result.OK, ImportedSchedule.Dates.ABSOLUTE, "Cafe Opening", LocalDate.of(2026, 11, 16), LocalDate.of(2026, 11, 27), null,
+            listOf(
+                oneDay("tasting", LocalTime.of(10, 0), LocalTime.of(13, 0)),
+                oneDay("no hours", null, null),
+                oneDay("two days", LocalTime.of(10, 0), LocalTime.of(13, 0), last = thursday.plusDays(1)),
+                oneDay("too short", LocalTime.of(10, 0), LocalTime.of(10, 5)),
+                oneDay("half", LocalTime.of(10, 0), null),
+                oneDay("moment", LocalTime.of(10, 0), LocalTime.of(13, 0), milestone = true),
+            ),
+            emptyList(),
+        )
+        val rows = ImportPreview.rows(board, ImportTarget.NewProject, monday)
+        // The preview says which rows have hours: only those that will be placed on them.
+        assertEquals(
+            listOf(LocalTime.of(10, 0) to LocalTime.of(13, 0)) + List(5) { null to null },
+            rows.map { it.startTime to it.endTime },
+        )
+
+        val plan = planner.plan(board, ImportTarget.NewProject, ImportChoices(rows.map { it.ref }.toSet(), monday, "Cafe Opening", board.startDate!!, board.endDate!!), null)
+        val tasks = ((plan as PlannedImport.Ready).plan as ImportPlan.NewProject).tasks.associateBy { it.title }
+        fun span(title: String) = tasks.getValue(title).let { local(it.startMillis) to local(it.endMillis) }
+
+        assertEquals(LocalDateTime.of(2026, 11, 26, 10, 0) to LocalDateTime.of(2026, 11, 26, 13, 0), span("tasting"))
+        // Without usable hours a task keeps its whole days: never a task with no length.
+        val wholeDay = LocalDateTime.of(2026, 11, 26, 0, 0) to LocalDateTime.of(2026, 11, 27, 0, 0)
+        assertEquals(wholeDay, span("no hours"))
+        assertEquals(wholeDay, span("too short"))
+        assertEquals(wholeDay, span("half"))
+        assertEquals(LocalDateTime.of(2026, 11, 26, 0, 0) to LocalDateTime.of(2026, 11, 28, 0, 0), span("two days"))
+        assertEquals(LocalDateTime.of(2026, 11, 26, 9, 0) to LocalDateTime.of(2026, 11, 26, 9, 0), span("moment"))
+        assertTrue(tasks.values.filterNot { it.isMilestone }.all { it.endMillis > it.startMillis })
     }
 
     @Test

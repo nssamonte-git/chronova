@@ -1,6 +1,7 @@
 package noel.chronova.feature.chartimport.presentation
 
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** The import sheet, step by step. */
 sealed interface ImportSheetUi {
@@ -52,6 +53,9 @@ data class ImportRowUi(
     /** False when the open project's dates don't hold it. */
     val fits: Boolean,
     val selected: Boolean,
+    /** The hours it will get on its one day (written on the chart); null for whole days. */
+    val startTime: LocalTime? = null,
+    val endTime: LocalTime? = null,
 )
 
 enum class ImportProblemUi {
