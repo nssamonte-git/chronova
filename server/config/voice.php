@@ -23,6 +23,10 @@ return [
     // $0.12 per minute of audio, on top of transcription; not in the dashboard's estimate).
     // A failed isolation falls back to the original recording. Only with the ElevenLabs transcriber.
     'isolate_noise' => (bool) env('VOICE_ISOLATE_NOISE', false),
+    // Seconds a transcription request may run. PHP stops a request after 30 (max_execution_time),
+    // counting the time spent waiting for ElevenLabs; with noise removal there are two calls of up
+    // to elevenlabs.timeout each. CloudFront gives up on the server at 60.
+    'transcribe_time_limit' => (int) env('VOICE_TRANSCRIBE_TIME_LIMIT', 55),
 
     // The spoken explanation of a preview: "openai" writes it (else a plain summary), "elevenlabs"
     // says it (else a recorded test phrase). A failure of either still answers, with text only.

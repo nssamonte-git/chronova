@@ -1967,3 +1967,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Noticed, not changed:** with noise removal on (`VOICE_ISOLATE_NOISE`, off by default), a voice turn makes two calls of up to 20 s each (isolation, then transcription), which could also pass 30 s.
 - **Results:** server 502 tests pass, lint passes. The app is unchanged.
 - **Not done:** nothing deployed; the real providers weren't called.
+
+### Server: a voice transcription may run 55 seconds
+
+- **Your request:** fix the same 30-second limit for voice noise removal (noticed in the entry above).
+- **Problem:** with `VOICE_ISOLATE_NOISE` on, a turn makes two ElevenLabs calls one after the other (isolation, then transcription), each with a 20 s timeout. PHP's 30 s limit counts that waiting, so a slow pair would have been cut off with a 500 instead of the fallback or a 502.
+- **Fix:** the transcribe route raises the limit to `VOICE_TRANSCRIBE_TIME_LIMIT` (55 s, under CloudFront's 60 s) around the transcriber and puts the usual limit back afterwards, as the import route now does. Timeouts are unchanged: 2 × 20 s fits. `docs/voice-api.md` lists the setting.
+- **Tests:** two in `VoiceTranscribeTest`: the transcriber runs with a 55 s limit and the usual one comes back; twice the ElevenLabs timeout fits inside the limit, and the limit inside 60 s. Both failed before the fix.
+- **Results:** server 504 tests pass, lint passes. The app is unchanged.
+- **Noticed, not changed:** `/v1/voice/explain` also makes two calls one after the other: OpenAI writes the words (20 s timeout), then ElevenLabs says them (20 s). That can pass 30 s, and voice is on by default.
+- **Not done:** nothing deployed; the real providers weren't called. The runtime itself was checked with the import fix.

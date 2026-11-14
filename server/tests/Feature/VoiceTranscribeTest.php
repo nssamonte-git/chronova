@@ -2,6 +2,8 @@
 
 use App\Models\User;
 use App\Models\VoiceEvent;
+use App\Voice\Transcriber;
+use App\Voice\Transcription;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +42,35 @@ function scribeAnswer(string $text = 'Push design by two hours.'): array
         'audio_duration_secs' => 2.35,
     ];
 }
+
+it('gives a transcription more than PHP\'s 30 seconds, then puts the limit back', function () {
+    $before = ini_get('max_execution_time');
+    $seen = null;
+    app()->bind(Transcriber::class, function () use (&$seen) {
+        return new class($seen) implements Transcriber
+        {
+            public function __construct(private mixed &$seen) {}
+
+            public function transcribe(UploadedFile $audio, ?string $language, array $keyterms = []): Transcription
+            {
+                $this->seen = ini_get('max_execution_time');
+
+                return new Transcription('yes', 'en', 2400);
+            }
+        };
+    });
+
+    transcribe()->assertOk();
+
+    expect($seen)->toBe('55')
+        ->and(ini_get('max_execution_time'))->toBe($before);
+});
+
+it('keeps noise removal and transcription inside the time limit, and the limit inside CloudFront\'s 60 seconds', function () {
+    // With noise removal on, the isolator and then the transcriber are called, one after the other.
+    expect(2 * config('voice.elevenlabs.timeout'))->toBeLessThan(config('voice.transcribe_time_limit'))
+        ->and(config('voice.transcribe_time_limit'))->toBeLessThan(60);
+});
 
 it('hears the configured phrase with the fake transcriber', function () {
     config(['voice.fake_transcript' => 'delete review']);

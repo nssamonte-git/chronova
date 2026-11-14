@@ -53,12 +53,18 @@ class VoiceController extends Controller
         ]);
         $keyterms = config('voice.keyterms') ? KeyTerms::from($data['keyterms'] ?? [], $limits['tasks']) : [];
 
+        // With noise removal, the isolator and the transcriber together can take longer than PHP's
+        // usual 30 s allows (it counts the time spent waiting): this request gets its own limit.
+        $usualLimit = (int) ini_get('max_execution_time');
+        set_time_limit(config('voice.transcribe_time_limit'));
         try {
             $transcription = $transcriber->transcribe($data['audio'], $data['language'] ?? null, $keyterms);
         } catch (ProviderUnavailable) {
             $this->record($request, 'transcribe', 502, 'provider_error', $started, ['audio_ms' => $data['durationMs']]);
 
             return response()->json(['error' => 'provider_unavailable'], 502);
+        } finally {
+            set_time_limit($usualLimit);
         }
 
         $text = trim($transcription->text);
