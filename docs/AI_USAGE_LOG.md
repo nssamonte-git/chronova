@@ -2380,3 +2380,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the one-time `git reset --hard origin/main` for when the runbook's pull can't fast-forward because the commit IDs on GitHub changed (15 Nov), only on a clean checkout.
 - **Noted, not built:** the server can't report which commit it runs; building the commit ID into the image and showing it on `/up` or in the admin panel would make this one request.
 - Documentation only: nothing was run on EC2.
+
+### README brought up to date
+
+- **Your request:** update the README.
+- **Changed:**
+  - **Intro:** the admin line links the live panel and points to the Support test login on page 16 of the writeup. A new "Try it in a few minutes" paragraph covers cloning, Try demo, and the writeup's pages 2, 3 and 16.
+  - **Accounts feature:** describes Try demo (the shared `test@chronova.com` account with Sample Project, synced at once, no Delete account).
+  - **Running the app:** adds `assembleDebug` with the APK path, `gradlew.bat` on Windows, `adb install -r`, the `.gitattributes` line-ending note, `tools/check.sh` in Git Bash or WSL, and a pointer to the troubleshooting page.
+  - **Testing counts:** 520 unit tests (was 515), 61 previews and 183 screenshots (was 60 and 180), 112 device tests (was 110). These are from the last `tools/check.sh` run and the account device tests added with Try demo.
+  - **Known limitations:** the shared demo and Support logins and what they allow; the live server doesn't report which commit it runs (the EC2 runbook's check).
+- **Not changed:** HANDOFF's and `Learn/04`'s baselines still give 515 unit tests, 180 screenshots and 110 device tests.
+- Documentation only: no build or test run for this entry.
