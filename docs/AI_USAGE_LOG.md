@@ -2191,3 +2191,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** move "Running the project" right after the overview.
 - **Done:** it is now page 2, straight after the cover's overview; requirements through the AI model APIs page move down one (3–10), and testing, AWS (still page 12, so its reference holds) and the rest keep their numbers. Re-rendered: 19 pages, footers 1–19 of 19, order checked from the PDF text.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: running instructions on the cover
+
+- **Your request:** put "Running the project" on the cover under the overview, to save space.
+- **Done:** the requirements line and the four commands now sit at the bottom of the cover; the separate running page is gone, so the PDF is 18 pages. To fit, the cover's header band is about a third of an inch shorter, the screenshot slightly narrower, and the `check.sh` comment one line. The AWS page is now page 11, and its reference on the features page says so. Re-rendered: the cover looked at, page order checked, footers 1–18 of 18.
+- Documentation only: no build or test run for this entry.

@@ -39,14 +39,17 @@
   .grp.v::before{background:#7C3AED;} .grp.g::before{background:#0B8577;} .grp.c::before{background:#0EA5C6;} .grp.n::before{background:#0B1226;}
   .metrics.tight .metric{padding:0.09in 0.06in;} .metrics.tight .num{font-size:14pt;} .metrics.tight .lab{font-size:6.6pt;}
   /* cover */
-  .cover-top{position:absolute;top:0;left:0;right:0;height:4.35in;background:radial-gradient(circle at 78% 30%,#1D2A6B 0%,#0B1226 62%);color:#fff;}
+  .cover-top{position:absolute;top:0;left:0;right:0;height:4.0in;background:radial-gradient(circle at 78% 30%,#1D2A6B 0%,#0B1226 62%);color:#fff;}
   .cover-top .band{top:auto;bottom:0;height:0.07in;}
-  .cover-logo{position:absolute;top:0.62in;left:0.75in;width:1.05in;height:1.05in;border-radius:0.22in;box-shadow:0 0 0.35in rgba(34,211,238,.35);}
-  .cover-kicker{position:absolute;top:1.95in;left:0.75in;font-family:var(--font-head);font-weight:700;font-size:8.6pt;letter-spacing:0.3em;color:#22D3EE;text-transform:uppercase;}
-  .cover-h{position:absolute;top:2.22in;left:0.75in;right:0.75in;font-family:var(--font-head);font-weight:700;font-size:30pt;line-height:1.1;}
-  .cover-s{position:absolute;top:3.38in;left:0.75in;right:0.75in;font-size:11.5pt;color:#C9D4F2;line-height:1.5;}
-  .cover-main{position:absolute;top:4.75in;left:0.75in;right:0.75in;display:grid;grid-template-columns:2.15in 1fr;gap:0.38in;}
-  .shot{width:2.15in;border-radius:0.16in;border:1px solid var(--line);box-shadow:0 0.06in 0.2in rgba(11,18,38,.12);}
+  .cover-logo{position:absolute;top:0.5in;left:0.75in;width:1.05in;height:1.05in;border-radius:0.22in;box-shadow:0 0 0.35in rgba(34,211,238,.35);}
+  .cover-kicker{position:absolute;top:1.78in;left:0.75in;font-family:var(--font-head);font-weight:700;font-size:8.6pt;letter-spacing:0.3em;color:#22D3EE;text-transform:uppercase;}
+  .cover-h{position:absolute;top:2.04in;left:0.75in;right:0.75in;font-family:var(--font-head);font-weight:700;font-size:30pt;line-height:1.1;}
+  .cover-s{position:absolute;top:3.18in;left:0.75in;right:0.75in;font-size:11.5pt;color:#C9D4F2;line-height:1.5;}
+  .cover-main{position:absolute;top:4.3in;left:0.75in;right:0.75in;display:grid;grid-template-columns:1.85in 1fr;gap:0.34in;}
+  .cover-run{grid-column:1 / -1;margin-top:0.02in;}
+  .cover-run .code{font-size:7.9pt;line-height:1.55;padding:0.09in 0.15in;}
+  .cover-run p.body{font-size:9pt;margin-bottom:0.07in;}
+  .shot{width:1.85in;border-radius:0.16in;border:1px solid var(--line);box-shadow:0 0.06in 0.2in rgba(11,18,38,.12);}
   .facts td{padding:0.05in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
   .facts td.k{width:1.25in;font-family:var(--font-head);font-weight:600;font-size:7.6pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:0.07in;}
 </style>
@@ -77,29 +80,18 @@
         <tr><td class="k">Repository</td><td>Full git history included; small, logged batches</td></tr>
       </table>
     </div>
-  </div>
-  <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
-</div>
-
-<!-- ============================ 2. RUNNING ============================ -->
-<div class="page">
-  <div class="band"></div>
-  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Running it</div></div>
-  <div class="content">
-    <div class="eyebrow">Setup</div>
-    <h1 class="ptitle">Running the project</h1>
-    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
-    <p class="body"><b>Requirements:</b> Android Studio with AGP 9.5 support, JDK 17 or newer, Android SDK 37. <code>minSdk</code> 26. Open the <code>Chronova - Android App/</code> folder (not the repository root) in Android Studio, or use Gradle from that folder:</p>
+    <div class="cover-run">
+      <div class="eyebrow" style="margin-bottom:0.04in">Running the project</div>
+      <p class="body"><b>Requirements:</b> Android Studio with AGP 9.5 support, JDK 17 or newer, Android SDK 37; <code>minSdk</code> 26. Open the <code>Chronova - Android App/</code> folder (not the repository root) in Android Studio, or use Gradle from that folder:</p>
 <div class="code">cd "Chronova - Android App"
 ./gradlew :app:installDebug   <span class="cm"># build and install on a device or emulator</span>
 ./gradlew test                <span class="cm"># JVM unit tests, every module</span>
-../tools/check.sh             <span class="cm"># everything: tests, lint, architecture,</span>
-                              <span class="cm"># screenshots and the security gate</span></div>
+../tools/check.sh             <span class="cm"># tests, lint, architecture, screenshots, security gate</span></div>
+    </div>
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -138,7 +130,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -171,7 +163,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 4-5. BEYOND THE BRIEF ============================ -->
@@ -188,7 +180,7 @@
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <div class="page">
@@ -205,11 +197,11 @@
     <div class="grp">Look, feel and polish</div>
     <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
     <div class="grp n">The platform behind the app</div>
-    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 12).</p></div></div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 11).</p></div></div>
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -322,7 +314,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -459,7 +451,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -574,7 +566,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 9. AI MODEL APIS ============================ -->
@@ -606,7 +598,7 @@
     <p class="small" style="margin-top:0.04in">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 8. TESTING ============================ -->
@@ -662,7 +654,7 @@
     <p class="small" style="margin-top:0.06in">Outside the app, the server has 514 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 11. AWS ============================ -->
@@ -745,7 +737,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -781,7 +773,7 @@
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -831,7 +823,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -875,7 +867,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -975,7 +967,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -1105,7 +1097,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1198,7 +1190,7 @@
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1234,7 +1226,7 @@
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
 </div>
 
 </body>
