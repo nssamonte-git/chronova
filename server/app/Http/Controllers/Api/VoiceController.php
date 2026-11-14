@@ -228,7 +228,8 @@ class VoiceController extends Controller
             'context.today' => ['required', 'date_format:Y-m-d'],
             'context.now' => ['required', 'date_format:Y-m-d\TH:i'],
             'context.revision' => ['nullable', 'string', 'max:100'],
-            'context.tasks' => ['required_unless:context.view.screen,projects', 'array', 'list', 'max:'.$limits['tasks']],
+            // "present", not "required": a new project's list is empty, and "required" fails on [].
+            'context.tasks' => ['present_unless:context.view.screen,projects', 'array', 'list', 'max:'.$limits['tasks']],
             'context.tasks.*.id' => ['required', 'string', 'max:100', 'distinct'],
             'context.tasks.*.title' => ['required', 'string', 'max:200'],
             'context.tasks.*.start' => ['required', 'date_format:Y-m-d\TH:i'],

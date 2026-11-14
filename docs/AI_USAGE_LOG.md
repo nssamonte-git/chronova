@@ -1817,3 +1817,16 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the device-test step removed, as the emulator run has passed;
   - the phone's state and install routine updated.
 - No build was needed: documentation only.
+
+### Voice can add the first tasks to an empty project
+
+- **Found while:** recording the walkthrough video on the phone against the local server, with the live voice providers on. "Add Design on Monday and Tuesday, Build from Wednesday to Friday…" in a project with no tasks was heard correctly, then the orb said "The assistant isn't available right now."
+- **Cause:** `/v1/voice/interpret` (and `/resolve`, which shares the rules) required `context.tasks` on a timeline. Laravel's `required` treats an empty list as missing, so every request from a project with no tasks was a 422 before reaching the interpreter, and the app shows its generic "not available" line for that. The 422 was not recorded in `voice_events`, so the dashboard didn't show it either.
+- **Fix:** `present_unless:context.view.screen,projects` instead of `required_unless`: the list must be there on a timeline, and may be empty.
+- **Tests:** two in `VoiceInterpretTest`:
+  - the first tasks and a milestone are added to a project with an empty task list. This test failed with the same 422 before the fix;
+  - a timeline request with no task list at all is still a 422.
+  - Server: 482 tests pass (was 480), lint passes.
+- **AI mistake:** my first version of the test listed the model answer's fields in the wrong order. The validator checks the order, so the test got a 502 for the wrong reason. Fixed in the test before running the suite.
+- **Also on the phone, at your request:** your test account's 31 unsynced changes were synced to the local server, then that account was signed out on the phone. A new demo account on the local server is signed in for the recording. Your account's projects are on the server, not on the phone.
+- **Not done:** the app wasn't changed. Its generic message for a 422 is unchanged.

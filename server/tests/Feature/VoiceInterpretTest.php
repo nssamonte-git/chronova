@@ -336,6 +336,28 @@ it('passes the view on to the model as data', function () use ($shift) {
     expect(OpenAiInterpreter::instructions())->toContain('view.selectedTaskId')->toContain('undo_last_change');
 });
 
+it('adds the first tasks to a project that has none yet', function () {
+    useOpenAi();
+    $create = ['result' => 'operations', 'operations' => [
+        ['type' => 'create_task', 'title' => 'Design', 'start' => '2026-11-16T09:00', 'end' => '2026-11-17T17:00', 'predecessorIds' => []],
+        ['type' => 'create_milestone', 'title' => 'Launch', 'at' => '2026-11-18T09:00', 'predecessorIds' => []],
+    ], 'question' => null, 'reason' => null, 'alternative' => null, 'actions' => []];
+    Http::fake(['api.openai.com/*' => Http::response(openAiAnswer($create))]);
+
+    interpret('add design on monday and tuesday and a milestone launch on wednesday at nine', ['tasks' => []], ['actions'])
+        ->assertOk()
+        ->assertJson(['result' => 'operations', 'operations' => $create['operations']]);
+});
+
+it('still needs the task list on a timeline', function () {
+    $context = voiceContext();
+    unset($context['tasks']);
+
+    test()->postJson('/v1/voice/interpret', ['transcript' => 'add design on monday', 'context' => $context, 'capabilities' => ['actions']])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('context.tasks');
+});
+
 /** A request from the list of projects: no project open, no tasks, the user's projects. */
 function listContext(): array
 {
