@@ -47,7 +47,7 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
    - privacy policy, terms and open-source licences (the Inter OFL), linked from an About item on the account page;
    - the Play Data safety form. It must name OpenAI, ElevenLabs and Meta and the 90-day voice history, because the app no longer says so;
    - British or US spelling (now British: "Colour").
-2. **Check the hosted app from Android:** build with `chronova.apiUrl=https://chronova.meenux.tech` for the test and confirm sign-in and sync. On a test project, confirm a live voice command transcribes and shows the expected preview before approval. Sign into the same test account on two Android devices, sync a change from one, and confirm the other receives “Changes on another device.” Run `tools/check.sh --devices-only` for the remaining local device coverage. Provider tests need approval.
+2. **Check the hosted app from Android:** sign-in and sync work on the phone (15 Nov): the seeded test account `test@chronova.com` (confirmed, no code; "Sample Project" with 1,000 tasks, 16 Nov 2026 – 5 May 2027; password not recorded here) signed in and synced all 1,000 tasks. Remove it with a user delete in the `web` container (cascades). Still open: on a test project, confirm a live voice command transcribes and shows the expected preview before approval. Sign into the same test account on two Android devices, sync a change from one, and confirm the other receives “Changes on another device.” Run `tools/check.sh --devices-only` for the remaining local device coverage. Provider tests need approval.
 3. **Small, open:**
    - the assistant's spoken answers say "3 p.m." while its preview uses 24-hour times. That wording is written on the server (`OpenAiExplainer`); it also still words a whole-day task by the clock ("midnight on November 18");
    - "Wednesday" means the next Wednesday after today; in the walkthrough the user meant the task's own week. Ask the user before changing the rule;
@@ -75,7 +75,7 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
 
 ## Validation Notes
 
-- **Phone:** The last recorded install was a debug build of `d3ae557` against the local server. Later fixes still need a phone check.
+- **Phone:** The last install (15 Nov) is a debug build of `ef7dc9b` against the live server, signed in as the test account. Later fixes from 14 Nov still need a phone check of their own.
   - Install over the app (`adb install -r`), never uninstall. Build with `chronova.apiUrl=http://localhost:8000` appended to `local.properties`, then restore the file: an empty URL would lock the app out of signing in.
   - The USB link drops now and then, or shows "unauthorized" for a minute or two; `adb kill-server; adb start-server` and waiting brings it back.
   - `adb reverse tcp:8000 tcp:8000` must be re-added after any USB reconnect.
@@ -85,4 +85,4 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
   - `server/.env` (mode 600, git-ignored) holds the OpenAI, ElevenLabs and Meta keys, `PUSH_SENDER=fcm` and `FCM_CREDENTIALS`. Voice and imports default to the fakes; for real imports start the server with `IMPORT_ANALYZER=meta IMPORT_BUILDER=openai` (costs about 1.4¢ of Meta per image plus OpenAI).
   - Local PHP caps uploads at 2 MB; the app's images fit.
   - Docker Postgres and Mailpit (SMTP 1025, API 8025).
-- **Mac:** `local.properties` is restored (no `apiUrl`); its last line has no newline, so append with `printf '\n…'`. The Mac has the API 35 Google APIs arm64 emulator image (3.8 GB) and one managed AVD under `~/.android/avd/gradle-managed`.
+- **Mac:** `local.properties` now ends with `chronova.apiUrl=https://chronova.meenux.tech` (the live server, kept on purpose); for a local-server check, change it to `http://localhost:8000` and back afterwards. The Mac has the API 35 Google APIs arm64 emulator image (3.8 GB) and one managed AVD under `~/.android/avd/gradle-managed`.
