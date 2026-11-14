@@ -296,6 +296,7 @@ Seen but not changed: a recording picks up anyone talking nearby (twice another 
 | `VOICE_KEYTERMS` | `true` | Pass task titles to the transcriber (+20% transcription cost) |
 | `VOICE_ISOLATE_NOISE` | `false` | Remove background noise with ElevenLabs' voice isolator before transcribing (ElevenLabs transcriber only; about $0.12 per minute of audio on top of transcription, not in the dashboard's estimate; adds a round trip) |
 | `VOICE_TRANSCRIBE_TIME_LIMIT` | `55` | Seconds a transcription request may run. PHP's usual limit is 30 s and counts time spent waiting; with noise removal there are two ElevenLabs calls of up to `VOICE_ELEVENLABS_TIMEOUT` each (a test checks the defaults fit). CloudFront stops waiting at 60 s. |
+| `VOICE_EXPLAIN_TIME_LIMIT` | `55` | Seconds a spoken explanation (`/v1/voice/explain`) may run: OpenAI writes the words, then ElevenLabs says them, up to `VOICE_OPENAI_TIMEOUT` + `VOICE_ELEVENLABS_TIMEOUT` (a test checks the defaults fit). |
 | `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
 | `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |
 | `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_flash_v2_5` | |

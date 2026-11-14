@@ -1977,3 +1977,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Results:** server 504 tests pass, lint passes. The app is unchanged.
 - **Noticed, not changed:** `/v1/voice/explain` also makes two calls one after the other: OpenAI writes the words (20 s timeout), then ElevenLabs says them (20 s). That can pass 30 s, and voice is on by default.
 - **Not done:** nothing deployed; the real providers weren't called. The runtime itself was checked with the import fix.
+
+### Server: a spoken explanation may run 55 seconds
+
+- **Your request:** fix the same limit for `/v1/voice/explain` (noticed in the entry above).
+- **Problem:** every proposal the assistant reads out makes two calls one after the other: OpenAI writes the words (20 s timeout), then ElevenLabs says them (20 s). PHP's 30 s limit counts that waiting, so a slow pair would have been cut off with a 500 instead of the text-only fallback. Voice is on by default.
+- **Fix:** the explain route raises the limit to `VOICE_EXPLAIN_TIME_LIMIT` (55 s, under CloudFront's 60 s) around both calls and puts the usual limit back afterwards, as the import and transcribe routes now do. Timeouts are unchanged: 20 + 20 s fits. `docs/voice-api.md` lists the setting.
+- **Tests:** two in `VoiceExplainTest`: the speaker, called last, runs with a 55 s limit and the usual one comes back; the two timeouts fit inside the limit, and the limit inside 60 s. Both failed before the fix.
+- **Results:** server 506 tests pass, lint passes. The app is unchanged.
+- **Not done:** nothing deployed; the real providers weren't called.

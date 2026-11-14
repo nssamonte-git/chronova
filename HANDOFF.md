@@ -39,7 +39,7 @@ Commands only; procedures, baselines and phone quirks are in `Learn/04-validatio
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
-- Server: `cd server && docker compose up -d && composer test && composer lint` (504 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (22 tests).
+- Server: `cd server && docker compose up -d && composer test && composer lint` (506 tests; always the fake push sender). Infra: `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` (22 tests).
 
 ## On-Demand Context
 

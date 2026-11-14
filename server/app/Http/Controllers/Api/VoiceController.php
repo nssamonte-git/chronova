@@ -344,24 +344,32 @@ class VoiceController extends Controller
         $kind = 'speak';
         $fallback = false;
         $metrics = [];
-        if (isset($data['question'])) {
-            $words = trim($data['question']);
-        } else {
-            $kind = 'explain';
-            try {
-                $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage, $warnings, $offer);
-                $words = $explanation->text;
-                $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
-            } catch (ProviderUnavailable) {
-                $words = ChangeList::summary($data['changes'], $stage, $warnings, $offer);
-                $fallback = true;
-            }
-        }
-
+        // Writing the words (OpenAI) and then saying them (ElevenLabs) can take longer than PHP's
+        // usual 30 s allows (it counts the time spent waiting): this request gets its own limit.
+        $usualLimit = (int) ini_get('max_execution_time');
+        set_time_limit(config('voice.explain_time_limit'));
         try {
-            $speech = $speaker->speak($words, $language);
-        } catch (ProviderUnavailable) {
-            $speech = null;
+            if (isset($data['question'])) {
+                $words = trim($data['question']);
+            } else {
+                $kind = 'explain';
+                try {
+                    $explanation = $explainer->explain($data['changes'], $data['today'], $language, $stage, $warnings, $offer);
+                    $words = $explanation->text;
+                    $metrics = ['input_tokens' => $explanation->inputTokens, 'output_tokens' => $explanation->outputTokens];
+                } catch (ProviderUnavailable) {
+                    $words = ChangeList::summary($data['changes'], $stage, $warnings, $offer);
+                    $fallback = true;
+                }
+            }
+
+            try {
+                $speech = $speaker->speak($words, $language);
+            } catch (ProviderUnavailable) {
+                $speech = null;
+            }
+        } finally {
+            set_time_limit($usualLimit);
         }
 
         $outcome = ($fallback ? 'fallback_' : '').($speech ? 'spoken' : 'text');

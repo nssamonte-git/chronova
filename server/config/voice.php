@@ -27,6 +27,9 @@ return [
     // counting the time spent waiting for ElevenLabs; with noise removal there are two calls of up
     // to elevenlabs.timeout each. CloudFront gives up on the server at 60.
     'transcribe_time_limit' => (int) env('VOICE_TRANSCRIBE_TIME_LIMIT', 55),
+    // The same for a spoken explanation: OpenAI writes the words (openai.timeout), then ElevenLabs
+    // says them (elevenlabs.timeout), one after the other.
+    'explain_time_limit' => (int) env('VOICE_EXPLAIN_TIME_LIMIT', 55),
 
     // The spoken explanation of a preview: "openai" writes it (else a plain summary), "elevenlabs"
     // says it (else a recorded test phrase). A failure of either still answers, with text only.

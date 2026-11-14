@@ -4,6 +4,8 @@ use App\Models\User;
 use App\Models\VoiceEvent;
 use App\Voice\ChangeList;
 use App\Voice\OpenAiExplainer;
+use App\Voice\Speaker;
+use App\Voice\Speech;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -52,6 +54,36 @@ function openAiText(string $text, string $status = 'completed'): array
         'usage' => ['input_tokens' => 210, 'output_tokens' => 30],
     ];
 }
+
+it('gives an explanation more than PHP\'s 30 seconds, then puts the limit back', function () {
+    $before = ini_get('max_execution_time');
+    $seen = null;
+    // The speaker is called last, after the explainer: the limit has to hold for both.
+    app()->bind(Speaker::class, function () use (&$seen) {
+        return new class($seen) implements Speaker
+        {
+            public function __construct(private mixed &$seen) {}
+
+            public function speak(string $text, ?string $language = null): Speech
+            {
+                $this->seen = ini_get('max_execution_time');
+
+                return new Speech('mp3', 'audio/mpeg');
+            }
+        };
+    });
+
+    explainChanges([moved()])->assertOk();
+
+    expect($seen)->toBe('55')
+        ->and(ini_get('max_execution_time'))->toBe($before);
+});
+
+it('keeps writing and saying the words inside the time limit, and the limit inside CloudFront\'s 60 seconds', function () {
+    // OpenAI writes the words, then ElevenLabs says them, one after the other.
+    expect(config('voice.openai.timeout') + config('voice.elevenlabs.timeout'))->toBeLessThan(config('voice.explain_time_limit'))
+        ->and(config('voice.explain_time_limit'))->toBeLessThan(60);
+});
 
 it('answers a plain summary and the test recording with the fakes', function () {
     $response = explainChanges([moved()])->assertOk();
