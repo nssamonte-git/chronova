@@ -2060,3 +2060,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Sources:** the repository `README.md` ("Beyond the take-home", branding, server, testing), `HANDOFF.md` (Undo on every schedule write, working time), `docs/voice-api.md`, `docs/import-api.md` and `docs/push.md`. Descriptions were shortened, with no new claims.
 - **Rendered and checked:** pages 7–9 looked at (nothing clipped); footers read 1–16 of 16.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: closing banner removed
+
+- **Your request:** remove the "In one line" banner at the end of the report.
+- **Done:** removed from the last page; the PDF re-rendered (still 16 pages) and the last page looked at.
+- Documentation only: no build or test run for this entry.
