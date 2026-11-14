@@ -2036,3 +2036,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Facts checked before writing:** every cited class exists in the app code (grep); module count from `settings.gradle.kts` (36); scale, zoom, snap and row-height values from `TimelineConfig`; AI mistakes, assessment and decisions from `docs/AI_USAGE_WRITEUP.md` and this log; kit relationships from `DECISIONS.md`, `project-relationships.tsv`, `learning-inbox/README.md` and `build-validator/INSTALLED.md`; voice flow and measurements from `docs/voice-api.md`. Nothing new was measured.
 - **Rendered and checked:** Chrome is not installed on this Mac, so the PDF was printed with an existing Chrome for Testing headless shell from another local project. Every page was converted to images and looked at: two fixes (a code block running past the page edge, a diagram label hidden behind a box), then re-rendered; 13 pages, fonts embedded.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: build validator page
+
+- **Your request:** add the Android build validator to the take-home PDF: its purpose, the problem it solves and how it solves it.
+- **Made:** a new page 13 (the PDF is now 14 pages): the problem and purpose, a flow diagram from any build through the `preBuild` hook, `validate-build.sh` and `threat-scan.sh` to the three outcomes (fail, warn, suppressed with a reason) and the JSON report, the no-skip-switch rule, what it did in Chronova, and its limits.
+- **Facts checked before writing:** the installed copy's README, `build-validator.gradle`, `validate-build.sh`, the rule files (74 Android + 15 shared rules) and threat cards (41), `.build-validator-ignore`, `.github/workflows/android.yml` and the pre-push hook (both run `tools/check.sh`), and the install and full-R8 entries in this log. A read-only run of `validate-build.sh` today: 521 files, 89 rules, pass, 7 warnings, 2 suppressed.
+- **Rendered and checked:** same headless Chrome for Testing shell; the first render cut off the bottom of the new page, so its text was shortened and re-rendered; footers read 1–14 of 14.
+- Documentation only: no build or test run for this entry.
