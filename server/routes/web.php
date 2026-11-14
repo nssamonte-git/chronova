@@ -1,6 +1,6 @@
 <?php
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
-// No public website: the app talks to /v1, staff use /admin.
-Route::get('/', fn () => response()->json(['service' => 'chronova']));
+Route::get('/', fn () => new RedirectResponse('/admin', 302));

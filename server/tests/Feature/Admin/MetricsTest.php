@@ -77,7 +77,10 @@ it('reports 24-hour sync health and handles no traffic', function () {
 it('renders the dashboard widgets for any staff member', function () {
     Filament::setCurrentPanel('admin');
     // Widgets load lazily after the page, so each one is rendered on its own below.
-    $this->actingAs(staffMember(), 'staff')->get('/admin')->assertOk();
+    $this->actingAs(staffMember(), 'staff')->get('/admin')
+        ->assertOk()
+        ->assertDontSee('fi-account-widget', escape: false)
+        ->assertSee(route('filament.admin.auth.logout'));
     Livewire::test(AccountsOverview::class)->assertSee('Total accounts');
     Livewire::test(SyncHealthOverview::class)->assertSee('Error rate');
     Livewire::test(SignupsChart::class)->assertOk();

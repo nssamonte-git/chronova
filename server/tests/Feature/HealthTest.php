@@ -4,9 +4,9 @@ it('reports healthy at /up', function () {
     $this->get('/up')->assertOk();
 });
 
-it('has no public website, only a service marker', function () {
-    $this->getJson('/')->assertOk()->assertExactJson(['service' => 'chronova']);
-});
+it('temporarily redirects the homepage to the admin panel', function (string $method) {
+    $this->call($method, '/')->assertStatus(302)->assertHeader('Location', '/admin');
+})->with(['GET', 'HEAD']);
 
 it('runs feature tests on Postgres', function () {
     expect(DB::connection()->getDriverName())->toBe('pgsql')

@@ -2111,3 +2111,8 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - Admin timestamps and daily charts use `Asia/Manila`, as does the scheduler. PostgreSQL timestamps and Laravel's timestamp handling use UTC so historical data retains its meaning.
 - The first full test run found that the temporary PostgreSQL cluster inherited the Mac's time zone and shifted an existing UTC metrics test. The suite passed after the temporary database was configured for UTC. The app now also establishes UTC on each PostgreSQL connection.
 - Final verification: `composer test` passed 513 tests on isolated PostgreSQL, `composer lint` passed, and `artisan schedule:list --timezone=Asia/Manila` showed the daily housekeeping jobs due at Philippine midnight.
+
+### Admin homepage and dashboard
+
+- The homepage redirects to `/admin` with HTTP 302. Removed the Welcome card from the dashboard and verified that the account menu still offers Sign out.
+- `composer test` passed all 514 tests on isolated PostgreSQL. `composer lint` and `php artisan route:cache` passed.
