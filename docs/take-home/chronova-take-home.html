@@ -65,7 +65,11 @@
   .shotbox img{display:block;width:100%;height:1.62in;object-fit:cover;object-position:top left;}
   .shotcap{font-size:8.2pt;color:var(--body);margin-top:0.05in;line-height:1.4;}
   .shotcap b{color:var(--blue-ink);}
-  .facts td{padding:0.05in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
+  .toc{display:grid;grid-template-columns:1fr 1fr;column-gap:0.22in;margin-top:0.05in;}
+  .toc div{display:flex;align-items:baseline;gap:0.06in;font-size:8.2pt;line-height:1.2;padding:0.012in 0;color:var(--body);}
+  .toc div::after{content:'';order:1;flex:1;border-bottom:1px dotted #C3CBDD;transform:translateY(-0.03in);}
+  .toc div b{order:2;font-family:var(--font-head);font-weight:600;color:var(--blue-ink);font-size:8.2pt;}
+  .facts td{padding:0.04in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
   .facts td.k{width:1.25in;font-family:var(--font-head);font-weight:600;font-size:7.6pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:0.07in;}
 </style>
 </head>
@@ -95,6 +99,9 @@
         <tr><td class="k">Try it</td><td>Clone, build the APK and sign in with <b>Try demo</b>: step by step on page 2</td></tr>
         <tr><td class="k">Admin panel</td><td><code style="white-space:nowrap">chronova.meenux.tech</code>, with a test login on page 16</td></tr>
       </table>
+
+      <div class="eyebrow" style="margin-top:0.10in;margin-bottom:0.02in">Contents</div>
+      <div class="toc"><div>Running the project<b>2</b></div><div>Testing<b>12</b></div><div>Troubleshooting<b>3</b></div><div>AWS<b>13</b></div><div>Requirements<b>4</b></div><div>Accounts<b>14</b></div><div>How the timeline works<b>5</b></div><div>App and server<b>15</b></div><div>Beyond the brief<b>6–7</b></div><div>Admin panel<b>16</b></div><div>App architecture<b>8</b></div><div>AI usage writeup<b>17–18</b></div><div>Modularization<b>9</b></div><div>How I work with AI<b>19–21</b></div><div>AI voice assistant<b>10</b></div><div>Build validator<b>22</b></div><div>AI model APIs<b>11</b></div><div>Remaining items<b>23</b></div></div>
     </div>
 
   </div>

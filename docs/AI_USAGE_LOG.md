@@ -2350,3 +2350,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Records:** DECISIONS records the published login and what it allows; README's descriptions of the PDF mention the admin panel.
 - **Not checked:** that the live account's password is now `Chronova0Password`. That change is yours on the server; you signed in before telling me the new password.
 - **Rendered and checked:** the first render ran past the bottom of page 16, so the screenshots are cropped to their top part. 23 pages, footers 1–23 of 23, page order and references from the PDF text, fonts embedded; the cover and page 16 looked at in poppler and macOS's renderer.
+
+### Take-home writeup: contents on the cover
+
+- **Your request:** a simple table of contents on the cover, using the pages' header titles.
+- **Done:** under the cover's facts, a two-column "Contents" list of the 18 header titles with their pages, as in each page's top-right label, consecutive pages sharing a title given as a range (Beyond the brief 6–7, AI usage writeup 17–18, How I work with AI 19–21). The facts rows were tightened slightly to make room.
+- **Checked:** each entry's page against the PDF text; the cover in poppler and macOS's renderer (the first render sat too close to the footer, so the spacing was reduced); still 23 pages, fonts embedded.
