@@ -761,7 +761,7 @@ class AssistantViewModelTest {
     @Test
     fun theModelsClashFreeAlternativeIsOfferedAndAYesAppliesIt() = runTest(dispatcher) {
         api.answer = shift(-1) // Review 15:00–16:00 runs into QA Testing
-        api.suggest = { c -> shift(1)("", c) } // Review 17:00–18:00 is free
+        api.suggest = { c -> shift(17)("", c) } // Review Tuesday 09:00–10:00 is free (in working hours)
         player.holdIn = this
         val offered = mutableListOf<Int>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -776,20 +776,20 @@ class AssistantViewModelTest {
         assertEquals(1, proposal.offer.size)
         assertEquals("Review", proposal.offer.single().task)
         assertTrue(offered.isNotEmpty() && offered.all { it == 1 }) // the offer is shown while asking
-        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis) // the alternative, not the clash
+        assertEquals(originalReview.startMillis + 17 * 3_600_000L, review.startMillis) // the alternative, not the clash
         assertEquals(listOf(DecisionAnswer.AcceptedFix), api.decisions.map { it.answer })
         assertEquals(1, api.decisions.single().offered.size)
     }
 
     @Test
     fun theAlternativeThatCameWithTheProposalIsUsedWithoutAnotherRequest() = runTest(dispatcher) {
-        val later = ProposedOperation("shift_task", taskId = "review", amount = 1, unit = "hours")
+        val later = ProposedOperation("shift_task", taskId = "review", amount = 17, unit = "hours") // Tuesday 09:00
         api.answer = { text, c -> shift(-1)(text, c).copy(alternative = listOf(later)) }
         says("move review an hour earlier", "yes")
         talk()
         assertTrue(api.resolved.isEmpty()) // no second model call
         assertEquals("Review", api.explained.filterIsInstance<ExplainRequest.Changes>().first().offer.single().task)
-        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+        assertEquals(originalReview.startMillis + 17 * 3_600_000L, review.startMillis)
         assertEquals(listOf(DecisionAnswer.AcceptedFix), api.decisions.map { it.answer })
     }
 
@@ -797,11 +797,32 @@ class AssistantViewModelTest {
     fun anAlternativeThatStillClashesIsReplacedByAskingForAnother() = runTest(dispatcher) {
         val stillInQa = ProposedOperation("shift_task", taskId = "review", amount = -2, unit = "hours")
         api.answer = { text, c -> shift(-1)(text, c).copy(alternative = listOf(stillInQa)) }
-        api.suggest = { c -> shift(1)("", c) }
+        api.suggest = { c -> shift(17)("", c) }
         says("move review an hour earlier", "yes")
         talk()
         assertEquals(1, api.resolved.size)
-        assertEquals(originalReview.startMillis + 3_600_000L, review.startMillis)
+        assertEquals(originalReview.startMillis + 17 * 3_600_000L, review.startMillis)
+    }
+
+    @Test
+    fun aSuggestionOutsideWorkingHoursOrMovingAnotherTaskIsNotOffered() = runTest(dispatcher) {
+        // Review 17:00–18:00 is free, but after working hours; moving QA Testing instead touches a task nobody asked about.
+        api.answer = { text, c -> shift(-1)(text, c).copy(alternative = listOf(ProposedOperation("shift_task", taskId = "review", amount = 1, unit = "hours"))) }
+        api.suggest = { c ->
+            Proposal(
+                c.revision, "operations",
+                listOf(
+                    ProposedOperation("shift_task", taskId = "review", amount = -1, unit = "hours"),
+                    ProposedOperation("shift_task", taskId = "qa-testing", amount = -2, unit = "hours"),
+                ),
+                null, null,
+            )
+        }
+        says("move review an hour earlier", "yes")
+        talk()
+        assertEquals(1, api.resolved.size) // the first was refused, so another was asked for
+        assertEquals(emptyList<ExplainedChange>(), api.explained.filterIsInstance<ExplainRequest.Changes>().first().offer)
+        assertEquals(originalReview.startMillis - 3_600_000L, review.startMillis) // applied as asked
     }
 
     @Test
@@ -841,7 +862,7 @@ class AssistantViewModelTest {
     @Test
     fun turningTheAlternativeDownAsksOnceMoreAndKeepsTheirOwnVersion() = runTest(dispatcher) {
         api.answer = shift(-1)
-        api.suggest = { c -> shift(1)("", c) }
+        api.suggest = { c -> shift(17)("", c) }
         says("move review an hour earlier", "no", "yes")
         talk()
         assertEquals(listOf("hello", "as asked?"), api.said)
@@ -856,7 +877,7 @@ class AssistantViewModelTest {
     @Test
     fun noToBothChangesNothing() = runTest(dispatcher) {
         api.answer = shift(-1)
-        api.suggest = { c -> shift(1)("", c) }
+        api.suggest = { c -> shift(17)("", c) }
         says("move review an hour earlier", "no", "no")
         talk()
         assertEquals(originalReview, review)

@@ -6,6 +6,7 @@ import kotlinx.coroutines.CancellationException
 import noel.chronova.core.domain.repository.ProjectRepository
 import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.domain.schedule.ScheduleState
+import noel.chronova.core.domain.schedule.WorkingTime
 import noel.chronova.feature.assistant.domain.schedule.CommandProblem
 
 // From words to a plan: the request is interpreted by the server and planned against the schedule as it is now.
@@ -45,8 +46,9 @@ sealed interface Interpretation {
 /**
  * The server interprets the words; the app plans them against the schedule as it is now
  * ([AICommandHandler]). A plan that would cause clashes gets a clash-free alternative when
- * one exists: the model's, if it is valid and clash-free here (the one that came with the
- * proposal, else one asked for now), else the app's own (push what waits for a task just enough).
+ * one exists: the model's, if it is valid, clash-free here and sensible ([SensibleAlternative]: it
+ * moves only what the request did and what waits for it, and keeps working hours; the one that came
+ * with the proposal, else one asked for now), else the app's own (push what waits for a task just enough).
  */
 class InterpretRequest(
     private val repository: ProjectRepository,
@@ -56,6 +58,8 @@ class InterpretRequest(
     private val zone: ZoneId,
     private val clock: () -> Long,
 ) {
+    private val sensible = SensibleAlternative(WorkingTime(zone))
+
     /**
      * [projectId]: the open project, or null on the list of projects. [view]: what the timeline shows,
      * sent so "this task" or "zoom in" can be understood.
@@ -118,9 +122,11 @@ class InterpretRequest(
         proposal: Proposal,
         planned: VoicePlan,
     ): VoicePlan? {
-        fun usable(candidate: Proposal): VoicePlan? {
+        /** [fromModel]: the model's suggestion, which must also be sensible; the app's own push is not checked. */
+        fun usable(candidate: Proposal, fromModel: Boolean = true): VoicePlan? {
             val handled = handler.handle(context, state, candidate) as? HandledProposal.Preview ?: return null
             if (ScheduleWarning.from(handled.changes, state).isNotEmpty()) return null
+            if (fromModel && !sensible.accepts(planned.changes, handled.changes, state)) return null
             val items = PreviewItem.from(handled.changes, state)
             // The same change in other words is no alternative.
             if (ExplainedChange.from(items, zone) == ExplainedChange.from(planned.items, zone)) return null
@@ -140,6 +146,9 @@ class InterpretRequest(
         suggested?.takeIf { it.result == "operations" }?.let(::usable)?.let { return it }
         val waitedFor = ScheduleWarning.waitedFor(planned.changes, state)
         if (waitedFor.isEmpty()) return null
-        return usable(proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }, actions = emptyList()))
+        return usable(
+            proposal.copy(operations = proposal.operations + waitedFor.map { ProposedOperation("reschedule_dependents", taskId = it) }, actions = emptyList()),
+            fromModel = false,
+        )
     }
 }

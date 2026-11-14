@@ -1986,3 +1986,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Tests:** two in `VoiceExplainTest`: the speaker, called last, runs with a 55 s limit and the usual one comes back; the two timeouts fit inside the limit, and the limit inside 60 s. Both failed before the fix.
 - **Results:** server 506 tests pass, lint passes. The app is unchanged.
 - **Not done:** nothing deployed; the real providers weren't called.
+
+### Voice: odd clash-free alternatives are no longer offered
+
+- **Your request:** fix the clash-free alternatives seen while recording the walkthrough: a three-day task moved out of the way of a three-hour one, three tasks moved for one clash (one to a Sunday), and a tasting offered at 06:00–09:00.
+- **Cause:** the model chooses alternatives. Its first rule said to keep the day the user named and move the other tasks. The app accepted any alternative that was valid, clash-free and different from the plan. Nothing knew working hours.
+- **Fix, app:** `SensibleAlternative` (`:feature:assistant:domain`) refuses a model's alternative that:
+  - moves, adds or deletes a task the plan didn't, other than one that waits (through links) for a task the plan changed; new tasks are matched by title;
+  - moves a task out of working hours (09:00–17:00, Monday to Friday, the same `WorkingTime` as the critical path) when the plan left it inside them. A plan that puts work on a Saturday, in an evening or on whole days keeps that freedom.
+  - `InterpretRequest` applies it to the alternative that came with the proposal and to the one asked for from `/resolve`. When both are refused, the app's own fallback for broken links (push what waits, just enough) still runs, unchecked, as the timeline's Push does; otherwise no alternative is offered and the assistant asks whether to apply the change anyway.
+- **Fix, server:** the interpreter's alternative rules now say the same: never move a task the user didn't mention unless it waits for theirs; change the user's own task when the time is open or keeping their words would move another task; keep moved tasks within working hours unless the user's own change is outside them. Not checked with the real model (no approval to call it).
+- **DECISIONS** (Voice editing) and `docs/voice-api.md` updated.
+- **Tests:**
+  - `SensibleAlternativeTest` (new, 7): the three recorded offers are refused; the user's own task at another working time, pushing what waits, Saturday and whole-day requests, and new tasks by title are accepted. Five failed against a stub that accepted everything.
+  - `AssistantViewModelTest`: a new test, where a 17:00 alternative and one that moves QA Testing are both refused, failed with the check bypassed (the 17:00 one was offered). Five existing tests offered Review at 17:00–18:00, now outside working hours; their fixtures now offer Tuesday 09:00.
+  - `VoiceInterpretTest`: the rules mention both limits (failed before the rule change).
+- **Results:** `tools/check.sh` passed (515 unit tests, 180 screenshots, lint 0 errors, both architecture checks); server 507 tests and lint pass.
+- **Not checked:** on the phone, or with the real model.
