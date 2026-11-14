@@ -124,8 +124,12 @@ fun ChoiceChipRows() = ChronovaTheme {
     }
 }
 
-/** The shared date picker (projects, import, task editor). */
+/**
+ * The shared date picker (projects, import, task editor). It shows a month in the past: Material's
+ * date picker rings "today" from the system clock, so a month that can contain today would change
+ * the image every day.
+ */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun DatePicker() = ChronovaTheme { ChronovaDatePickerDialog(initial = java.time.LocalDate.of(2026, 11, 20), onConfirm = {}, onDismiss = {}) }
+fun DatePicker() = ChronovaTheme { ChronovaDatePickerDialog(initial = java.time.LocalDate.of(2025, 11, 20), onConfirm = {}, onDismiss = {}) }

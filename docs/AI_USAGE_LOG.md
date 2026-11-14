@@ -2237,3 +2237,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** remove the `submission-v1` mention from the README too.
 - **Done:** the intro now says Chronova started as the PicCollage take-home without naming the tag; the README no longer mentions it. The tag itself still exists in git, and earlier entries in this log and `docs/AI_USAGE_WRITEUP.md` still refer to it.
 - Documentation only: no build or test run for this entry.
+
+### Date picker screenshot no longer depends on today's date
+
+- **Found while you pushed:** the pre-push check failed on three screenshots (the shared date picker at phone size, 1.5× text and dark; 0.19–0.24% difference). Comparing expected and actual images showed the only change was Material's "today" ring, on the 14th in the references and the 15th now: `rememberDatePickerState` reads today from the system clock and has no way to set it, and the preview showed November 2026, the current month. It would have failed again on every new day of the month.
+- **Fix (test only):** the `DatePicker` screenshot preview (`core/ui/src/screenshotTest/.../ComponentScreenshots.kt`) now shows 20 November 2025, a past month that can never contain today, with a comment saying why; the three reference images were re-recorded and looked at (no "today" ring, 20 selected, in all three variants). App code unchanged.
+- **Checks:** `tools/check.sh` passes: 515 unit tests, 180 screenshots, 0 failed; lint 0 errors (23 warnings); module graph and UI models OK.
