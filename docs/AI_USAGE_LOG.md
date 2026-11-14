@@ -2203,3 +2203,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** fix the layout of the text at the bottom (the caption under the cover's phone screenshot).
 - **Done:** the caption was three ragged lines with "Add task." alone on the last; it is now shorter ("Recorded on a real phone: the voice orb sits above Add task."), centred under the screenshot and balanced over two lines. Also kept `Chronova - Android App/` on one line in the running instructions, which had split it across two. Re-rendered (18 pages) and both spots looked at closely.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: cover paragraph removed
+
+- **Your request:** remove the cover paragraph about the `submission-v1` tag and the document describing today's timeline.
+- **Done:** removed from the overview; the cover now goes from the overview straight to the project facts. Re-rendered (18 pages) and the cover looked at. The tag is still listed under "Where to find more" on the last page.
+- Documentation only: no build or test run for this entry.
