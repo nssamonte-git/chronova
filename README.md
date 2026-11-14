@@ -5,7 +5,7 @@ Chronova is an offline-first project scheduler: a native Android app (Kotlin, Je
 - **App** (`Chronova - Android App/`) — create projects with a date range, add tasks and finish-to-start dependencies, and edit them on a timeline by dragging and resizing bars (Hours, Days, Weeks or Months). Everything works offline; when the phone comes back online with unsynced changes it **asks** before syncing.
 - **Server** (`server/`) — Laravel 13 on Postgres: sign-up with an emailed code, Sanctum tokens, and a sync API (last write wins per record).
 - **Admin** (`/admin`) — Filament 5 panel for staff with 2FA required by default: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
-- **AWS** (`server/infra/`) — CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES. Not deployed yet; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
+- **AWS** — the server is **live** on one EC2 instance in Sydney (Docker Compose, Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager); see [`server/infra/EC2.md`](server/infra/EC2.md). The planned production stack, CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES (`server/infra/`), is tested but not deployed; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
 
 It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, testing, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
 
@@ -65,7 +65,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   └── local.properties          uncommitted: SDK path and the server URL
 ├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
 │   ├── app/  routes/  resources/  public/  tests/
-│   └── infra/                    AWS CDK + DEPLOY.md
+│   └── infra/                    AWS CDK (the planned stack) + DEPLOY.md; EC2.md runs the live server
 ├── docs/
 │   ├── sync-protocol.md          the app ↔ server sync contract
 │   ├── voice-api.md              voice endpoints, privacy, measured cost and the release checklist
@@ -109,7 +109,7 @@ cd "Chronova - Android App"
 The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties` (for local development, the server from `server/` with `php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
 
 ```properties
-chronova.apiUrl=https://<your server>          # release builds need https
+chronova.apiUrl=https://<your server>          # release builds need https (the live server: server/infra/EC2.md)
 # or, for a debug build against the local server:
 chronova.apiUrl=http://localhost:8000
 ```
@@ -213,7 +213,8 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - **Offline first, sync on request.** The user asked to be prompted on reconnect rather than syncing silently; sync never starts on its own.
 - **Last write wins per record**, by edit time with the server clock as a ceiling — simple and predictable; no field-level merging.
 - **Laravel + Postgres + Filament** instead of the first serverless prototype (Cognito, Lambda, DynamoDB; tag `serverless-backend-v1`): an admin back-office and relational data were wanted. Trade-off: an always-on database and containers, and our own auth to secure.
-- **No custom domain required on AWS**: CloudFront's default domain gives HTTPS; the load balancer is private (VPC origin), so client IPs come from CloudFront's own header. A custom domain is needed to enforce TLS 1.2+.
+- **Live on one EC2 instance first.** The running server is Docker Compose on a single EC2 instance in Sydney, with PostgreSQL on the same machine, Caddy for HTTPS and the secrets in Secrets Manager; the Fargate and RDS design below stays as the separate CDK stack.
+- **No custom domain required for the CDK stack**: CloudFront's default domain gives HTTPS; the load balancer is private (VPC origin), so client IPs come from CloudFront's own header. A custom domain is needed to enforce TLS 1.2+.
 - **Fixed 15-minute minimum duration** across all snap intervals; the dragged edge snaps to the nearest allowed grid line.
 - **Pinned dependency versions**, each at least two weeks old when chosen; lint and npm report newer ones.
 - **Voice proposes, the user decides — by voice.** The assistant is voice-only: it says every change before making it and applies it only on a spoken yes; Undo follows. Silence, a no or tapping away changes nothing. Voice is on for every signed-in user, so cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
@@ -221,7 +222,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 
 ## Known limitations
 
-- Not deployed: the AWS stack has been synthesized and tested, not run. Email in AWS needs SES production access.
+- The live server is a single EC2 instance with PostgreSQL on the same machine (no load balancer, managed database or Multi-AZ). Still open there: real email (mail is held in memory, so sign-up and reset codes aren't sent), voice and push checked end to end from phones, and a tested database restore; image import is off. The CDK stack has been synthesized and tested, not deployed; email through it needs SES production access.
 - Dragging a handle past the edge of the viewport doesn't auto-scroll.
 - On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen (the toolbar scrolls sideways).
 - Dependency arrows update when a drag ends, not during it.

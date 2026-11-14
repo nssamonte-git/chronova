@@ -2131,3 +2131,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Left out on purpose:** the live domain name and the secret's name (the PDF goes to outside reviewers).
 - **Rendered and checked:** the planned-stack line ran past the page edge and was shortened; pages 7, 10, 11 and 18 looked at; footers 1–18 of 18.
 - Documentation only: no build or test run for this entry.
+
+### README: the live EC2 server
+
+- **Your request:** fix the README's deployment status.
+- **Changed:** the intro's AWS line now says the server is live on one EC2 instance in Sydney (Docker Compose, Caddy HTTPS, Cloudflare DNS, Secrets Manager; `server/infra/EC2.md`) and that the CDK stack is the planned, undeployed production design; the repository layout and the `chronova.apiUrl` example point to `EC2.md`; "Decisions and trade-offs" has the live EC2 setup (stating what it is, not a reason the decision record doesn't give); the "Not deployed" limitation is replaced by the live server's limits and open items (single instance with PostgreSQL on it, mail held in memory so codes aren't sent, voice and push not yet checked from phones, no tested restore, image import off) plus the CDK stack's status. All from `EC2.md`, `DECISIONS.md` and the 14 Nov log entry. The live domain stays out of the README.
+- Documentation only: no build or test run for this entry.
