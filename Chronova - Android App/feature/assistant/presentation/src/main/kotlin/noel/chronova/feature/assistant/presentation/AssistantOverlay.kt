@@ -230,7 +230,7 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
         if (item.renamed) parts += stringResource(R.string.assistant_preview_renamed, item.titleBefore, item.title)
         if (item.moved) {
             val day = TimeFormat.day(item.start, zone)
-            parts += if (withinDay(item.startBefore, item.endBefore, day, zone) && withinDay(item.start, item.end, day, zone)) {
+            parts += if (timesWithinDay(item.startBefore, item.endBefore, day, zone) && timesWithinDay(item.start, item.end, day, zone)) {
                 // Same day before and after: the day once, after the times ("16:00 – 17:00 → 15:00 – 16:00 · Thu 12 Nov").
                 stringResource(
                     R.string.assistant_preview_moved_same_day,
@@ -243,8 +243,8 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
                 stringResource(
                     R.string.assistant_preview_moved,
                     item.title,
-                    range(item.startBefore, item.endBefore, zone),
-                    range(item.start, item.end, zone),
+                    TimeFormat.daySpan(item.startBefore, item.endBefore, zone),
+                    TimeFormat.daySpan(item.start, item.end, zone),
                 )
             }
         }
@@ -260,29 +260,21 @@ private fun previewText(item: ProposalLineUi, zone: ZoneId): String = when (item
     is ProposalLineUi.Added -> stringResource(
         if (item.isMilestone) R.string.assistant_preview_added_milestone else R.string.assistant_preview_added,
         item.title,
-        range(item.start, item.end, zone),
+        TimeFormat.daySpan(item.start, item.end, zone),
     )
     is ProposalLineUi.Removed -> stringResource(R.string.assistant_preview_removed, item.title)
     is ProposalLineUi.Linked -> stringResource(R.string.assistant_preview_linked, item.predecessor, item.successor)
     is ProposalLineUi.Unlinked -> stringResource(R.string.assistant_preview_unlinked, item.predecessor, item.successor)
 }
 
-/** Starts and ends (or, for a milestone, is) on [day]. */
-private fun withinDay(start: Long, end: Long, day: String, zone: ZoneId): Boolean =
-    TimeFormat.day(start, zone) == day && TimeFormat.day(maxOf(start, end - 1), zone) == day
+/**
+ * Starts and ends (or, for a milestone, is) on [day], at times worth showing: a whole day has
+ * none (its clock times read "00:00 – 00:00"), so it is shown as its day instead.
+ */
+internal fun timesWithinDay(start: Long, end: Long, day: String, zone: ZoneId): Boolean =
+    TimeFormat.day(start, zone) == day && TimeFormat.day(maxOf(start, end - 1), zone) == day &&
+        !TimeFormat.isWholeDays(start, end, zone)
 
 /** "09:00 – 11:00", or "17:00" for a milestone. */
 private fun clockRange(start: Long, end: Long, zone: ZoneId): String =
     if (start == end) TimeFormat.clock(start, zone) else TimeFormat.range(start, end, zone)
-
-/** "Thu 12 Nov 09:00 – 11:00", "Thu 12 Nov 09:00 – Fri 13 Nov 17:00" across days, or "Fri 13 Nov 17:00" for a milestone. */
-private fun range(start: Long, end: Long, zone: ZoneId): String {
-    val startDay = TimeFormat.day(start, zone)
-    if (start == end) return "$startDay ${TimeFormat.clock(start, zone)}"
-    val endDay = TimeFormat.day(end - 1, zone)
-    return if (startDay == endDay) {
-        "$startDay ${TimeFormat.range(start, end, zone)}"
-    } else {
-        "$startDay ${TimeFormat.clock(start, zone)} – $endDay ${TimeFormat.clock(end, zone)}"
-    }
-}

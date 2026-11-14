@@ -44,8 +44,31 @@ object TimeFormat {
     fun span(startMillis: Long, endMillis: Long, zone: ZoneId): String {
         val start = Instant.ofEpochMilli(startMillis).atZone(zone)
         val end = Instant.ofEpochMilli(endMillis).atZone(zone)
-        val wholeDays = endMillis > startMillis && start.toLocalTime() == LocalTime.MIDNIGHT && end.toLocalTime() == LocalTime.MIDNIGHT
-        return if (wholeDays) shortDays(start.toLocalDate(), end.toLocalDate().minusDays(1)) else range(startMillis, endMillis, zone)
+        return if (isWholeDays(startMillis, endMillis, zone)) shortDays(start.toLocalDate(), end.toLocalDate().minusDays(1)) else range(startMillis, endMillis, zone)
+    }
+
+    /** Midnight to a later midnight in [zone]: a task on whole days, as tasks read from a chart are. */
+    fun isWholeDays(startMillis: Long, endMillis: Long, zone: ZoneId): Boolean =
+        endMillis > startMillis &&
+            Instant.ofEpochMilli(startMillis).atZone(zone).toLocalTime() == LocalTime.MIDNIGHT &&
+            Instant.ofEpochMilli(endMillis).atZone(zone).toLocalTime() == LocalTime.MIDNIGHT
+
+    /**
+     * A task's span with its days, as the assistant's preview shows it: "Thu 12 Nov 09:00 – 11:00",
+     * "Thu 12 Nov 09:00 – Fri 13 Nov 17:00" across days, or "Fri 13 Nov 17:00" for a moment (a
+     * milestone). Whole days show the days alone, the last one inclusive ("Thu 26 Nov",
+     * "Mon 16 Nov – Wed 18 Nov"): as clock times a one-day task read "00:00 – 00:00".
+     */
+    fun daySpan(startMillis: Long, endMillis: Long, zone: ZoneId): String {
+        val startDay = day(startMillis, zone)
+        if (startMillis == endMillis) return "$startDay ${clock(startMillis, zone)}"
+        // The day the span ends on: one that ends at midnight ends on the day before.
+        val lastDay = day(endMillis - 1, zone)
+        return when {
+            isWholeDays(startMillis, endMillis, zone) -> if (startDay == lastDay) startDay else "$startDay – $lastDay"
+            startDay == lastDay -> "$startDay ${range(startMillis, endMillis, zone)}"
+            else -> "$startDay ${clock(startMillis, zone)} – ${day(endMillis, zone)} ${clock(endMillis, zone)}"
+        }
     }
 
     /** Inclusive days without the year: "13–19 Nov", "30 Nov – 6 Dec", "13 Nov". */

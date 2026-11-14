@@ -34,6 +34,37 @@ fun AssistantAskingAboutAChange() = ChronovaTheme {
     )
 }
 
+private fun day(day: Int) = LocalDateTime.of(2026, 11, day, 0, 0).toInstant(zone).toEpochMilli()
+
+/**
+ * Whole-day tasks, as read from a chart, are shown by their days: a one-day task read
+ * "Thu 26 Nov 00:00 – 00:00" before, and three days ended "Wed 18 Nov 00:00".
+ */
+@PreviewTest
+@ChronovaScreenshots
+@Composable
+fun AssistantWholeDayTasks() = ChronovaTheme {
+    AssistantOverlay(
+        state = AssistantUiState(
+            availability = AssistantAvailability.READY,
+            open = true,
+            mode = OrbMode.Speaking,
+            heard = "Menu tasting on Wednesday",
+            saying = "That clashes with Train staff. Tuesday instead?",
+            proposal = listOf(
+                ProposalLineUi.Changed("Menu tasting", "Menu tasting", day(26), day(27), day(25), day(26)),
+                ProposalLineUi.Added("Hire staff", day(16), day(19)),
+            ),
+            warnings = listOf(WarningUi.Overlap("Menu tasting", "Train staff")),
+            offer = listOf(ProposalLineUi.Changed("Menu tasting", "Menu tasting", day(26), day(27), day(24), day(25))),
+            noticeAccepted = true,
+        ),
+        zone = zone,
+        level = { 0f },
+        onClose = {},
+    )
+}
+
 /** The assistant listening, with nothing heard yet. */
 @PreviewTest
 @ChronovaScreenshots

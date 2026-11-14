@@ -84,6 +84,36 @@ class TimeFormatTest {
     }
 
     @Test
+    fun aSpanWithItsDaysNeverReadsAsNoTimeAtAll() {
+        val manila = ZoneId.of("Asia/Manila")
+        fun at(day: Int, hour: Int, minute: Int = 0) = millis(2026, 11, day, hour, minute, manila)
+        // Timed: the day once, or both days.
+        assertEquals("Thu 12 Nov 09:00 – 11:00", TimeFormat.daySpan(at(12, 9), at(12, 11), manila))
+        assertEquals("Thu 12 Nov 09:00 – Fri 13 Nov 17:00", TimeFormat.daySpan(at(12, 9), at(13, 17), manila))
+        assertEquals("Thu 12 Nov 21:00 – 00:00", TimeFormat.daySpan(at(12, 21), at(13, 0), manila))
+        // A moment (a milestone).
+        assertEquals("Fri 13 Nov 17:00", TimeFormat.daySpan(at(13, 17), at(13, 17), manila))
+        // Whole days, as tasks read from a chart are: the days, the last one inclusive. A one-day
+        // task was "Thu 26 Nov 00:00 – 00:00", and three days ended "Wed 18 Nov 00:00", a day early.
+        assertEquals("Thu 26 Nov", TimeFormat.daySpan(at(26, 0), at(27, 0), manila))
+        assertEquals("Mon 16 Nov – Wed 18 Nov", TimeFormat.daySpan(at(16, 0), at(19, 0), manila))
+        // Across days to a midnight: the day that midnight starts, not the one before.
+        assertEquals("Mon 16 Nov 09:00 – Wed 18 Nov 00:00", TimeFormat.daySpan(at(16, 9), at(18, 0), manila))
+        // Whole days in one zone are times in another.
+        assertEquals("Wed 25 Nov 16:00 – Thu 26 Nov 16:00", TimeFormat.daySpan(at(26, 0), at(27, 0), ZoneId.of("UTC")))
+    }
+
+    @Test
+    fun wholeDaysAreMidnightToALaterMidnight() {
+        val manila = ZoneId.of("Asia/Manila")
+        assertEquals(true, TimeFormat.isWholeDays(millis(2026, 11, 26, 0, 0, manila), millis(2026, 11, 27, 0, 0, manila), manila))
+        assertEquals(true, TimeFormat.isWholeDays(millis(2026, 11, 16, 0, 0, manila), millis(2026, 11, 19, 0, 0, manila), manila))
+        assertEquals(false, TimeFormat.isWholeDays(millis(2026, 11, 26, 0, 0, manila), millis(2026, 11, 26, 9, 0, manila), manila))
+        assertEquals(false, TimeFormat.isWholeDays(millis(2026, 11, 26, 0, 0, manila), millis(2026, 11, 26, 0, 0, manila), manila)) // a moment
+        assertEquals(false, TimeFormat.isWholeDays(millis(2026, 11, 26, 0, 0, manila), millis(2026, 11, 27, 0, 0, manila), ZoneId.of("UTC")))
+    }
+
+    @Test
     fun dateRangeShowsTheYearOnceWhenShared() {
         assertEquals("2 Mar 2026", TimeFormat.dateRange(LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 2)))
         assertEquals("2 Mar – 4 Mar 2026", TimeFormat.dateRange(LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 4)))

@@ -1894,3 +1894,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **AI mistakes:**
   - I first put the hours on the Menu tasting row of the `ImportPreviewManyWarnings` screenshot. That row is scrolled out of the picture, so re-recording changed nothing. Replaced by the new `ImportPreviewHours` screenshot.
   - I ran the server suite while the app check was running. One sign-in rate-limit test (`CloudFrontTest`) failed, 401 where it expected 429, in a run that took 291 s. Alone it passed, and the whole suite passed in 82 s once the app check had finished.
+
+### Assistant preview: whole-day tasks show their days
+
+- **Found while:** tracing the import bug above. In `R7-take1` the assistant's preview read "MENU TASTING: Thu 26 Nov 00:00 – 00:00 → Wed 18 Nov 00:00 – 00:00", and a three-day task read "Mon 16 Nov 00:00 – Wed 18 Nov 00:00".
+- **Cause:** the preview's own formatter printed clock times for every span. A one-day whole-day task (midnight to the next midnight) came out as "00:00 – 00:00", which reads as no length. A span over several days that ended at midnight named the day before, so three days seemed to end at the start of the third.
+- **Fix:** the formatter moved to `TimeFormat.daySpan` (`:core:ui`), next to the timeline's `TimeFormat.span`, which already shows whole days as days.
+  - Whole days show their days, the last one inclusive: "Thu 26 Nov", "Mon 16 Nov – Wed 18 Nov".
+  - A timed span across days that ends at midnight names the day that midnight starts: "Mon 16 Nov 09:00 – Wed 18 Nov 00:00".
+  - A move within one day keeps its short form ("16:00 – 17:00 → 15:00 – 16:00 · Thu 12 Nov") only when both sides have times to show; a whole day is written as its day.
+  - Timed spans and milestones read as before.
+- **Tests:** `TimeFormatTest` (2 new) and `AssistantPreviewTimesTest` (new, 2). With the old formatter moved over unchanged, the first failed: expected "Thu 26 Nov", got "Thu 26 Nov 00:00 – 00:00". A new screenshot, `AssistantWholeDayTasks`, in light, dark and 1.5× text; checked by eye.
+- **Results:** `tools/check.sh` passed (496 unit tests, 180 screenshots, lint 0 errors, both architecture checks). The server is unchanged.
+- **Not changed:**
+  - the spoken sentence still words a whole-day task by its clock ("would move to midnight on November 18"); those words come from the server;
+  - the timeline's row label shows clock times only for a timed task that spans days ("16:00 – 16:00" for 24 hours from 16:00).
+- **Not checked on the phone.**
+- **AI mistake:** my first fixture for the screenshot had long captions. At 1.5× text they pushed the lines under test out of the picture. Shortened and re-recorded.
