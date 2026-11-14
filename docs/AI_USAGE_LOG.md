@@ -2022,3 +2022,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Tests:** a new infra test (domain identity, sending limited to the domain, three DKIM outputs only in domain mode). Its first version failed because it used a wildcard `findOutputs` does not support; the stack itself was right (the prod synth showed the records). Infra now 23 tests; synth passes for the default and for `-c stage=prod -c mailIdentity=domain` in ap-southeast-1.
 - **Docs:** DEPLOY.md ("Sending from your own domain": DKIM records, a DMARC record, SES production access), DECISIONS (AWS shape, revised), HANDOFF and `Learn/04-validation.md` (22 → 23 infra tests).
 - **Not done:** the AWS CLI and Session Manager plugin are not installed on this Mac; no AWS profile; nothing deployed.
+
+### Share the project AI kit with Git history
+
+- The user requested the existing history, project Markdown, handoff, Learn files, and complete project AI kit for GitHub. The kit now describes shared files and keeps raw learning captures ignored. Removed local account and device details from the current task notes.
+- Fixed six missing paths in the relationship map by pointing the timeline edges to the current Gradle modules. The relationship map validation passed. The pre-push Android check passed with 515 unit tests, 180 screenshot checks, and zero lint errors.
+- The history scan found the Android Firebase client configuration. It found no matches for the server credential formats checked. The local server environment and Firebase service-account JSON remain ignored.

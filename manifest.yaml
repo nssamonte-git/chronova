@@ -1,0 +1,173 @@
+version: 1
+purpose: Route agents working on Chronova to the smallest sufficient context.
+
+always_read:
+  - AGENTS.md
+  - HANDOFF.md
+
+conditional_read:
+  current-task:
+    triggers:
+      - continue
+      - resume
+      - status
+      - next step
+      - submission status
+    files:
+      - CURRENT_TASK.md
+  decisions:
+    triggers:
+      - architecture
+      - refactor
+      - dependency
+      - upgrade
+      - scroll model
+      - gesture model
+      - snapping rule
+      - sync model
+      - voice design
+      - aws shape
+      - branding
+      - repository layout
+    files:
+      - DECISIONS.md
+
+task_types:
+  general-change:
+    triggers:
+      - fix
+      - change
+      - small change
+      - cleanup
+    required:
+      - HANDOFF.md
+    optional:
+      - Learn/03-development-workflow.md
+      - Learn/04-validation.md
+    validation:
+      - cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest :app:assembleDebug
+  timeline-ui-change:
+    triggers:
+      - timeline
+      - gesture
+      - drag
+      - resize
+      - snap
+      - scroll
+      - zoom
+      - header
+      - task bar
+      - compose
+      - toolbar
+    required:
+      - Learn/02-architecture.md
+      - DECISIONS.md
+    optional:
+      - Learn/01-project-map.md
+      - ../AI Knowledge and Skills Repo/skills/software/mobile/android/mobile-android-production/SKILL.md
+    validation:
+      - cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest :app:installDebug :app:lintDebug
+      - Device screenshot against predicted values
+  server-change:
+    triggers:
+      - server
+      - laravel
+      - backend
+      - api
+      - admin panel
+      - filament
+      - voice endpoint
+      - infra
+      - aws
+      - cdk
+    required:
+      - HANDOFF.md
+    optional:
+      - server/README.md
+      - server/infra/DEPLOY.md
+      - docs/sync-protocol.md
+      - docs/voice-api.md
+    validation:
+      - cd server && composer test && composer lint
+      - cd server/infra && npm test && npx cdk synth -c mailFrom=no-reply@example.com
+  voice-change:
+    triggers:
+      - voice
+      - assistant
+      - speak
+      - transcribe
+      - interpret
+      - spoken answer
+      - elevenlabs
+      - openai
+    required:
+      - docs/voice-api.md
+      - DECISIONS.md
+    optional:
+      - Learn/02-architecture.md
+      - server/README.md
+    validation:
+      - cd "Chronova - Android App" && ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+      - cd server && composer test && composer lint
+      - Fakes only unless the user approves real providers; logs and metrics hold no words
+  submission-docs:
+    triggers:
+      - readme
+      - ai log
+      - ai usage
+      - writeup
+      - google doc
+      - submission
+    required:
+      - Learn/03-development-workflow.md
+    optional:
+      - README.md
+      - docs/AI_USAGE_LOG.md
+      - docs/AI_USAGE_WRITEUP.md
+    validation:
+      - Facts match git log and recorded test or device results
+  project-memory-review:
+    triggers:
+      - learning
+      - memory
+      - lesson
+    required:
+      - learning-inbox/README.md
+    optional:
+      - md-templates/LEARNING_LOG.md
+    validation:
+      - sh scripts/summarize-learning.sh
+  project-relationship-map:
+    triggers:
+      - relationship
+      - dependency map
+      - what loads
+    required:
+      - PROJECT_RELATIONSHIP_MAP.md
+    optional: []
+    validation:
+      - sh scripts/validate-relationship-map.sh
+
+loading_rules:
+  - Start with AGENTS.md and HANDOFF.md, then pick the narrowest task type.
+  - Load conditional_read files only when their triggers or the task state need them.
+  - Load required files for the chosen task type; optional files only when needed.
+  - The Android skill is referenced from the canonical repo, not installed; load its references only for the specific topic.
+  - Exact relationship edges come from sh scripts/query-relationship-map.sh, not by reading the TSV.
+
+default_excludes:
+  - README.md
+  - PROJECT_CONTEXT.md
+  - docs/**
+  - Learn/**
+  - learning-inbox/**
+  - md-templates/**
+  - Chronova - Android App/build/**
+  - Chronova - Android App/app/build/**
+  - Chronova - Android App/.gradle/**
+  - Chronova - Android App/.idea/**
+  - server/vendor/**
+  - server/node_modules/**
+  - server/storage/**
+  - server/infra/node_modules/**
+  - server/infra/cdk.out/**

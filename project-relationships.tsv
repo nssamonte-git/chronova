@@ -1,0 +1,34 @@
+source	relation	target	note
+path:AGENTS.md	starts_with	path:HANDOFF.md	Default AI startup flow.
+path:HANDOFF.md	documents	path:manifest.yaml	Handoff points agents to routing.
+path:HANDOFF.md	documents	path:Learn/README.md	On-demand onboarding index.
+path:manifest.yaml	routes_to	task:general-change	Default route for small changes.
+path:manifest.yaml	routes_to	task:timeline-ui-change	Timeline, gesture, scroll, zoom and toolbar work.
+path:manifest.yaml	routes_to	task:server-change	Laravel server, admin panel, voice endpoints and AWS infra (server/).
+path:manifest.yaml	routes_to	task:voice-change	Voice and typed commands across app and server (docs/voice-api.md).
+path:manifest.yaml	routes_to	task:submission-docs	README, AI log and writeup work.
+path:manifest.yaml	routes_to	task:project-memory-review	Inactive learning review.
+path:manifest.yaml	routes_to	task:project-relationship-map	Orientation via the relationship map.
+task:general-change	loads	path:HANDOFF.md	Small changes start from handoff context.
+task:timeline-ui-change	loads	path:Learn/02-architecture.md	Coordinate, scroll and gesture model.
+task:timeline-ui-change	loads	path:DECISIONS.md	Scroll, gesture and time-model decisions to preserve.
+task:server-change	loads	path:HANDOFF.md	Server work starts from the handoff's Layout and Server sections.
+task:voice-change	loads	path:docs/voice-api.md	Voice contract, privacy, cost and release checklist.
+task:voice-change	loads	path:DECISIONS.md	Voice, apply-path and AWS decisions to preserve.
+task:submission-docs	loads	path:Learn/03-development-workflow.md	Logging and commit rules for submission changes.
+task:project-memory-review	loads	path:learning-inbox/README.md	Memory rules only.
+task:project-relationship-map	loads	path:PROJECT_RELATIONSHIP_MAP.md	Readable map; exact edges via the query script.
+task:timeline-ui-change	informed_by	concept:mobile-android-production-skill	Canonical Android skill, referenced not installed (skills/software/mobile/android/mobile-android-production).
+path:Chronova - Android App/feature/timeline/presentation/src/main/kotlin/noel/chronova/feature/timeline/presentation/components	depends_on	path:Chronova - Android App/core/timeline/src/main/kotlin/noel/chronova/core/timeline	UI derives all positions and edits from the pure engine.
+path:Chronova - Android App/feature/timeline/presentation/src/main/kotlin/noel/chronova/feature/timeline/presentation	depends_on	path:Chronova - Android App/core/domain/src/main/kotlin/noel/chronova/core/domain	Screens and ViewModels use domain models, rules and schedule changes.
+path:Chronova - Android App/core/timeline/src/test/kotlin/noel/chronova/core/timeline	validates	path:Chronova - Android App/core/timeline/src/main/kotlin/noel/chronova/core/timeline	JVM tests incl. all required timeline math scenarios.
+path:Learn/02-architecture.md	documents	path:Chronova - Android App/feature/timeline/presentation/src/main/kotlin/noel/chronova/feature/timeline/presentation/components	Scroll and gesture design.
+path:README.md	documents	path:Chronova - Android App/app/src/main/java/noel/chronova/app	Reviewer-facing architecture and decisions.
+path:README.md	documents	path:server	Server setup, architecture and tests.
+path:docs/voice-api.md	documents	path:server/app/Voice	Voice endpoints and provider behaviour.
+path:docs/AI_USAGE_LOG.md	produces	path:docs/AI_USAGE_WRITEUP.md	Writeup is summarised from the factual log.
+path:scripts/validate-ai-context.sh	validates	path:AGENTS.md	Checks startup files and always-read budget.
+path:scripts/validate-relationship-map.sh	validates	path:project-relationships.tsv	Checks edges against manifest.yaml.
+path:scripts/engineering-health-summary.sh	reviews	path:Chronova - Android App/app	Aggregates tests, build, lint and AI-context checks.
+path:learning-inbox	produces	path:scripts/summarize-learning.sh	Inactive lessons feed reports.
+path:md-templates/LEARNING_LOG.md	guards	path:learning-inbox	Template for sanitized learning logs.

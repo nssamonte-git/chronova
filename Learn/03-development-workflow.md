@@ -11,4 +11,4 @@
 5. **Log it:** append a factual entry to `docs/AI_USAGE_LOG.md`. Record AI mistakes in the five-part form: what was generated, why it was wrong, how it was found, the correction, and the decision.
 6. **Commit:** a conventional message ending with the `Co-Authored-By` trailer the session specifies. Never push or deploy without the user's explicit approval.
 
-`HANDOFF.md`, `DECISIONS.md` and `Learn/` are tracked; the rest of the AI kit is excluded locally. Run git from the repository root (`Chronova/`) and check that `git status` shows only intended project files before committing.
+The project AI kit and `Learn/` are tracked. Check `git status` from the repository root before committing. Keep local credentials and raw learning captures outside the shared history.

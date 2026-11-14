@@ -1,21 +1,20 @@
 # Handoff
 
-Chronova is an offline-first project scheduler: a Kotlin + Jetpack Compose Android app (Gradle modules in three layers: `:app` shell, `:core:*`, `:feature:<name>:{domain,data,presentation}`; each module's package is its namespace, `noel.chronova.core.<module>` / `noel.chronova.feature.<name>.<layer>`, the shell `noel.chronova.app`), a Laravel 13 + Postgres + Filament 5 server (API, sync, voice, push through Firebase, schedules read from images through Meta and OpenAI, staff admin panel), and AWS CDK for it (not deployed). It began as the PicCollage take-home, preserved at tag `submission-v1`.
+Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose Android app, a Laravel 13 + PostgreSQL + Filament 5 server, and AWS CDK. The original PicCollage take-home is tagged `submission-v1`. Module names and packages are in [the project map](Learn/01-project-map.md).
 
 ## Layout
 
-- The git root is this folder (`Chronova/`). Here: `server/` (Laravel; `server/infra/` CDK), `docs/`, `tools/` (`check.sh`, `git-hooks/`, `qa/`, `brand/`), `.github/workflows/`, `README.md`, and this AI kit. No git remote yet.
-- `Chronova - Android App/` holds only the Android Gradle project (open it in Android Studio; run `./gradlew` there). Its `local.properties` is uncommitted. Modules are listed in `settings.gradle.kts`; build settings live in the convention plugins in `build-logic/convention`, so module build files list only plugins and dependencies.
-- Paths in `docs/AI_USAGE_LOG.md` entries before the move are relative to the Android folder.
+- Run Gradle inside `Chronova - Android App/`. See its `settings.gradle.kts` for modules and `build-logic/convention` for build settings. Keep `local.properties` local.
+- Run Laravel commands from `server/` and CDK commands from `server/infra/`. Historical AI usage log paths before the directory move are relative to the Android folder.
 
 ## Guardrails
 
 - Work lands on `main` in small batches. Every change needs a passing build, a factual entry in `docs/AI_USAGE_LOG.md`, and a conventional commit (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
-- `HANDOFF.md`, `DECISIONS.md` and `Learn/` are shared in git (user decision, 2026-11-13): keep them free of secrets, keys and personal data, and commit their updates with the change they describe. The rest of the AI kit (`AGENTS.md`, `CURRENT_TASK.md`, `PROJECT_CONTEXT.md`, `manifest.yaml`, the relationship map files, `scripts/`, `learning-inbox/`, `md-templates/`) stays local-only through `.git/info/exclude`; never `git add -f` it. Don't mention the kit in the README.
-- The app's own text describes features only: no provider names, APIs, servers or data handling on screen (DECISIONS, Voice editing, 2026-11-14). Disclosure belongs in the privacy policy and Play Data safety form.
+- Share the project AI kit and `Learn/` in git. Keep secrets, device and account details, and raw learning captures out of commits.
+- App copy describes features. Disclose providers and data handling in the privacy policy and Play Data safety form.
 - Log only AI mistakes and human actions that actually happened. Never report a build, test, or device check that wasn't run.
 - No new dependencies without approval. Versions are pinned exactly and were at least two weeks old when chosen (check release dates, not tag rebuild dates).
-- Never deploy to AWS, push, call the real model providers (OpenAI, ElevenLabs, Meta), or send anything to real users without the user's explicit approval; the local server and the tests default to fakes (`VOICE_*`, `IMPORT_*`; the tests force `PUSH_SENDER=fake`). Provider keys (OpenAI, ElevenLabs, Meta) live only in `server/.env` (git-ignored); the Firebase service-account key only in `server/storage/credentials/` (git- and Docker-ignored, mode 600): never read, print or commit it. Device checks that change phone settings must read and restore them (mobile data was off).
+- Get explicit approval to deploy, push, call real model providers, or contact real users. Use fake providers for tests. Keep local secrets in the ignored `server/.env` and `server/storage/credentials/`, and hosted secrets in AWS Secrets Manager. Never print or commit secrets. Read and restore any phone settings you change.
 
 ## Invariants
 
@@ -37,7 +36,7 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: `tools/check.sh` (repository root) runs everything (515 unit tests, lint, both architecture checks, 180 screenshots, the security gate) and ends `result: PASS`; `--devices` adds the 110 device tests on the managed emulator, one module at a time (needs ~8 GB free disk; `--devices-only` passed on this Mac on 2026-11-14 with 31 GB free). The pre-push hook runs it. CI (`.github/workflows/android.yml`) has never run: no GitHub remote yet.
+- App: the pre-push hook runs `tools/check.sh` (515 unit tests, lint, architecture checks, 180 screenshots and the security gate). Add `--devices` for the 110 managed emulator tests. CI lives in `.github/workflows/android.yml`.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.
@@ -46,6 +45,6 @@ Commands only; procedures, baselines and phone quirks are in `Learn/04-validatio
 ## On-Demand Context
 
 - `Learn/README.md`: the project map, architecture, workflow, and validation pages.
-- `DECISIONS.md`: active design decisions. `CURRENT_TASK.md` (local only): present status.
+- `DECISIONS.md`: active design decisions. `CURRENT_TASK.md`: present status.
 - `README.md`, `server/README.md`, `server/infra/DEPLOY.md`, `docs/sync-protocol.md`, `docs/voice-api.md`, `docs/push.md`, `docs/import-api.md` (with measured results and its release checklist), `docs/AI_USAGE_LOG.md`.
 - Android guidance (reference only, not installed): the canonical `skills/software/mobile/android/mobile-android-production/SKILL.md`. Its path is in `manifest.yaml`.
