@@ -2172,3 +2172,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Sources:** model names from `server/config/voice.php` and `server/config/import.php`; reasons from their comments, DECISIONS (voice: providers chosen in the brief; images: each Meta model fixes what the other gets wrong), `docs/voice-api.md` and `docs/import-api.md` (key-term test, 15/15 sample set, reasoning comparisons, prompt cache, timings and cost). Nothing new was measured.
 - **Rendered and checked:** the first render cut off the bottom; text tightened and re-rendered; footers 1–19 of 19; the page order and "(page 12)" references checked from the PDF text.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: clearer reasons for each AI model
+
+- **Your request:** make the "why" for each AI model more sensible.
+- **Changed:** each reason on page 9 now starts with the problem the model solves for the feature, then the evidence. Scribe: task names are unusual words, and it can be told them in advance. Flash: the assistant talks back, so latency matters. Voice isolator: noise ends up in transcripts; same provider. GPT-6.1 Terra: exact edits from loose speech, and a strict schema means a bad answer is rejected, never applied. Muse Spark: reading a chart like a person (names, dates, rows). SAM: exact edges for exact dates; SAM gives *where*, Muse Spark *what*. The facts are unchanged, from the same config and docs. To fit the page, the two boxes underneath became two short bullets and the "Used for" column is narrower.
+- **Rendered and checked:** the first version ran off the page; the condensed one fits (page 9 looked at; 19 pages).
+- Documentation only: no build or test run for this entry.
