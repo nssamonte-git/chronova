@@ -2052,3 +2052,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Made:** a frame from the walkthrough recording `R5-take2.mkv` at about 10 s (light theme, Weeks scale, linked bars, the selected Hire Staff bar with both resize handles, the orb above Add task), cropped to remove the phone's status bar (notification icons) and navigation bar, saved over `docs/take-home/assets/timeline.png`. A caption says it comes from a real phone recording. Nothing was composited.
 - **Rendered and checked:** the cover page looked at; still 14 pages.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: every feature beyond the brief
+
+- **Your request:** add every Chronova feature that isn't a take-home requirement to the report, each briefly described.
+- **Made:** two new pages after "Running the project" (the PDF is now 16 pages) with 23 short feature tiles in six groups: planning on the timeline (9), AI features (2), data, sync and accounts (3), staying informed and sharing (3), look, feel and polish (3), and the platform behind the app (3; AWS marked not deployed). The old two-column extras list on the running page became a pointer to these pages.
+- **Sources:** the repository `README.md` ("Beyond the take-home", branding, server, testing), `HANDOFF.md` (Undo on every schedule write, working time), `docs/voice-api.md`, `docs/import-api.md` and `docs/push.md`. Descriptions were shortened, with no new claims.
+- **Rendered and checked:** pages 7–9 looked at (nothing clipped); footers read 1–16 of 16.
+- Documentation only: no build or test run for this entry.

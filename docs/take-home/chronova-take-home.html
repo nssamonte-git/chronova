@@ -28,6 +28,15 @@
   svg text{font-family:Inter,Arial,sans-serif;}
   .small{font-size:8.6pt;color:var(--muted);line-height:1.45;}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:0.22in;}
+  .feat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.12in;}
+  .feat.two-col{grid-template-columns:1fr 1fr;}
+  .ft{border:1px solid var(--line);border-top:3px solid var(--blue);border-radius:5px;padding:0.10in 0.13in 0.11in;background:#fff;}
+  .ft.v{border-top-color:#7C3AED;} .ft.g{border-top-color:#0B8577;} .ft.c{border-top-color:#0EA5C6;} .ft.n{border-top-color:#0B1226;}
+  .ft h4{font-family:var(--font-head);font-size:9.4pt;font-weight:700;color:var(--blue-ink);margin-bottom:0.04in;}
+  .ft p{font-size:8.3pt;line-height:1.42;color:var(--body);}
+  .grp{font-family:var(--font-head);font-size:10pt;font-weight:700;color:var(--blue-ink);margin:0.17in 0 0.09in;display:flex;align-items:center;gap:.09in;}
+  .grp::before{content:'';width:0.13in;height:0.13in;background:var(--blue);clip-path:polygon(0 0,100% 0,100% 65%,65% 100%,0 100%);}
+  .grp.v::before{background:#7C3AED;} .grp.g::before{background:#0B8577;} .grp.c::before{background:#0EA5C6;} .grp.n::before{background:#0B1226;}
   /* cover */
   .cover-top{position:absolute;top:0;left:0;right:0;height:4.35in;background:radial-gradient(circle at 78% 30%,#1D2A6B 0%,#0B1226 62%);color:#fff;}
   .cover-top .band{top:auto;bottom:0;height:0.07in;}
@@ -69,7 +78,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -108,7 +117,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -141,7 +150,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -254,7 +263,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -391,7 +400,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -506,7 +515,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 7. RUNNING + BEYOND ============================ -->
@@ -531,29 +540,51 @@
 <div class="code">git checkout submission-v1        <span class="cm"># the original take-home</span>
 git checkout main                 <span class="cm"># back to the full app</span></div>
 
-    <h3 class="sect">Extras beyond the brief</h3>
-    <div class="grid2">
-      <ul class="dash">
-        <li><b>Four scales:</b> Hours, Days, Weeks, Months on the real calendar, plus pinch-to-zoom.</li>
-        <li><b>Persistence:</b> Room database; view settings saved per project.</li>
-        <li><b>Projects:</b> create, rename, date range, duplicate, delete.</li>
-        <li><b>Task editor:</b> add, edit, delete with Undo; progress, notes, milestones.</li>
-        <li><b>Dependencies:</b> finish-to-start links with arrows; a <b>critical path</b> view.</li>
-        <li><b>Search and filters</b>, a "today" line and jump-to-today.</li>
-      </ul>
-      <ul class="dash">
-        <li><b>Dark theme</b> and brand design system; screenshot tests in light, dark and 1.5× text.</li>
-        <li><b>Offline-first sync</b> with a Laravel server, only when the user agrees.</li>
-        <li><b>Voice assistant</b> (previous page).</li>
-        <li><b>Schedules from images:</b> photograph a chart to make tasks, with a preview.</li>
-        <li><b>Export</b> as PDF Gantt chart, CSV or calendar file.</li>
-        <li><b>Task reminders</b> and push notifications.</li>
-      </ul>
+    <div class="callout teal mt-l">
+      <div class="ctitle">Beyond the brief</div>
+      <p>Chronova grew well past the single screen the brief asks for. The next two pages list every feature that isn't a take-home requirement, each in a sentence or two. None of them changes how the required timeline behaves.</p>
     </div>
-    <p class="small mt-s">These go well past a single screen. The required timeline items are unchanged by them; the full feature list is in the repository's <code>README.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
+</div>
+
+<!-- ============================ 8-9. BEYOND THE BRIEF ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Beyond the brief</div></div>
+  <div class="content">
+    <div class="eyebrow">Beyond the brief · 1 of 2</div>
+    <h1 class="ptitle">Everything Chronova does beyond the take-home</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <div class="grp" style="margin-top:0">Planning on the timeline</div>
+    <div class="feat"><div class="ft "><h4>Four scales</h4><p>Hours, Days, Weeks and Months. Ticks follow the real calendar (month lengths, daylight-saving days), and whole-day snapping follows local midnights.</p></div><div class="ft "><h4>Pinch-to-zoom</h4><p>Two fingers zoom around the point between them. The zoom is saved once when the fingers lift, and it never moves a bar.</p></div><div class="ft "><h4>Projects</h4><p>Create, rename and delete projects with a date range of up to 366 days; a range can't shrink past existing tasks. Each project remembers its own view settings.</p></div><div class="ft "><h4>Duplicate and "Start from"</h4><p>Any project can be a template: its tasks and links are copied to a new start date, keeping lengths and each task's time of day. The copy starts with nothing done.</p></div><div class="ft "><h4>Task editor and Undo</h4><p>Add or edit a task's title, colour, and start and end date and time, or delete it. Drags, edits and deletes can all be undone.</p></div><div class="ft "><h4>Progress, notes, milestones</h4><p>Percent complete in steps of 10, shaded on the bar; free-text notes up to 2,000 characters; milestones drawn as diamonds that can be dragged and linked.</p></div><div class="ft "><h4>Dependencies and Push</h4><p>Finish-to-start links (cycles are blocked), drawn as arrows that turn red when broken. After an edit, <b>Push</b> moves waiting tasks later just enough, with Undo.</p></div><div class="ft "><h4>Critical path</h4><p>A switch outlines in red the tasks where any delay moves the finish, and fades the rest. The editor shows how long a task can slip, in working hours (09:00–17:00, Mon–Fri).</p></div><div class="ft "><h4>Search, filters and today</h4><p>Search titles and filter by colour and by not done, done or milestone, with a match count. A line marks now, and one button jumps to today.</p></div></div>
+    <div class="grp v">AI features</div>
+    <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
+</div>
+
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Beyond the brief</div></div>
+  <div class="content">
+    <div class="eyebrow">Beyond the brief · 2 of 2</div>
+    <h1 class="ptitle">Data, sharing, polish and the platform</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <div class="grp g" style="margin-top:0">Data, sync and accounts</div>
+    <div class="feat"><div class="ft g"><h4>Offline first</h4><p>Projects, tasks and links live in a local Room database (with migrations) and everything works with no connection. Changes are marked unsynced until the next sync.</p></div><div class="ft g"><h4>Sync only when you agree</h4><p>Sync never runs by itself: coming back online with unsynced changes asks "sync now?". The newest edit per record wins, and a failed sync can simply be run again.</p></div><div class="ft g"><h4>Accounts</h4><p>Sign up with an emailed 6-digit code, sign in, reset a password. "Remember me" keeps the session with a token encrypted by an Android Keystore key, so later launches work offline.</p></div></div>
+    <div class="grp c">Staying informed and sharing</div>
+    <div class="feat"><div class="ft c"><h4>Task reminders</h4><p>Off, when a task starts, or 15 minutes, 1 hour or 1 day before, for every unfinished task in every project. Pushed by the server and backed by the phone's own alarm; shown once either way.</p></div><div class="ft c"><h4>Notifications</h4><p>A bell opens a page of what happened: syncs, the assistant's changes (with Undo), sign-ins on other devices. Push messages report changes made elsewhere but never sync on their own.</p></div><div class="ft c"><h4>Export</h4><p>A PDF Gantt chart, a CSV spreadsheet or a calendar (.ics) file, optionally with notes, handed to Android's share sheet. Nothing is sent until you pick where.</p></div></div>
+    <div class="grp">Look, feel and polish</div>
+    <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
+    <div class="grp n">The platform behind the app</div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel with required authenticator MFA: user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS infrastructure</h4><p>Infrastructure as code with CDK: CloudFront, a private load balancer, ECS Fargate, RDS PostgreSQL and SES email. Synthesized and tested; <b>not deployed yet</b>.</p></div></div>
+    <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -589,7 +620,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -639,7 +670,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -683,7 +714,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -783,7 +814,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -913,7 +944,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1006,7 +1037,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1044,7 +1075,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 14</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 16</span></div>
 </div>
 
 </body>
