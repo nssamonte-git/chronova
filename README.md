@@ -7,7 +7,7 @@ Chronova is an offline-first project scheduler: a native Android app (Kotlin, Je
 - **Admin** (`/admin`) — Filament 5 panel for staff with 2FA required by default: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
 - **AWS** — the server is **live** on one EC2 instance (Docker Compose, Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager); see [`server/infra/EC2.md`](server/infra/EC2.md). The planned production stack, CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES (`server/infra/`), is tested but not deployed; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
 
-It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, the AI model APIs and why they were chosen, testing, the AWS deployment, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
+It started as the PicCollage take-home (a single-screen timeline). No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, the AI model APIs and why they were chosen, testing, the AWS deployment, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
 
 ## Features
 

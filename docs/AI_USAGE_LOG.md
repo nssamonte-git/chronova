@@ -2231,3 +2231,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Changed:** both descriptions of the take-home PDF now mention its AI model APIs and AWS pages. A new "AI models" table under "Server" lists each provider and model, what it does and why it was chosen (ElevenLabs Scribe v2, Flash v2.5, the voice isolator; OpenAI GPT-6.1 Terra; Meta Muse Spark 1.3 and SAM 3.1), with the same facts as the PDF's page 9 (from `server/config/voice.php`, `server/config/import.php`, DECISIONS and the voice and import docs).
 - **Left as is:** the README still mentions the `submission-v1` tag in its intro (it was removed only from the PDF).
 - Documentation only: no build or test run for this entry.
+
+### README: submission tag removed
+
+- **Your request:** remove the `submission-v1` mention from the README too.
+- **Done:** the intro now says Chronova started as the PicCollage take-home without naming the tag; the README no longer mentions it. The tag itself still exists in git, and earlier entries in this log and `docs/AI_USAGE_WRITEUP.md` still refer to it.
+- Documentation only: no build or test run for this entry.
