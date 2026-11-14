@@ -1949,3 +1949,7 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - The `TaskEditorProgressAndNotes` screenshots were re-recorded for the new wording; checked by eye.
 - **Results:** `tools/check.sh` passed (507 unit tests, 180 screenshots, lint 0 errors, both architecture checks).
 - **Not checked on the phone.**
+
+### Decision: one-day imports without hours stay whole days
+
+- **Your choice:** a one-day item imported from an image with no readable hours keeps its whole day (00:00 to 24:00) rather than taking the 09:00–17:00 working day. That is how it already worked, so no code changed; DECISIONS (Schedules from images) records it.

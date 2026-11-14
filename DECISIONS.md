@@ -73,6 +73,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
   - `ImportValidator` checks the answer as `ProposalValidator` does for voice. The app plans with `TaskRules` and `DependencyRules` and writes through `createProjectWithSchedule` / `ApplyScheduleChanges`.
   - New module `:feature:chartimport:{domain,data,presentation}` ("import" is a Kotlin keyword). Images are turned upright, scaled to 2048 px and re-encoded without metadata on the phone; the camera and the photo picker need no permission.
   - Off by default on AWS (`-c import=on`); limited to 5 a minute and 50 a day per user.
+- Added 2026-11-14 (user choice): a one-day task takes the hours written on the chart ("10–1" → 10:00–13:00, `startTime`/`endTime`); without readable hours it stays a whole day, 00:00 to 24:00, not the 09:00–17:00 working day.
 - Reason: the user's request and choices; measured on real charts, the pieces each fix what the other gets wrong (Muse Spark reads text and spans but not exact positions; SAM finds exact boxes but no text and includes the pale tracks).
 
 ## 2026-11-13: Push notifications (Firebase Cloud Messaging)
