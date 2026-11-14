@@ -19,6 +19,10 @@ return [
     // Send the project's task titles to the transcriber as words to listen for (fewer
     // sound-alike mistakes; +20% transcription cost; titles then go to ElevenLabs too).
     'keyterms' => (bool) env('VOICE_KEYTERMS', true),
+    // Remove background noise first with ElevenLabs' voice isolator (same provider; about
+    // $0.12 per minute of audio, on top of transcription; not in the dashboard's estimate).
+    // A failed isolation falls back to the original recording. Only with the ElevenLabs transcriber.
+    'isolate_noise' => (bool) env('VOICE_ISOLATE_NOISE', false),
 
     // The spoken explanation of a preview: "openai" writes it (else a plain summary), "elevenlabs"
     // says it (else a recorded test phrase). A failure of either still answers, with text only.

@@ -71,7 +71,8 @@ class AndroidVoiceRecorder(private val context: Context) : VoiceRecorder {
             output.delete()
             return null
         }
-        return Recording(output, durationMs.coerceAtMost(MAX_MS.toLong()))
+        // The server takes at most 60 s; a turn stopped at the hard limit runs a few ms over it.
+        return Recording(output, durationMs.coerceAtMost(MAX_REPORTED_MS))
     }
 
     override fun amplitude(): Int = try {
@@ -108,5 +109,6 @@ class AndroidVoiceRecorder(private val context: Context) : VoiceRecorder {
     private companion object {
         const val TAG = "ChronovaVoice"
         const val MAX_MS = 61_000
+        const val MAX_REPORTED_MS = 60_000L
     }
 }

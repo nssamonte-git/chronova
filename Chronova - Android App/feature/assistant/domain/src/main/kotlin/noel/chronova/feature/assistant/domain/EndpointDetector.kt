@@ -13,6 +13,12 @@ package noel.chronova.feature.assistant.domain
  * [minSpeechMs] without a break, so taps, clicks and scattered room noise don't count; the turn ends after
  * [silenceMs] of quiet following speech. With no speech by
  * [noSpeechTimeoutMs] the turn ends empty, and [maxMs] is a hard limit.
+ *
+ * Once the user has spoken, "quiet" is also judged against their own voice: anything below
+ * [releaseRatio] of the loudest sustained speech counts as quiet. A noisy room (music, a fan, a
+ * conversation across the room) can rise above a floor learnt in a quieter moment, but it stays
+ * well below a voice close to the phone, so the turn still ends (seen on the phone: noise that
+ * came and went kept listening open until the hard limit).
  */
 class EndpointDetector(
     private val calibrationMs: Long = 300,
@@ -23,6 +29,7 @@ class EndpointDetector(
     private val minSpeechLevel: Int = 1_500,
     private val minSpeechMs: Long = 300,
     private val sampleMs: Long = 100,
+    private val releaseRatio: Float = 0.3f,
 ) {
     sealed interface Decision {
         data object Continue : Decision
@@ -71,7 +78,8 @@ class EndpointDetector(
         if (amplitude >= threshold) {
             loudRunMs += sampleMs
             if (loudRunMs >= minSpeechMs) heardSpeech = true
-            if (heardSpeech) lastSpeechAt = elapsedMs
+            // After speech, a level far below the user's own voice is quiet, however noisy the room.
+            if (heardSpeech && amplitude >= loudestSpeech * releaseRatio) lastSpeechAt = elapsedMs
         } else {
             loudRunMs = 0
         }

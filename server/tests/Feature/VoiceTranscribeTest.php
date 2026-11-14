@@ -97,6 +97,65 @@ it('sends the recording to ElevenLabs Scribe with the key only in a header', fun
     expect(VoiceEvent::sole()->audio_ms)->toBe(2350);
 });
 
+it('removes background noise first when asked, and transcribes the cleaned audio', function () {
+    useElevenLabs(['voice.isolate_noise' => true]);
+    Http::fake([
+        'api.elevenlabs.io/v1/audio-isolation' => Http::response('cleaned-mp3-bytes', 200, ['Content-Type' => 'audio/mpeg']),
+        'api.elevenlabs.io/v1/speech-to-text*' => Http::response(scribeAnswer()),
+    ]);
+
+    transcribe(['durationMs' => 6200])->assertOk()->assertJson(['text' => 'Push design by two hours.']);
+
+    $sent = Http::recorded()->map(fn (array $pair) => $pair[0]);
+    expect($sent->map(fn (ClientRequest $request) => $request->url())->all())
+        ->toBe(['https://api.elevenlabs.io/v1/audio-isolation', 'https://api.elevenlabs.io/v1/speech-to-text']);
+    $isolation = $sent[0];
+    expect($isolation->header('xi-api-key'))->toBe(['test-key-not-real'])
+        ->and(collect($isolation->data())->pluck('name')->all())->toBe(['audio']);
+    $file = collect($sent[1]->data())->firstWhere('name', 'file');
+    expect($file['contents'])->toBe('cleaned-mp3-bytes');
+    // The temporary file is gone once transcribed.
+    expect(glob(sys_get_temp_dir().'/isolated*'))->toBe([]);
+});
+
+it('transcribes the original recording when noise removal fails', function (int $status) {
+    useElevenLabs(['voice.isolate_noise' => true]);
+    Log::spy();
+    Http::fake([
+        'api.elevenlabs.io/v1/audio-isolation' => Http::response('', $status),
+        'api.elevenlabs.io/v1/speech-to-text*' => Http::response(scribeAnswer()),
+    ]);
+
+    transcribe(['durationMs' => 6200])->assertOk()->assertJson(['text' => 'Push design by two hours.']);
+
+    $file = collect(Http::recorded()->last()[0]->data())->firstWhere('name', 'file');
+    expect($file['filename'])->toBe('command.m4a');
+    Log::shouldHaveReceived('warning')->once();
+})->with([
+    'a server error' => [500],
+    'an empty answer' => [200],
+]);
+
+it('skips noise removal for a recording too short for it, such as "yes"', function () {
+    useElevenLabs(['voice.isolate_noise' => true]);
+    Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer('Yes.'))]);
+
+    transcribe(['durationMs' => 4599])->assertOk()->assertJson(['text' => 'Yes.']);
+
+    Http::assertSentCount(1);
+    Http::assertNotSent(fn (ClientRequest $request) => str_contains($request->url(), 'audio-isolation'));
+});
+
+it('leaves the audio alone unless noise removal is switched on', function () {
+    useElevenLabs();
+    Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);
+
+    transcribe()->assertOk();
+
+    Http::assertSentCount(1);
+    Http::assertNotSent(fn (ClientRequest $request) => str_contains($request->url(), 'audio-isolation'));
+});
+
 it('passes cleaned task titles to Scribe as key terms', function () {
     useElevenLabs();
     Http::fake(['api.elevenlabs.io/*' => Http::response(scribeAnswer())]);

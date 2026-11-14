@@ -219,7 +219,7 @@ Response (200): `{"text": "Build will move to 11 a.m. today. Shall I apply it?",
 
 ## Privacy
 
-- The recording, and the project's task titles as words to listen for, go to the transcriber (ElevenLabs Scribe); neither is stored by the server. ElevenLabs keeps request logs unless `VOICE_ELEVENLABS_ZERO_RETENTION=true` (`enable_logging=false`), which needs an enterprise plan.
+- The recording, and the project's task titles as words to listen for, go to the transcriber (ElevenLabs Scribe); neither is stored by the server. With `VOICE_ISOLATE_NOISE=true` the recording first goes to ElevenLabs' voice isolator (`/v1/audio-isolation`), and the cleaned copy, not the original, is transcribed: the same provider, so no new party sees the audio; the cleaned copy is a temporary file deleted once transcribed. Recordings under 4.6 s (the isolator's minimum, e.g. a spoken "yes") skip it, and if isolation fails the original is transcribed as before. ElevenLabs keeps request logs unless `VOICE_ELEVENLABS_ZERO_RETENTION=true` (`enable_logging=false`), which needs an enterprise plan.
 - The words and the schedule context are sent to the interpreter (OpenAI, `store: false`). The server keeps no logs of them; what it does keep is each user's decisions (`/decision`: their words, the changes proposed and their answer) for 90 days, deleted with the account, sent back only with that user's own requests, and never shown to staff. Only the fixed rules are written to OpenAI's prompt cache.
 - For explanations, the changed tasks' titles and times go to OpenAI (`store: false`) and the resulting sentence to ElevenLabs text to speech.
 - `voice_events` keeps only kind, status, outcome, duration, audio length, transcript length and token counts, for the admin dashboard.
@@ -292,6 +292,7 @@ Seen but not changed: a recording picks up anyone talking nearby (twice another 
 | `VOICE_TRANSCRIBER` | `fake` | `elevenlabs`, or `fake` (always hears `VOICE_FAKE_TRANSCRIPT`) |
 | `VOICE_FAKE_TRANSCRIPT` | `push design by 2 hours` | Development only. Several phrases separated by `\|` are heard in turn, per user, wrapping around: `push design by 2 hours\|yes` tries a spoken command and its spoken yes without keys |
 | `VOICE_KEYTERMS` | `true` | Pass task titles to the transcriber (+20% transcription cost) |
+| `VOICE_ISOLATE_NOISE` | `false` | Remove background noise with ElevenLabs' voice isolator before transcribing (ElevenLabs transcriber only; about $0.12 per minute of audio on top of transcription, not in the dashboard's estimate; adds a round trip) |
 | `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
 | `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |
 | `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_flash_v2_5` | |

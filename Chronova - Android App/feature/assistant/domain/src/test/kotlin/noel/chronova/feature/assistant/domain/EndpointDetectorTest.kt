@@ -49,6 +49,29 @@ class EndpointDetectorTest {
     }
 
     @Test
+    fun noiseThatRisesAfterSpeechStillEndsTheTurn() {
+        // Floor learnt in a quiet moment (1,000 → bar 3,000); the user speaks at ~12,000; then music
+        // or a fan near the phone holds 3,200–3,500: above the bar, but under 30% of the voice.
+        val d = EndpointDetector()
+        val noise = List(40) { if (it % 2 == 0) 3_200 else 3_500 }
+        val (decision, at) = d.feed(List(3) { 1_000 } + List(15) { 12_000 } + noise)
+        assertEquals(Decision.Done, decision)
+        // Last speech at 300 + 14 × 100 = 1700 ms; done 1200 ms later, as in a quiet room.
+        assertEquals(2_900L, at)
+    }
+
+    @Test
+    fun quieterWordsInsideASentenceStillCountAsSpeech() {
+        // Loud words at 10,000 with softer ones at 4,000 (40% of the voice) between them: one turn.
+        val d = EndpointDetector()
+        val sentence = List(5) { 10_000 } + List(15) { 4_000 } + List(5) { 10_000 }
+        val (decision, at) = d.feed(List(3) { 300 } + sentence + List(20) { 300 })
+        assertEquals(Decision.Done, decision)
+        // The last loud word ends at 300 + 24 × 100 = 2700 ms; done 1200 ms later.
+        assertEquals(3_900L, at)
+    }
+
+    @Test
     fun aClickIsNotSpeech() {
         val d = EndpointDetector()
         // A 200 ms spike (a tap, a click) then quiet: still waiting, then nothing heard.

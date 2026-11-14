@@ -1830,3 +1830,23 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **AI mistake:** my first version of the test listed the model answer's fields in the wrong order. The validator checks the order, so the test got a 502 for the wrong reason. Fixed in the test before running the suite.
 - **Also on the phone, at your request:** your test account's 31 unsynced changes were synced to the local server, then that account was signed out on the phone. A new demo account on the local server is signed in for the recording. Your account's projects are on the server, not on the phone.
 - **Not done:** the app wasn't changed. Its generic message for a 422 is unchanged.
+
+### Voice in a noisy room: noise removal, and the end of a turn
+
+- **Your request:** add background noise cancellation; asked whether it could be independent of the phone, then chose ElevenLabs to remove the noise.
+- **What was seen on the phone:** while recording the walkthrough, steady noise started near the phone (the Mac's microphone measured the room's floor at about −35 dB, against −67 dB for the take that worked). After the spoken command the orb kept listening until the 60 s hard limit. The turn then reported a length just over 60,000 ms, the server's limit, so the request was refused and the orb said "The assistant isn't available right now."
+- **Server, noise removal:** with `VOICE_ISOLATE_NOISE=true` (default off), the recording first goes to ElevenLabs' voice isolator (`/v1/audio-isolation`), and the cleaned copy is transcribed (`NoiseIsolatingTranscriber`, wrapping the Scribe transcriber).
+  - Same provider as before, so no new party sees the audio. The cleaned copy is a temporary file, deleted once transcribed.
+  - If isolation fails or answers empty, the original is transcribed and a warning with only the status is logged.
+  - Recordings under 4.6 s skip isolation. On the phone a 3.8 s "yes" got HTTP 400 (the fallback transcribed it correctly). Probing with 3, 4, 4.6 and 5 s clips gave ElevenLabs' message "below the minimum of 4.6 seconds" for the first two and 200 for the others.
+  - Cost: about $0.12 per minute of audio, from ElevenLabs' pricing page; not in the dashboard's estimate.
+  - `docs/voice-api.md` (privacy and settings) and `.env.example` updated.
+- **App, phone-independent:**
+  - `EndpointDetector` now also judges quiet against the user's own voice: after speech, anything under 30% of the loudest sustained speech counts as quiet, however noisy the room.
+  - `AndroidVoiceRecorder` reports at most 60,000 ms, so a turn stopped at the hard limit is no longer refused.
+  - The phone's own audio effects weren't used: they differ by maker.
+- **Tests:**
+  - App: two in `EndpointDetectorTest` (noise rising after speech still ends the turn; quieter words inside a sentence don't end it). The first failed before the change.
+  - Server: five in `VoiceTranscribeTest` (the cleaned audio is what's transcribed; fallback on an error or an empty answer; short recordings skip it; off unless switched on).
+  - Results: `tools/check.sh` passed (485 unit tests, 171 screenshots, lint 0 errors, both architecture checks). Server: 487 tests and lint pass.
+- **On the phone:** a debug build of this change was installed over the app (`local.properties` restored byte for byte). With noise removal on, "Add Design on Monday and Tuesday, Build from Wednesday to Friday, and Equipment install on the 23rd and 24th", played from the Mac speaker, ended its turn after 10.7 s of audio. The three tasks were proposed, and applied on "yes".

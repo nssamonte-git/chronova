@@ -19,6 +19,7 @@ use App\Voice\FakeInterpreter;
 use App\Voice\FakeSpeaker;
 use App\Voice\FakeTranscriber;
 use App\Voice\Interpreter;
+use App\Voice\NoiseIsolatingTranscriber;
 use App\Voice\OpenAiExplainer;
 use App\Voice\OpenAiInterpreter;
 use App\Voice\Speaker;
@@ -56,7 +57,14 @@ class AppServiceProvider extends ServiceProvider
             default => new FakeInterpreter,
         });
         $this->app->bind(Transcriber::class, fn ($app) => match (config('voice.transcriber')) {
-            'elevenlabs' => new ElevenLabsTranscriber($app->make(Http::class), config('voice.elevenlabs')),
+            'elevenlabs' => config('voice.isolate_noise')
+                ? new NoiseIsolatingTranscriber(
+                    new ElevenLabsTranscriber($app->make(Http::class), config('voice.elevenlabs')),
+                    $app->make(Http::class),
+                    config('voice.elevenlabs'),
+                    $app->make('request')->integer('durationMs'),
+                )
+                : new ElevenLabsTranscriber($app->make(Http::class), config('voice.elevenlabs')),
             default => new FakeTranscriber(config('voice.fake_transcript'), $app->make('cache.store'), $app->make('request')->user()?->getKey()),
         });
         $this->app->bind(Explainer::class, fn ($app) => match (config('voice.explainer')) {
