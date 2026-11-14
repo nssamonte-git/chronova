@@ -109,6 +109,11 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - The EC2 role reads `chronova/prod/runtime` in Secrets Manager. The deployment passes credentials to the intended containers through a Compose override. See [the EC2 operations runbook](server/infra/EC2.md).
 - Revised 2026-11-15 (user request): the app's build uses the live server, `https://chronova.meenux.tech`, by default (`app/build.gradle.kts`), so a fresh clone builds and connects with no setup; `chronova.apiUrl` in `local.properties` still overrides it. The live domain is now in the repository and the README (it used to be kept out).
 
+## 2026-11-15: Shared admin test login in the writeup
+
+- Decision (user request): the take-home writeup (page 16, in the public repository) prints a shared staff login for the live admin panel, `support@chronova.com`, set up by the user with the **Support** role and exempt from 2FA, so reviewers can look around the panel.
+- Trade-off: anyone with the writeup can see every user's email and sync history, disable or enable accounts, sign them out everywhere, and open a user's projects read-only for 30 minutes with a written reason. It can't delete accounts, manage staff or read the audit log (admin only), and every action is audited. To withdraw it, change its password or disable it from an admin account; the writeup then needs updating.
+
 ## 2026-11-15: Try demo
 
 - Decision (user request and choices): the sign-in page has a "Try demo" button above the form. It signs into the shared demo account `test@chronova.com` (created already confirmed on the live server, with "Sample Project" and 1,000 tasks) and then syncs once. The demo login is a constant in `:feature:account:domain` (`DemoAccount`), committed by the user's choice, although HANDOFF's guardrails keep secrets out of commits: it is a public demo login, not a secret, and anyone could read it from the APK either way. The security gate's finding on that file (`SH-SEC-003`) is suppressed with this reason in `.build-validator-ignore`. Signed in as the demo account, the app hides Delete account.

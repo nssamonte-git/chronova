@@ -61,6 +61,10 @@
   .gstep h4{font-family:var(--font-head);font-size:10pt;font-weight:700;color:var(--blue-ink);margin:0.02in 0 0.02in;}
   .gstep p{font-size:8.9pt;line-height:1.45;color:var(--body);}
   .gstep .code{font-size:7.8pt;line-height:1.5;padding:0.06in 0.13in;margin-top:0.05in;}
+  .shotbox{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#0B1226;}
+  .shotbox img{display:block;width:100%;height:1.62in;object-fit:cover;object-position:top left;}
+  .shotcap{font-size:8.2pt;color:var(--body);margin-top:0.05in;line-height:1.4;}
+  .shotcap b{color:var(--blue-ink);}
   .facts td{padding:0.05in 0;vertical-align:top;font-size:9.4pt;color:var(--body);}
   .facts td.k{width:1.25in;font-family:var(--font-head);font-weight:600;font-size:7.6pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:0.07in;}
 </style>
@@ -89,12 +93,13 @@
         <tr><td class="k">AI tool</td><td>Claude Code (Claude Opus 5.5)</td></tr>
         <tr><td class="k">Repository</td><td><code style="white-space:nowrap">github.com/nssamonte-git/chronova</code>: full git history, small logged batches</td></tr>
         <tr><td class="k">Try it</td><td>Clone, build the APK and sign in with <b>Try demo</b>: step by step on page 2</td></tr>
+        <tr><td class="k">Admin panel</td><td><code style="white-space:nowrap">chronova.meenux.tech</code>, with a test login on page 16</td></tr>
       </table>
     </div>
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 2. RUNNING THE PROJECT ============================ -->
@@ -140,7 +145,7 @@
     <div class="tile teal-top" style="margin-top:0.16in"><span class="tag">Tests, and if something goes wrong</span><p><code>./gradlew test</code> runs the unit tests; <code>../tools/check.sh</code> runs everything (tests, lint, architecture checks, screenshots, security gate; on Windows, in Git Bash or WSL). A build or install that fails, a phone that isn't found, or a sign-in error: <b>page 3</b> lists the usual causes and fixes.</p></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 3. TROUBLESHOOTING ============================ -->
@@ -191,7 +196,7 @@
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -230,7 +235,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -263,7 +268,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 4-5. BEYOND THE BRIEF ============================ -->
@@ -280,7 +285,7 @@
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <div class="page">
@@ -301,7 +306,7 @@
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -414,7 +419,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -551,7 +556,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -666,7 +671,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 9. AI MODEL APIS ============================ -->
@@ -698,7 +703,7 @@
     <p class="small" style="margin-top:0.04in">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 8. TESTING ============================ -->
@@ -754,7 +759,7 @@
     <p class="small" style="margin-top:0.06in">Outside the app, the server has 514 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 11. AWS ============================ -->
@@ -837,7 +842,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 12. ACCOUNT FLOWS ============================ -->
@@ -939,8 +944,8 @@
         <text x="300" y="341" font-size="9" font-weight="700" fill="#0B1226">200 {token, user}</text>
         <text x="300" y="355">token saved in the</text><text x="300" y="367">Keystore, as for any</text><text x="300" y="379">account</text>
         <rect x="438" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#0B1226"/>
-        <text x="446" y="341" font-size="9" font-weight="700" fill="#0B1226">POST sync, twice</text>
-        <text x="446" y="355">runs by itself, once;</text><text x="446" y="367">cursor 0 → 500 → done:</text><text x="446" y="379">1,001 records</text>
+        <text x="446" y="341" font-size="9" font-weight="700" fill="#0B1226">POST sync, 3 pages</text>
+        <text x="446" y="355">runs by itself, once;</text><text x="446" y="367">500 + 500 + 1 = 1,001</text><text x="446" y="379">records</text>
         <rect x="584" y="326" width="126" height="60" rx="5" fill="#fff" stroke="#2B5CFF"/>
         <text x="592" y="341" font-size="9" font-weight="700" fill="#0B1226">Sample Project</text>
         <text x="592" y="355">1,000 tasks, Nov 2026 to</text><text x="592" y="367">May 2027; Delete account</text><text x="592" y="379">is hidden</text>
@@ -967,7 +972,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 13. APP TO SERVER ============================ -->
@@ -1082,7 +1087,47 @@ Authorization: Bearer 42|Xk9fQ2…
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
+</div>
+
+<!-- ============================ 16. ADMIN PANEL ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Admin panel</div></div>
+  <div class="content">
+    <div class="eyebrow">Back office</div>
+    <h1 class="ptitle">The admin panel: managing users</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede" style="margin-bottom:0.10in;font-size:10.5pt">Staff manage app accounts in a web panel on the live server. A shared <b>test login</b> lets you look around; it has the Support role.</p>
+
+    <div class="code" style="font-size:8.6pt;line-height:1.7;padding:0.10in 0.18in;display:grid;grid-template-columns:1.1in 1fr;column-gap:0.1in"><span class="cm">Open</span><span>https://chronova.meenux.tech       <span class="cm"># goes to /admin, then the sign-in page</span></span><span class="cm">Email</span><span>support@chronova.com</span><span class="cm">Password</span><span>Chronova0Password                  <span class="cm"># the 0 is a zero; test only; no 2FA code</span></span></div>
+
+    <div class="two mt-s" style="gap:0.18in;row-gap:0.12in">
+      <div><div class="shotbox"><img src="assets/admin-login.jpg" alt="The admin sign-in page"></div>
+        <p class="shotcap"><b>1 · Sign in</b> with the email and password above.</p></div>
+      <div><div class="shotbox"><img src="assets/admin-dashboard.jpg" alt="The admin dashboard: accounts, sync health and charts"></div>
+        <p class="shotcap"><b>2 · Dashboard:</b> accounts, sync health over 24 hours, sign-ups and sync charts (voice usage further down).</p></div>
+      <div><div class="shotbox"><img src="assets/admin-users.jpg" alt="The Users list, searched for the demo account"></div>
+        <p class="shotcap"><b>3 · Users:</b> search by email. <code>test@chronova.com</code> is the Try demo account: 1 project, 1,000 tasks.</p></div>
+      <div><div class="shotbox"><img src="assets/admin-user.jpg" alt="One user's page: account, synced data counts, recent syncs and actions"></div>
+        <p class="shotcap"><b>4 · View a user:</b> account dates, counts of synced data (not the data), devices, the last 10 syncs, and the actions.</p></div>
+    </div>
+
+    <h3 class="sect" style="margin:0.14in 0 0.06in">What staff can do with a user</h3>
+    <table class="formal tight">
+      <thead><tr><th style="width:1.45in">Action</th><th>What it does</th><th style="width:1.15in">Who</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Disable · Enable</td><td>Stops sign-in and sync until enabled again; the data is kept</td><td>Support, admin</td></tr>
+        <tr><td class="k">Sign out everywhere</td><td>Every device must sign in again (e.g. a lost phone); unsynced changes stay on them</td><td>Support, admin</td></tr>
+        <tr><td class="k">Access data</td><td>With a written reason, opens the user's projects read-only for 30 minutes (then <b>View data</b>)</td><td>Support, admin</td></tr>
+        <tr><td class="k">Delete account</td><td>Deletes the account and all its synced data; type the email and a reason to confirm</td><td>Admin only</td></tr>
+        <tr><td class="k">Staff, audit log</td><td>Add or change staff and their 2FA requirement; read the audit log</td><td>Admin only</td></tr>
+      </tbody>
+    </table>
+    <p class="small" style="margin-top:0.05in">Every action is written to the audit log with who did it and when. The test login is shared: please don't disable or sign out the demo account, as others use it too.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -1118,7 +1163,7 @@ Authorization: Bearer 42|Xk9fQ2…
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -1168,7 +1213,7 @@ Authorization: Bearer 42|Xk9fQ2…
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -1212,7 +1257,7 @@ Authorization: Bearer 42|Xk9fQ2…
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -1312,7 +1357,7 @@ Authorization: Bearer 42|Xk9fQ2…
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -1442,7 +1487,7 @@ Authorization: Bearer 42|Xk9fQ2…
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1535,7 +1580,7 @@ Authorization: Bearer 42|Xk9fQ2…
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1570,7 +1615,7 @@ Authorization: Bearer 42|Xk9fQ2…
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 22</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
 </div>
 
 </body>

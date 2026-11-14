@@ -2329,3 +2329,24 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Page 2:** its checks table became a tile pointing to page 3 (it also says `check.sh` runs in Git Bash or WSL on Windows). The PDF is 22 pages; the AWS reference now says page 13, and page 2 points to page 15 for how the app talks to the server.
 - **Rendered and checked:** the first render ran past the bottom of page 3 and the key columns differed between tables, so the wording was tightened and the column fixed. Footers 1–22 of 22, page order and references from the PDF text, fonts embedded; pages 2 and 3 looked at in poppler and in macOS's renderer. README's descriptions of the PDF mention the troubleshooting.
 - **Not checked:** the fixes on Windows itself, or with a proxy.
+
+### Take-home writeup: the admin panel and its test login
+
+- **Your request:** add the live admin panel to the report, with the test login (you confirmed the email is `support@chronova.com`, not `.con`, and later changed the password for the report to `Chronova0Password`), and a short guide to using it.
+- **How the screenshots were taken:** I opened `https://chronova.meenux.tech` in the browser pane and captured the sign-in page; you signed in yourself (I don't type passwords into the production site). Then, read-only:
+  - the menu showed only Dashboard and Users, confirming the Support role (no Staff or Audit log);
+  - the dashboard (totals only);
+  - the Users list, searched for `test@chronova.com` first, so no other email shows;
+  - the demo account's page.
+
+  I clicked only the search box and View; no Disable, Sign out everywhere, Access data or Delete.
+- **New page 16, "The admin panel: managing users"** (after "How the app talks to the server"):
+  - the link and the test login (the comment says the 0 is a zero), four captioned screenshots as the steps (sign in, dashboard, users, a user's page);
+  - a table of what staff can do, from `UserActions.php` and the policies: Disable or Enable, Sign out everywhere and Access data (read-only, 30 minutes, with a reason) for Support and admin; Delete account, staff and the audit log for admin only;
+  - a note that every action is audited and the login is shared.
+- **Also changed:**
+  - **Cover:** an "Admin panel" row pointing to page 16.
+  - **Corrected the accounts page:** the demo's first sync is three requests (500 + 500 + 1 records, as the panel's sync history shows), not two.
+  - **Records:** DECISIONS records the published login and what it allows; README's descriptions of the PDF mention the admin panel.
+- **Not checked:** that the live account's password is now `Chronova0Password`. That change is yours on the server; you signed in before telling me the new password.
+- **Rendered and checked:** the first render ran past the bottom of page 16, so the screenshots are cropped to their top part. 23 pages, footers 1–23 of 23, page order and references from the PDF text, fonts embedded; the cover and page 16 looked at in poppler and macOS's renderer.
