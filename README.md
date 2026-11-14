@@ -7,7 +7,7 @@ Chronova is an offline-first project scheduler: a native Android app (Kotlin, Je
 - **Admin** (`/admin`) — Filament 5 panel for staff with required MFA: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
 - **AWS** (`server/infra/`) — CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES. Not deployed yet; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
 
-It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used.
+It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
 
 ## Features
 
@@ -36,7 +36,7 @@ It started as the PicCollage take-home (a single-screen timeline); that submissi
 - **Progress, notes and milestones**: each task has a percent complete (a slider in steps of 10, a Done box, or the ✓ in the top bar for the selected task, with Undo); the done part of a bar is shaded, done tasks get a check, and project cards say how many tasks are done. Free-text notes (up to 2,000 characters) stay on the task: they sync, but never go to the voice providers or the staff admin panel. A milestone is a moment rather than a span (the editor's Milestone switch): it is drawn as a diamond, can be dragged and linked like any task, is never resized, and is either done or not.
 - **Scales**: Hours, Days, Weeks, Months; ticks follow the real calendar (DST days, month lengths) and whole-day snapping follows local midnights.
 - **Dependencies**: finish-to-start links chosen in the task editor (cycles are blocked); arrows on the timeline turn red when violated. After a drag, resize or edit leaves tasks that wait for a task starting before it ends, a message offers **Push**: they move later, just enough, keeping their lengths, with Undo (a drag itself still moves only its own task).
-- **Critical path**: a switch in the timeline settings (remembered per project) outlines in red the tasks where any delay moves the project's finish and fades the rest; the task editor says how long a task can slip without delaying the finish.
+- **Critical path**: a switch in the timeline settings (remembered per project) outlines in red the tasks where any delay moves the project's finish and fades the rest; the task editor says how long a task can slip without delaying the finish. Slack is counted in working time, a fixed 09:00–17:00, Monday to Friday.
 - **Offline-first sync**: local Room database; a reconnect prompt ("You're back online — sync now?"), a sync button with the number of unsynced changes, last-write-wins conflict handling, sign-out/delete account clear the device.
 - **Accounts**: the app opens on a sign-in page and needs an account to be used (sign up with an emailed 6-digit code, sign in, forgot/reset password); signing out or deleting the account returns there, and so does a session the server ends (expired, signed out everywhere, account disabled), with the phone's projects kept for that account and cleared before a different one signs in. With "Remember me" ticked (the default) the session is kept (token encrypted with a Keystore key), so later launches open straight into the app, offline too; unticked, it lasts only while the app runs; each use moves the token's expiry 60 days ahead, so only a device unused for 60 days has to sign in again. Once signed in it works offline as before. The token is encrypted with an Android Keystore key.
 - **Schedules from images**: photograph a schedule or Gantt chart, or pick an image of one, to make a new project ("Start from: An image of a chart…" in the new-project sheet) or add its tasks to the open project (the picture button on the timeline). Meta reads the image and OpenAI builds the tasks from what Meta read (never the image); a preview shows the tasks, milestones and links found, and what to check, with rows to untick and a start date for charts without dates; Undo afterwards. Signed in and online; see [`docs/import-api.md`](docs/import-api.md).
@@ -56,10 +56,11 @@ One git repository; this folder is its root. The Android app is a self-contained
 ```
 .
 ├── Chronova - Android App/          the Android app — open this folder (not the repository root) in Android Studio
-│   ├── app/                      the shell: application, navigation, manifest, launcher icons; instrumented tests (Room, rotation)
+│   ├── app/                      the shell: application, navigation, manifest, launcher icons; instrumented tests (Room, rotation, pinch)
 │   ├── core/                     shared modules: model, timeline, domain, database, network, data, designsystem, ui, testing
-│   ├── feature/                  projects, timeline, notifications, sync, account, assistant — each split into domain / data / presentation
-│   ├── build-logic/              Gradle convention plugins and the module-graph check
+│   ├── feature/                  projects, timeline, notifications, sync, account, assistant, export, reminders, push, chartimport — each split into domain / data / presentation
+│   ├── build-logic/              Gradle convention plugins, the module-graph and UI-model checks
+│   ├── build-validator/          the security build gate (runs before every build; see Testing)
 │   ├── gradle/  build.gradle.kts  settings.gradle.kts  gradlew
 │   └── local.properties          uncommitted: SDK path and the server URL
 ├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
@@ -72,8 +73,14 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── import-api.md             schedules from images: contract, how it's read, measured results, privacy, release checklist
 │   ├── brand/                    the logo as supplied
 │   ├── AI_USAGE_LOG.md           per-batch development log
-│   └── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it
-└── tools/brand/                  icon and logo generator (writes into both the app and the server); orb/ converts the 3D orb for the app
+│   ├── AI_USAGE_WRITEUP.md       AI usage summary: the take-home and everything after it
+│   └── take-home/                the take-home writeup as a PDF, with its HTML source
+├── tools/
+│   ├── check.sh                  the full app check (CI and the pre-push hook run it)
+│   ├── git-hooks/                pre-push hook
+│   ├── qa/                       rotation stress test on a phone
+│   └── brand/                    icon and logo generator (writes into both the app and the server); orb/ converts the 3D orb for the app
+└── .github/workflows/android.yml CI: tools/check.sh, then the device tests on an emulator
 ```
 
 App commands run from `Chronova - Android App/`; server and infrastructure commands from `server/` and `server/infra/`; git and the brand generator from the repository root.
@@ -85,7 +92,7 @@ Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `min
 ```bash
 cd "Chronova - Android App"
 ./gradlew :app:installDebug
-./gradlew test :app:lintDebug verifyModuleGraph
+../tools/check.sh             # everything: tests, lint, architecture checks, screenshots, security gate
 ```
 
 The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties` (for local development, the server from `server/` with `php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
@@ -108,7 +115,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (289 tests)
+composer test                 # Pest (507 tests)
 ```
 
 Push notifications use a fake sender by default (recorded, not sent). To send through Firebase, put the service-account key file at `server/storage/credentials/firebase-service-account.json` (git-ignored) and set `PUSH_SENDER=fcm` and `FCM_CREDENTIALS=<its absolute path>` in `server/.env`; reminders also need `php artisan schedule:work` (see `docs/push.md`).
@@ -137,6 +144,9 @@ Gradle modules in three layers, with manual dependency injection in the shell (`
 :feature:assistant            domain (AICommandHandler, CommandPlanner, clashes, use cases), data (voice client, microphone, player), presentation (ViewModel, 3D orb with Filament)
 :feature:export               domain (CSV and calendar files, ExportProject), data (PDF Gantt chart, shared files), presentation (export sheet)
 :feature:reminders            domain (ReminderPlanner, ReminderEngine), data (the alarm, notifications, receivers)
+:feature:push                 domain (register the device, handle alerts), data (Firebase messaging service, push API client)
+:feature:chartimport          domain (plan the import), data (image API client, chart images), presentation (import sheet and preview)
+:core:testing                 shared test helpers
 ```
 
 - **Local first.** Screens read Room through repository `Flow`s; edits are written locally and marked dirty. Deletes are tombstones until synced.
@@ -163,15 +173,27 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 
 ## Testing
 
+One command checks the whole app, and the pre-push hook and CI (`.github/workflows/android.yml`) run the same one:
+
+```bash
+tools/check.sh                # from the repository root
+tools/check.sh --devices      # also every module's device tests on a managed emulator
+```
+
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests (every module) | `cd "Chronova - Android App" && ./gradlew test` | 274 |
-| Android instrumented (Room transaction) | from `Chronova - Android App/`: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`, `adb install -r` the APK in `app/build/outputs/apk/debug/` and `adb install -r -t` the one in `app/build/outputs/apk/androidTest/debug/`, then `adb shell am instrument -w -e class noel.chronova.app.data.repository.ApplyChangesRoomTest noel.chronova.app.test/androidx.test.runner.AndroidJUnitRunner` (not `connectedAndroidTest`, which uninstalls the app and its data) | 3 |
-| Android instrumented (rotation: the assistant's layout in landscape and portrait, the sign-in form across a rotation, 50 real rotations) | build both APKs as above, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it) | 4 |
-| Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations (sheets, dialogs, a drag, the assistant listening, talking and introducing itself, a 200-turn memory soak) and checks for crashes, leaked activities, memory growth and lost state. Backs the app's data up and restores it, and the phone's rotation setting; `restore` puts back a backup an interrupted run left | 16 scenarios |
-| Server (Pest, real Postgres) | `cd server && composer test` | 289 |
-| Server inside the image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
-| Infrastructure assertions | `cd server/infra && npm test` | 16 |
+| Android JVM unit tests (every module) | `cd "Chronova - Android App" && ./gradlew test` (part of `tools/check.sh`) | 515 |
+| Screenshot tests (every screen at phone size, 1.5× text and dark) | `./gradlew testDebugScreenshotTestDefaultTestSuite`; after an intended visual change, `updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them | 180 |
+| Lint and architecture | `./gradlew :app:lintDebug verifyModuleGraph verifyUiModels` | 0 lint errors |
+| Security build gate | runs as `:app:validateThreats` before every build; alone: `sh build-validator/validate-build.sh` (see below) | 89 rules |
+| Device tests on a managed emulator (Pixel 6, API 35) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 110 |
+| App device tests on a phone (Room transaction, rotation, pinch) | build both APKs, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it). Never `connectedAndroidTest`, which uninstalls the app and its data | 11 |
+| Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations and checks for crashes, leaked activities, memory growth and lost state; backs the app's data up and restores it | 16 scenarios |
+| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 507 |
+| Server inside the production image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
+| Infrastructure assertions | `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` | 23 |
+
+**Security build gate.** `Chronova - Android App/build-validator/` is a copy of the canonical mobile build validator. Every Gradle build of the app runs it first: it scans the manifest, Gradle files, Kotlin and Java, `res/` and the repository with 89 rules drawn from 41 threat cards (exported components, WebView and TLS mistakes, weak crypto, secrets in the source, unobfuscated releases…). A critical or high finding fails the build with the fix; medium and low are listed as warnings. A finding can be accepted only with a written reason (an inline `build-validator:ignore` comment or `.build-validator-ignore`), and accepted findings still show in every report. Never lower its threshold or remove the hook.
 
 The app's core (time math, snapping, edits, viewport, rules, sync engine with an in-memory server) and the server's sync protocol are covered by unit and feature tests; the sync API passes the conformance scenarios in `docs/sync-protocol.md`. Behaviour on a real phone (Android 10, 360 dp) — gestures, scales, migrations, the reconnect prompt and end-to-end sync against the local server with a second simulated device — and the admin panel in a browser were checked by hand with predicted results; the log is in [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md).
 
@@ -196,7 +218,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - With the keyboard open, the account screen's main button can sit under the keyboard (the keyboard's Done key submits).
 - Admin times are shown in UTC (labelled), not converted to the viewer's time zone.
 - Task reminders use an inexact alarm (no special permission), so Android may deliver one a few minutes late while the phone is idle; a reminder more than a day late is dropped. "1 day before" is 24 hours, so across a daylight-saving change it is an hour off the same clock time. A reminder whose time has passed when its task is added or moved is not sent late. A pushed reminder can come a little late too: the server checks once a minute, and Android or the phone maker's battery saving can hold a message back.
-- The app's in-app theme choice (System / Light / Dark) applies once Compose draws: the launch screen and the very first frame are light (the default), so with Dark chosen the first frame is briefly light. The admin panel is dark-only. Seven instrumented tests (the Room transaction, rotation) and an adb rotation stress script; other device behaviour was verified by hand.
+- The app's in-app theme choice (System / Light / Dark) applies once Compose draws: the launch screen and the very first frame are light (the default), so with Dark chosen the first frame is briefly light. The admin panel is dark-only.
 - While the assistant is open, or still saying what it changed, the screen keeps its orientation; it turns with the phone again once the assistant is done.
 - The assistant is voice-only and its yes/no words are English. Turns end on volume (a short silence after speech), so steady talk nearby keeps it listening until the speaker pauses, and nearby voices can be transcribed with the request (it then asks or refuses; nothing is applied without a yes). A yes quieter than someone talking to the phone gets "Sorry, was that a yes?" first; the level is tuned on one phone.
 - The 3D orb (Filament 1.79) adds native libraries: the debug APK is about 40 MB (15 MB before); Play's per-device delivery ships one CPU type, about 6 MB more. It needs OpenGL ES 3.0, and falls back to the mic icon otherwise or after the 3D view has failed once.

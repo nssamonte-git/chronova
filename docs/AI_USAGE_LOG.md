@@ -2066,3 +2066,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** remove the "In one line" banner at the end of the report.
 - **Done:** removed from the last page; the PDF re-rendered (still 16 pages) and the last page looked at.
 - Documentation only: no build or test run for this entry.
+
+### README brought up to date
+
+- **Your request:** update the README.
+- **Stale parts fixed:** test counts (app unit tests 274 → 515, server 289 → 507, infra 16 → 23); the outdated "seven instrumented tests" limitation removed.
+- **Added:** a link to the take-home PDF in the intro; working time (09:00–17:00, Mon–Fri) in the critical path entry; the repository layout now shows `build-validator/`, all ten feature modules, `docs/take-home/`, `tools/check.sh`, `tools/git-hooks/`, `tools/qa/` and the CI workflow; `tools/check.sh` in "Running the app"; `:feature:push`, `:feature:chartimport` and `:core:testing` in the module list. Testing now starts with `tools/check.sh` (also run by the pre-push hook and CI), adds rows for screenshot tests (180), lint and architecture checks, the security gate (89 rules), emulator device tests (110) and phone device tests (11), and a short paragraph on the build gate.
+- **Sources:** counts and commands from `HANDOFF.md` and `Learn/04-validation.md`, as recorded there; nothing was re-run for this entry. The gate figures are from the read-only scan earlier today.
+- Documentation only: no build or test run for this entry.
