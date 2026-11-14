@@ -2197,3 +2197,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** put "Running the project" on the cover under the overview, to save space.
 - **Done:** the requirements line and the four commands now sit at the bottom of the cover; the separate running page is gone, so the PDF is 18 pages. To fit, the cover's header band is about a third of an inch shorter, the screenshot slightly narrower, and the `check.sh` comment one line. The AWS page is now page 11, and its reference on the features page says so. Re-rendered: the cover looked at, page order checked, footers 1–18 of 18.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: cover text layout
+
+- **Your request:** fix the layout of the text at the bottom (the caption under the cover's phone screenshot).
+- **Done:** the caption was three ragged lines with "Add task." alone on the last; it is now shorter ("Recorded on a real phone: the voice orb sits above Add task."), centred under the screenshot and balanced over two lines. Also kept `Chronova - Android App/` on one line in the running instructions, which had split it across two. Re-rendered (18 pages) and both spots looked at closely.
+- Documentation only: no build or test run for this entry.
