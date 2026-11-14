@@ -2303,3 +2303,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Changed:** `app/build.gradle.kts` defaults `chronova.apiUrl` to `https://chronova.meenux.tech`; `local.properties` still overrides it. This Mac's `local.properties` now holds only `sdk.dir` (backed up first). The `BackendConfig` comment, README (running the app, Try demo, the layout line), DECISIONS (2026-11-15 revision under the EC2 deployment; the live domain is now in the repository), `server/infra/EC2.md` and CURRENT_TASK were updated to match.
 - **What a clone still needs (machine, not repo):** the Android SDK (Android Studio finds it; from a terminal, `ANDROID_HOME`) and a JDK 17 or newer.
 - **Checks:** `tools/check.sh` PASS: 520 unit tests, 183 screenshots, lint 0 errors (23 warnings), module graph and UI models OK.
+
+### Take-home writeup: a setup guide as page 2
+
+- **Your request:** a guide in the report for cloning or downloading the Android project, running it on your own computer and building the APK; "Running the project" becomes page 2, right after the overview.
+- **Done:**
+  - **New page 2, "Running the project: from GitHub to an APK":** what you need (Android Studio, git or the ZIP, a device, or a JDK 17+ and `ANDROID_HOME` for the terminal), then six steps: get the code, open `Chronova - Android App` (not the repository root), run it, build the APK (Android Studio menu or `./gradlew :app:assembleDebug`, `gradlew.bat` on Windows; output `app/build/outputs/apk/debug/app-debug.apk`), install it, and sign in with Try demo. A short table covers the tests and common problems (SDK location, Java version, the security gate, release signing).
+  - **Cover:** the old "Running the project" box moved to page 2. The cover's facts gain the GitHub URL and a pointer to page 2, and the screenshot is wider again.
+  - **Page numbers:** 21 pages; the AWS reference now says page 12; page 2 points to page 14 for how the app talks to the server.
+  - **README:** both descriptions of the PDF and the "Running the app" clone line updated.
+- **Checked the guide against GitHub:** a fresh `git clone https://github.com/nssamonte-git/chronova.git` (at `4eb9481`) into an empty folder, then `./gradlew :app:assembleDebug` with only `ANDROID_HOME` set. It built (security gate PASS), the APK is at the path the guide gives, and it points at the live server. Not checked: the Android Studio menu names in the newest Studio release, and a Windows build.
+- **Rendered and checked:** 21 pages, footers 1–21 of 21, page order and both page references from the PDF text, fonts embedded. The first render cut off the last table row on page 2, so the page was tightened. Cover and page 2 looked at in poppler and in macOS's renderer.
+- Documentation only: no app code changed.
