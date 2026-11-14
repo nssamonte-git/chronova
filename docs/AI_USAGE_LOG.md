@@ -2179,3 +2179,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Changed:** each reason on page 9 now starts with the problem the model solves for the feature, then the evidence. Scribe: task names are unusual words, and it can be told them in advance. Flash: the assistant talks back, so latency matters. Voice isolator: noise ends up in transcripts; same provider. GPT-6.1 Terra: exact edits from loose speech, and a strict schema means a bad answer is rejected, never applied. Muse Spark: reading a chart like a person (names, dates, rows). SAM: exact edges for exact dates; SAM gives *where*, Muse Spark *what*. The facts are unchanged, from the same config and docs. To fit the page, the two boxes underneath became two short bullets and the "Used for" column is narrower.
 - **Rendered and checked:** the first version ran off the page; the condensed one fits (page 9 looked at; 19 pages).
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: running-page notes removed
+
+- **Your request:** remove the note, the `git checkout` block and the "Beyond the brief" pointer from the running page.
+- **Done:** all three removed from page 10; it now has the requirements and the build and test commands only. Re-rendered: 19 pages, page 10 looked at, no `git checkout` or "Pages 4 and 5" text left.
+- Documentation only: no build or test run for this entry.
