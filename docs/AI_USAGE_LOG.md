@@ -2044,3 +2044,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Facts checked before writing:** the installed copy's README, `build-validator.gradle`, `validate-build.sh`, the rule files (74 Android + 15 shared rules) and threat cards (41), `.build-validator-ignore`, `.github/workflows/android.yml` and the pre-push hook (both run `tools/check.sh`), and the install and full-R8 entries in this log. A read-only run of `validate-build.sh` today: 521 files, 89 rules, pass, 7 warnings, 2 suppressed.
 - **Rendered and checked:** same headless Chrome for Testing shell; the first render cut off the bottom of the new page, so its text was shortened and re-rendered; footers read 1–14 of 14.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: cover screenshot with the orb
+
+- **Your request:** show the assistant orb in the cover's phone screenshot.
+- **Why not the old image:** the cover used the screenshot-test reference of the timeline, which has no orb (screenshot tests don't draw the 3D orb).
+- **Made:** a frame from the walkthrough recording `R5-take2.mkv` at about 10 s (light theme, Weeks scale, linked bars, the selected Hire Staff bar with both resize handles, the orb above Add task), cropped to remove the phone's status bar (notification icons) and navigation bar, saved over `docs/take-home/assets/timeline.png`. A caption says it comes from a real phone recording. Nothing was composited.
+- **Rendered and checked:** the cover page looked at; still 14 pages.
+- Documentation only: no build or test run for this entry.
