@@ -2098,3 +2098,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Results:** the JUnit XML on disk shows 515 tests, 0 failures, 0 skipped (the full check at 16:17–16:18 today, `build/reports/check.log`: BUILD SUCCESSFUL). A fresh `./gradlew test` exited 0 with the test tasks up to date (no code changed since), so it reused that result rather than re-running the tests.
 - **Rendered and checked:** the first render cut off the bottom of the page; text tightened and re-rendered. One statement corrected before committing: `tools/check.sh` runs device tests only with `--devices` (CI runs `--devices-only` as a separate job). Footers read 1–17 of 17.
 - Documentation only: no build or test run beyond the one above.
+
+### README: the AI kit, testing detail and the PDF's contents
+
+- **Your request:** update the README.
+- **Changed:** the repository layout now lists the project AI kit that is in git (`AGENTS.md`, `HANDOFF.md`, `manifest.yaml`, `CURRENT_TASK.md`, `DECISIONS.md`, `PROJECT_CONTEXT.md`, the relationship map, `Learn/`, `scripts/`, `md-templates/`, `learning-inbox/`); both descriptions of the take-home PDF now include the features, testing and build-gate pages; the Testing table gives file and module counts and the tools for unit, screenshot and device tests (counted from the source earlier today); "AI usage" has a paragraph on how a session starts from the kit, where the kit and build gate come from, and when and how a lesson is captured.
+- Documentation only: no build or test run for this entry.

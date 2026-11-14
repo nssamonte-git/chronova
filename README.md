@@ -7,7 +7,7 @@ Chronova is an offline-first project scheduler: a native Android app (Kotlin, Je
 - **Admin** (`/admin`) — Filament 5 panel for staff with required MFA: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
 - **AWS** (`server/infra/`) — CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES. Not deployed yet; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
 
-It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
+It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, testing, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
 
 ## Features
 
@@ -80,7 +80,18 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── git-hooks/                pre-push hook
 │   ├── qa/                       rotation stress test on a phone
 │   └── brand/                    icon and logo generator (writes into both the app and the server); orb/ converts the 3D orb for the app
-└── .github/workflows/android.yml CI: tools/check.sh, then the device tests on an emulator
+├── .github/workflows/android.yml CI: tools/check.sh, then the device tests on an emulator
+│
+│   the project AI kit (how AI sessions work on this repository; see "AI usage")
+├── AGENTS.md  HANDOFF.md         startup rules, then layout, guardrails, invariants and commands
+├── manifest.yaml                 routes each kind of task to the files it needs
+├── CURRENT_TASK.md  DECISIONS.md where the work stands; dated design decisions
+├── PROJECT_CONTEXT.md            a stable profile of the project (read on demand)
+├── PROJECT_RELATIONSHIP_MAP.md   what loads, validates or documents what (data in project-relationships.tsv)
+├── Learn/                        project map, architecture, workflow, validation
+├── scripts/                      context and map validation; lesson capture, sanitizing and promotion
+├── md-templates/                 the lesson template
+└── learning-inbox/               lessons waiting for review (only the README is in git)
 ```
 
 App commands run from `Chronova - Android App/`; server and infrastructure commands from `server/` and `server/infra/`; git and the brand generator from the repository root.
@@ -182,11 +193,11 @@ tools/check.sh --devices      # also every module's device tests on a managed em
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests (every module) | `cd "Chronova - Android App" && ./gradlew test` (part of `tools/check.sh`) | 515 |
-| Screenshot tests (every screen at phone size, 1.5× text and dark) | `./gradlew testDebugScreenshotTestDefaultTestSuite`; after an intended visual change, `updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them | 180 |
+| Android JVM unit tests (JUnit 4, coroutines-test, OkHttp MockWebServer; 71 files in 31 modules) | `cd "Chronova - Android App" && ./gradlew test` (part of `tools/check.sh`) | 515 |
+| Screenshot tests (Compose Preview Screenshot Testing; 60 previews in 10 modules, each at phone size, 1.5× text and dark) | `./gradlew testDebugScreenshotTestDefaultTestSuite`; after an intended visual change, `updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them | 180 |
 | Lint and architecture | `./gradlew :app:lintDebug verifyModuleGraph verifyUiModels` | 0 lint errors |
 | Security build gate | runs as `:app:validateThreats` before every build; alone: `sh build-validator/validate-build.sh` (see below) | 89 rules |
-| Device tests on a managed emulator (Pixel 6, API 35) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 110 |
+| Device tests on a managed emulator (Pixel 6, API 35): Compose UI tests of the screens, Room migrations and transactions, the PDF writer, rotation (Compose UI test, UiAutomator; 18 files in 13 modules) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 110 |
 | App device tests on a phone (Room transaction, rotation, pinch) | build both APKs, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it). Never `connectedAndroidTest`, which uninstalls the app and its data | 11 |
 | Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations and checks for crashes, leaked activities, memory growth and lost state; backs the app's data up and restores it | 16 scenarios |
 | Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 507 |
@@ -228,4 +239,6 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 
 ## AI usage
 
-Built with Claude Code. A short take-home writeup (requirements, architecture, the voice flow, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf). [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
+Built with Claude Code. A short take-home writeup (requirements, architecture, the voice flow, every feature beyond the brief, testing, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf). [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
+
+Every AI session starts from the project AI kit at the repository root: `AGENTS.md`, then `HANDOFF.md`, then only the files `manifest.yaml` routes the task to (`scripts/validate-ai-context.sh` keeps that startup under its token budget). The kit was set up from my canonical AI Knowledge and Skills repository; the build gate in `Chronova - Android App/build-validator/` is copied from it, with its source recorded in `INSTALLED.md`. After a batch whose log entry records an AI mistake or guidance gap that applies beyond Chronova, a sanitized lesson goes to `learning-inbox/` (`scripts/capture-learning.sh`, then `scripts/sanitize-learning-log.sh`); `scripts/promote-learning-candidates.sh` only reports candidates, and I decide what becomes a decision, a Learn page or a proposal to the canonical repository. The steps are in `Learn/03-development-workflow.md`.
