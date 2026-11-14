@@ -2223,3 +2223,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Fix:** removed the shadow; the screenshot keeps its thin border. Checked with macOS's own renderer (`sips` on the PDF): no grey box, caption clear. The logo's glow renders correctly there and was left. No other element uses a shadow. Re-rendered: 18 pages.
 - **Lesson for later checks:** render the cover through macOS's engine as well as poppler, since they can differ.
 - Documentation only: no build or test run for this entry.
+
+### README: AI models and the PDF's contents
+
+- **Your request:** update the README.
+- **Checked first:** only the take-home PDF and `Learn/04` changed since the last README update; no code changed.
+- **Changed:** both descriptions of the take-home PDF now mention its AI model APIs and AWS pages. A new "AI models" table under "Server" lists each provider and model, what it does and why it was chosen (ElevenLabs Scribe v2, Flash v2.5, the voice isolator; OpenAI GPT-6.1 Terra; Meta Muse Spark 1.3 and SAM 3.1), with the same facts as the PDF's page 9 (from `server/config/voice.php`, `server/config/import.php`, DECISIONS and the voice and import docs).
+- **Left as is:** the README still mentions the `submission-v1` tag in its intro (it was removed only from the PDF).
+- Documentation only: no build or test run for this entry.

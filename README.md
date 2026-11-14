@@ -7,7 +7,7 @@ Chronova is an offline-first project scheduler: a native Android app (Kotlin, Je
 - **Admin** (`/admin`) — Filament 5 panel for staff with 2FA required by default: user management, a health dashboard, an audit log, and time-limited, audited support access to a user's projects.
 - **AWS** — the server is **live** on one EC2 instance (Docker Compose, Caddy HTTPS, Cloudflare DNS, secrets from Secrets Manager); see [`server/infra/EC2.md`](server/infra/EC2.md). The planned production stack, CDK for CloudFront → private load balancer → ECS Fargate, RDS Postgres and SES (`server/infra/`), is tested but not deployed; see [`server/infra/DEPLOY.md`](server/infra/DEPLOY.md).
 
-It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, testing, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
+It started as the PicCollage take-home (a single-screen timeline); that submission is preserved at git tag `submission-v1`. No third-party timeline or Gantt library is used. A short writeup for reviewers (requirements, architecture, every feature beyond the brief, the AI model APIs and why they were chosen, testing, the AWS deployment, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf).
 
 ## Features
 
@@ -183,6 +183,21 @@ In `server/` (Laravel 13; `server/README.md` covers setup and commands):
 - **Voice** (`/v1/voice/transcribe`, `/interpret`, `/explain`): provider keys only on the server; the model's answer is constrained by a strict JSON schema and re-validated (known operation types, ids from the request, real dates); the user's words and task titles are sent as data, never as instructions; OpenAI with `store: false`; no audio or words stored or logged — `voice_events` keeps counts, timing and token use for the dashboard. Kill switch, per-user/per-endpoint rate limits, fakes for development and tests.
 - **Container**: one FrankenPHP/PHP 8.4 image, roles `web`, `worker`, `scheduler`, `migrate`; non-root; caches built at start from the injected environment.
 
+#### AI models
+
+The voice assistant and schedules from images call these through the server, which holds the keys (models set in `server/config/voice.php` and `server/config/import.php`):
+
+| Provider · model | Used for | Why |
+|---|---|---|
+| ElevenLabs Scribe v2 | Speech to text (the request and the spoken yes or no) | Can be given the project's task titles in advance, so unusual task names are spelled as written; about 1 s per request |
+| ElevenLabs Flash v2.5 | The assistant's spoken answers | Low latency (speech starts in about 0.8 s) and the cheaper speech model |
+| ElevenLabs voice isolator (off by default) | Optional noise removal before transcription | Same provider, so the audio goes to no one new |
+| OpenAI GPT-6.1 Terra, reasoning "low" | Words → schedule changes, clash-free alternatives, the sentences the orb speaks, tasks from an image's reading | A strict JSON schema limits it to allowed operations on the tasks it was given, and the server and app re-check every answer; 15 of 15 sample requests right; its fixed rules are prompt-cached |
+| Meta Muse Spark 1.3, reasoning "minimal" | Reading a chart image: names, dates on the axis, rows | Reads a chart the way a person does, though not exact positions; "minimal" was as accurate as the default in about half the time; standard models, which Meta doesn't train on |
+| Meta SAM 3.1 | Exact boxes of bars and milestone diamonds | Exact positions but no text, so it pairs with Muse Spark: SAM gives where, Muse Spark what |
+
+The voice providers were chosen in the feature brief. Details, privacy and measured cost: [`docs/voice-api.md`](docs/voice-api.md), [`docs/import-api.md`](docs/import-api.md).
+
 ## Testing
 
 One command checks the whole app, and the pre-push hook and CI (`.github/workflows/android.yml`) run the same one:
@@ -241,6 +256,6 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 
 ## AI usage
 
-Built with Claude Code. A short take-home writeup (requirements, architecture, the voice flow, every feature beyond the brief, testing, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf). [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
+Built with Claude Code. A short take-home writeup (requirements, architecture, the voice flow, every feature beyond the brief, the AI model APIs and why they were chosen, testing, the AWS deployment, the security build gate, AI usage and the AI workflow) is [`docs/take-home/chronova-take-home.pdf`](docs/take-home/chronova-take-home.pdf). [`docs/AI_USAGE_LOG.md`](docs/AI_USAGE_LOG.md) is the per-batch development log (including AI mistakes and how they were found); [`docs/AI_USAGE_WRITEUP.md`](docs/AI_USAGE_WRITEUP.md) summarises it: the take-home as submitted, then the work after it (phases, my decisions, AI mistakes, assessment and timeline).
 
 Every AI session starts from the project AI kit at the repository root: `AGENTS.md`, then `HANDOFF.md`, then only the files `manifest.yaml` routes the task to (`scripts/validate-ai-context.sh` keeps that startup under its token budget). The kit was set up from my canonical AI Knowledge and Skills repository; the build gate in `Chronova - Android App/build-validator/` is copied from it, with its source recorded in `INSTALLED.md`. After a batch whose log entry records an AI mistake or guidance gap that applies beyond Chronova, a sanitized lesson goes to `learning-inbox/` (`scripts/capture-learning.sh`, then `scripts/sanitize-learning-log.sh`); `scripts/promote-learning-candidates.sh` only reports candidates, and I decide what becomes a decision, a Learn page or a proposal to the canonical repository. The steps are in `Learn/03-development-workflow.md`.
