@@ -2137,3 +2137,10 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** fix the README's deployment status.
 - **Changed:** the intro's AWS line now says the server is live on one EC2 instance in Sydney (Docker Compose, Caddy HTTPS, Cloudflare DNS, Secrets Manager; `server/infra/EC2.md`) and that the CDK stack is the planned, undeployed production design; the repository layout and the `chronova.apiUrl` example point to `EC2.md`; "Decisions and trade-offs" has the live EC2 setup (stating what it is, not a reason the decision record doesn't give); the "Not deployed" limitation is replaced by the live server's limits and open items (single instance with PostgreSQL on it, mail held in memory so codes aren't sent, voice and push not yet checked from phones, no tested restore, image import off) plus the CDK stack's status. All from `EC2.md`, `DECISIONS.md` and the 14 Nov log entry. The live domain stays out of the README.
 - Documentation only: no build or test run for this entry.
+
+### Server location removed from the README and the PDF
+
+- **Your request:** remove the mention of "Sydney".
+- **Done:** removed from the take-home PDF (the AWS page's lede and heading, which also gave the region code, and the AWS tile on the features page) and from the README (the intro's AWS line and the live-EC2 decision). Neither file mentions the city or region code now; the PDF re-rendered (18 pages) and the AWS page looked at.
+- **Left as they are:** `HANDOFF.md`, `CURRENT_TASK.md`, `DECISIONS.md`, `server/infra/EC2.md` and `DEPLOY.md` still name the region (the runbook's deploy command needs the region code), and earlier entries in this log keep their wording.
+- Documentation only: no build or test run for this entry.
