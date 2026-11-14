@@ -2295,3 +2295,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 
   Pages 12 and 13 were looked at in poppler and in macOS's renderer (`sips`); fonts are embedded; the page order was checked from the PDF text.
 - Documentation only: no build or test run for this entry.
+
+### A fresh clone builds against the live server
+
+- **Your request:** everything the Android project needs should be in git, so a validator who clones or copies the repo can build it with no extra steps.
+- **Checked first:** a clone already has the Gradle wrapper (9.6.0), `gradle.properties`, `build-logic`, `google-services.json`, the build validator and its suppressions, and the screenshot references; only `.DS_Store`, `build/` and `local.properties` are ignored. The one gap was the server URL, which came only from the uncommitted `local.properties`, so a clone's app stopped at the sign-in page.
+- **Changed:** `app/build.gradle.kts` defaults `chronova.apiUrl` to `https://chronova.meenux.tech`; `local.properties` still overrides it. This Mac's `local.properties` now holds only `sdk.dir` (backed up first). The `BackendConfig` comment, README (running the app, Try demo, the layout line), DECISIONS (2026-11-15 revision under the EC2 deployment; the live domain is now in the repository), `server/infra/EC2.md` and CURRENT_TASK were updated to match.
+- **What a clone still needs (machine, not repo):** the Android SDK (Android Studio finds it; from a terminal, `ANDROID_HOME`) and a JDK 17 or newer.
+- **Checks:** `tools/check.sh` PASS: 520 unit tests, 183 screenshots, lint 0 errors (23 warnings), module graph and UI models OK.

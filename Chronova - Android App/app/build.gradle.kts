@@ -9,15 +9,20 @@ plugins {
 }
 
 /**
- * Sync server URL from the (uncommitted) local.properties: `chronova.apiUrl`.
- * Without it the app builds offline-only.
+ * The server the app talks to. A fresh clone builds against the live server
+ * (server/infra/EC2.md; DECISIONS, 2026-11-15), so no setup is needed;
+ * `chronova.apiUrl` in the uncommitted local.properties overrides it,
+ * e.g. `http://localhost:8000` for a local server (debug builds only).
  */
+val defaultBackendSettings = mapOf("apiUrl" to "https://chronova.meenux.tech")
+
 val backendProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 
 fun backendSetting(key: String): String {
-    val value = backendProperties.getProperty("chronova.$key", "").trim()
+    val value = backendProperties.getProperty("chronova.$key")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: defaultBackendSettings[key].orEmpty()
     require(value.none { it == '"' || it == '\\' }) { "chronova.$key must not contain quotes or backslashes" }
     return "\"$value\""
 }

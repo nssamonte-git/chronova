@@ -107,6 +107,7 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 
 - The deployed environment uses Docker Compose on Sydney EC2, local PostgreSQL, Caddy HTTPS, and Cloudflare DNS. The ECS Fargate and RDS design above describes the separate CDK stack.
 - The EC2 role reads `chronova/prod/runtime` in Secrets Manager. The deployment passes credentials to the intended containers through a Compose override. See [the EC2 operations runbook](server/infra/EC2.md).
+- Revised 2026-11-15 (user request): the app's build uses the live server, `https://chronova.meenux.tech`, by default (`app/build.gradle.kts`), so a fresh clone builds and connects with no setup; `chronova.apiUrl` in `local.properties` still overrides it. The live domain is now in the repository and the README (it used to be kept out).
 
 ## 2026-11-15: Try demo
 

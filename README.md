@@ -62,7 +62,7 @@ One git repository; this folder is its root. The Android app is a self-contained
 │   ├── build-logic/              Gradle convention plugins, the module-graph and UI-model checks
 │   ├── build-validator/          the security build gate (runs before every build; see Testing)
 │   ├── gradle/  build.gradle.kts  settings.gradle.kts  gradlew
-│   └── local.properties          uncommitted: SDK path and the server URL
+│   └── local.properties          uncommitted, optional: SDK path (Android Studio writes it), a different server URL
 ├── server/                       Laravel app: API, sync, voice, admin panel; Dockerfile, compose.yaml
 │   ├── app/  routes/  resources/  public/  tests/
 │   └── infra/                    AWS CDK (the planned stack) + DEPLOY.md; EC2.md runs the live server
@@ -98,7 +98,7 @@ App commands run from `Chronova - Android App/`; server and infrastructure comma
 
 ## Running the app
 
-Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. Open `Chronova - Android App/` in Android Studio, or use Gradle from that folder:
+Requirements: Android Studio with AGP 9.5 support, JDK 17+, Android SDK 37. `minSdk` 26. A fresh clone builds as it is: open `Chronova - Android App/` in Android Studio (it finds the SDK itself), or use Gradle from that folder with `ANDROID_HOME` pointing at the SDK:
 
 ```bash
 cd "Chronova - Android App"
@@ -106,11 +106,11 @@ cd "Chronova - Android App"
 ../tools/check.sh             # everything: tests, lint, architecture checks, screenshots, security gate
 ```
 
-The app always needs an account, so a build without a server URL stops at the sign-in page ("This version of Chronova isn't connected to a server"). Set the server URL in the uncommitted `Chronova - Android App/local.properties` (for local development, the server from `server/` with `php artisan serve` and `adb reverse tcp:8000 tcp:8000`):
+The app connects to the live server, `https://chronova.meenux.tech` ([`server/infra/EC2.md`](server/infra/EC2.md)), with no setup. On the sign-in page, **Try demo** opens a shared demo account with a 1,000-task sample project. To use another server, set it in the uncommitted `Chronova - Android App/local.properties`:
 
 ```properties
-chronova.apiUrl=https://<your server>          # release builds need https (the live server: server/infra/EC2.md)
-# or, for a debug build against the local server:
+chronova.apiUrl=https://<your server>          # release builds need https
+# or, for a debug build against the local server (server/ with php artisan serve):
 chronova.apiUrl=http://localhost:8000
 ```
 

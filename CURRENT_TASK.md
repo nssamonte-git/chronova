@@ -86,4 +86,4 @@ Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 versi
   - `server/.env` (mode 600, git-ignored) holds the OpenAI, ElevenLabs and Meta keys, `PUSH_SENDER=fcm` and `FCM_CREDENTIALS`. Voice and imports default to the fakes; for real imports start the server with `IMPORT_ANALYZER=meta IMPORT_BUILDER=openai` (costs about 1.4¢ of Meta per image plus OpenAI).
   - Local PHP caps uploads at 2 MB; the app's images fit.
   - Docker Postgres and Mailpit (SMTP 1025, API 8025).
-- **Mac:** `local.properties` now ends with `chronova.apiUrl=https://chronova.meenux.tech` (the live server, kept on purpose); for a local-server check, change it to `http://localhost:8000` and back afterwards. The Mac has the API 35 Google APIs arm64 emulator image (3.8 GB) and one managed AVD under `~/.android/avd/gradle-managed`.
+- **Mac:** `local.properties` holds only `sdk.dir`; the build defaults to the live server (DECISIONS, 2026-11-15). For a local-server check, add `chronova.apiUrl=http://localhost:8000` and remove it afterwards. The Mac has the API 35 Google APIs arm64 emulator image (3.8 GB) and one managed AVD under `~/.android/avd/gradle-managed`.

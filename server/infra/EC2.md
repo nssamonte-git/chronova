@@ -1,6 +1,6 @@
 # Chronova EC2 operations
 
-Chronova runs in Sydney (`ap-southeast-2`) on a single EC2 instance. Cloudflare DNS points `chronova.meenux.tech` to the instance, and Caddy provides HTTPS. The Android build uses `chronova.apiUrl=https://chronova.meenux.tech` in its local Gradle properties. Use `/admin` for staff and `/up` for health checks.
+Chronova runs in Sydney (`ap-southeast-2`) on a single EC2 instance. Cloudflare DNS points `chronova.meenux.tech` to the instance, and Caddy provides HTTPS. The Android build uses `https://chronova.meenux.tech` by default (`app/build.gradle.kts`); `chronova.apiUrl` in its local Gradle properties overrides it. Use `/admin` for staff and `/up` for health checks.
 
 ## Deployment files
 
