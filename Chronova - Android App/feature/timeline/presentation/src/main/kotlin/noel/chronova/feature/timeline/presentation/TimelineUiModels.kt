@@ -22,6 +22,8 @@ data class TaskUi(
      * [noel.chronova.core.domain.schedule.CriticalPath]); negative when a link is broken.
      */
     val slackMillis: Long? = null,
+    /** [slackMillis] is working time (nights and weekends don't count), not time by the clock. */
+    val slackInWorkingTime: Boolean = false,
 ) {
     val durationMillis: Long get() = endMillis - startMillis
 
@@ -57,8 +59,8 @@ sealed interface SlackUi {
     /** Any delay moves the project's finish, at [finishMillis]. */
     data class OnCriticalPath(val finishMillis: Long) : SlackUi
 
-    /** The task can end up to [millis] later without delaying the finish. */
-    data class CanSlip(val millis: Long) : SlackUi
+    /** The task can end up to [millis] later without delaying the finish; [working]: of working time. */
+    data class CanSlip(val millis: Long, val working: Boolean = false) : SlackUi
 }
 
 /** Why the entered task can't be saved, as the editor words it. */

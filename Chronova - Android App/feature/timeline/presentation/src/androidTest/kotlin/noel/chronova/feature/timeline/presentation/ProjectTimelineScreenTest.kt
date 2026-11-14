@@ -135,9 +135,9 @@ class ProjectTimelineScreenTest {
         compose.onNode(hasText("Sweep") and hasStateDescription(critical)).assertDoesNotExist()
         assertTrue(screen.repository.viewSettings.getValue(TimelineScreenHarness.PROJECT_ID).showCriticalPath)
 
-        // The editor says how much Sweep can slip.
+        // The editor says how much Sweep can slip: it is a Monday morning, so working time.
         screen.nameCell("Sweep").performClick()
-        compose.onNodeWithText(screen.res.getString(R.string.task_slack_can_slip, "1 h 30 min")).assertExists()
+        compose.onNodeWithText(screen.res.getString(R.string.task_slack_can_slip_working, "1 h 30 min")).assertExists()
     }
 
     // What the assistant asks to be shown.

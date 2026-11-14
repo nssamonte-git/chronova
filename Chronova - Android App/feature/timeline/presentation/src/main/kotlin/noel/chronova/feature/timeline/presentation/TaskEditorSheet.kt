@@ -253,7 +253,12 @@ private fun SlackLine(slack: SlackUi, zone: ZoneId) {
             R.string.task_slack_critical,
             TimeFormat.day(slack.finishMillis, zone) + ", " + TimeFormat.clock(slack.finishMillis, zone),
         )
-        is SlackUi.CanSlip -> stringResource(R.string.task_slack_can_slip, durationText(slack.millis))
+        // Working time is said in hours: a "day" of it would be eight hours, not a day on the calendar.
+        is SlackUi.CanSlip -> if (slack.working) {
+            stringResource(R.string.task_slack_can_slip_working, durationText(slack.millis, days = false))
+        } else {
+            stringResource(R.string.task_slack_can_slip, durationText(slack.millis))
+        }
     }
     if (slack is SlackUi.OnCriticalPath) {
         InlineBanner(text, kind = BannerKind.Warning)
@@ -262,9 +267,9 @@ private fun SlackLine(slack: SlackUi, zone: ZoneId) {
     }
 }
 
-/** "2 d 4 h", "3 h 30 min", "45 min": the two largest units, rounded down to the minute. */
+/** "2 d 4 h", "3 h 30 min", "45 min": the two largest units, rounded down to the minute; without [days], "52 h". */
 @Composable
-private fun durationText(millis: Long): String = DurationParts.of(millis).map { (unit, amount) ->
+private fun durationText(millis: Long, days: Boolean = true): String = DurationParts.of(millis, days).map { (unit, amount) ->
     when (unit) {
         DurationParts.Unit.DAYS -> stringResource(R.string.duration_days, amount)
         DurationParts.Unit.HOURS -> stringResource(R.string.duration_hours, amount)
@@ -276,11 +281,12 @@ private fun durationText(millis: Long): String = DurationParts.of(millis).map { 
 internal object DurationParts {
     enum class Unit { DAYS, HOURS, MINUTES }
 
-    fun of(millis: Long): List<Pair<Unit, Int>> {
+    /** Without [days] the hours aren't gathered into days: 52 hours stay "52 h". */
+    fun of(millis: Long, days: Boolean = true): List<Pair<Unit, Int>> {
         val minutes = (millis.coerceAtLeast(0L) / 60_000L)
         val parts = listOf(
-            Unit.DAYS to (minutes / (24 * 60)).toInt(),
-            Unit.HOURS to (minutes / 60 % 24).toInt(),
+            Unit.DAYS to if (days) (minutes / (24 * 60)).toInt() else 0,
+            Unit.HOURS to (if (days) minutes / 60 % 24 else minutes / 60).toInt(),
             Unit.MINUTES to (minutes % 60).toInt(),
         )
         val first = parts.indexOfFirst { it.second > 0 }

@@ -173,7 +173,7 @@ fun TaskEditorProgressAndNotes() {
             color = task.color,
             progress = 40,
             notes = "Waiting on the API review.\nShip behind a flag.",
-            slack = SlackUi.CanSlip(3 * 3_600_000L + 30 * 60_000L),
+            slack = SlackUi.CanSlip(3 * 3_600_000L + 30 * 60_000L, working = true),
         ),
     )
 }

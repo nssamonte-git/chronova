@@ -210,6 +210,6 @@ internal fun slackOf(task: TaskUi, finishMillis: Long?): SlackUi? {
     val slack = task.slackMillis ?: return null
     return when {
         task.critical -> finishMillis?.let(SlackUi::OnCriticalPath)
-        else -> SlackUi.CanSlip(slack)
+        else -> SlackUi.CanSlip(slack, working = task.slackInWorkingTime)
     }
 }

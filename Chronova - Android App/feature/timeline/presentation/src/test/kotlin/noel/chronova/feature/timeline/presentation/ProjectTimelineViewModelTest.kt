@@ -110,7 +110,7 @@ class ProjectTimelineViewModelTest {
         viewModel.commitEdit(before[1], edited)
 
         // Slack is worked out on screen, never stored.
-        assertEquals(listOf(edited.copy(slackMillis = null)), repository.updates.map { it.toUi() })
+        assertEquals(listOf(edited.copy(slackMillis = null, slackInWorkingTime = false)), repository.updates.map { it.toUi() })
         val after = state().tasks
         assertEquals(before.map { it.id }, after.map { it.id })
         assertEquals(edited.copy(slackMillis = after[1].slackMillis), after[1])
@@ -124,12 +124,12 @@ class ProjectTimelineViewModelTest {
         val synced = repository.tasks.value.single { it.id == shown.id }.copy(title = "Changed by sync")
         repository.tasks.value = repository.tasks.value.map { if (it.id == shown.id) synced else it }
         val fresh = state().tasks[1]
-        assertEquals(synced.toUi(fresh.slackMillis), fresh)
+        assertEquals(synced.toUi(fresh.slackMillis, fresh.slackInWorkingTime), fresh)
         // The edit was worked out from the copy the user saw before the sync.
         viewModel.commitEdit(shown, shown.copy(startMillis = at(10), endMillis = at(13)))
 
         assertEquals(TimelineNotice.EditNotSaved, viewModel.notice.value)
-        assertEquals(synced.toUi(fresh.slackMillis), state().tasks[1])
+        assertEquals(synced.toUi(fresh.slackMillis, fresh.slackInWorkingTime), state().tasks[1])
         viewModel.dismissNotice()
         assertNull(viewModel.notice.value)
     }
@@ -540,11 +540,33 @@ class ProjectTimelineViewModelTest {
     }
 
     @Test
+    fun aNightBetweenLinkedTasksIsNoSlack() = runTest {
+        // Handover starts the morning after Review ends (Mon 17:00 → Tue 09:00): 16 hours by the clock, none of them work.
+        val tuesday = SampleTasks.REFERENCE_DATE.plusDays(1)
+        val handover = noel.chronova.core.model.SchedulerTask(
+            "handover", SampleTasks.PROJECT_ID, "Handover",
+            tuesday.atTime(9, 0).toInstant(zone).toEpochMilli(), tuesday.atTime(12, 0).toInstant(zone).toEpochMilli(), sortOrder = 4,
+        )
+        repository.tasks.value = repository.tasks.value + handover
+        val state = timeline()
+        linkTheSample()
+        repository.dependencies.value = repository.dependencies.value +
+            noel.chronova.core.model.TaskDependency("l3", SampleTasks.PROJECT_ID, "review", "handover")
+
+        assertEquals(listOf("qa-testing", "review", "handover"), state().tasks.filter { it.critical }.map { it.id })
+        assertTrue(state().tasks.all { it.slackInWorkingTime })
+        // Implementation could run to Monday 17:00 and through Tuesday morning: 3 + 3 hours of work.
+        viewModel.startEditTask("implementation")
+        assertEquals(SlackUi.CanSlip(6 * 3_600_000L, working = true), viewModel.taskEditor.value?.slack)
+    }
+
+    @Test
     fun theEditorSaysHowMuchASavedTaskCanSlipUntilItsTimesChange() = runTest {
         timeline()
         linkTheSample()
         viewModel.startEditTask("implementation")
-        assertEquals(SlackUi.CanSlip(3 * 3_600_000L), viewModel.taskEditor.value?.slack)
+        // The sample runs on a Monday, 09:00 to 17:00: its slack is working time.
+        assertEquals(SlackUi.CanSlip(3 * 3_600_000L, working = true), viewModel.taskEditor.value?.slack)
         viewModel.startEditTask("review")
         assertEquals(SlackUi.OnCriticalPath(at(17)), viewModel.taskEditor.value?.slack)
         viewModel.onTaskStartChange(at(15))
@@ -561,6 +583,9 @@ class ProjectTimelineViewModelTest {
         assertEquals(listOf(DurationParts.Unit.DAYS to 1), DurationParts.of(24 * 60 * minute + 5 * minute))
         assertEquals(listOf(DurationParts.Unit.MINUTES to 45), DurationParts.of(45 * minute + 59_999))
         assertEquals(listOf(DurationParts.Unit.MINUTES to 0), DurationParts.of(0))
+        // Working time is said in hours: 52 of them aren't "2 d 4 h".
+        assertEquals(listOf(DurationParts.Unit.HOURS to 52, DurationParts.Unit.MINUTES to 30), DurationParts.of(52 * 60 * minute + 30 * minute, days = false))
+        assertEquals(listOf(DurationParts.Unit.MINUTES to 45), DurationParts.of(45 * minute, days = false))
     }
 
     @Test

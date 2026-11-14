@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import noel.chronova.core.domain.schedule.CriticalPath
+import noel.chronova.core.domain.schedule.WorkingTime
 import noel.chronova.core.domain.schedule.ScheduleChange
 import noel.chronova.core.model.TaskColor
 import noel.chronova.core.model.TimeScale
@@ -42,6 +43,9 @@ class ProjectTimelineViewModel(
     val notice: StateFlow<TimelineNotice?> = _notice.asStateFlow()
 
     private val settings = TimelineViewSettings(projectId, useCases, viewModelScope)
+
+    /** The hours the critical path counts as work. */
+    private val working = WorkingTime(zone)
     private val selectedTaskId = MutableStateFlow<String?>(null)
 
     /** The open search bar's filter, or null when it is closed. Never saved: it ends with the screen. */
@@ -102,8 +106,8 @@ class ProjectTimelineViewModel(
         } else {
             this.schedule = schedule
             val (project, tasks, dependencies) = schedule
-            val path = CriticalPath.of(tasks, dependencies)
-            val all = tasks.map { it.toUi(path.slackMillis[it.id]) }
+            val path = CriticalPath.of(tasks, dependencies, working)
+            val all = tasks.map { it.toUi(path) }
             val shown = if (filter == null) all else all.filter(filter::matches)
             TimelineScreenState.Ready(
                 TimelineUiState(

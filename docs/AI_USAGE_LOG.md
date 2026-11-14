@@ -1930,3 +1930,22 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Checked in a throwaway container of the production base image with that file mounted: the setting read 30, and a request that only waited 35 s was stopped at 30.1 s ("Maximum execution time of 30 seconds exceeded"). The container was removed.
   - An import can wait up to 70 s (Meta 40 s, then OpenAI 30 s). CloudFront's origin read timeout is 60 s (`chronova-stack.ts`), and the load balancer's idle timeout is AWS's default, also 60 s. The app's import call already waits 90 s.
 - **Not done:** nothing was run against the real providers or on the phone.
+
+### Critical path: slack in working time
+
+- **Your decision:** a fixed working day, 09:00–17:00, Monday to Friday, for every project.
+- **Problem:** slack was measured by the clock. In the walkthrough, tasks ran 09:00–17:00 and each started the morning after the one before. Every night counted as 16 hours of slack, so only the final milestone was marked critical.
+- **Fix:**
+  - `WorkingTime` (`:core:domain`) measures the working time between two moments: 09:00–17:00, Monday to Friday, in the phone's zone.
+  - `CriticalPath` runs its unchanged calculation on working time when given one; the timeline passes it.
+  - A task with no working time in it (a Saturday, an evening) keeps its slack by the clock, so weekend work still has a critical path. A milestone counts as work when it stands in working hours.
+  - The editor says "Can slip 3 h 30 min of working time…", in hours only (52 h, not "2 d 4 h").
+  - DECISIONS (Critical path) revised.
+- **Tests:**
+  - `WorkingTimeTest` (new, 4).
+  - `CriticalPathTest` (5 new): the walkthrough chain with the opening the morning after Train staff is all critical. As recorded, with Thursday free, every task of the chain can still slip 8 working hours and only the milestone is critical. Without working hours nothing changes; weekend work and mixed schedules are measured as above.
+  - `ProjectTimelineViewModelTest`: a night between linked tasks is no slack; durations in hours. Four of the new `CriticalPathTest` tests failed before the change.
+  - Two existing ViewModel tests and one device test were updated for the new field and wording. The device test was not run (no emulator run in this session).
+  - The `TaskEditorProgressAndNotes` screenshots were re-recorded for the new wording; checked by eye.
+- **Results:** `tools/check.sh` passed (507 unit tests, 180 screenshots, lint 0 errors, both architecture checks).
+- **Not checked on the phone.**
