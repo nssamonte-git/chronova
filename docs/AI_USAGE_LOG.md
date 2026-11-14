@@ -2164,3 +2164,11 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** bring the take-home PDF and `Learn/04-validation.md` in line with the README.
 - **Changed:** the PDF's testing page now says 514 server tests, and its "Staff admin panel" tile says staff need authenticator 2FA by default, which an admin can lift or restore with an audit entry (from `3804f03` and DECISIONS), instead of "required MFA". `Learn/04-validation.md` gives 514 as the server baseline in both places (dated 14 Nov 2026, the last recorded run). Re-rendered: 18 pages, page 5 looked at, no "507 tests" left in the PDF.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: AI model APIs page
+
+- **Your request:** say in the report which AI model APIs the app uses and why.
+- **Made:** a new page 9, "Which AI model APIs the app uses, and why" (the PDF is now 19 pages; AWS moved to page 12 and both references to it were updated). A table of provider, model, use and reason: ElevenLabs Scribe v2 (transcription, task titles as key terms), Flash v2.5 (speech), the voice isolator (optional, off); OpenAI GPT-6.1 Terra at reasoning "low" (interpretation, alternatives, spoken sentences, building tasks from an image's reading; strict schema); Meta Muse Spark 1.3 at "minimal" and SAM 3.1 (reading charts). Below it, how they work together, guardrails and measured cost, and the live server's status (voice on, image import off).
+- **Sources:** model names from `server/config/voice.php` and `server/config/import.php`; reasons from their comments, DECISIONS (voice: providers chosen in the brief; images: each Meta model fixes what the other gets wrong), `docs/voice-api.md` and `docs/import-api.md` (key-term test, 15/15 sample set, reasoning comparisons, prompt cache, timings and cost). Nothing new was measured.
+- **Rendered and checked:** the first render cut off the bottom; text tightened and re-rendered; footers 1–19 of 19; the page order and "(page 12)" references checked from the PDF text.
+- Documentation only: no build or test run for this entry.

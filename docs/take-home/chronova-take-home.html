@@ -79,7 +79,7 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 2. REQUIREMENTS ============================ -->
@@ -118,7 +118,7 @@
     <p class="small mt-s">Configuration only changes how time is drawn and how edits snap. It never changes a task's stored times.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 3. TIMELINE INTERNALS ============================ -->
@@ -151,7 +151,7 @@
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 4-5. BEYOND THE BRIEF ============================ -->
@@ -168,7 +168,7 @@
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <div class="page">
@@ -185,11 +185,11 @@
     <div class="grp">Look, feel and polish</div>
     <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
     <div class="grp n">The platform behind the app</div>
-    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 11).</p></div></div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 12).</p></div></div>
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 4. MVVM + CLEAN LAYERS ============================ -->
@@ -302,7 +302,7 @@
     <p class="small">Wiring is manual dependency injection: <code>AppContainer</code> holds shared pieces, and each feature has a small graph in <code>:app</code> (<code>TimelineGraph</code>, <code>ProjectsGraph</code>, …). No DI framework, so no extra dependency, and tests build their own graphs.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 5. MODULARIZATION ============================ -->
@@ -439,7 +439,7 @@
     <p class="small">Why: the layering started as a convention. When it was split into modules, an architecture audit found 31 layer violations; after the split there are 0, and the compiler now keeps it that way.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 6. VOICE ASSISTANT FLOW ============================ -->
@@ -554,7 +554,46 @@
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+</div>
+
+<!-- ============================ 9. AI MODEL APIS ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">AI model APIs</div></div>
+  <div class="content">
+    <div class="eyebrow">AI inside the app</div>
+    <h1 class="ptitle">Which AI model APIs the app uses, and why</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="lede" style="margin-bottom:0.12in;font-size:10.5pt">Two features use AI: the <b>voice assistant</b> and <b>schedules from images</b>. Every call goes through the server, which holds the keys.</p>
+
+    <table class="formal compact">
+      <thead><tr><th style="width:1.35in">Provider · model</th><th style="width:1.85in">Used for</th><th>Why this one</th></tr></thead>
+      <tbody>
+        <tr><td class="k" style="white-space:normal">ElevenLabs<br>Scribe v2</td><td>Speech to text: the spoken request, and the yes or no that follows</td><td>It takes the project's task titles as words to listen for: made-up names were heard as "Kestri" without them, "Kestrion" with them. About 1 s per request.</td></tr>
+        <tr><td class="k" style="white-space:normal">ElevenLabs<br>Flash v2.5</td><td>Text to speech: the assistant's answers, in the voice I chose</td><td>The fast, cheaper low-latency model: speech starts about 0.8 s after the sentence is written.</td></tr>
+        <tr><td class="k" style="white-space:normal">ElevenLabs<br>voice isolator <span style="font-weight:400">(off)</span></td><td>Optional noise removal before transcription</td><td>Same provider, so no new party hears the audio.</td></tr>
+        <tr><td class="k" style="white-space:normal">OpenAI<br>GPT-6.1 Terra<br><span style="font-weight:400">reasoning "low"</span></td><td>Words → schedule changes; clash-free alternatives; the sentence the orb speaks; tasks from an image's reading</td><td>A strict JSON schema: it can only return allowed operations on tasks it was given, and the server re-checks each answer. 15 of 15 on the sample requests; "none" reasoning was no faster. The fixed rules are prompt-cached, so most input costs 5% of the price.</td></tr>
+        <tr><td class="k" style="white-space:normal">Meta<br>Muse Spark 1.3<br><span style="font-weight:400">reasoning "minimal"</span></td><td>Reads a chart image: text, time axis, rows, bar spans</td><td>Good at text and spans, not exact positions. "Minimal" reasoning read as well as the default in ~14 s instead of ~30 s. Standard models: Meta doesn't train on them.</td></tr>
+        <tr><td class="k" style="white-space:normal">Meta<br>SAM 3.1</td><td>Finds exact boxes of bars and diamonds</td><td>Exact positions but no text: it fixes Muse Spark's positions, which alone put bars on the wrong rows.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="two mt-m">
+      <div class="tile"><span class="tag">How they work together</span><ul>
+        <li><b>Voice:</b> Scribe → GPT-6.1 Terra → the app checks the plan → Flash speaks it → a spoken yes applies it.</li>
+        <li><b>Images:</b> Muse Spark + SAM → GPT-6.1 Terra builds tasks from their results, <b>never the image</b> → preview → Apply.</li>
+        <li>Voice providers were my choice in the feature brief; the Meta pair, because each fixes what the other misses.</li></ul></div>
+      <div class="tile teal-top"><span class="tag">Guardrails and cost</span><ul>
+        <li>The models only <b>propose</b>; nothing changes without a yes or Apply.</li>
+        <li>No audio or words stored; OpenAI with <code>store: false</code>; notes never sent.</li>
+        <li>Fakes in tests; kill switch and per-user rate limits.</li>
+        <li>About $0.007 per confirmed voice command; ~1.4¢ of Meta per image.</li></ul></div>
+    </div>
+    <p class="small mt-s">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 7. RUNNING + BEYOND ============================ -->
@@ -574,7 +613,7 @@
 
     <div class="callout warn">
       <div class="ctitle">Note</div>
-      <p>Today's app opens on a sign-in page and needs its server (see <code>server/README.md</code>; the server URL goes in the uncommitted <code>local.properties</code>). A live server runs on AWS (page 11). To review <b>just the take-home</b> with no setup, check out the tag <code>submission-v1</code>: a single-module, single-screen timeline with in-memory sample data, run with <code>./gradlew :app:installDebug</code>.</p>
+      <p>Today's app opens on a sign-in page and needs its server (see <code>server/README.md</code>; the server URL goes in the uncommitted <code>local.properties</code>). A live server runs on AWS (page 12). To review <b>just the take-home</b> with no setup, check out the tag <code>submission-v1</code>: a single-module, single-screen timeline with in-memory sample data, run with <code>./gradlew :app:installDebug</code>.</p>
     </div>
 <div class="code">git checkout submission-v1        <span class="cm"># the original take-home</span>
 git checkout main                 <span class="cm"># back to the full app</span></div>
@@ -585,7 +624,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 8. TESTING ============================ -->
@@ -641,7 +680,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small" style="margin-top:0.06in">Outside the app, the server has 514 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 11. AWS ============================ -->
@@ -724,7 +763,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 8. AI USAGE I ============================ -->
@@ -760,7 +799,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 9. AI USAGE II ============================ -->
@@ -810,7 +849,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 10. PROJECT AI KIT ============================ -->
@@ -854,7 +893,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </div>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 11. KIT <-> CANONICAL ============================ -->
@@ -954,7 +993,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 12. WORKFLOW ============================ -->
@@ -1084,7 +1123,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     </ul>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 13. BUILD VALIDATOR ============================ -->
@@ -1177,7 +1216,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 <!-- ============================ 14. REMAINING ============================ -->
@@ -1213,7 +1252,7 @@ git checkout main                 <span class="cm"># back to the full app</span>
 
   </div>
   <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 18</span></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
 </body>
