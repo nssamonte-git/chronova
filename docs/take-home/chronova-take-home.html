@@ -82,6 +82,26 @@
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
 </div>
 
+<!-- ============================ 2. RUNNING ============================ -->
+<div class="page">
+  <div class="band"></div>
+  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Running it</div></div>
+  <div class="content">
+    <div class="eyebrow">Setup</div>
+    <h1 class="ptitle">Running the project</h1>
+    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+    <p class="body"><b>Requirements:</b> Android Studio with AGP 9.5 support, JDK 17 or newer, Android SDK 37. <code>minSdk</code> 26. Open the <code>Chronova - Android App/</code> folder (not the repository root) in Android Studio, or use Gradle from that folder:</p>
+<div class="code">cd "Chronova - Android App"
+./gradlew :app:installDebug   <span class="cm"># build and install on a device or emulator</span>
+./gradlew test                <span class="cm"># JVM unit tests, every module</span>
+../tools/check.sh             <span class="cm"># everything: tests, lint, architecture,</span>
+                              <span class="cm"># screenshots and the security gate</span></div>
+
+  </div>
+  <div class="pfoot-teal"></div>
+  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
+</div>
+
 <!-- ============================ 2. REQUIREMENTS ============================ -->
 <div class="page">
   <div class="band"></div>
@@ -584,26 +604,6 @@
       <li style="font-size:8.8pt"><b>Guardrails and cost.</b> The models only propose; nothing changes without a yes or Apply. No audio or words are stored, OpenAI is called with <code>store: false</code>, and task notes are never sent. Fakes in tests, a kill switch and per-user rate limits. About $0.007 per confirmed voice command; about 1.4¢ of Meta per image.</li>
     </ul>
     <p class="small" style="margin-top:0.04in">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
-  </div>
-  <div class="pfoot-teal"></div>
-  <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>
-</div>
-
-<!-- ============================ 7. RUNNING + BEYOND ============================ -->
-<div class="page">
-  <div class="band"></div>
-  <div class="mini"><div class="brand"><img src="assets/chronova-logo.webp" alt="">CHRONOVA</div><div class="sec">Running it</div></div>
-  <div class="content">
-    <div class="eyebrow">Setup</div>
-    <h1 class="ptitle">Running the project</h1>
-    <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
-    <p class="body"><b>Requirements:</b> Android Studio with AGP 9.5 support, JDK 17 or newer, Android SDK 37. <code>minSdk</code> 26. Open the <code>Chronova - Android App/</code> folder (not the repository root) in Android Studio, or use Gradle from that folder:</p>
-<div class="code">cd "Chronova - Android App"
-./gradlew :app:installDebug   <span class="cm"># build and install on a device or emulator</span>
-./gradlew test                <span class="cm"># JVM unit tests, every module</span>
-../tools/check.sh             <span class="cm"># everything: tests, lint, architecture,</span>
-                              <span class="cm"># screenshots and the security gate</span></div>
-
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 19</span></div>

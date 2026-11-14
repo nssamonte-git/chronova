@@ -2185,3 +2185,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** remove the note, the `git checkout` block and the "Beyond the brief" pointer from the running page.
 - **Done:** all three removed from page 10; it now has the requirements and the build and test commands only. Re-rendered: 19 pages, page 10 looked at, no `git checkout` or "Pages 4 and 5" text left.
 - Documentation only: no build or test run for this entry.
+
+### Take-home writeup: running page moved after the overview
+
+- **Your request:** move "Running the project" right after the overview.
+- **Done:** it is now page 2, straight after the cover's overview; requirements through the AI model APIs page move down one (3–10), and testing, AWS (still page 12, so its reference holds) and the rest keep their numbers. Re-rendered: 19 pages, footers 1–19 of 19, order checked from the PDF text.
+- Documentation only: no build or test run for this entry.
