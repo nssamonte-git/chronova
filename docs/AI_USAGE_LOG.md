@@ -2392,3 +2392,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Known limitations:** the shared demo and Support logins and what they allow; the live server doesn't report which commit it runs (the EC2 runbook's check).
 - **Not changed:** HANDOFF's and `Learn/04`'s baselines still give 515 unit tests, 180 screenshots and 110 device tests.
 - Documentation only: no build or test run for this entry.
+
+### Test baselines updated in HANDOFF, Learn/04 and CURRENT_TASK
+
+- **Your request:** update the old test counts outside the README.
+- **Changed:** HANDOFF's validation line, `Learn/04-validation.md` and CURRENT_TASK's baselines now give 520 unit tests, 183 screenshots and 112 device tests (110 passed in full on 14 Nov; the 2 Try demo tests passed in the account module's run on 15 Nov).
+- **Found while checking:** `Learn/04` said CI had never run. GitHub's public Actions record shows 3 runs since the push:
+  - the macOS job (unit tests, lint, architecture, screenshots) passed on both finished runs (`ef7dc9b`, `4eb9481`, old IDs);
+  - the Ubuntu job failed in its "Device tests" step both times;
+  - one run (`3eae8c3`) was still in progress.
+
+  `Learn/04` and CURRENT_TASK now say so; the cause hasn't been looked at.
+- Documentation only: no build or test run for this entry.

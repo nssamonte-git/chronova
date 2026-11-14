@@ -38,7 +38,7 @@ Latest application work:
 - **`tools/check.sh`** (`658a57e`): device tests run one module at a time, and a crashed test app now fails the check.
 - Earlier (13 Nov): timeline rows at every zoom, schedules from images, Firebase push.
 
-Baselines: `tools/check.sh` PASS (515 unit tests, 180 screenshots, lint 23 version warnings); 110 device tests (last passed on the managed emulator on 14 Nov, before today's fixes; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 514 tests and lint passed for the admin homepage release; infra baseline 23 tests.
+Baselines: `tools/check.sh` PASS (520 unit tests, 183 screenshots, lint 23 version warnings, 15 Nov); 112 device tests (110 last passed on the managed emulator on 14 Nov, and the 2 Try demo tests in the account module's own run on 15 Nov; on GitHub Actions the device-test job has failed on both finished runs, cause not yet looked at; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 514 tests and lint passed for the admin homepage release; infra baseline 23 tests.
 
 ## Exact Next Steps
 
