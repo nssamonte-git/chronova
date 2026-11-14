@@ -9,6 +9,8 @@
    - Admin panel: the built-in browser against the local server, with a throwaway staff account; delete it afterwards.
    - Voice: fakes by default; real providers only with the user's approval. Check that logs and metrics hold no spoken or typed words.
 5. **Log it:** append a factual entry to `docs/AI_USAGE_LOG.md`. Record AI mistakes in the five-part form: what was generated, why it was wrong, how it was found, the correction, and the decision.
+   - **Capture a lesson** when that entry records an AI mistake, a guidance gap or a canonical tool's false positive that would apply beyond Chronova (another Android app, the canonical skills, the build validator, the project kit). One lesson per gap: `sh scripts/capture-learning.sh chronova <task_type> <skill_used>`, fill in the draft from `md-templates/LEARNING_LOG.md` (the lesson goes under "Missing Guidance"), check it holds no secrets, private code, account or device details, set `privacy_reviewed: yes`, then `sh scripts/sanitize-learning-log.sh learning-inbox/<file>.md` must pass. Mention the capture in the log entry.
+   - Chronova-only facts stay in the log. Promotion is report-only (`sh scripts/promote-learning-candidates.sh`) and the user decides what becomes a decision, route, Learn page or canonical proposal.
 6. **Commit:** a conventional message ending with the `Co-Authored-By` trailer the session specifies. Never push or deploy without the user's explicit approval.
 
 The project AI kit and `Learn/` are tracked. Check `git status` from the repository root before committing. Keep local credentials and raw learning captures outside the shared history.

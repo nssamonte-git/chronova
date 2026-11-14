@@ -9,7 +9,7 @@ Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose A
 
 ## Guardrails
 
-- Work lands on `main` in small batches. Every change needs a passing build, a factual entry in `docs/AI_USAGE_LOG.md`, and a conventional commit (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- Work lands on `main` in small batches. Every change needs a passing build, a factual entry in `docs/AI_USAGE_LOG.md`, and a conventional commit (`feat:`, `fix:`, `docs:`, `test:`, `chore:`); a lesson useful beyond Chronova also goes to `learning-inbox/` (Learn/03, step 5).
 - Share the project AI kit and `Learn/` in git. Keep secrets, device and account details, and raw learning captures out of commits.
 - App copy describes features. Disclose providers and data handling in the privacy policy and Play Data safety form.
 - Log only AI mistakes and human actions that actually happened. Never report a build, test, or device check that wasn't run.

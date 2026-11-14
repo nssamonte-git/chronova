@@ -2,6 +2,10 @@
 
 Inactive, sanitized project lessons go here before human review. Do not auto-load this folder during normal agent startup.
 
+## When to capture
+
+After a batch whose `docs/AI_USAGE_LOG.md` entry records an AI mistake, a guidance gap, or a false positive in a canonical tool that would apply beyond Chronova. `Learn/03-development-workflow.md` (step 5) has the steps. Nothing captures automatically.
+
 ## Rules
 
 - Capture a lesson only after a real task reveals it: `sh scripts/capture-learning.sh chronova <task_type> <skill_used>`.

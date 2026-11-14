@@ -131,11 +131,15 @@ task_types:
       - learning
       - memory
       - lesson
+      - lesson learned
+      - capture
     required:
       - learning-inbox/README.md
     optional:
       - md-templates/LEARNING_LOG.md
+      - Learn/03-development-workflow.md
     validation:
+      - sh scripts/sanitize-learning-log.sh learning-inbox/<file>.md
       - sh scripts/summarize-learning.sh
   project-relationship-map:
     triggers:
