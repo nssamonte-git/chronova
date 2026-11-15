@@ -68,6 +68,30 @@ def count(pattern):
         tests += attr("tests"); failed += attr("failures") + attr("errors")
     return tests, failed
 
+def failed_cases(pattern):
+    """Each failed test as "Class.test: the first line of its message", so a log (CI's too) names them."""
+    out = []
+    # A passing test is often self-closing (<testcase .../>), so match that form first.
+    case = re.compile(r'<testcase\b([^>]*?)(?:/>|>(.*?)</testcase>)', re.S)
+    for path in sorted(glob.glob(pattern, recursive=True)):
+        for attrs, body in case.findall(open(path, errors="replace").read()):
+            problem = re.search(r'<(failure|error)\b[^>]*?(?:message="([^"]*)")?[^>]*>(.*?)</\1>', body, re.S)
+            if not problem:
+                continue
+            name = (re.search(r'\bname="([^"]*)"', attrs) or [None, "?"])[1]
+            cls = (re.search(r'\bclassname="([^"]*)"', attrs) or [None, "?"])[1].rsplit(".", 1)[-1]
+            text = (problem[2] or problem[3] or "").replace("&quot;", '"').replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+            first = next((l.strip() for l in text.strip().splitlines() if l.strip()), "no message")
+            out.append(f"{cls}.{name}: {first[:200]}")
+    return out
+
+def print_failed(pattern):
+    cases = failed_cases(pattern)
+    for line in cases[:20]:
+        print(f"  FAILED  {line}")
+    if len(cases) > 20:
+        print(f"  ... and {len(cases) - 20} more (build/reports/check.log)")
+
 def first_line(path, default):
     try:
         return open(path).read().strip().splitlines()[-1]
@@ -79,10 +103,14 @@ if checks:
     unit = [count("**/build/test-results/test/*.xml"), count("**/build/test-results/testDebugUnitTest/*.xml")]
     failures += unit[0][1] + unit[1][1]
     print(f"unit tests:   {unit[0][0] + unit[1][0]} run, {unit[0][1] + unit[1][1]} failed")
+    if unit[0][1] + unit[1][1]:
+        print_failed("**/build/test-results/test/*.xml"); print_failed("**/build/test-results/testDebugUnitTest/*.xml")
     # The screenshot suites keep their JUnit results under intermediates (kept while the task is up to date).
     shots = count("**/build/intermediates/test_suite_results/debug/testDebugScreenshotTestDefaultTestSuite/*.xml")
     failures += shots[1]
     print(f"screenshots:  {shots[0]} checked, {shots[1]} failed")
+    if shots[1]:
+        print_failed("**/build/intermediates/test_suite_results/debug/testDebugScreenshotTestDefaultTestSuite/*.xml")
     print("lint:        ", first_line("app/build/reports/lint-results-debug.txt", "no report (lint didn't run)"))
     print("module graph:", first_line("build/reports/module-graph.txt", "no report"))
     print("UI models:   ", first_line("build/reports/ui-models.txt", "no report"))
@@ -90,6 +118,8 @@ if devices:
     dev = count("**/build/outputs/androidTest-results/managedDevice/**/*.xml")
     failures += dev[1]
     print(f"device tests: {dev[0]} run, {dev[1]} failed (managed emulator)")
+    if dev[1]:
+        print_failed("**/build/outputs/androidTest-results/managedDevice/**/*.xml")
 # A crashed test app is reported as a failed test while Gradle still exits 0: that is not a pass.
 if code == 0 and failures == 0:
     print("result:       PASS")

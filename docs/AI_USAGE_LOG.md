@@ -2428,3 +2428,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `server/.env.example` lists `VOICE_ELEVENLABS_VOICE_ID` and `VOICE_ELEVENLABS_TTS_MODEL` with their defaults and where to find a voice ID.
   - `server/infra/EC2.md` names the setting in the `app.env` row, and has a new "Change the assistant's voice" section: add or edit the line, apply it with the redeploy block (not a bare `docker compose up -d web`, which would lack the Secrets Manager values), check it with `config('voice.elevenlabs.voice_id')`, and undo by restoring the old ID.
 - **Not done:** nothing was changed on EC2; the line is added to `app.env` when you run the section's first command.
+
+### GitHub's device-test job: the orb on a software renderer
+
+- **Your request:** find why the GitHub Actions device-test job fails.
+- **Found:**
+  - From the job log you pasted: 106 run, 2 failed, both in `:app`. From the `device-test-reports` artifact you downloaded: `RotationStateTest.theTalkingAssistantFitsALandscapeScreen` ended with "status -1", and the run stopped ("Expected 11 tests, received 3"), so 8 `:app` tests never ran.
+  - Its device log: Filament started on the runner's "Android Emulator OpenGL ES Translator (Google SwiftShader)" at feature level 1, and the test process went silent about 4 seconds later with no Java error: a native death that `OrbEngine`'s "starting" guard doesn't cover, since it only wraps creating the engine.
+  - On the Mac's managed emulator, all 11 passed, with SwiftShader through ANGLE as well as by default (which on this Mac is also SwiftShader), so the crash didn't reproduce here.
+- **Changed:**
+  - `OrbEngine.get` first asks a throwaway 1x1 EGL context for the OpenGL ES renderer. On SwiftShader, llvmpipe or softpipe it skips Filament, and the orb shows its plain mic icon, which screenshot tests already use; the overlay's accessibility label is unchanged. A CPU-drawn orb was also too slow to be useful ("Skipped 157 frames" in the CI log).
+  - `tools/check.sh` prints each failed test's name and the first line of its error under the counts. Tested on a fake report: the first version swallowed self-closing `<testcase/>` entries and named the wrong test, which was then fixed. It was then used on the real artifact.
+- **Checks:**
+  - All 11 `:app` device tests PASS under SwiftShader on the managed emulator (`--rerun`; an earlier rerun had been skipped as up to date). The log shows "Software renderer … showing the plain icon".
+  - On the phone (debug build, reinstalled after a USB drop made the first install fail), Filament runs on its GPU (PowerVR Rogue GE8320) and the 3D orb shows.
+  - `tools/check.sh` PASS (520 unit tests, 183 screenshots, lint 0 errors).
+- **Not yet confirmed:** a green device-test job on GitHub; that needs this pushed.
+- **Noticed:** the 1,000-task demo project now shows as "Sample Project - 1000 Tasks"; it wasn't renamed in this session (the demo login is shared).

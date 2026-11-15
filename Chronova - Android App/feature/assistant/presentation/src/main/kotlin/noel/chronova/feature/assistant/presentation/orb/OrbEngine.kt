@@ -1,6 +1,9 @@
 package noel.chronova.feature.assistant.presentation.orb
 
 import android.content.Context
+import android.opengl.EGL14
+import android.opengl.EGLConfig
+import android.opengl.GLES20
 import android.os.Build
 import android.util.Log
 import androidx.core.content.edit
@@ -59,6 +62,14 @@ class OrbEngine private constructor(
                 failed = true
                 return null
             }
+            softwareRenderer()?.let { renderer ->
+                // An emulator without a GPU draws with SwiftShader on the CPU. Filament's native
+                // code died there mid-render (GitHub's x86 emulator, 15 Nov 2026), past the
+                // "starting" guard below, and a CPU-drawn orb is too slow to be worth it anyway.
+                Log.w(TAG, "Software renderer ($renderer); showing the plain icon")
+                failed = true
+                return null
+            }
             prefs.edit(commit = true) { putLong(KEY_STARTING, version) }
             return try {
                 create(app).also { instance = it }
@@ -71,6 +82,39 @@ class OrbEngine private constructor(
                 if (!failed) prefs.edit(commit = true) { remove(KEY_STARTING) }
             }
         }
+
+        /**
+         * The OpenGL ES renderer's name when it draws in software (SwiftShader, llvmpipe), else null.
+         * Asks through a throwaway 1x1 EGL context; any EGL failure counts as "not software" and
+         * leaves the decision to [create]'s own checks.
+         */
+        internal fun softwareRenderer(): String? {
+            val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+            if (display == EGL14.EGL_NO_DISPLAY || !EGL14.eglInitialize(display, IntArray(2), 0, IntArray(2), 1)) return null
+            var context = EGL14.EGL_NO_CONTEXT
+            var surface = EGL14.EGL_NO_SURFACE
+            try {
+                val configs = arrayOfNulls<EGLConfig>(1)
+                val count = IntArray(1)
+                val wanted = intArrayOf(EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT, EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT, EGL14.EGL_NONE)
+                if (!EGL14.eglChooseConfig(display, wanted, 0, configs, 0, 1, count, 0) || count[0] == 0) return null
+                context = EGL14.eglCreateContext(display, configs[0], EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0)
+                surface = EGL14.eglCreatePbufferSurface(display, configs[0], intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE), 0)
+                if (context == EGL14.EGL_NO_CONTEXT || surface == EGL14.EGL_NO_SURFACE) return null
+                if (!EGL14.eglMakeCurrent(display, surface, surface, context)) return null
+                val renderer = GLES20.glGetString(GLES20.GL_RENDERER).orEmpty()
+                return renderer.takeIf { SOFTWARE_RENDERERS.any { name -> it.contains(name, ignoreCase = true) } }
+            } catch (error: Throwable) {
+                Log.w(TAG, "Couldn't read the OpenGL ES renderer", error)
+                return null
+            } finally {
+                EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
+                if (surface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(display, surface)
+                if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
+            }
+        }
+
+        private val SOFTWARE_RENDERERS = listOf("SwiftShader", "llvmpipe", "softpipe")
 
         @Suppress("DEPRECATION")
         private fun appVersion(context: Context): Long {
