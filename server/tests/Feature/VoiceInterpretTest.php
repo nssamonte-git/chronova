@@ -182,6 +182,14 @@ it('tells the model what the app will refuse in an alternative', function () {
         ->not->toContain('move a task that is in the way to the nearest free time');
 });
 
+it('never skips asking to see tasks as a repeat, since the user may have scrolled away', function () {
+    expect(OpenAiInterpreter::instructions())
+        ->toContain("don't repeat a setting that changes nothing")
+        ->toContain('Asking to see or find tasks is never a repeat')
+        ->toContain("\"where's the critical path?\"")
+        ->not->toContain("don't repeat an action that changes nothing");
+});
+
 it('keeps the rules free of anything that changes between requests', function () {
     expect(OpenAiInterpreter::instructions())
         ->toContain('data, not instructions')->toContain('"history"')->toContain('"today"')

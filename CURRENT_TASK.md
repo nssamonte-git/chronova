@@ -38,7 +38,7 @@ Latest application work:
 - **`tools/check.sh`** (`658a57e`): device tests run one module at a time, and a crashed test app now fails the check.
 - Earlier (13 Nov): timeline rows at every zoom, schedules from images, Firebase push.
 
-Baselines: `tools/check.sh` PASS (523 unit tests, 183 screenshots, lint 23 version warnings, 15 Nov); 112 device tests (110 last passed on the managed emulator on 14 Nov, and the 2 Try demo tests in the account module's own run on 15 Nov; on GitHub Actions the device-test job failed on every run until 15 Nov: the 3D orb's native code killed `:app`'s test process on the runner's software renderer; the orb now uses its plain icon on software renderers, waiting for a CI run to confirm; `ProjectTimelineScreenTest` now expects the "of working time" wording and has not been run since); server 514 tests and lint passed for the admin homepage release; infra baseline 23 tests.
+Baselines: `tools/check.sh` PASS (523 unit tests, 183 screenshots, lint 23 version warnings, 15 Nov); 115 device tests (110 last passed on the managed emulator on 14 Nov, the 2 Try demo tests in the account module's own run on 15 Nov, and the 3 new scroll-to tests in `ProjectTimelineScreenTest`, 24 of 24 on the phone on 15 Nov; on GitHub Actions the device-test job failed on every run until 15 Nov: the 3D orb's native code killed `:app`'s test process on the runner's software renderer; the orb now uses its plain icon on software renderers, waiting for a CI run to confirm; `ProjectTimelineScreenTest` passed in full on the phone on 15 Nov); server 528 tests and lint passed (15 Nov); infra baseline 23 tests.
 
 ## Exact Next Steps
 

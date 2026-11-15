@@ -2517,3 +2517,19 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - AI usage page 1: two newer mistakes (the orb on GPU-less emulators; the resting orb drawn every frame). The step list was shortened so the page fits.
   - Rendered in Chrome headless: 23 pages, footers 1–23, page references (13, 15, 16) right, fonts embedded; pages 12, 17, 18 and 23 checked as images and opened with macOS `sips`. The first render pushed the limitations table under the footer, so the new items were merged and shortened.
 - **Writeup (`docs/AI_USAGE_WRITEUP.md`):** section 5 rewritten in plain language and brought up to 15 Nov. It now covers what was built and what you decided, what you did yourself, how the work was checked, 12 mistakes, where things stand, and the timeline (257 commits). Statements that were out of date ("nothing is deployed", "required MFA") were removed. A background summary of the log and git history since 12 Nov was used as the source. It found no log entry for the home-screen tap or the dropped rename; those two come from this session.
+
+### Voice: the timeline scrolls to the tasks you asked to see
+
+- **Your report:** asking the orb "where's the critical path?" showed nothing; you had to pan the grid to find it. Then: "also fix tasks that need to show on screen the user looking for".
+- **Cause:**
+  - The critical-path action only turned the setting on; nothing scrolled. With the path already on, it changed nothing at all.
+  - The server's rules told the model not to repeat "an action that changes nothing", so "find Build" with Build already selected, or the critical path when already shown, could come back empty even after you had scrolled away.
+  - The same search asked twice didn't scroll (the grid scrolled only when the search changed), and opening a task's editor by voice didn't scroll the grid to the task.
+- **Changed (app):** one `RevealRequest` on the timeline grid (`SchedulerTimeline`), counted so each ask scrolls once. It brings into view the critical path's earliest task (by voice or the switch, even when it was already on), a repeated search's earliest match, or the task whose editor was opened by voice.
+- **Changed (server):** `OpenAiInterpreter` rules. "Don't repeat" now covers settings only; asking to see or find tasks (today, a date, a task, its editor, a search, the critical path) is never a repeat. "Where's the critical path?" was added as an example.
+- **Tests:**
+  - 3 new device tests in `ProjectTimelineScreenTest`: the critical path already on, then asked for, scrolls to Paint 3 days away; the same search twice scrolls back to its match; opening Paint by voice scrolls to it behind the editor. 24 of 24 passed on your phone (OPPO A15).
+  - A Pest test for the new rule; `composer test` 528 passed, `composer lint` passed.
+  - `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors, module graph and UI models OK.
+  - The first device run failed to compile: the new request type was `internal` on a public composable; made public.
+- **Not checked:** the real model with the new rule (needs a push and an EC2 redeploy); the debug build is installed on your phone for you to try.

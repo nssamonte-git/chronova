@@ -26,6 +26,7 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -112,6 +113,8 @@ fun SchedulerTimeline(
     onTodayOutside: (startsLater: Boolean, edgeMillis: Long) -> Unit = { _, _ -> },
     /** What the assistant asked to be shown (today, a day, a task); handled once, then [AssistantViewRequest.onHandled]. */
     viewRequest: AssistantViewRequest? = null,
+    /** Tasks the user asked to see (the critical path, a search's matches, a task): brought into view once per request. */
+    reveal: RevealRequest? = null,
 ) {
     val config = state.config
     val window = state.window
@@ -216,6 +219,22 @@ fun SchedulerTimeline(
                     -> Unit
                 }
                 request.onHandled()
+            }
+
+            // The user asked to see some tasks, which may be anywhere in time: bring the first into view (row, then time),
+            // even when nothing else changed (the setting was already on, the same search, the task already selected).
+            val currentReveal by rememberUpdatedState(reveal)
+            LaunchedEffect(reveal?.key) {
+                val target = currentReveal?.target ?: return@LaunchedEffect
+                val task = when (target) {
+                    RevealTarget.CriticalPath -> latestShown.value.filter { it.critical }.minByOrNull { it.startMillis }
+                    RevealTarget.SearchMatches -> latestShown.value.minByOrNull { it.startMillis }
+                    // Asked for with its editor: wait until the list has it (it may be arriving).
+                    is RevealTarget.Task -> withTimeoutOrNull(SHOW_TASK_WAIT_MILLIS) {
+                        snapshotFlow { latestShown.value.firstOrNull { it.id == target.taskId } }.filterNotNull().first()
+                    }
+                }
+                bringIntoView(task ?: return@LaunchedEffect)
             }
 
             // A new search or filter brings its earliest match into view.
@@ -483,4 +502,18 @@ private fun Modifier.columnDivider(color: Color): Modifier = drawBehind {
 private fun Modifier.rowDivider(color: Color): Modifier = drawBehind {
     val stroke = 1.dp.toPx()
     drawLine(color, Offset(0f, size.height - stroke / 2), Offset(size.width, size.height - stroke / 2), stroke)
+}
+
+/** Tasks the user asked to see; [key] tells one request from the next, so the same ask twice scrolls twice. */
+@Immutable
+data class RevealRequest(val key: Int, val target: RevealTarget)
+
+sealed interface RevealTarget {
+    /** The critical path's earliest task. */
+    data object CriticalPath : RevealTarget
+
+    /** The earliest of the tasks listed (the search's matches). */
+    data object SearchMatches : RevealTarget
+
+    data class Task(val taskId: String) : RevealTarget
 }

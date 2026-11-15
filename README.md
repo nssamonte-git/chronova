@@ -139,7 +139,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (527 tests)
+composer test                 # Pest (528 tests)
 ```
 
 Push notifications use a fake sender by default (recorded, not sent). To send through Firebase, put the service-account key file at `server/storage/credentials/firebase-service-account.json` (git-ignored) and set `PUSH_SENDER=fcm` and `FCM_CREDENTIALS=<its absolute path>` in `server/.env`; reminders also need `php artisan schedule:work` (see `docs/push.md`).
@@ -226,10 +226,10 @@ tools/check.sh --devices      # also every module's device tests on a managed em
 | Screenshot tests (Compose Preview Screenshot Testing; 61 previews in 10 modules, each at phone size, 1.5× text and dark) | `./gradlew testDebugScreenshotTestDefaultTestSuite`; after an intended visual change, `updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them | 183 |
 | Lint and architecture | `./gradlew :app:lintDebug verifyModuleGraph verifyUiModels` | 0 lint errors |
 | Security build gate | runs as `:app:validateThreats` before every build; alone: `sh build-validator/validate-build.sh` (see below) | 89 rules |
-| Device tests on a managed emulator (Pixel 6, API 35): Compose UI tests of the screens, Room migrations and transactions, the PDF writer, rotation (Compose UI test, UiAutomator; 18 files in 13 modules) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 112 |
+| Device tests on a managed emulator (Pixel 6, API 35): Compose UI tests of the screens, Room migrations and transactions, the PDF writer, rotation (Compose UI test, UiAutomator; 18 files in 13 modules) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 115 |
 | App device tests on a phone (Room transaction, rotation, pinch) | build both APKs, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it). Never `connectedAndroidTest`, which uninstalls the app and its data | 11 |
 | Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations and checks for crashes, leaked activities, memory growth and lost state; backs the app's data up and restores it | 16 scenarios |
-| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 527 |
+| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 528 |
 | Server inside the production image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` | 23 |
 

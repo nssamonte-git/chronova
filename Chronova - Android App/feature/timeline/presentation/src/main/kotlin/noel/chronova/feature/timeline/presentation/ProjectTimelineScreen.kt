@@ -66,6 +66,8 @@ import noel.chronova.core.ui.components.AuroraFab
 import noel.chronova.core.ui.components.ChronovaTopBar
 import noel.chronova.core.ui.components.ChronovaTopBarTitle
 import noel.chronova.core.ui.components.FabColumn
+import noel.chronova.feature.timeline.presentation.components.RevealRequest
+import noel.chronova.feature.timeline.presentation.components.RevealTarget
 import noel.chronova.feature.timeline.presentation.components.SchedulerTimeline
 import noel.chronova.feature.timeline.presentation.components.TaskSearchBar
 import noel.chronova.feature.timeline.presentation.components.TimelineControls
@@ -276,6 +278,15 @@ internal fun TimelineContent(
     // as if the settings row, the search bar or the task's name had been used.
     val viewSetting = assistant.viewRequest?.takeIf { it.action.isViewSetting() }
     val currentActions by rememberUpdatedState(actions)
+    // Tasks the user asked to see are scrolled into view, even when the ask changes nothing else: the critical
+    // path already on ("where's the critical path?"), the same search again, a task's editor opened by voice.
+    var reveal by remember { mutableStateOf<RevealRequest?>(null) }
+    val revealTasks: (RevealTarget) -> Unit = { target -> reveal = RevealRequest((reveal?.key ?: 0) + 1, target) }
+    val onCriticalPath: (Boolean) -> Unit = { on ->
+        currentActions.onCriticalPath(on)
+        if (on) revealTasks(RevealTarget.CriticalPath)
+    }
+    val currentSearch by rememberUpdatedState(state.search?.filter)
     LaunchedEffect(viewSetting?.key) {
         val request = viewSetting ?: return@LaunchedEffect
         when (val action = request.action) {
@@ -286,14 +297,22 @@ internal fun TimelineContent(
                 ViewZoom.RESET -> currentActions.onZoomReset()
             }
             is AssistantViewAction.RowHeight -> currentActions.onRowHeightStep(if (action.bigger) 1 else -1)
-            is AssistantViewAction.CriticalPath -> currentActions.onCriticalPath(action.on)
-            is AssistantViewAction.Search -> currentActions.onSearch(
-                action.query.orEmpty(),
-                action.colors.mapTo(mutableSetOf()) { TaskColor.valueOf(it.name) },
-                action.kinds.mapTo(mutableSetOf()) { TaskKind.valueOf(it.name) },
-            )
+            is AssistantViewAction.CriticalPath -> onCriticalPath(action.on)
+            is AssistantViewAction.Search -> {
+                val query = action.query.orEmpty()
+                val colors = action.colors.mapTo(mutableSetOf()) { TaskColor.valueOf(it.name) }
+                val kinds = action.kinds.mapTo(mutableSetOf()) { TaskKind.valueOf(it.name) }
+                // A new search scrolls to its first match by itself (the grid); the same search again doesn't change
+                // anything, so it is scrolled to here.
+                val same = currentSearch?.let { it.isActive && it.query.trim() == query.trim() && it.colors == colors && it.kinds == kinds } == true
+                currentActions.onSearch(query, colors, kinds)
+                if (same) revealTasks(RevealTarget.SearchMatches)
+            }
             AssistantViewAction.ClearSearch -> currentActions.onCloseSearch()
-            is AssistantViewAction.OpenTask -> currentActions.onEditTask(action.taskId)
+            is AssistantViewAction.OpenTask -> {
+                currentActions.onEditTask(action.taskId)
+                revealTasks(RevealTarget.Task(action.taskId))
+            }
             else -> Unit
         }
         request.onHandled()
@@ -370,7 +389,7 @@ internal fun TimelineContent(
                         onZoomReset = actions.onZoomReset,
                         onSnap = actions.onSnap,
                         onRowHeightStep = actions.onRowHeightStep,
-                        onCriticalPath = actions.onCriticalPath,
+                        onCriticalPath = onCriticalPath,
                     )
                 }
             }
@@ -390,6 +409,7 @@ internal fun TimelineContent(
                 onTodayOutside = onTodayOutside,
                 // Settings changes are done above; the grid only scrolls and selects.
                 viewRequest = assistant.viewRequest?.takeUnless { it.action.isViewSetting() },
+                reveal = reveal,
             )
         }
     }

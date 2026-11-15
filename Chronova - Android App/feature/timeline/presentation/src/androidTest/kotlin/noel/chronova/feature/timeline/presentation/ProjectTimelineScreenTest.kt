@@ -37,6 +37,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import noel.chronova.core.model.TimeScale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -192,6 +193,47 @@ class ProjectTimelineScreenTest {
         // Remembered for the project, as the settings row does.
         assertEquals(config(), screen.repository.viewSettings[TimelineScreenHarness.PROJECT_ID])
         compose.onNode(hasText("Survey") and hasStateDescription(screen.string(R.string.task_bar_state_critical))).assertExists()
+    }
+
+    @Test
+    fun askingForTheCriticalPathScrollsToItEvenWhenItIsAlreadyShown() {
+        // Survey (2 Nov) can slip; Paint (5 Nov) sets the finish, three days off-screen.
+        screen.show(listOf(survey, paint), config = TimelineConfig(showCriticalPath = true))
+        assertTrue(bar("Paint").fetchSemanticsNodes().isEmpty())
+
+        // "Where's the critical path?": the switch is already on, so only the scroll changes anything.
+        screen.ask(AssistantViewAction.CriticalPath(on = true))
+        compose.waitUntil(5_000) { screen.handledRequests.size == 1 }
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
+        bar("Paint").onFirst().assertIsDisplayed()
+        compose.onNode(hasText("Paint") and hasStateDescription(screen.string(R.string.task_bar_state_critical))).assertExists()
+    }
+
+    @Test
+    fun askingForTheSameSearchAgainScrollsBackToItsMatch() {
+        screen.show(listOf(survey, paint))
+        fun asked(action: AssistantViewAction, count: Int) {
+            screen.ask(action)
+            compose.waitUntil(5_000) { screen.handledRequests.size == count }
+        }
+        asked(AssistantViewAction.Search("pai", emptySet(), emptySet()), 1)
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
+        // Away from it (2 Nov), then the same search again: nothing changes but the scroll.
+        asked(AssistantViewAction.GoToDate(LocalDate.of(2026, 11, 2)), 2)
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isEmpty() }
+        asked(AssistantViewAction.Search("pai", emptySet(), emptySet()), 3)
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun openingATaskByVoiceAlsoBringsItIntoView() {
+        screen.show(listOf(survey, paint))
+        assertTrue(bar("Paint").fetchSemanticsNodes().isEmpty())
+        screen.ask(AssistantViewAction.OpenTask("paint"))
+        compose.waitUntil(5_000) { screen.handledRequests.size == 1 }
+        compose.onNodeWithText(screen.string(R.string.task_edit)).assertIsDisplayed()
+        // Behind the editor, the grid scrolled to 5 Nov.
+        compose.waitUntil(5_000) { bar("Paint").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test
