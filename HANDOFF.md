@@ -5,7 +5,7 @@ Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose A
 ## Layout
 
 - Run Gradle inside `Chronova - Android App/`. See its `settings.gradle.kts` for modules and `build-logic/convention` for build settings. Keep `local.properties` local.
-- Run Laravel commands from `server/` and CDK commands from `server/infra/`. Historical AI usage log paths before the directory move are relative to the Android folder.
+- Run Laravel commands from `server/` and CDK commands from `server/infra/`. Older log paths are relative to the Android folder.
 - Live deployment: Sydney EC2 with Docker Compose. See [EC2 operations](server/infra/EC2.md) and [client handoff status](CURRENT_TASK.md).
 
 ## Guardrails
@@ -19,7 +19,7 @@ Chronova is an offline-first project scheduler with a Kotlin + Jetpack Compose A
 
 ## Invariants
 
-Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in detail", "Server rules").
+Full rules: `Learn/02-architecture.md` ("Invariants in detail", "Server rules").
 
 - Time is epoch millis; pixels come only from `TimelineMath`, from the window start. Snapping goes through `SnapGrid`; configuration never changes timestamps.
 - Projects, tasks and links live in Room (`:core:database`, schema v6 with migrations). Every schedule write goes through `ApplyScheduleChanges`: one transaction that refuses stale changes and returns the Undo inverse. Sync runs only on "Sync now" (and once after "Try demo"; DECISIONS 2026-11-15).
@@ -29,7 +29,7 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 - Rotation recreates `MainActivity`: keep flags in `rememberSaveable` or a ViewModel, and check `isChangingConfigurations` before treating `ON_STOP` as "the user left".
 - Push (`docs/push.md`): data messages only, worded by the app; reminders are posted once between push and alarm (`ReminderLog`), and an "account changed" push signs out only after the server answers 401.
 - Schedules from images (`docs/import-api.md`): the image goes to Meta only (Standard models, never stored), OpenAI gets Meta's results; the app previews and writes only on Apply, with Undo. Geometry comes from SAM's boxes, not Muse Spark's drifting pixel positions.
-- Voice: the server only proposes, the app plans against current data and writes only on a spoken yes; keys stay on the server and no audio or words are stored. A model's clash-free alternative is offered only if `SensibleAlternative` accepts it (no unasked tasks moved, working hours kept).
+- Voice: the server only proposes, the app plans against current data and writes only on a spoken yes; keys stay on the server; no audio is stored, and requests and answers are kept 90 days. A model's clash-free alternative is offered only if `SensibleAlternative` accepts it (no unasked tasks moved, working hours kept).
 - Working time is a fixed 09:00–17:00, Monday to Friday (`WorkingTime`, `:core:domain`; user choice, 2026-11-14), used by the critical path and the voice alternatives check. Nothing else (drags, Push, imports) knows it.
 - Requests that wait on two provider calls in a row (image import, transcription, spoken explanation) raise PHP's 30 s limit to 55 s for that request only; their provider timeouts must add up to less (tests check the defaults). CloudFront stops waiting at 60 s.
 

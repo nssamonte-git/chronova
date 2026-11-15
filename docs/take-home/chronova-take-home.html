@@ -147,9 +147,9 @@
       <div class="code">adb install -r app/build/outputs/apk/debug/app-debug.apk</div></div></div>
 
     <div class="gstep"><div class="gnum">6</div><div><h4>Sign in with Try demo</h4>
-      <p>The app opens on the sign-in page. <b>Try demo</b> signs into a shared demo account and loads <b>Sample Project</b> (1,000 tasks). The app uses the live server by default; <code>chronova.apiUrl</code> in <code>local.properties</code> points it at another one (page 15).</p></div></div>
+      <p>The app opens on the sign-in page. <b>Try demo</b> signs into a shared demo account and loads <b>Sample Project</b> (1,000 tasks). The app uses the live server by default; <code>chronova.apiUrl</code> in <code>local.properties</code> points it at another one (https, or a local http server in debug builds).</p></div></div>
 
-    <div class="tile teal-top" style="margin-top:0.16in"><span class="tag">Tests, and if something goes wrong</span><p><code>./gradlew test</code> runs the unit tests; <code>../tools/check.sh</code> runs everything (tests, lint, architecture checks, screenshots, security gate; on Windows, in Git Bash or WSL). A build or install that fails, a phone that isn't found, or a sign-in error: <b>page 3</b> lists the usual causes and fixes.</p></div>
+    <div class="tile teal-top" style="margin-top:0.16in"><span class="tag">Tests, and if something goes wrong</span><p><code>./gradlew test</code> runs the unit tests; <code>../tools/check.sh</code> runs the full check (tests, lint, architecture checks, screenshots, security gate; device tests with <code>--devices</code>; on Windows, in Git Bash or WSL). A build or install that fails, a phone that isn't found, or a sign-in error: <b>page 3</b> lists the usual causes and fixes.</p></div>
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
@@ -198,7 +198,7 @@
       <tbody>
         <tr><td class="k">"Too many attempts"</td><td>5 tries a minute per email and IP address, 30 per IP; people on one office network share an IP. Wait a minute.</td></tr>
         <tr><td class="k">"Can't connect"</td><td>The phone needs to reach <code>chronova.meenux.tech</code>; some company Wi-Fi blocks it. Try mobile data.</td></tr>
-        <tr><td class="k">The sign-up code never arrives</td><td>The live server doesn't send email yet. Use <b>Try demo</b>.</td></tr>
+        <tr><td class="k">The sign-up code never arrives</td><td>Email from the live server isn't confirmed yet. Use <b>Try demo</b>.</td></tr>
       </tbody>
     </table>
 
@@ -288,7 +288,7 @@
     <h1 class="ptitle">Everything Chronova does beyond the take-home</h1>
     <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
     <div class="grp" style="margin-top:0">Planning on the timeline</div>
-    <div class="feat"><div class="ft "><h4>Four scales</h4><p>Hours, Days, Weeks and Months. Ticks follow the real calendar (month lengths, daylight-saving days), and whole-day snapping follows local midnights.</p></div><div class="ft "><h4>Pinch-to-zoom</h4><p>Two fingers zoom around the point between them. The zoom is saved once when the fingers lift, and it never moves a bar.</p></div><div class="ft "><h4>Projects</h4><p>Create, rename and delete projects with a date range of up to 366 days; a range can't shrink past existing tasks. Each project remembers its own view settings.</p></div><div class="ft "><h4>Duplicate and "Start from"</h4><p>Any project can be a template: its tasks and links are copied to a new start date, keeping lengths and each task's time of day. The copy starts with nothing done.</p></div><div class="ft "><h4>Task editor and Undo</h4><p>Add or edit a task's title, colour, and start and end date and time, or delete it. Drags, edits and deletes can all be undone.</p></div><div class="ft "><h4>Progress, notes, milestones</h4><p>Percent complete in steps of 10, shaded on the bar; free-text notes up to 2,000 characters; milestones drawn as diamonds that can be dragged and linked.</p></div><div class="ft "><h4>Dependencies and Push</h4><p>Finish-to-start links (cycles are blocked), drawn as arrows that turn red when broken. After an edit, <b>Push</b> moves waiting tasks later just enough, with Undo.</p></div><div class="ft "><h4>Critical path</h4><p>A switch outlines in red the tasks where any delay moves the finish, and fades the rest. The editor shows how long a task can slip, in working hours (09:00–17:00, Mon–Fri).</p></div><div class="ft "><h4>Search, filters and today</h4><p>Search titles and filter by colour and by not done, done or milestone, with a match count. A line marks now, and one button jumps to today.</p></div></div>
+    <div class="feat"><div class="ft "><h4>Four scales</h4><p>Hours, Days, Weeks and Months. Ticks follow the real calendar (month lengths, daylight-saving days), and whole-day snapping follows local midnights.</p></div><div class="ft "><h4>Pinch-to-zoom</h4><p>Two fingers zoom around the point between them. The zoom is saved once when the fingers lift, and it never moves a bar.</p></div><div class="ft "><h4>Projects</h4><p>Create, rename and delete projects with a date range of up to 366 days; a range can't shrink past existing tasks. Each project remembers its own view settings.</p></div><div class="ft "><h4>Duplicate and "Start from"</h4><p>Any project can be a template: its tasks and links are copied to a new start date, keeping lengths and each task's time of day. The copy starts with nothing done.</p></div><div class="ft "><h4>Task editor and Undo</h4><p>Add or edit a task's title, colour, and start and end date and time, or delete it. Deleting a task, marking it done and Push can be undone.</p></div><div class="ft "><h4>Progress, notes, milestones</h4><p>Percent complete in steps of 10, shaded on the bar; free-text notes up to 2,000 characters; milestones drawn as diamonds that can be dragged and linked.</p></div><div class="ft "><h4>Dependencies and Push</h4><p>Finish-to-start links (cycles are blocked), drawn as arrows that turn red when broken. After an edit, <b>Push</b> moves waiting tasks later just enough, with Undo.</p></div><div class="ft "><h4>Critical path</h4><p>A switch outlines in red the tasks where any delay moves the finish, and fades the rest. The editor shows how long a task can slip, in working hours (09:00–17:00, Mon–Fri).</p></div><div class="ft "><h4>Search, filters and today</h4><p>Search titles and filter by colour and by not done, done or milestone, with a match count. A line marks now, and one button jumps to today.</p></div></div>
     <div class="grp v">AI features</div>
     <div class="feat two-col"><div class="ft v"><h4>Voice assistant</h4><p>Tap the orb and speak, e.g. "push Build by two hours and everything after it". It says what will change and applies it only on a spoken yes, with Undo, and offers a clash-free alternative when a change would overlap. It also drives the app: "go to Friday", "switch to weeks", "dark mode", "export this as a PDF".</p></div><div class="ft v"><h4>Schedules from images</h4><p>Photograph or pick an image of a schedule or Gantt chart to start a project or add to one. Meta reads the image, then OpenAI builds the tasks from what was read (never the image). A preview shows the tasks, milestones and links, with rows to untick, before Apply; Undo afterwards.</p></div></div>
   </div>
@@ -310,7 +310,7 @@
     <div class="grp">Look, feel and polish</div>
     <div class="feat"><div class="ft "><h4>Dark theme</h4><p>System, Light or Dark, chosen on the account page. Both themes take their colours from the logo, so task colours and bar labels stay readable.</p></div><div class="ft "><h4>Built to hold up</h4><p>Every screen has screenshot tests in light, dark and 1.5× text. Rotation keeps open sheets, drags and the assistant's state, stress-tested on a real phone.</p></div><div class="ft "><h4>Branding and the 3D orb</h4><p>Launcher icons and the launch screen are generated from the logo. The assistant is a 3D orb drawn live with Filament, falling back to a mic icon if 3D isn't available.</p></div></div>
     <div class="grp n">The platform behind the app</div>
-    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio or words.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 13).</p></div></div>
+    <div class="feat"><div class="ft n"><h4>Laravel server</h4><p>Laravel 13 on PostgreSQL: sign-up and sign-in with tokens, the sync API, and voice and image endpoints that keep AI provider keys on the server and store no audio.</p></div><div class="ft n"><h4>Staff admin panel</h4><p>A Filament panel; staff need authenticator 2FA by default (an admin can lift or restore it, audited): user management, a health and usage dashboard, an append-only audit log, and time-limited, audited, read-only support access.</p></div><div class="ft n"><h4>AWS</h4><p><b>Live</b> on one EC2 instance (Docker Compose, Caddy HTTPS, Secrets Manager). A production stack with CloudFront, Fargate, RDS and SES is written in CDK and tested, not deployed (page 13).</p></div></div>
     <p class="small mt-m">The voice assistant and image import need an account and a connection; the full details are in the repository's <code>README.md</code>, <code>docs/voice-api.md</code>, <code>docs/import-api.md</code> and <code>docs/push.md</code>.</p>
   </div>
   <div class="pfoot-teal"></div>
@@ -528,14 +528,14 @@
       <!-- core -->
       <text x="0" y="230" font-size="8.6" font-weight="700" fill="#4A5578" letter-spacing="1.2">:core:*</text>
       <rect x="0" y="236" width="230" height="56" rx="6" fill="#F7F2FF" stroke="#D9C8FB"/>
-      <text x="115" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#7C3AED" letter-spacing="1">PURE KOTLIN (JVM, NO ANDROID)</text>
+      <text x="115" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#7C3AED" letter-spacing="1">PURE CORE (JVM, NO ANDROID, NO I/O)</text>
       <g font-size="8.6" text-anchor="middle" fill="#0B1226">
         <rect x="8" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="42" y="275">model</text>
         <rect x="81" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="115" y="275">timeline</text>
         <rect x="154" y="258" width="68" height="26" rx="4" fill="#fff" stroke="#7C3AED"/><text x="188" y="275">domain</text>
       </g>
       <rect x="240" y="236" width="470" height="56" rx="6" fill="#EFF8F6" stroke="#C9E8E2"/>
-      <text x="475" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#0B8577" letter-spacing="1">ANDROID LIBRARIES</text>
+      <text x="475" y="250" text-anchor="middle" font-size="7.8" font-weight="700" fill="#0B8577" letter-spacing="1">DATA, UI AND TEST SUPPORT</text>
       <g font-size="8.6" text-anchor="middle" fill="#0B1226">
         <rect x="248" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="283" y="275">database</text>
         <rect x="324" y="258" width="70" height="26" rx="4" fill="#fff" stroke="#0B8577"/><text x="359" y="275">data</text>
@@ -555,7 +555,7 @@
 
     <h3 class="sect">How the rules are enforced</h3>
     <ul class="dash">
-      <li><b><code>verifyModuleGraph</code></b> fails the build on a forbidden edge (feature → feature, core → feature, domain → data or presentation).</li>
+      <li><b><code>verifyModuleGraph</code></b> (run by <code>check.sh</code> and CI) fails on a forbidden edge (feature → feature, core → feature, domain → data or presentation).</li>
       <li><b>Domain modules use the plain Kotlin JVM plugin</b>, so an Android or Compose import there simply doesn't compile.</li>
       <li><b><code>verifyUiModels</code></b> fails if a composable or UI-state file imports a domain entity: screens render their own UI models.</li>
       <li><b>Convention plugins</b> in <code>build-logic</code> (<code>androidApplication</code>, <code>androidLibrary</code>, <code>androidCompose</code>, <code>androidRoom</code>, <code>androidScreenshots</code>, <code>jvmLibrary</code>, <code>moduleGraph</code>) keep every module's build file short and the same.</li>
@@ -623,8 +623,8 @@
       <rect x="34" y="214" width="256" height="58" rx="5" fill="#fff" stroke="#2B5CFF"/>
       <text x="42" y="229" font-size="9.4" font-weight="700" fill="#0B1226">Plan against current data</text>
       <text x="42" y="243" font-size="8.2" fill="#4A5578">AICommandHandler → CommandPlanner; stale or</text>
-      <text x="42" y="256" font-size="8.2" fill="#4A5578">invalid changes rejected; clashes found; an alter-</text>
-      <text x="42" y="268" font-size="8.2" fill="#4A5578">native is offered only if SensibleAlternative passes</text>
+      <text x="42" y="256" font-size="8.2" fill="#4A5578">invalid changes rejected; clashes found; a model's</text>
+      <text x="42" y="268" font-size="8.2" fill="#4A5578">fix is offered only if SensibleAlternative passes</text>
       <!-- actions only branch -->
       <rect x="34" y="282" width="256" height="30" rx="5" fill="#EAF7F7" stroke="#0EA5C6" stroke-dasharray="4 3"/>
       <text x="42" y="295" font-size="8.2" font-weight="700" fill="#0B1226">View-only actions run at once</text>
@@ -643,7 +643,7 @@
       <circle cx="18" cy="342" r="10" fill="#2B5CFF"/><text x="18" y="346" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">6</text>
       <rect x="34" y="324" width="256" height="36" rx="5" fill="#fff" stroke="#2B5CFF"/>
       <text x="42" y="339" font-size="9.4" font-weight="700" fill="#0B1226">Orb asks: "…Shall I apply it?"</text>
-      <text x="42" y="352" font-size="8.2" fill="#4A5578">then listens for the answer (up to 20 s)</text>
+      <text x="42" y="352" font-size="8.2" fill="#4A5578">then listens for the answer (20 s to start)</text>
       <!-- outcomes -->
       <rect x="34" y="372" width="120" height="70" rx="5" fill="#E3F5EF" stroke="#0B8577"/>
       <text x="42" y="387" font-size="9" font-weight="700" fill="#0B6B5F">"Yes"</text>
@@ -667,15 +667,15 @@
       <text x="333" y="422" font-size="8" fill="#4A5578">user only, to adapt next proposals</text>
       <!-- note in providers lane -->
       <text x="538" y="390" font-size="8" font-weight="700" fill="#7C3AED">Keys stay on the server.</text>
-      <text x="538" y="404" font-size="8" fill="#4A5578">No audio or words are stored</text>
-      <text x="538" y="417" font-size="8" fill="#4A5578">or logged by the server; only</text>
-      <text x="538" y="430" font-size="8" fill="#4A5578">counts and timing for metrics.</text>
+      <text x="538" y="404" font-size="8" fill="#4A5578">No audio stored; words never logged,</text>
+      <text x="538" y="417" font-size="8" fill="#4A5578">kept 90 days only as the user's</text>
+      <text x="538" y="430" font-size="8" fill="#4A5578">decisions; metrics: counts, timing.</text>
     </svg>
 
     <div class="grid3 mt-m">
       <div class="tile"><span class="tag">Safety</span><p>The model can return only listed operation types on tasks from the request. Words and task titles go in as data, never as instructions; a test with an instruction hidden in a task title was ignored.</p></div>
       <div class="tile teal-top"><span class="tag">One write path</span><p>A spoken yes writes through the same <code>ApplyScheduleChanges</code> as a drag, so voice and touch can't disagree, and Undo works the same way.</p></div>
-      <div class="tile"><span class="tag">Measured (12 Nov 2026)</span><p>Local server, real providers: about 6 to 9 s from the end of speech to the spoken proposal, and about $0.007 per confirmed command.</p></div>
+      <div class="tile"><span class="tag">Measured (12 Nov 2026)</span><p>Local server, real providers: about 6 to 9 s from the end of speech to the spoken proposal, and about $0.007 per confirmed command, with Flash speech (v4 Turbo costs more).</p></div>
     </div>
   </div>
   <div class="pfoot-teal"></div>
@@ -697,7 +697,7 @@
       <tbody>
         <tr><td class="k" style="white-space:normal">ElevenLabs<br>Scribe v2</td><td>Speech to text: the spoken request, and the yes or no that follows</td><td>Task names are often unusual words that speech recognition gets wrong. Scribe can be given the project's task titles in advance, so it spells them as written (in a test, a made-up task came out as "Kestri" without them and "Kestrion" with them). It is also quick: about 1 s for a short request.</td></tr>
         <tr><td class="k" style="white-space:normal">ElevenLabs<br>Eleven v4 Turbo</td><td>Text to speech: the assistant's answers, in the voice I chose</td><td>A slow voice makes talk lag. v4 Turbo, ElevenLabs' latest real-time model, is as quick as Flash v2.5 and follows audio tags: lines are said <code>[excited, cheerful]</code>.</td></tr>
-        <tr><td class="k" style="white-space:normal">ElevenLabs<br>voice isolator <span style="font-weight:400">(off)</span></td><td>Optional noise removal before transcription</td><td>Nearby voices or noise can end up in the transcript. This can be switched on to clean the recording first, and because it is the same provider, the audio goes to no one new.</td></tr>
+        <tr><td class="k" style="white-space:normal">ElevenLabs<br>voice isolator <span style="font-weight:400">(on, live)</span></td><td>Optional noise removal before transcription</td><td>Nearby voices or noise can end up in the transcript. Switched on, it cleans the recording first (off by default, on on the live server), and because it is the same provider, the audio goes to no one new.</td></tr>
         <tr><td class="k" style="white-space:normal">OpenAI<br>GPT-6.1 Terra<br><span style="font-weight:400">reasoning "low"</span></td><td>Words → schedule changes; clash-free alternatives; the sentence the orb speaks; tasks from an image's reading</td><td>Turning loose speech into exact schedule edits needs a model that follows rules reliably. A strict JSON schema means it can only answer with allowed operations on tasks it was given, so a bad answer is rejected, never applied; the server and the app check it again. It got all 15 sample requests right. "Low" reasoning is enough ("none" was no faster), and caching its fixed rules makes most of each request cost 5% of the normal input price.</td></tr>
         <tr><td class="k" style="white-space:normal">Meta<br>Muse Spark 1.3<br><span style="font-weight:400">reasoning "minimal"</span></td><td>Reads a chart image: text, time axis, rows, bar spans</td><td>A chart has to be read the way a person reads it: task names, dates on the axis, which bar sits in which row. Muse Spark reads that well, though not exact pixel positions. "Minimal" reasoning was as accurate and took about 14 s instead of 30 s. These are Meta's standard models, which Meta doesn't train on.</td></tr>
         <tr><td class="k" style="white-space:normal">Meta<br>SAM 3.1</td><td>Finds exact boxes of bars and diamonds</td><td>Placing each bar on the right dates needs its exact edges. SAM finds the precise box of every bar and diamond but can't read text, so the two work as a pair: SAM says <i>where</i>, Muse Spark says <i>what</i>. Muse Spark's positions alone put bars on the wrong rows.</td></tr>
@@ -706,7 +706,7 @@
 
     <ul class="dash mt-s" style="font-size:8.8pt">
       <li style="font-size:8.8pt"><b>How they work together.</b> Voice: Scribe → GPT-6.1 Terra → the app checks the plan → v4 Turbo speaks it → a spoken yes applies it. Images: Muse Spark + SAM → GPT-6.1 Terra builds tasks from what they read, <b>never the image</b> → preview → Apply. I chose the voice providers in the feature brief.</li>
-      <li style="font-size:8.8pt"><b>Guardrails and cost.</b> The models only propose; nothing changes without a yes or Apply. No audio or words are stored, OpenAI is called with <code>store: false</code>, and task notes are never sent. Fakes in tests, a kill switch and per-user rate limits. About $0.007 per voice command with Flash (v4 Turbo speech costs about double); 1.4¢ of Meta per image.</li>
+      <li style="font-size:8.8pt"><b>Guardrails and cost.</b> The models only propose; nothing changes without a yes or Apply. No audio is stored (each user's requests and answers are kept 90 days to adapt to them), OpenAI is called with <code>store: false</code>, and task notes are never sent. Fakes in tests, a kill switch and per-user rate limits. About $0.007 per voice command with Flash (v4 Turbo speech costs about double); 1.4¢ of Meta per image.</li>
     </ul>
     <p class="small" style="margin-top:0.04in">On the live server, voice is on and image import is off until approved. Details: <code>docs/voice-api.md</code> and <code>docs/import-api.md</code>.</p>
   </div>
@@ -735,7 +735,7 @@
       <thead><tr><th style="width:1.25in">Type</th><th style="width:0.95in">How many</th><th>What it covers</th><th style="width:1.55in">Tools · where it runs</th></tr></thead>
       <tbody>
         <tr><td class="k" style="white-space:normal">JVM unit tests</td><td>523 in 71 files, 31 modules</td><td>Time math, snapping, edits and hit testing (48); rules, critical path, the write path and Undo (58); the voice planner (72); ViewModels; the sync engine against an in-memory server (28); network clients</td><td>JUnit 4, coroutines-test, OkHttp MockWebServer · <code>./gradlew test</code></td></tr>
-        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>115 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 29, with drag and pinch); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
+        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>115 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 29, with drag; pinch in the app shell); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
         <tr><td class="k" style="white-space:normal">Screenshot tests</td><td>61 × 3 = 183, 10 modules</td><td>Every screen at phone size, 1.5× text and dark, compared with committed images</td><td>Compose Preview Screenshot Testing</td></tr>
         <tr><td class="k" style="white-space:normal">Static checks</td><td>4 checks</td><td>Android lint (0 errors); <code>verifyModuleGraph</code> (layer rules); <code>verifyUiModels</code> (no domain types in UI); the security build gate (89 rules)</td><td>Gradle · every build or check</td></tr>
         <tr><td class="k" style="white-space:normal">On a real phone</td><td>16 scenarios + manual</td><td>Rotation stress (crashes, leaks, memory, lost state); UI checked against predicted values; sync end to end with a second device</td><td><code>tools/qa/rotation-stress.sh</code>, adb screenshots</td></tr>
@@ -760,11 +760,11 @@
         <ul class="dash">
           <li><b><code>tools/check.sh</code></b> runs the unit, screenshot and static checks (device tests with <code>--devices</code>); the <b>pre-push hook</b> and <b>CI</b> run it too.</li>
           <li><b>Last full check:</b> 15 Nov 2026, passed: 523 of 523 unit tests and 183 screenshots. 110 device tests passed in full on 14 Nov; the 5 added since passed in their own module's run.</li>
-          <li><b>Growth:</b> the take-home shipped with 39 unit tests.</li>
+          <li><b>Growth:</b> the take-home shipped with 44 unit tests.</li>
         </ul>
       </div>
     </div>
-    <p class="small" style="margin-top:0.06in">Outside the app, the server has 528 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
+    <p class="small" style="margin-top:0.06in">Outside the app, the server has 528 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 tests.</p>
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
@@ -795,7 +795,7 @@
         <text x="236" y="17" font-size="9" font-weight="700" fill="#2B5CFF">EC2 instance · Docker Compose</text>
         <rect x="236" y="28" width="276" height="34" rx="5" fill="#0B1226"/>
         <text x="246" y="43" font-size="9.2" font-weight="700" fill="#fff">Caddy</text>
-        <text x="246" y="55" font-size="7.8" fill="#C9D4F2">HTTPS certificates, in the server image</text>
+        <text x="246" y="55" font-size="7.8" fill="#C9D4F2">HTTPS, with its own certificates</text>
         <rect x="236" y="72" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF"/>
         <text x="244" y="88" font-size="9" font-weight="700" fill="#0B1226">web</text><text x="244" y="101">Laravel API, admin, voice</text>
         <rect x="380" y="72" width="132" height="40" rx="5" fill="#fff" stroke="#2B5CFF"/>
@@ -834,9 +834,9 @@
         <li>Secrets are fetched from Secrets Manager into the environment, never printed or written to a file.</li>
         <li>Compose checks its config, builds, migrates, and starts with <code>--wait</code>; then <code>/up</code> must answer 200.</li>
         <li>Rollback: revert the release commit, push, redeploy.</li></ul></div>
-      <div class="tile teal-top"><span class="tag">Status (14 Nov 2026)</span><ul>
+      <div class="tile teal-top"><span class="tag">Status (15 Nov 2026)</span><ul>
         <li><b>Checked:</b> <code>/up</code> 200, a signed-out API call 401, all services healthy, push sender set to Firebase.</li>
-        <li><b>Still open:</b> voice and push checked end to end from phones; real email (mail is held in memory, so sign-up codes aren't sent yet); a tested database restore.</li>
+        <li><b>Still open:</b> push checked between two phones; confirming email is delivered (until then, use the demo); a tested database restore. Voice was checked from a phone on 15 Nov.</li>
         <li><b>Off:</b> schedules from images, until approved.</li></ul></div>
     </div>
 
@@ -928,7 +928,7 @@
         <text x="592" y="203" font-size="9" font-weight="700" fill="#0B1226">POST auth/verify</text>
         <text x="592" y="217">email confirmed;</text><text x="592" y="229">200 {token, user};</text><text x="592" y="241">signed in, as in row 1</text>
         <rect x="146" y="256" width="564" height="22" rx="4" fill="#FBF6E8" stroke="#C8A84E" stroke-dasharray="4 3"/>
-        <text x="154" y="271" fill="#0B1226"><tspan font-weight="700" fill="#8A6A10">Live server today:</tspan> mail is held in memory, so codes aren't delivered yet. Until real email is set up, use the demo (row 3).</text>
+        <text x="154" y="271" fill="#0B1226"><tspan font-weight="700" fill="#8A6A10">Live server today:</tspan> email delivery isn't confirmed yet. If no code arrives, use the demo (row 3).</text>
       </g>
       <g stroke="#4A5578" stroke-width="1.4">
         <line x1="127" y1="218" x2="144" y2="218" marker-end="url(#a12)"/>
@@ -1015,7 +1015,7 @@
         <text x="192" y="167" text-anchor="middle" font-size="7.6">DNS lookup only</text>
         <!-- EC2 -->
         <rect x="232" y="0" width="318" height="236" rx="8" fill="#F1F3F9" stroke="#0B1226" stroke-dasharray="5 3"/>
-        <text x="242" y="14" font-size="8.6" font-weight="700" fill="#0B1226">EC2 instance (Sydney)</text>
+        <text x="242" y="14" font-size="8.6" font-weight="700" fill="#0B1226">EC2 instance</text>
         <rect x="242" y="22" width="92" height="96" rx="5" fill="#0B1226"/>
         <text x="250" y="38" font-size="9.2" font-weight="700" fill="#fff">Caddy</text>
         <text x="250" y="54" fill="#C9D4F2">Let's Encrypt</text><text x="250" y="65" fill="#C9D4F2">certificate</text>
@@ -1152,7 +1152,7 @@ Authorization: Bearer 42|Xk9fQ2…
     <ol class="steps">
       <li><b>Spec first.</b> I wrote a detailed prompt: requirements, architecture, required tests, git and logging rules, and "no big unreviewed code dump". First I asked it to <i>revalidate</i> the plan and split it into small batches.</li>
       <li><b>Revalidation.</b> Before coding, it found a Views template (not Compose), <code>minSdk</code> 24 too low for <code>java.time</code>, and gaps in the spec (range, rounding, minimum duration, when a drag saves).</li>
-      <li><b>Ten batches (B0–B9).</b> Each ended with a real build and tests, a phone check against <i>predicted</i> values (e.g. "+150 px at 3.2 px/min → 09:45–11:45"), a log entry and a commit.</li>
+      <li><b>Batches B0–B9 (B8 skipped).</b> Each ended with a build, a log entry and a commit; from B1 also unit tests, and from B2 a phone check against <i>predicted</i> values (e.g. "+150 px at 3.2 px/min → 09:45–11:45").</li>
     </ol>
 
     <h3 class="sect">What the AI got wrong, and how it was caught</h3>
@@ -1218,7 +1218,7 @@ Authorization: Bearer 42|Xk9fQ2…
       <li><b>Process:</b> revalidate first and build in small batches, instead of one large generated pass; never report a check that wasn't run.</li>
       <li><b>Gesture model:</b> direct drag on the bar (empty space scrolls) rather than long-press; accepted resize handles only on the selected bar.</li>
       <li><b>Scope:</b> skipped the optional polish batch (B8) in favour of documentation; after submission asked for a review against the brief, which found the snap-limit bug.</li>
-      <li><b>Behaviour:</b> a drag moves only its own task, and later tasks move only through an explicit Push with Undo; sync never starts on its own.</li>
+      <li><b>Behaviour:</b> a drag moves only its own task, and later tasks move only through an explicit Push with Undo; sync starts only when asked (once by itself after Try demo).</li>
       <li><b>Hands-on checks:</b> rotated the phone by hand rather than letting the AI force it over <code>adb</code>; versions pinned and at least two weeks old (this caught two too-new server packages).</li>
     </ul>
   </div>
@@ -1584,8 +1584,8 @@ Authorization: Bearer 42|Xk9fQ2…
     <ul class="dash">
       <li><b>Installed 13 Nov 2026</b> from my knowledge repo (v1.0.0, source recorded in <code>INSTALLED.md</code>). First scan: 0 critical, 0 high, 3 medium, 2 low.</li>
       <li><b>Proved it blocks:</b> a planted <code>onReceivedSslError</code> → <code>proceed()</code> failed the build (AND-WV-007, critical), then was removed.</li>
-      <li><b>Surfaced a decision:</b> release R8 skipped the app's own code. I switched on full R8 (618 of 622 classes renamed); the rule doesn't know AGP 9's <code>optimization</code> setting, so that, and the Keystore-encrypted token store, are reasoned false positives.</li>
-      <li><b>Today:</b> 521 files, 89 rules, <b>pass</b>; 7 warnings to review before release, 2 suppressed with reasons.</li>
+      <li><b>Surfaced a decision:</b> release R8 skipped the app's own code. I switched on full R8 (618 of 622 classes renamed); the rule doesn't know AGP 9's <code>optimization</code> setting, so that, and the Keystore-encrypted token store, are reasoned false positives; the demo login in the code is an accepted exception.</li>
+      <li><b>Today:</b> 525 files, 89 rules, <b>pass</b>; 7 warnings to review before release, 3 suppressed with reasons.</li>
     </ul>
     <p class="small"><b>Limits:</b> it is a pattern-based source scan, so heuristic rules can raise false alarms or miss things. It doesn't replace dynamic testing or a pentest, and it is only as good as the threat library behind it.</p>
   </div>

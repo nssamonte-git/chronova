@@ -2539,3 +2539,26 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Your request:** update the PDF.
 - **Changed:** the testing page now shows 115 device tests (timeline 29, "the 5 added since" 14 Nov's full run) and 528 server tests; the writeup's section 5.1 has the same counts.
 - **Checked:** rendered in Chrome headless, 23 pages, footers 1–23, fonts embedded; page 12 checked as an image and opened with macOS `sips`.
+
+### The take-home PDF fact-checked against the code (15 Nov)
+
+- **Your request:** revalidate the whole report with a factual check.
+- **How:** four read-only reviewers, one per group of pages (1–5, 6–10, 11–16, 17–23), checked every claim against the code, git history, this log and the kit files. Each reported error was confirmed in the code before anything changed.
+- **Corrected in the PDF:**
+  - p2: the server-address note pointed to page 15, which doesn't cover it; now says https, or local http in debug builds. `check.sh` "runs everything" → "the full check", device tests with `--devices`.
+  - p3, p13, p14: "the live server doesn't send email" / "mail is held in memory" → email delivery isn't confirmed yet (EC2 now has mail settings; delivery was never checked).
+  - p6: "Drags, edits and deletes can all be undone" → only deleting, marking done and Push offer Undo (`UndoKind`).
+  - p6, p10, p11: "no audio or words are stored" → no audio stored; the words are never logged but are kept 90 days as each user's decisions (`voice_decisions`, `config/voice.php`). My first edit of page 10's three-line note broke the sentence; the reviewer's report showed it, and it was rewritten whole.
+  - p9: `network` and `testing` were drawn as Android libraries; they are JVM modules. Group labels now "Pure core" and "Data, UI and test support". `verifyModuleGraph` is run by `check.sh` and CI, not by every build.
+  - p10: only the model's alternative goes through `SensibleAlternative`; the 20 s is the wait for the first word; the $0.007 per command was measured with Flash speech.
+  - p11: the voice isolator is on on the live server (off by default).
+  - p12: the take-home shipped with 44 unit tests, not 39 (`git grep @Test submission-v1`); pinch tests are in the app shell; infrastructure "23 tests", not assertions.
+  - p13: Caddy is not "in the server image" (the image serves plain HTTP on 8080); the status box (now 15 Nov) says voice was checked from a phone; push and email stay open.
+  - p15: "EC2 instance (Sydney)" → "EC2 instance" (you had asked for the city to be removed from the PDF; this diagram brought it back).
+  - p17: not every batch had tests and a phone check: B8 was skipped, unit tests started in B1 and phone checks in B2.
+  - p18: sync starts only when asked, and once by itself after Try demo.
+  - p22: the gate now scans 525 files with 3 suppressions (the demo login is the third).
+- **Also fixed:** the writeup (44 unit tests at the take-home; the batch checks), the README (voice checked from a phone; words kept 90 days), and `HANDOFF.md`. Its voice line said "no audio or words are stored". The AI kit's startup check had been failing at 1,306 of 1,300 tokens since today's edits; two sentences were shortened, and it passes at 1,298.
+- **Checked:** rendered in Chrome headless, 23 pages, footers 1–23, fonts embedded; the 13 changed pages looked at as images; all 23 opened with macOS `sips`; no "Sydney", "no audio or words" or "39 unit tests" left in the PDF text.
+- **Not changed:** claims measured live (TLS details, timings) or on the phone, which the repo can't confirm; the demo project's name ("Sample Project", which someone renamed on the shared account).
+- **Process note:** the timeline device tests earlier today ran through `connectedDebugAndroidTest` on the library module. `HANDOFF` says to use `am instrument` on the phone. That module's test app is separate from `noel.chronova.app`, and the app was installed and present afterwards. The phone disconnected before its data could be looked at again.
