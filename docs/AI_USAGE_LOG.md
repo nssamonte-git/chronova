@@ -2594,3 +2594,17 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **`tools/check.sh` needed `python3`.** Git Bash has none, and on Windows `python3` is often only the Microsoft Store shortcut, so the summary would fail. Fixed: it now tries `python3`, `python` and `py -3` and uses the first that really runs Python 3. With none, it still prints PASS or FAIL with the log's path. Tested on the Mac with a fake Store shortcut first on PATH (it picked `python`) and with no Python at all (it reported none).
   - **Screenshot comparisons** may fail on Windows: the references were recorded on a Mac, and CI runs them on macOS for that reason. This doesn't affect building or running the app.
 - **Not checked:** a real Windows machine; nothing here ran on Windows.
+
+### Shorter screenshot paths for Windows (15 Nov)
+
+- **Your decision:** shorten the screenshot file names (rather than only documenting long paths).
+- **Changed:**
+  - Every screenshot test file (11, in 10 modules) is now `Shots.kt`, so each image folder is `ShotsKt` instead of e.g. `NotificationsScreenshotsKt`.
+  - In 4 modules the preview names lost the feature's name at the front. For example, `NotificationsFromOtherDevices` → `FromOtherDevices`, `TimelineWithProgressAndAMilestone` → `ProgressAndMilestone`, and `TimelineCriticalPath` → `CriticalPathShown` (not `CriticalPath`, the domain object's name).
+  - The 183 reference images were removed and regenerated (`updateDebugScreenshotTestDefaultTestSuite`).
+- **Checked:**
+  - Each new image matches the SHA-256 recorded for the old one before the change: 183 of 183 byte-identical, none missing. Git records all 194 changes as renames.
+  - The longest tracked path went from 230 to 199 characters, so no file passes Windows' 260-character limit in a clone folder of up to 60 characters (it was 13 files at 45 characters).
+  - `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors, module graph and UI models OK.
+- **Docs:** README's Windows note (path lengths, `core.longpaths` for a deeper folder, `check.sh` needing Python 3, screenshots recorded on a Mac); the PDF's troubleshooting row ("Filename too long"). The PDF was re-rendered: 23 pages, footers 1–23, fonts embedded, page 3 checked as an image.
+- **Not checked:** a clone on a real Windows machine. Build outputs still go past 260 characters; Gradle's Java code normally copes with that, but it hasn't been seen on Windows.

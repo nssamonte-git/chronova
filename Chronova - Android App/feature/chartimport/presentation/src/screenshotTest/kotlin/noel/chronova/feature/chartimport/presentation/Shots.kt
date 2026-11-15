@@ -39,19 +39,19 @@ private fun Sheet(state: ImportSheetUi) = ChronovaTheme {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportChoose() = Sheet(ImportSheetUi.Choose(newProject = true, projectName = ""))
+fun Choose() = Sheet(ImportSheetUi.Choose(newProject = true, projectName = ""))
 
 /** Reading the image (Meta, then OpenAI). */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportReading() = Sheet(ImportSheetUi.Reading)
+fun Reading() = Sheet(ImportSheetUi.Reading)
 
 /** A chart without dates becomes a new project starting on a chosen day, with a note to check. */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportPreviewNewProject() = Sheet(
+fun PreviewNewProject() = Sheet(
     ImportSheetUi.Preview(
         ImportPreviewUi(
             newProject = true, projectName = "Project Timeline", projectStart = monday, projectEnd = monday.plusDays(48),
@@ -64,7 +64,7 @@ fun ImportPreviewNewProject() = Sheet(
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportPreviewAddToProject() = Sheet(
+fun PreviewAddToProject() = Sheet(
     ImportSheetUi.Preview(
         ImportPreviewUi(
             newProject = false, projectName = "Office move", projectStart = monday, projectEnd = monday.plusDays(20),
@@ -78,13 +78,13 @@ fun ImportPreviewAddToProject() = Sheet(
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportNotASchedule() = Sheet(ImportSheetUi.Problem(ImportProblemUi.NotASchedule))
+fun NotASchedule() = Sheet(ImportSheetUi.Problem(ImportProblemUi.NotASchedule))
 
 /** Created, with Undo and Open project. */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportDone() = Sheet(ImportSheetUi.Done(ImportDoneUi("p9", "Project Timeline", 9, newProject = true)))
+fun Done() = Sheet(ImportSheetUi.Done(ImportDoneUi("p9", "Project Timeline", 9, newProject = true)))
 
 /**
  * A whiteboard read with five things to check, on a phone-sized sheet: the warnings scroll with the
@@ -93,7 +93,7 @@ fun ImportDone() = Sheet(ImportSheetUi.Done(ImportDoneUi("p9", "Project Timeline
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportPreviewManyWarnings() = Sheet(
+fun PreviewManyWarnings() = Sheet(
     ImportSheetUi.Preview(
         ImportPreviewUi(
             newProject = false, projectName = "Cafe Opening", projectStart = monday, projectEnd = monday.plusDays(11),
@@ -122,7 +122,7 @@ fun ImportPreviewManyWarnings() = Sheet(
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun ImportPreviewHours() = Sheet(
+fun PreviewHours() = Sheet(
     ImportSheetUi.Preview(
         ImportPreviewUi(
             newProject = false, projectName = "Cafe Opening", projectStart = monday, projectEnd = monday.plusDays(11),

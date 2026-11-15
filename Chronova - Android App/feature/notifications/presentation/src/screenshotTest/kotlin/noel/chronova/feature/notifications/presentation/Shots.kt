@@ -33,13 +33,13 @@ private fun Page(page: NotificationsPageUi) = ChronovaTheme {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun NotificationsList() = Page(NotificationsPageUi(notifications, NotificationFilter(), isEmpty = false, choices = choices, liveProjectIds = setOf("launch")))
+fun All() = Page(NotificationsPageUi(notifications, NotificationFilter(), isEmpty = false, choices = choices, liveProjectIds = setOf("launch")))
 
 /** "Unread only" on: the two unread ones. */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun NotificationsUnreadOnly() = Page(
+fun UnreadOnly() = Page(
     NotificationsPageUi(notifications.filter { !it.read }, NotificationFilter(unreadOnly = true), isEmpty = false, choices = choices, liveProjectIds = setOf("launch")),
 )
 
@@ -47,13 +47,13 @@ fun NotificationsUnreadOnly() = Page(
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun NotificationsEmpty() = Page(NotificationsPageUi())
+fun Empty() = Page(NotificationsPageUi())
 
 /** What other devices bring by push: changes to sync and a new sign-in. */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun NotificationsFromOtherDevices() = Page(
+fun FromOtherDevices() = Page(
     NotificationsPageUi(
         listOf(
             NotificationUi(1, NotificationKind.SYNC_AVAILABLE, emptyMap(), null, null, now - 2 * MINUTE, read = false, canUndo = false),

@@ -175,7 +175,7 @@
         <tr><td class="k">Downloads fail on the first sync</td><td>It needs the internet (Gradle, Google Maven, Maven Central). Behind a proxy: <b>Settings → System Settings → HTTP Proxy</b>.</td></tr>
         <tr><td class="k"><code>./gradlew: Permission denied</code></td><td>Usually after the ZIP download: <code>chmod +x gradlew</code>.</td></tr>
         <tr><td class="k">"bad interpreter" or "\r: command not found"</td><td>A script got Windows line endings; <code>.gitattributes</code> prevents it in a fresh clone, so clone again.</td></tr>
-        <tr><td class="k">Windows: "path too long"</td><td>Clone near the drive root (<code>C:\src\chronova</code>), outside OneDrive.</td></tr>
+        <tr><td class="k">Windows: "Filename too long"</td><td>Paths fit a clone folder of up to 60 characters. Deeper: clone near the drive root (<code>C:\src\chronova</code>), or run <code>git config --global core.longpaths true</code> first.</td></tr>
         <tr><td class="k">Out of memory</td><td>Gradle gets 2 GB (<code>org.gradle.jvmargs</code>, <code>gradle.properties</code>); close apps or raise it.</td></tr>
         <tr><td class="k">Odd errors after an update</td><td><code>./gradlew --stop</code>, then <code>./gradlew clean</code>. In Android Studio: <b>File → Invalidate Caches</b>.</td></tr>
         <tr><td class="k">The build stops at the security gate</td><td>On purpose: a high-severity finding. The report names the file and the fix.</td></tr>

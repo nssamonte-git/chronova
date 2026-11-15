@@ -15,7 +15,7 @@ private fun at(hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 11, 12, hour
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun AssistantAskingAboutAChange() = ChronovaTheme {
+fun AskingAboutAChange() = ChronovaTheme {
     AssistantOverlay(
         state = AssistantUiState(
             availability = AssistantAvailability.READY,
@@ -43,7 +43,7 @@ private fun day(day: Int) = LocalDateTime.of(2026, 11, day, 0, 0).toInstant(zone
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun AssistantWholeDayTasks() = ChronovaTheme {
+fun WholeDayTasks() = ChronovaTheme {
     AssistantOverlay(
         state = AssistantUiState(
             availability = AssistantAvailability.READY,
@@ -69,7 +69,7 @@ fun AssistantWholeDayTasks() = ChronovaTheme {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun AssistantListening() = ChronovaTheme {
+fun Listening() = ChronovaTheme {
     AssistantOverlay(
         state = AssistantUiState(availability = AssistantAvailability.READY, open = true, mode = OrbMode.Listening, noticeAccepted = true),
         zone = zone,
@@ -82,4 +82,4 @@ fun AssistantListening() = ChronovaTheme {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun AssistantFirstUseNotice() = ChronovaTheme { AssistantNotice(onContinue = {}, onDismiss = {}) }
+fun FirstUseNotice() = ChronovaTheme { AssistantNotice(onContinue = {}, onDismiss = {}) }

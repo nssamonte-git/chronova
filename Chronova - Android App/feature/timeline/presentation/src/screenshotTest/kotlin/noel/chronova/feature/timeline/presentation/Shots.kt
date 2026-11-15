@@ -17,13 +17,13 @@ private val sample = TimelineUiState.sample(zone)
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineWithTasks() = ChronovaTheme { TimelineContent(state = sample, actions = TimelineActions()) }
+fun WithTasks() = ChronovaTheme { TimelineContent(state = sample, actions = TimelineActions()) }
 
 /** One task done, one under way, one not started, and a selected milestone, all in the first hours on screen. */
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineWithProgressAndAMilestone() {
+fun ProgressAndMilestone() {
     fun at(hour: Int, minute: Int = 0) = sample.window.startMillis + hour * 3_600_000L + minute * 60_000L
     val tasks = listOf(
         TaskUi("design", "Design", at(7), at(7, 45), TaskColor.BLUE, progress = 100),
@@ -47,7 +47,7 @@ fun TimelineWithProgressAndAMilestone() {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineCriticalPath() {
+fun CriticalPathShown() {
     val hour = 3_600_000L
     val slack = mapOf("ui-design" to 3 * hour, "implementation" to 3 * hour, "qa-testing" to 0L, "review" to 0L)
     ChronovaTheme {
@@ -73,7 +73,7 @@ fun TimelineCriticalPath() {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineMonthsWholeDays() {
+fun MonthsWholeDays() {
     val day = 86_400_000L
     val start = java.time.LocalDate.of(2026, 11, 23).atStartOfDay(zone).toInstant().toEpochMilli()
     fun task(id: String, title: String, from: Int, days: Int, color: TaskColor) = TaskUi(id, title, start + from * day, start + (from + days) * day, color)
@@ -99,7 +99,7 @@ fun TimelineMonthsWholeDays() {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineSearching() {
+fun Searching() {
     val filter = TaskFilter(query = "test", kinds = setOf(TaskKind.NOT_DONE))
     val matches = sample.tasks.filter(filter::matches)
     ChronovaTheme {
@@ -114,7 +114,7 @@ fun TimelineSearching() {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineNoMatch() = ChronovaTheme {
+fun NoMatch() = ChronovaTheme {
     TimelineContent(
         state = sample.copy(tasks = emptyList(), search = TaskSearchUi(TaskFilter(query = "roof"), matches = 0, total = sample.tasks.size)),
         actions = TimelineActions(),
@@ -125,7 +125,7 @@ fun TimelineNoMatch() = ChronovaTheme {
 @PreviewTest
 @ChronovaScreenshots
 @Composable
-fun TimelineEmpty() = ChronovaTheme { TimelineContent(state = sample.copy(tasks = emptyList()), actions = TimelineActions()) }
+fun Empty() = ChronovaTheme { TimelineContent(state = sample.copy(tasks = emptyList()), actions = TimelineActions()) }
 
 @Composable
 private fun Editor(editor: TaskEditorState) = ChronovaTheme {

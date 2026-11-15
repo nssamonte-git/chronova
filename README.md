@@ -105,7 +105,7 @@ Requirements: Android Studio with AGP 9.5 support (Gradle 9.6 comes with the wra
 Special steps, beyond opening the project:
 
 - **Internet on the first build:** Gradle, JDK 25 (from foojay.io, unless JDK 25 is installed), the dependencies, and the live server for signing in. Behind a proxy, set it in Android Studio (Settings → System Settings → HTTP Proxy).
-- **Windows:** install [Git for Windows](https://git-scm.com/download/win). Every build first runs the security gate, a shell script, through Git's `bash.exe`; the build stops with a message saying so if it's missing. macOS and Linux need nothing extra.
+- **Windows:** install [Git for Windows](https://git-scm.com/download/win). Every build first runs the security gate, a shell script, through Git's `bash.exe`; the build stops with a message saying so if it's missing. Every file path in the repository is at most 199 characters, so a clone or ZIP fits in a folder of up to 60 characters (such as `C:\Users\<name>\AndroidStudioProjects\chronova`) within Windows' 260-character limit; for a deeper folder, run `git config --global core.longpaths true` before cloning. `tools/check.sh` runs in Git Bash and needs Python 3 for its summary; its screenshot comparisons were recorded on a Mac and may differ on Windows. macOS and Linux need nothing extra.
 - **Release APK:** sign it with your own key (Build → Generate Signed App Bundle or APK); no signing keys are in the repository. Debug builds need nothing.
 
 A fresh clone (`git clone https://github.com/nssamonte-git/chronova.git`, or Code → Download ZIP on GitHub) builds as it is: open `Chronova - Android App/` in Android Studio (it finds the SDK itself), or use Gradle from that folder with `ANDROID_HOME` pointing at the SDK:
