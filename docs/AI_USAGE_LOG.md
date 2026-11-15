@@ -2506,4 +2506,4 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - with "remove animations", the pose never changes within a mode.
 
   `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors. Counts updated in README, HANDOFF, `Learn/04` and CURRENT_TASK; README's known limitations give the measured numbers.
-- **Not measured:** a release build (needs your signing key, or a benchmark build type that isn't set up), pinch-zoom (adb can't do two fingers), or how the slower sway looks to you.
+- **Not measured:** a release build (needs your signing key, or a benchmark build type that isn't set up) or pinch-zoom (adb can't do two fingers). You looked at the resting orb on the phone and confirmed the slower sway looks smooth.
