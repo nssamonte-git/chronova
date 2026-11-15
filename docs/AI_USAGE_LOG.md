@@ -2456,4 +2456,4 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the redeploy block also passes `MAIL_PASSWORD`, and the secrets paragraph says why;
   - the voice section's check now uses `php artisan config:show voice.elevenlabs.voice_id`, because the `tinker` check printed only "Writing to directory /config/psysh is not allowed".
 - **Not checked:** whether the server's mail settings deliver email (`CURRENT_TASK` still says mail is held in memory; the `MAIL_` lines in `app.env` suggest that changed on EC2 outside this repo).
-- **Not done yet:** the redeploy with the corrected block, and the voice check after it.
+- **Then:** you ran the corrected block. The image built, all services came up healthy (`migrate` exited after finishing), and the web container's environment and `config:show voice.elevenlabs.voice_id` both show `tnSpp4vdxKPjI9w0GnoV`; `/up` 200. Hearing the new voice in the app needs it force-closed and reopened (the greeting is kept in memory while it runs).
