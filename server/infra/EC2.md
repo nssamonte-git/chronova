@@ -77,7 +77,7 @@ Run `git -C source log -1 --oneline` and confirm the intended release. Inspect s
 
 ## Change the assistant's voice
 
-The voice the assistant speaks with is `VOICE_ELEVENLABS_VOICE_ID` in `~/chronova/app.env`; without the line, the server uses the default in `server/config/voice.php` (`OYTbf65OHHFELVut7v2H`). Use any voice ID from the ElevenLabs account (Voices → a voice's menu → Copy voice ID). It isn't a secret; the ElevenLabs key stays in Secrets Manager.
+The voice the assistant speaks with is `VOICE_ELEVENLABS_VOICE_ID` in `~/chronova/app.env`; without the line, the server uses the default in `server/config/voice.php` (`OYTbf65OHHFELVut7v2H`). Use any voice ID from the ElevenLabs account (Voices → a voice's menu → Copy voice ID). It isn't a secret; the ElevenLabs key stays in Secrets Manager. The delivery is set the same way: `VOICE_ELEVENLABS_STYLE_TAGS` (default `excited, cheerful`, audio tags said before every line; empty turns them off) and `VOICE_ELEVENLABS_TTS_MODEL` (default `eleven_v4_turbo`; tags only work on Eleven v3/v4 models).
 
 1. Set it, as `ec2-user` in `~/chronova` (the first command adds the line with the current voice if it's missing; then edit the value):
 

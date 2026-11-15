@@ -23,7 +23,8 @@ final class ElevenLabsSpeaker implements Speaker
         if ($this->config['zero_retention']) {
             $query['enable_logging'] = 'false';
         }
-        $body = ['text' => $text, 'model_id' => $this->config['tts_model']];
+        // The caption keeps the plain words; only what is spoken gets the style tags.
+        $body = ['text' => AudioTags::forSpeech($text, $this->config['tts_model'], $this->config['style_tags'] ?? null), 'model_id' => $this->config['tts_model']];
         // Only ISO 639-1 is accepted ("eng" is refused); without one the model detects the language.
         if ($code = LanguageCode::twoLetter($language)) {
             $body['language_code'] = $code;

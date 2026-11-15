@@ -100,6 +100,7 @@ final class OpenAiExplainer implements Explainer
             - Start with the word "Done." (in the answer's language), then at most two short sentences, in {$answerIn}. Plain words only: no lists, markdown, emoji or ids.
             - Say what changed, in the past or present tense ("Build now runs from 11 a.m. to noon."), the most important change first, with its day and time said naturally ("tomorrow at 11 a.m.", "Friday the 14th from 9 to 5"). Group the rest ("and the three tasks after it moved a day later").
             - Don't add anything that isn't in the changes. Don't ask anything: end with a statement, not a question.
+            - Sound upbeat and energetic: lively, friendly wording, still brief. No brackets or audio tags (the delivery is set separately).
             TEXT;
         }
 
@@ -114,6 +115,7 @@ final class OpenAiExplainer implements Explainer
             - Then the clash, naming the tasks ("would clash with Review and Stand Up"; "Build would start before Test ends").
             - End with one short question offering only what the alternative does differently, with the new start times ("Shall I move Review to 9:30 and Stand Up to 10:30?", "Shall I add Test at 1 p.m. instead?"), in the answer's language, with a question mark. Don't ask anything else.
             - Don't add anything that isn't in the input, and don't say it has already happened.
+            - Sound upbeat and energetic: lively, friendly wording, still brief. No brackets or audio tags (the delivery is set separately).
             TEXT;
         }
 
@@ -128,6 +130,7 @@ final class OpenAiExplainer implements Explainer
             - Then the clash in a few words, naming the tasks ("Note that Test would overlap Build.").
             - Don't add anything that isn't in the input, and don't say it has already happened.
             - End with the question "Shall I apply it anyway?" (in the answer's language), asked as a question, with a question mark.
+            - Sound upbeat and energetic: lively, friendly wording, still brief. No brackets or audio tags (the delivery is set separately).
             TEXT;
         }
 
@@ -140,6 +143,7 @@ final class OpenAiExplainer implements Explainer
         - Say the most important change first, with its new day and time said naturally ("tomorrow at 11 a.m.", "Friday the 14th from 9 to 5"). Group the rest ("and the three tasks after it move a day later").
         - Don't add anything that isn't in the changes, and don't say it has already happened.
         - End with the question "Shall I apply it?" (in the answer's language), asked as a question, with a question mark.
+        - Sound upbeat and energetic: lively, friendly wording, still brief. No brackets or audio tags (the delivery is set separately).
         TEXT;
     }
 }

@@ -2457,3 +2457,24 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - the voice section's check now uses `php artisan config:show voice.elevenlabs.voice_id`, because the `tinker` check printed only "Writing to directory /config/psysh is not allowed".
 - **Not checked:** whether the server's mail settings deliver email (`CURRENT_TASK` still says mail is held in memory; the `MAIL_` lines in `app.env` suggest that changed on EC2 outside this repo).
 - **Then:** you ran the corrected block. The image built, all services came up healthy (`migrate` exited after finishing), and the web container's environment and `config:show voice.elevenlabs.voice_id` both show `tnSpp4vdxKPjI9w0GnoV`; `/up` 200. Hearing the new voice in the app needs it force-closed and reopened (the greeting is kept in memory while it runs).
+
+### Energetic, upbeat speech: Eleven v4 Turbo with audio tags
+
+- **Your request:** audio tags in the text-to-speech input for an energetic, upbeat voice, compatible with ElevenLabs, on the latest ElevenLabs model.
+- **Checked first (ElevenLabs docs, 15 Nov 2026):**
+  - Flash v2.5, the model in use, doesn't act on audio tags; they work on Eleven v3 and the v4 family.
+  - The latest real-time model is Eleven v4 Turbo (`eleven_v4_turbo`): ElevenLabs recommends it for conversational apps, with a median latency of about 100 ms (about Flash's), audio tags, 90+ languages and `language_code`. Flash costs 50% less per character.
+  - Tags go in square brackets before the words, several separated by commas (`[excited, cheerful]`), and their mood carries forward.
+- **Changed (server only; the app is unchanged):**
+  - `config/voice.php`: the speech model defaults to `eleven_v4_turbo`; new `VOICE_ELEVENLABS_STYLE_TAGS` (default `excited, cheerful`; empty turns them off).
+  - New `App\Voice\AudioTags`: takes square brackets out of the words (so a task title like "[Draft] spec" can't act as a tag), then puts the style tags first, only for `eleven_v3*` / `eleven_v4*` models.
+  - `ElevenLabsSpeaker` sends that text; the response's `text` (the app's caption) stays the plain words.
+  - `OpenAiExplainer`: every stage's rules ask for an upbeat, energetic tone and no brackets or tags of its own, so every tag sent is a known one.
+- **Tests:**
+  - `AudioTagsTest` (prefix on v4 Turbo, v4 and v3; none on Flash, Multilingual v2, or empty/unset tags; brackets removed; tags given with brackets);
+  - `VoiceExplainTest`: tags in the ElevenLabs request with `eleven_v4_turbo`, a plain caption, no tags for Flash or tags off, and the tone line in all four instruction sets. The existing exact-request assertion was updated.
+  - `composer test`: 527 passed (was 514); `composer lint` passed. Fakes only; no real ElevenLabs or OpenAI call.
+- **Docs:** `.env.example`, `docs/voice-api.md` config table, README AI models table and test count, DECISIONS (a revision of the voice entry), `server/infra/EC2.md` (the tags and model as `app.env` settings), HANDOFF and `Learn/04` server baselines (527).
+  - The writeup's AI model APIs page now names Eleven v4 Turbo and says the $0.007-per-command figure was measured with Flash.
+  - The first re-render pushed that page's last line under the footer, so the wording was shortened; 23 pages, footers 1–23.
+- **Not done:** deploying to EC2 and hearing it; the first real v4 Turbo calls happen when you redeploy and try the orb.

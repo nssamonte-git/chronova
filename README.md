@@ -139,7 +139,7 @@ docker compose up -d          # Postgres (:5433, + chronova_test) and Mailpit (m
 composer setup                # install, .env, app key, migrate
 php artisan serve --port=8000 & php artisan queue:work   # API + queue worker (sends codes)
 php artisan chronova:create-staff you@example.com --role=admin   # first admin for /admin
-composer test                 # Pest (514 tests)
+composer test                 # Pest (527 tests)
 ```
 
 Push notifications use a fake sender by default (recorded, not sent). To send through Firebase, put the service-account key file at `server/storage/credentials/firebase-service-account.json` (git-ignored) and set `PUSH_SENDER=fcm` and `FCM_CREDENTIALS=<its absolute path>` in `server/.env`; reminders also need `php artisan schedule:work` (see `docs/push.md`).
@@ -203,7 +203,7 @@ The voice assistant and schedules from images call these through the server, whi
 | Provider · model | Used for | Why |
 |---|---|---|
 | ElevenLabs Scribe v2 | Speech to text (the request and the spoken yes or no) | Can be given the project's task titles in advance, so unusual task names are spelled as written; about 1 s per request |
-| ElevenLabs Flash v2.5 | The assistant's spoken answers | Low latency (speech starts in about 0.8 s) and the cheaper speech model |
+| ElevenLabs Eleven v4 Turbo | The assistant's spoken answers | ElevenLabs' real-time model (about the latency of Flash v2.5, used until 15 Nov 2026) that also acts on audio tags: every line is said `[excited, cheerful]`, for an energetic, upbeat voice; about twice Flash's price per character |
 | ElevenLabs voice isolator (off by default) | Optional noise removal before transcription | Same provider, so the audio goes to no one new |
 | OpenAI GPT-6.1 Terra, reasoning "low" | Words → schedule changes, clash-free alternatives, the sentences the orb speaks, tasks from an image's reading | A strict JSON schema limits it to allowed operations on the tasks it was given, and the server and app re-check every answer; 15 of 15 sample requests right; its fixed rules are prompt-cached |
 | Meta Muse Spark 1.3, reasoning "minimal" | Reading a chart image: names, dates on the axis, rows | Reads a chart the way a person does, though not exact positions; "minimal" was as accurate as the default in about half the time; standard models, which Meta doesn't train on |
@@ -229,7 +229,7 @@ tools/check.sh --devices      # also every module's device tests on a managed em
 | Device tests on a managed emulator (Pixel 6, API 35): Compose UI tests of the screens, Room migrations and transactions, the PDF writer, rotation (Compose UI test, UiAutomator; 18 files in 13 modules) | `tools/check.sh --devices` (nothing is installed on a phone; needs about 8 GB of free disk) | 112 |
 | App device tests on a phone (Room transaction, rotation, pinch) | build both APKs, then `tools/qa/rotation-stress.sh instrumented` (installs them over the app, backs its data up and restores it). Never `connectedAndroidTest`, which uninstalls the app and its data | 11 |
 | Rotation stress on a phone (adb) | `tools/qa/rotation-stress.sh all` (or one scenario; `list` names them): turns the phone between portrait and landscape in 16 situations and checks for crashes, leaked activities, memory growth and lost state; backs the app's data up and restores it | 16 scenarios |
-| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 514 |
+| Server (Pest, real Postgres) | `cd server && composer test && composer lint` | 527 |
 | Server inside the production image | `cd server && docker compose --profile test run --rm --build test` | same suite (last run in the image at 227) |
 | Infrastructure assertions | `cd server/infra && npx tsc --noEmit && npm test && npx cdk synth -c mailFrom=no-reply@example.com` | 23 |
 

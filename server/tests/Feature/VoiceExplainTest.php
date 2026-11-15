@@ -167,7 +167,7 @@ it('has OpenAI write the words and ElevenLabs say them, keys only in headers', f
     });
     Http::assertSent(fn (ClientRequest $request) => $request->url() === 'https://api.elevenlabs.io/v1/text-to-speech/OYTbf65OHHFELVut7v2H?output_format=mp3_22050_32'
         && $request->hasHeader('xi-api-key', 'test-elevenlabs-key')
-        && $request->data() === ['text' => 'Build will move to 11 a.m. today. Shall I apply it?', 'model_id' => 'eleven_flash_v2_5', 'language_code' => 'en']);
+        && $request->data() === ['text' => '[excited, cheerful] Build will move to 11 a.m. today. Shall I apply it?', 'model_id' => 'eleven_v4_turbo', 'language_code' => 'en']);
 
     expect(VoiceEvent::sole()->only(['outcome', 'input_tokens', 'output_tokens']))->toBe(['outcome' => 'spoken', 'input_tokens' => 210, 'output_tokens' => 30]);
 });
@@ -283,6 +283,37 @@ it('speaks a clarifying question as it is, without the explainer', function () {
 
     Http::assertSentCount(1);
     expect(VoiceEvent::sole()->only(['kind', 'outcome', 'characters']))->toBe(['kind' => 'speak', 'outcome' => 'spoken', 'characters' => 25]);
+});
+
+it('says the words with the style tags but captions them plain', function () {
+    useLiveExplanation();
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3', 200, ['Content-Type' => 'audio/mpeg'])]);
+
+    explain(['question' => 'Shall I move [Draft] spec?', 'language' => 'en'])->assertOk()
+        ->assertJson(['text' => 'Shall I move [Draft] spec?', 'audio' => base64_encode('mp3')]);
+
+    Http::assertSent(fn (ClientRequest $request) => $request->data()['text'] === '[excited, cheerful] Shall I move Draft spec?'
+        && $request->data()['model_id'] === 'eleven_v4_turbo');
+});
+
+it('sends no tags to a model without audio tags, or when they are off', function (string $model, string $tags) {
+    useLiveExplanation();
+    config(['voice.elevenlabs.tts_model' => $model, 'voice.elevenlabs.style_tags' => $tags]);
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3', 200, ['Content-Type' => 'audio/mpeg'])]);
+
+    explain(['question' => 'Which review do you mean?', 'language' => 'en'])->assertOk();
+
+    Http::assertSent(fn (ClientRequest $request) => $request->data()['text'] === 'Which review do you mean?'
+        && $request->data()['model_id'] === $model);
+})->with([
+    'Flash v2.5' => ['eleven_flash_v2_5', 'excited, cheerful'],
+    'tags off' => ['eleven_v4_turbo', ''],
+]);
+
+it('asks the explainer for an upbeat tone, without tags of its own', function () {
+    foreach ([[null], [null, ChangeList::APPLIED], [null, ChangeList::PROPOSAL, true], [null, ChangeList::PROPOSAL, true, true]] as $args) {
+        expect(OpenAiExplainer::instructions(...$args))->toContain('Sound upbeat and energetic')->toContain('No brackets or audio tags');
+    }
 });
 
 it('keeps the explainer instructions free of request content, worded per stage', function () {

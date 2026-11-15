@@ -51,9 +51,13 @@ return [
         'key' => env('ELEVENLABS_API_KEY'),
         'base_url' => env('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io/v1'),
         'stt_model' => env('VOICE_ELEVENLABS_STT_MODEL', 'scribe_v2'),
-        // Fast and the cheaper low-latency model; the assistant's voice, chosen by the user.
-        'tts_model' => env('VOICE_ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5'),
+        // Eleven v4 Turbo: ElevenLabs' real-time model (about the latency of Flash v2.5) that also
+        // acts on audio tags; the assistant's voice, chosen by the user.
+        'tts_model' => env('VOICE_ELEVENLABS_TTS_MODEL', 'eleven_v4_turbo'),
         'voice_id' => env('VOICE_ELEVENLABS_VOICE_ID', 'OYTbf65OHHFELVut7v2H'),
+        // Audio tags that lead every spoken line (App\Voice\AudioTags), for an energetic, upbeat
+        // delivery; only Eleven v3 and v4 models use them. Empty turns them off.
+        'style_tags' => env('VOICE_ELEVENLABS_STYLE_TAGS', 'excited, cheerful'),
         'output_format' => env('VOICE_ELEVENLABS_OUTPUT_FORMAT', 'mp3_22050_32'),
         // Zero retention at ElevenLabs (enable_logging=false) needs an enterprise plan.
         'zero_retention' => (bool) env('VOICE_ELEVENLABS_ZERO_RETENTION', false),

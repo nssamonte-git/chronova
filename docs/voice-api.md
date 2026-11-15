@@ -299,7 +299,8 @@ Seen but not changed: a recording picks up anyone talking nearby (twice another 
 | `VOICE_EXPLAIN_TIME_LIMIT` | `55` | Seconds a spoken explanation (`/v1/voice/explain`) may run: OpenAI writes the words, then ElevenLabs says them, up to `VOICE_OPENAI_TIMEOUT` + `VOICE_ELEVENLABS_TIMEOUT` (a test checks the defaults fit). |
 | `VOICE_EXPLAINER` | `fake` | `openai`, or `fake` (the plain summary) |
 | `VOICE_SPEECH` | `fake` | `elevenlabs`, or `fake` (a recorded test phrase) |
-| `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_flash_v2_5` | |
+| `VOICE_ELEVENLABS_TTS_MODEL` | `eleven_v4_turbo` | Eleven v4 Turbo (15 Nov 2026): ElevenLabs' real-time model, about Flash v2.5's latency, and it acts on audio tags; about twice Flash's price per character. Before: `eleven_flash_v2_5`, which ignores audio tags |
+| `VOICE_ELEVENLABS_STYLE_TAGS` | `excited, cheerful` | Audio tags put before every spoken line (`[excited, cheerful] …`) for an energetic, upbeat delivery; sent only to Eleven v3/v4 models, empty turns them off. Square brackets are taken out of the words first, so a task title can't act as a tag. The caption in the app is the plain text. |
 | `VOICE_ELEVENLABS_VOICE_ID` | `OYTbf65OHHFELVut7v2H` | The assistant's voice (chosen 12 Nov 2026) |
 | `VOICE_ELEVENLABS_OUTPUT_FORMAT` | `mp3_22050_32` | |
 | `OPENAI_API_KEY` | — | Secret |

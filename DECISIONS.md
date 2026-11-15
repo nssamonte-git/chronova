@@ -133,6 +133,8 @@ Active durable decisions only. Full rationale is in `README.md` ("Decisions and 
 - Constraint: real providers only with the user's approval; the privacy policy and Play Data safety form must cover ElevenLabs and OpenAI before release (`docs/voice-api.md`).
 - Revised 2026-11-14 (user choice, client handoff): the app's own text describes features only. It names no provider and says nothing about APIs, servers or data handling (the assistant's first-use notice and the image-import note included); provider names, what is sent and the 90-day history belong in the privacy policy and the Play Data safety form, which must exist before release.
 
+- Revised 2026-11-15 (user request): spoken answers use Eleven v4 Turbo (`eleven_v4_turbo`, the latest real-time ElevenLabs model, about Flash v2.5's latency) with audio tags for an energetic, upbeat delivery. The server's `AudioTags` puts `VOICE_ELEVENLABS_STYLE_TAGS` (default `excited, cheerful`) before every spoken line, only for models that act on tags, after taking square brackets out of the words; the explainer is asked for an upbeat tone but writes no tags itself, so every tag sent is a known one; the app's caption stays plain text. Trade-off: about twice Flash's price per character.
+
 ## 2026-11-13: Voice actions
 
 - Decision (user choices):
