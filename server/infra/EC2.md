@@ -12,7 +12,7 @@ Chronova runs in Sydney (`ap-southeast-2`) on a single EC2 instance. Cloudflare 
 | `~/chronova/compose.secrets.yaml` | Maps shell variables to the services that need them. |
 | `~/chronova/app.env` | Laravel settings shared by the application containers, including the assistant's voice (`VOICE_ELEVENLABS_VOICE_ID`). The app key and database password were removed after the Secrets Manager cutover. |
 
-The instance role reads `chronova/prod/runtime` from Secrets Manager in Sydney. `APP_KEY` and `DB_PASSWORD` go to `web`, `worker`, `scheduler`, and `migrate`. The OpenAI, ElevenLabs, and Meta keys go to `web`. `FCM_CREDENTIALS_JSON` goes to `web`, `worker`, and `scheduler`, along with `PUSH_SENDER=fcm`, which overrides `PUSH_SENDER=fake` in `app.env`. Keep the existing Laravel key when redeploying so encrypted data such as staff 2FA secrets remains readable.
+The instance role reads `chronova/prod/runtime` from Secrets Manager in Sydney. `APP_KEY` and `DB_PASSWORD` go to `web`, `worker`, `scheduler`, and `migrate`. The OpenAI, ElevenLabs, and Meta keys go to `web`. `FCM_CREDENTIALS_JSON` goes to `web`, `worker`, and `scheduler`, along with `PUSH_SENDER=fcm`, which overrides `PUSH_SENDER=fake` in `app.env`. `MAIL_PASSWORD` is in the secret too: `compose.secrets.yaml` requires it for `worker` (the other mail settings are in `app.env`), so the redeploy block below must pass it, or `docker compose config` stops with "Missing MAIL_PASSWORD" before anything changes. Keep the existing Laravel key when redeploying so encrypted data such as staff 2FA secrets remains readable.
 
 ## Check that EC2 runs the latest code
 
@@ -56,7 +56,7 @@ secret = json.loads(subprocess.check_output([
 env = os.environ.copy()
 for key in (
     "APP_KEY", "DB_PASSWORD", "OPENAI_API_KEY", "ELEVENLABS_API_KEY",
-    "META_API_KEY", "FCM_CREDENTIALS_JSON",
+    "META_API_KEY", "FCM_CREDENTIALS_JSON", "MAIL_PASSWORD",
 ):
     value = secret.get(key)
     if not isinstance(value, str) or not value.strip():
@@ -93,8 +93,10 @@ The voice the assistant speaks with is `VOICE_ELEVENLABS_VOICE_ID` in `~/chronov
 3. Check it, then try a voice command in the app:
 
    ```bash
-   sudo docker compose --profile public -f compose.yaml -f compose.override.yaml exec -T web php artisan tinker --execute="echo config('voice.elevenlabs.voice_id');"
+   sudo docker exec $(sudo docker ps -q --filter "label=com.docker.compose.service=web") php artisan config:show voice.elevenlabs.voice_id
    ```
+
+   (`tinker` prints only a warning there: it can't write its settings folder in the container.)
 
 With a wrong ID, ElevenLabs refuses the speech request, so the assistant can't speak its answers. Put the previous ID back and redeploy to undo.
 

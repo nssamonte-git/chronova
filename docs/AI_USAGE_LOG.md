@@ -2445,3 +2445,15 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `tools/check.sh` PASS (520 unit tests, 183 screenshots, lint 0 errors).
 - **Not yet confirmed:** a green device-test job on GitHub; that needs this pushed.
 - **Noticed:** the 1,000-task demo project now shows as "Sample Project - 1000 Tasks"; it wasn't renamed in this session (the demo login is shared).
+
+### EC2 redeploy block: MAIL_PASSWORD, and a working voice check
+
+- **What happened:** you set `VOICE_ELEVENLABS_VOICE_ID=tnSpp4vdxKPjI9w0GnoV` in `~/chronova/app.env`, but the voice didn't change. Your diagnostic output showed why:
+  - the web container had started at 20:55 UTC on 14 Nov, before `app.env` changed (00:25 UTC on 15 Nov), and its environment had no voice ID;
+  - `config:show` showed the server still on the default `OYTbf65OHHFELVut7v2H`.
+- **The redeploy failed safely:** it stopped at `docker compose config` with "required variable MAIL_PASSWORD is missing a value" (`services.worker`), before building or restarting anything; `/up` stayed 200. `compose.secrets.yaml` on EC2 requires `MAIL_PASSWORD`, which is in the `chronova/prod/runtime` secret (key names checked, no values shown), and `app.env` now has `MAIL_` settings, but the runbook's block passed only six keys.
+- **Changed in `server/infra/EC2.md`:**
+  - the redeploy block also passes `MAIL_PASSWORD`, and the secrets paragraph says why;
+  - the voice section's check now uses `php artisan config:show voice.elevenlabs.voice_id`, because the `tinker` check printed only "Writing to directory /config/psysh is not allowed".
+- **Not checked:** whether the server's mail settings deliver email (`CURRENT_TASK` still says mail is held in memory; the `MAIL_` lines in `app.env` suggest that changed on EC2 outside this repo).
+- **Not done yet:** the redeploy with the corrected block, and the voice check after it.
