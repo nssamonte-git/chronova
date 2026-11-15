@@ -2477,4 +2477,4 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Docs:** `.env.example`, `docs/voice-api.md` config table, README AI models table and test count, DECISIONS (a revision of the voice entry), `server/infra/EC2.md` (the tags and model as `app.env` settings), HANDOFF and `Learn/04` server baselines (527).
   - The writeup's AI model APIs page now names Eleven v4 Turbo and says the $0.007-per-command figure was measured with Flash.
   - The first re-render pushed that page's last line under the footer, so the wording was shortened; 23 pages, footers 1–23.
-- **Not done:** deploying to EC2 and hearing it; the first real v4 Turbo calls happen when you redeploy and try the orb.
+- **Live (15 Nov):** you pushed and ran the redeploy block. `3c4ada6` was pulled and built, and all services came up healthy. `config:show` showed `eleven_v4_turbo`, `excited, cheerful`, voice `tnSpp4vdxKPjI9w0GnoV` and `isolate_noise` true (you had turned noise removal on in `app.env`); `/up` 200. After the app was restarted on the phone, you tried the orb and confirmed it sounds right.

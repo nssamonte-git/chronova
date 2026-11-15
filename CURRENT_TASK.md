@@ -5,7 +5,7 @@
 Chronova is live at `https://chronova.meenux.tech` on Sydney EC2 (`ap-southeast-2`). Cloudflare DNS points to the instance and Caddy serves HTTPS. The Android API uses `/v1`. The homepage redirects to `/admin`, and guests reach `/admin/login`. See [the EC2 runbook](server/infra/EC2.md) for the current deployment workflow. The ECS Fargate/RDS/SES CDK stack is a separate deployment option.
 
 - **Verified on EC2:** `/up` returned 200, and signed-out `/v1/me` returned 401. The staff 2FA migration completed. EC2 retrieves `chronova/prod/runtime` through its IAM role. `APP_KEY` and `DB_PASSWORD` matched the running values before the cutover and were removed from `app.env`.
-- **Voice:** Enabled in the web container with OpenAI and ElevenLabs. The web container passed its health check. A live Android voice command and preview still need confirmation.
+- **Voice:** Enabled in the web container with OpenAI and ElevenLabs: Eleven v4 Turbo with `[excited, cheerful]` audio tags, voice `tnSpp4vdxKPjI9w0GnoV`, noise removal on (all set in `app.env` or by default; 15 Nov, confirmed by ear on the phone). The web container passed its health check. A live Android voice command and preview still need confirmation.
 - **Push:** `web`, `worker`, and `scheduler` reported healthy and each reported `sender=fcm, credential=SET`. The Compose override takes precedence over `PUSH_SENDER=fake` in `app.env`. Delivery to a second Android device still needs confirmation.
 - **Image import and email:** Image import is off. `MAIL_MAILER=array` keeps mail in the application process, so public sign-up and password reset email delivery remain open.
 
