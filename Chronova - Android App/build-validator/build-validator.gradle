@@ -19,6 +19,9 @@ if (bvScript == null) {
 // it needs Git for Windows' bash, which brings those tools. Look in Git's usual install folders
 // before PATH, so neither a PATH setting nor WSL's System32\bash.exe (Linux paths) is used by mistake.
 def bvShell = "sh"
+// Git's own tools folder (usr\bin), put first on PATH so the scan's find and sort are Git's, not
+// Windows' commands of the same name (System32\find.exe, sort.exe) when bash came from PATH.
+def bvToolsDir = null
 if (System.getProperty("os.name").toLowerCase().contains("windows")) {
     def env = System.getenv()
     def gitBash = [
@@ -33,15 +36,27 @@ if (System.getProperty("os.name").toLowerCase().contains("windows")) {
         throw new GradleException("Mobile build validator: Git for Windows' bash.exe was not found (it runs the security scan before every build). Install Git for Windows (https://git-scm.com/download/win) and build again.")
     }
     bvShell = found.absolutePath
+    def gitRoot = found.parentFile.name.equalsIgnoreCase("bin") && found.parentFile.parentFile.name.equalsIgnoreCase("usr")
+            ? found.parentFile.parentFile.parentFile : found.parentFile.parentFile
+    bvToolsDir = [new File(gitRoot, "usr\\bin"), found.parentFile].find { new File(it, "find.exe").exists() }
 }
-def bvReport = layout.buildDirectory.file("reports/build-validator/report.json").get().asFile.absolutePath
+// Paths for the shell with forward slashes: Git Bash reads C:/... paths, and dirname (used to find the
+// script's folder and to create the report's) splits them; it doesn't split on backslashes.
+def bvPath = { File f -> f.absolutePath.replace('\\', '/') }
+def bvReport = layout.buildDirectory.file("reports/build-validator/report.json").get().asFile
 
 def validateThreats = tasks.register("validateThreats", Exec) {
     group = "verification"
     description = "Scans the project source for known mobile threats and fails on blocking findings."
     workingDir bvScript.parentFile
-    commandLine bvShell, bvScript.absolutePath, "--report", bvReport
+    commandLine bvShell, bvPath(bvScript), "--report", bvPath(bvReport)
+    if (bvToolsDir != null) {
+        def pathKey = System.getenv().keySet().find { it.equalsIgnoreCase("PATH") } ?: "PATH"
+        environment(pathKey, bvToolsDir.absolutePath + File.pathSeparator + (System.getenv(pathKey) ?: ""))
+    }
     outputs.upToDateWhen { false }
+    // The scan creates the report's folder too; made here as well, so a fresh clone never depends on it.
+    doFirst { bvReport.parentFile.mkdirs() }
 }
 
 tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(validateThreats) }

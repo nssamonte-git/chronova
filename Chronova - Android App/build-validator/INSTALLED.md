@@ -13,3 +13,5 @@ Re-run the installer to update it. Accepted findings go in ../.build-validator-i
 ## Local change (15 Nov 2026)
 
 `build-validator.gradle` finds Git for Windows' `bash.exe` in Git's usual install folders (then on PATH, skipping `System32`), instead of calling a bare `bash` that only works when Git's folder is on PATH, and stops with a clear message when it's missing. macOS and Linux still use `sh`; the scan, rules and threshold are unchanged. The canonical `mobile-build-validator/Native Android/build-validator.gradle` doesn't have this yet: port it there through the canonical repo's admission process, or a re-install will undo it here.
+
+Also (15 Nov 2026, later): on Windows the hook passes the script and report paths with forward slashes (Git Bash reads `C:/...`, and `dirname` doesn't split on backslashes), puts Git's `usr\bin` first on the scan's PATH (so `find` and `sort` are Git's, not `System32\find.exe` or `sort.exe`, when `bash.exe` came from PATH), and creates the report folder before the scan. On macOS and Linux nothing changes. Port these to the canonical copy too.

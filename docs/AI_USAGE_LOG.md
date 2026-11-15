@@ -2562,3 +2562,20 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 - **Checked:** rendered in Chrome headless, 23 pages, footers 1–23, fonts embedded; the 13 changed pages looked at as images; all 23 opened with macOS `sips`; no "Sydney", "no audio or words" or "39 unit tests" left in the PDF text.
 - **Not changed:** claims measured live (TLS details, timings) or on the phone, which the repo can't confirm; the demo project's name ("Sample Project", which someone renamed on the shared account).
 - **Process note:** the timeline device tests earlier today ran through `connectedDebugAndroidTest` on the library module. `HANDOFF` says to use `am instrument` on the phone. That module's test app is separate from `noel.chronova.app`, and the app was installed and present afterwards. The phone disconnected before its data could be looked at again.
+
+### Will the build validator work on Windows?
+
+- **Your question:** will the build validator work in Windows.
+- **What the repo had:** the hook finds Git for Windows' `bash.exe`, but it had never been run on Windows (earlier entry: "Not checked: the Windows path"). `.gitattributes` keeps only `*.sh` (and `gradlew`) in LF, so on Windows the rules files, the ignore file and the source would usually check out with CRLF.
+- **Simulated here:**
+  - Two copies of the tracked Android project, one with every text file except the `.sh` scripts converted to CRLF (476 files, 50 of them in `build-validator/`).
+  - Both scanned on the Mac: the same result (517 files, pass, 7 warnings, 3 suppressed).
+  - Known problems planted in both (`onReceivedSslError` → `proceed()`, `debuggable`, cleartext, backup in the manifest): both failed with the same 8 rules, including AND-WV-007 (critical).
+  - The same four scans with GNU `sed` and `grep` (Debian, in the local server image, network off), as Git Bash ships GNU tools: identical. That image's `awk` is mawk; Git Bash has gawk.
+- **Hardened (`build-validator.gradle`):**
+  - The script and report paths go to the shell with forward slashes, because `dirname` doesn't split on backslashes; before, the script only worked because the working folder was set.
+  - Git's `usr\bin` goes first on the scan's PATH, so `find` and `sort` can't be Windows' own commands when `bash.exe` was found on PATH.
+  - The report folder is created before the scan.
+  - Recorded in `build-validator/INSTALLED.md`; the canonical copy needs the same change.
+- **Checked:** on the Mac, `:app:validateThreats` with the report folder deleted still passes (525 files, 7 warnings, 3 suppressed) and writes the report.
+- **Not checked:** a real Windows build. The Windows branch of the hook (finding Git, PATH, the paths) has never run.
