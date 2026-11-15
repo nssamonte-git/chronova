@@ -20,6 +20,24 @@ data class OrbPose(val yawDegrees: Float, val pitchDegrees: Float, val scale: Fl
 /** Pure motion curves for the orb, so they can be unit-tested without a renderer. */
 object OrbMotion {
     /**
+     * The shortest time between two drawn frames, in milliseconds; 0 means every frame.
+     * Each orb frame makes the whole window redraw (it's a TextureView), which kept budget GPUs
+     * busy at about 30 fps on screens where nothing else moved (15 Nov 2026). Resting, the orb
+     * only sways slowly (about 15° a second at most), so about 12 frames a second look the same.
+     * Listening, thinking and speaking follow the voice and keep every frame.
+     */
+    fun frameIntervalMs(mode: OrbMode, reducedMotion: Boolean): Long = when {
+        reducedMotion -> STILL_CHECK_MS
+        mode == OrbMode.Idle -> IDLE_FRAME_MS
+        else -> 0L
+    }
+
+    const val IDLE_FRAME_MS = 83L
+
+    /** With "remove animations" the pose only changes with the mode, so look a few times a second. */
+    const val STILL_CHECK_MS = 250L
+
+    /**
      * [seconds] since the orb appeared; [level] the microphone level in 0..1 (listening only).
      * With [reducedMotion] (the system's "remove animations") the orb stays still.
      */

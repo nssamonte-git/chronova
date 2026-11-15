@@ -2478,3 +2478,32 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - The writeup's AI model APIs page now names Eleven v4 Turbo and says the $0.007-per-command figure was measured with Flash.
   - The first re-render pushed that page's last line under the footer, so the wording was shortened; 23 pages, footers 1–23.
 - **Live (15 Nov):** you pushed and ran the redeploy block. `3c4ada6` was pulled and built, and all services came up healthy. `config:show` showed `eleven_v4_turbo`, `excited, cheerful`, voice `tnSpp4vdxKPjI9w0GnoV` and `isolate_noise` true (you had turned noise removal on in `app.env`); `/up` 200. After the app was restarted on the phone, you tried the orb and confirmed it sounds right.
+
+### Draw performance: the resting orb no longer redraws every frame
+
+- **Your request:** rate the app's draw performance; then fix the orb.
+- **Measured** on your phone with `dumpsys gfxinfo`: OPPO A15 (CPH2185, MediaTek Helio P35, PowerVR GE8320, Android 10, 720×1600, 60 Hz), debug build, the 1000-task project in Weeks.
+  - The scripted scroll was 12 flings down, 6 up, 10 swipes later in time and 5 back; idle meant 10 s untouched.
+  - Before the fix, the account page (no orb) drew 0 frames idle, while screens with the resting orb redrew about 30 times a second (276–324 frames in 10 s, about 24 ms each, almost all "slow issue draw commands", i.e. the GPU).
+  - The cause: `AssistantOrb` rendered the 3D orb every frame into a `TextureView`, and each orb frame makes the whole window redraw. The resting (`Idle`) motion is only a slow sway with a constant glow.
+- **Changed:**
+  - `OrbMotion.frameIntervalMs`: the resting orb draws about every 83 ms (about 12 fps); with "remove animations", the pose is checked every 250 ms; listening, thinking and speaking keep every frame.
+  - `AssistantOrb`: draws only when the pose changed, and waits that interval between frames.
+  - Not done: moving the orb to a `SurfaceView`. It would stop window redraws entirely, but changes how the halo (behind) and spark (on top) layer and how transparency works on Android 10; left for later if needed.
+- **Results, same phone and script:**
+
+  | | Before | After |
+  |---|---|---|
+  | Timeline idle, 10 s | 276 frames, 99% janky, median 24 ms | 101 frames, 36% janky, median 15 ms |
+  | Project list idle, 10 s (after the greeting) | 324 frames, median 21 ms | 101 frames, median 16 ms |
+  | Timeline scrolling | 2,141 frames, 60% janky, median 18 ms, 90/95/99th 42/65/150 ms, 613 slow-draw, 221 slow UI-thread | 1,054 frames, 42% janky, median 14 ms, 90/95/99th 53/89/150 ms, 44 slow-draw, 157 slow UI-thread |
+
+  Fewer frames while scrolling because the orb no longer adds its own. The remaining tail is mostly the main thread of a debug build.
+  - The first "after" list measurement (318 frames) was taken while the greeting was being spoken, which runs at full rate by design, so it was re-measured after.
+- **Tests:** 3 new `OrbMotionTest` cases:
+  - the frame intervals per mode;
+  - an idle step under 2° of turn at 12 fps;
+  - with "remove animations", the pose never changes within a mode.
+
+  `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors. Counts updated in README, HANDOFF, `Learn/04` and CURRENT_TASK; README's known limitations give the measured numbers.
+- **Not measured:** a release build (needs your signing key, or a benchmark build type that isn't set up), pinch-zoom (adb can't do two fingers), or how the slower sway looks to you.

@@ -30,7 +30,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import noel.chronova.feature.assistant.presentation.orb.OrbEngine
 import noel.chronova.feature.assistant.presentation.orb.OrbMode
+import kotlinx.coroutines.delay
 import noel.chronova.feature.assistant.presentation.orb.OrbMotion
+import noel.chronova.feature.assistant.presentation.orb.OrbPose
 import noel.chronova.feature.assistant.presentation.orb.OrbSurface
 
 /**
@@ -70,12 +72,20 @@ fun AssistantOrb(
         val target = surface ?: return@LaunchedEffect
         if (!running) return@LaunchedEffect
         val start = withFrameNanos { it }
+        var drawn: OrbPose? = null
         while (true) {
             withFrameNanos { now ->
                 val pose = OrbMotion.pose(currentMode, (now - start) / 1e9f, currentLevel(), reducedMotion)
-                glow.floatValue = pose.glow
-                target.frame(pose, now)
+                // An unchanged pose draws nothing, so the window isn't redrawn for it.
+                if (pose != drawn) {
+                    glow.floatValue = pose.glow
+                    target.frame(pose, now)
+                    drawn = pose
+                }
             }
+            // Resting or still, the orb draws a few frames a second instead of every one.
+            val pause = OrbMotion.frameIntervalMs(currentMode, reducedMotion)
+            if (pause > 0) delay(pause)
         }
     }
 

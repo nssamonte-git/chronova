@@ -222,7 +222,7 @@ tools/check.sh --devices      # also every module's device tests on a managed em
 
 | Suite | Command | Count |
 |---|---|---|
-| Android JVM unit tests (JUnit 4, coroutines-test, OkHttp MockWebServer; 71 files in 31 modules) | `cd "Chronova - Android App" && ./gradlew test` (part of `tools/check.sh`) | 520 |
+| Android JVM unit tests (JUnit 4, coroutines-test, OkHttp MockWebServer; 71 files in 31 modules) | `cd "Chronova - Android App" && ./gradlew test` (part of `tools/check.sh`) | 523 |
 | Screenshot tests (Compose Preview Screenshot Testing; 61 previews in 10 modules, each at phone size, 1.5× text and dark) | `./gradlew testDebugScreenshotTestDefaultTestSuite`; after an intended visual change, `updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them | 183 |
 | Lint and architecture | `./gradlew :app:lintDebug verifyModuleGraph verifyUiModels` | 0 lint errors |
 | Security build gate | runs as `:app:validateThreats` before every build; alone: `sh build-validator/validate-build.sh` (see below) | 89 rules |
@@ -254,6 +254,7 @@ The app's core (time math, snapping, edits, viewport, rules, sync engine with an
 - The live server is a single EC2 instance with PostgreSQL on the same machine (no load balancer, managed database or Multi-AZ). Still open there: real email (mail is held in memory, so sign-up and reset codes aren't sent), voice and push checked end to end from phones, and a tested database restore; image import is off. The CDK stack has been synthesized and tested, not deployed; email through it needs SES production access.
 - The demo account and the admin panel's Support test login are shared and public: anyone can change the demo's projects, and the Support login can see every user's email and sync history, disable or sign out accounts and open a user's projects with an audited reason (DECISIONS, 2026-11-15). Re-seed the demo or change that password to reset or withdraw them.
 - The live server doesn't report which commit it runs; [`server/infra/EC2.md`](server/infra/EC2.md) ("Check that EC2 runs the latest code") compares its checkout with GitHub.
+- The resting assistant orb still redraws the screen about 12 times a second (it's drawn into a TextureView, so each orb frame redraws the window); listening, thinking and speaking run at the full frame rate. On a budget phone (OPPO A15, PowerVR GE8320, debug build, 15 Nov 2026) an idle screen with the orb draws about 10 frames a second, a screen without it none; scrolling the 1,000-task timeline has a median frame of 14 ms but a long tail (99th percentile 150 ms), mostly on the main thread of a debug build.
 - Dragging a handle past the edge of the viewport doesn't auto-scroll.
 - On a 360 dp phone the four scale buttons push the zoom, snap and row-height controls off-screen (the toolbar scrolls sideways).
 - Dependency arrows update when a drag ends, not during it.

@@ -37,7 +37,7 @@ Short version; the full rules are in `Learn/02-architecture.md` ("Invariants in 
 
 Commands only; procedures, baselines and phone quirks are in `Learn/04-validation.md` ("Validation in detail").
 
-- App: the pre-push hook runs `tools/check.sh` (520 unit tests, lint, architecture checks, 183 screenshots and the security gate). Add `--devices` for the 112 managed emulator tests. CI lives in `.github/workflows/android.yml`.
+- App: the pre-push hook runs `tools/check.sh` (523 unit tests, lint, architecture checks, 183 screenshots and the security gate). Add `--devices` for the 112 managed emulator tests. CI lives in `.github/workflows/android.yml`.
 - Phone: never `connectedAndroidTest` (it deletes the app's data). App tests through `tools/qa/rotation-stress.sh instrumented`; every other module as its own test app with `am instrument`, then uninstall it.
 - Screenshots: after an intended visual change, `./gradlew updateDebugScreenshotTestDefaultTestSuite`, look at the PNGs, commit them.
 - Build gate: `sh build-validator/validate-build.sh`; never lower its threshold or remove the hook. Releases are signed by hand in Android Studio.

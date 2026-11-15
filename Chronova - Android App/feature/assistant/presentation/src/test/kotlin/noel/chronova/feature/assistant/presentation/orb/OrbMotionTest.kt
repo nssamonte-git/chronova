@@ -53,4 +53,32 @@ class OrbMotionTest {
             assertEquals(1f, a.scale)
         }
     }
+
+    @Test
+    fun theRestingOrbDrawsAboutTwelveFramesASecondAndTheOthersEveryFrame() {
+        assertEquals(83L, OrbMotion.frameIntervalMs(OrbMode.Idle, reducedMotion = false))
+        listOf(OrbMode.Listening, OrbMode.Thinking, OrbMode.Speaking).forEach { mode ->
+            assertEquals("$mode", 0L, OrbMotion.frameIntervalMs(mode, reducedMotion = false))
+        }
+        OrbMode.entries.forEach { mode -> assertEquals("$mode still", 250L, OrbMotion.frameIntervalMs(mode, reducedMotion = true)) }
+    }
+
+    @Test
+    fun atTwelveFramesASecondTheRestingSwayStepsLessThanTwoDegrees() {
+        // The step between two drawn idle frames stays too small to see as a jump on a 60 dp orb.
+        val step = OrbMotion.IDLE_FRAME_MS / 1000f
+        val biggest = (0..2000).maxOf { i ->
+            val t = i * 0.01f
+            abs(OrbMotion.pose(OrbMode.Idle, t + step).yawDegrees - OrbMotion.pose(OrbMode.Idle, t).yawDegrees)
+        }
+        assertTrue("largest idle step $biggest degrees", biggest < 2f)
+    }
+
+    @Test
+    fun withRemoveAnimationsThePoseNeverChangesWithinAMode() {
+        OrbMode.entries.forEach { mode ->
+            val poses = (0..200).map { OrbMotion.pose(mode, it * 0.05f, level = 1f, reducedMotion = true) }.toSet()
+            assertEquals("$mode", 1, poses.size)
+        }
+    }
 }
