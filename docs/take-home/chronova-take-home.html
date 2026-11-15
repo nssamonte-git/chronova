@@ -724,9 +724,9 @@
     <div class="title-rule"><div class="a"></div><div class="b"></div><div class="c"></div></div>
 
     <div class="metrics tight">
-      <div class="metric"><div class="num">515</div><div class="lab">Unit tests</div></div>
-      <div class="metric"><div class="num">110</div><div class="lab">Device tests</div></div>
-      <div class="metric"><div class="num">180</div><div class="lab">Screenshots</div></div>
+      <div class="metric"><div class="num">523</div><div class="lab">Unit tests</div></div>
+      <div class="metric"><div class="num">112</div><div class="lab">Device tests</div></div>
+      <div class="metric"><div class="num">183</div><div class="lab">Screenshots</div></div>
       <div class="metric"><div class="num">16</div><div class="lab">Rotation scenarios</div></div>
       <div class="metric"><div class="num">89</div><div class="lab">Security rules</div></div>
     </div>
@@ -734,9 +734,9 @@
     <table class="formal compact mt-m">
       <thead><tr><th style="width:1.25in">Type</th><th style="width:0.95in">How many</th><th>What it covers</th><th style="width:1.55in">Tools · where it runs</th></tr></thead>
       <tbody>
-        <tr><td class="k" style="white-space:normal">JVM unit tests</td><td>515 in 71 files, 31 modules</td><td>Time math, snapping, edits and hit testing (48); rules, critical path, the write path and Undo (58); the voice planner (72); ViewModels; the sync engine against an in-memory server (28); network clients</td><td>JUnit 4, coroutines-test, OkHttp MockWebServer · <code>./gradlew test</code></td></tr>
-        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>110 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 26, with drag and pinch); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
-        <tr><td class="k" style="white-space:normal">Screenshot tests</td><td>60 × 3 = 180, 10 modules</td><td>Every screen at phone size, 1.5× text and dark, compared with committed images</td><td>Compose Preview Screenshot Testing</td></tr>
+        <tr><td class="k" style="white-space:normal">JVM unit tests</td><td>523 in 71 files, 31 modules</td><td>Time math, snapping, edits and hit testing (48); rules, critical path, the write path and Undo (58); the voice planner (72); ViewModels; the sync engine against an in-memory server (28); network clients</td><td>JUnit 4, coroutines-test, OkHttp MockWebServer · <code>./gradlew test</code></td></tr>
+        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>112 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 26, with drag and pinch); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
+        <tr><td class="k" style="white-space:normal">Screenshot tests</td><td>61 × 3 = 183, 10 modules</td><td>Every screen at phone size, 1.5× text and dark, compared with committed images</td><td>Compose Preview Screenshot Testing</td></tr>
         <tr><td class="k" style="white-space:normal">Static checks</td><td>4 checks</td><td>Android lint (0 errors); <code>verifyModuleGraph</code> (layer rules); <code>verifyUiModels</code> (no domain types in UI); the security build gate (89 rules)</td><td>Gradle · every build or check</td></tr>
         <tr><td class="k" style="white-space:normal">On a real phone</td><td>16 scenarios + manual</td><td>Rotation stress (crashes, leaks, memory, lost state); UI checked against predicted values; sync end to end with a second device</td><td><code>tools/qa/rotation-stress.sh</code>, adb screenshots</td></tr>
       </tbody>
@@ -747,7 +747,7 @@
         <h3 class="sect" style="margin-top:0">Unit tests by layer</h3>
         <svg viewBox="0 0 330 140" width="3.1in" height="1.3in" xmlns="http://www.w3.org/2000/svg">
           <g font-size="9" fill="#0B1226">
-            <text x="0" y="17">Feature presentation</text><rect x="118" y="6" width="168" height="15" rx="3" fill="#2B5CFF"/><text x="292" y="17" font-weight="700">168</text>
+            <text x="0" y="17">Feature presentation</text><rect x="118" y="6" width="176" height="15" rx="3" fill="#2B5CFF"/><text x="300" y="17" font-weight="700">176</text>
             <text x="0" y="45">Core</text><rect x="118" y="34" width="146" height="15" rx="3" fill="#0B1226"/><text x="270" y="45" font-weight="700">146</text>
             <text x="0" y="73">Feature domain</text><rect x="118" y="62" width="124" height="15" rx="3" fill="#7C3AED"/><text x="248" y="73" font-weight="700">124</text>
             <text x="0" y="101">Feature data</text><rect x="118" y="90" width="73" height="15" rx="3" fill="#0B8577"/><text x="197" y="101" font-weight="700">73</text>
@@ -759,7 +759,7 @@
         <h3 class="sect" style="margin-top:0">When they run</h3>
         <ul class="dash">
           <li><b><code>tools/check.sh</code></b> runs the unit, screenshot and static checks (device tests with <code>--devices</code>); the <b>pre-push hook</b> and <b>CI</b> run it too.</li>
-          <li><b>Last full check:</b> 14 Nov 2026, passed: 515 of 515 unit tests; the 110 device tests passed the same day.</li>
+          <li><b>Last full check:</b> 15 Nov 2026, passed: 523 of 523 unit tests and 183 screenshots. 110 device tests passed in full on 14 Nov; the 2 added since passed in their own module's run.</li>
           <li><b>Growth:</b> the take-home shipped with 39 unit tests.</li>
         </ul>
       </div>
@@ -1150,25 +1150,27 @@ Authorization: Bearer 42|Xk9fQ2…
     <h3 class="sect" style="margin-top:0">Which tools, and how I broke the problem down</h3>
     <p class="body"><b>Claude Code</b> (Claude Opus 5.5) in the Claude desktop app, with access to the project, the Gradle build, <code>adb</code> to a real Android phone, and git. No other AI tools.</p>
     <ol class="steps">
-      <li><b>Spec first.</b> I wrote a detailed prompt: requirements, architecture and state rules, required unit-test scenarios, git and logging rules, and an explicit "no big unreviewed code dump". My first ask was to <i>revalidate</i> the plan and split it into small batches.</li>
-      <li><b>Revalidation.</b> Before coding, it found the project was a Views template (not Compose), <code>minSdk</code> 24 was too low for <code>java.time</code>, and the spec had gaps (timeline range, rounding rule, minimum duration, when a drag is saved). It asked me three questions.</li>
-      <li><b>Ten batches (B0–B9).</b> Each ended with a real build and test run, a check on the phone against <i>predicted</i> values (e.g. "+150 px at 3.2 px/min → 09:45–11:45"), a log entry and a commit. I started each batch after reading the last summary.</li>
+      <li><b>Spec first.</b> I wrote a detailed prompt: requirements, architecture, required tests, git and logging rules, and "no big unreviewed code dump". First I asked it to <i>revalidate</i> the plan and split it into small batches.</li>
+      <li><b>Revalidation.</b> Before coding, it found a Views template (not Compose), <code>minSdk</code> 24 too low for <code>java.time</code>, and gaps in the spec (range, rounding, minimum duration, when a drag saves).</li>
+      <li><b>Ten batches (B0–B9).</b> Each ended with a real build and tests, a phone check against <i>predicted</i> values (e.g. "+150 px at 3.2 px/min → 09:45–11:45"), a log entry and a commit.</li>
     </ol>
 
     <h3 class="sect">What the AI got wrong, and how it was caught</h3>
     <table class="formal compact">
       <thead><tr><th style="width:2.05in">What it produced</th><th style="width:1.9in">Why it was wrong</th><th style="width:1.35in">How it was caught</th><th>Fix</th></tr></thead>
       <tbody>
-        <tr><td>Pixel → time in exact milliseconds</td><td>Floats at ~1300 px can't hold ms; round trips came back 1 ms early</td><td>2 of 24 unit tests failed</td><td>Round to whole minutes</td></tr>
+        <tr><td>Pixel → time in exact milliseconds</td><td>Floats can't hold ms at ~1300 px</td><td>2 of 24 unit tests failed</td><td>Round to whole minutes</td></tr>
         <tr><td>Drag distance measured from the touch-slop point</td><td>The bar would trail the finger by ~8 dp</td><td>Reading the code before running</td><td>Measure from pointer-down</td></tr>
         <tr><td>Drag preview cleared on release</td><td>Bar flashes back for one frame</td><td>Reading the code before running</td><td>Keep preview until saved task arrives</td></tr>
         <tr><td>Header labelled only major ticks</td><td>A Days view showed a header with no text</td><td>Phone screenshot</td><td>Label minor ticks when ≥ 56 dp apart</td></tr>
         <tr><td>Limits ignored the snap grid</td><td>At 60-min snap an edge could land on :45</td><td>A requirements review I asked for</td><td>Round limits inward to the grid</td></tr>
-        <tr><td>Bar used <code>width</code> inside a narrower lane</td><td>Wide bars were clamped, 16 px short</td><td>Pixel measurement after zooming</td><td><code>wrapContentWidth(unbounded = true)</code></td></tr>
+        <tr><td>Bar used <code>width</code> inside a narrower lane</td><td>Wide bars were clamped, 16 px short</td><td>Measuring pixels</td><td><code>wrapContentWidth(unbounded = true)</code></td></tr>
         <tr><td>Database and network calls on the main thread</td><td>Crashes that JVM tests can't see</td><td>End-to-end check on the phone</td><td>Move to <code>Dispatchers.IO</code></td></tr>
+        <tr><td>The 3D orb on every device</td><td>It crashed on emulators that draw without a GPU</td><td>GitHub's device tests failed</td><td>Show a plain icon there</td></tr>
+        <tr><td>The resting orb drawn every frame</td><td>A budget phone stayed busy on still screens</td><td>Counting frames on my phone</td><td>Draw it ~12 times a second</td></tr>
       </tbody>
     </table>
-    <p class="small mt-s">The first four are from the take-home itself; the last three came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
+    <p class="small mt-s">The first four are from the take-home itself; the rest came after it. Each one is in <code>docs/AI_USAGE_LOG.md</code> with its batch.</p>
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>
@@ -1607,8 +1609,11 @@ Authorization: Bearer 42|Xk9fQ2…
     <div class="check-row"><div class="box">!</div><p>In Months scale, a project that starts mid-month shows no month label until the next 1st (the corner label shows the date).</p></div>
 
     <h3 class="sect">On the wider app</h3>
-    <div class="check-row"><div class="box">!</div><p>The server is live on a single EC2 instance (no load balancer or managed database yet); real email, an end-to-end voice and push check from phones, and a tested database restore are still open. The CDK production stack is not deployed.</p></div>
+    <div class="check-row"><div class="box">!</div><p>The server is live on a single EC2 instance (no load balancer or managed database yet). Voice works from a phone; still open are checking that email is delivered, push between two phones, and a tested database restore. The CDK production stack is not deployed.</p></div>
     <div class="check-row"><div class="box">!</div><p>Voice needs a connection and an account, and its yes/no words are English only. Before release, the privacy policy and Play Data safety form must name the voice providers.</p></div>
+    <div class="check-row"><div class="box">!</div><p>The demo and Support logins are public, so anyone can change the demo's projects; re-seed it or change the passwords to reset them.</p></div>
+    <div class="check-row"><div class="box">!</div><p>On a budget phone the resting orb still redraws the screen about 12 times a second (30 before 15 Nov), and scrolling 1,000 tasks keeps a few slow frames. Measured on a debug build only.</p></div>
+    <div class="check-row"><div class="box">!</div><p>On an emulator without a GPU the orb shows a plain icon (its 3D engine crashed there and failed GitHub's device tests); the fix awaits a green CI run.</p></div>
 
     <h3 class="sect">Where to find more</h3>
     <table class="formal compact">

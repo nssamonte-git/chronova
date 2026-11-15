@@ -2,7 +2,7 @@
 
 *Prepared for the shared Google Doc. Every item below is taken from the development log (`docs/AI_USAGE_LOG.md`) and the git history; nothing is reconstructed or estimated after the fact.*
 
-Chronova started as the PicCollage Android take-home (batches B0–B9, preserved at git tag `submission-v1`) and grew, with the same tool and process, into an offline-first scheduler with a Laravel server, a staff admin panel, AWS infrastructure (not deployed), voice commands and its own branding. Sections 1–4 cover the take-home as submitted; section 5 covers the work after it.
+Chronova started as the PicCollage Android take-home (batches B0–B9, preserved at git tag `submission-v1`) and grew, with the same tool and process, into an offline-first scheduler with a Laravel server (live on one AWS EC2 instance), a staff admin panel, a voice assistant and its own branding. Sections 1–4 cover the take-home as submitted; section 5 covers the work after it.
 
 **Repository layout today:** one git repository. The Android app is the Gradle project in `Chronova - Android App/`; `server/` (Laravel, admin panel, Docker, `server/infra/` AWS CDK), `docs/` and `tools/brand/` sit next to it at the root. Paths in the log written before the move (12 Nov, 07:47) are relative to the Android folder.
 
@@ -116,70 +116,75 @@ Git commits run from 20:09 (template baseline) to the final documentation commit
 
 ## 5. After the take-home
 
-### 5.1 What was built and how the work was divided
+The way of working stayed the same. I said what I wanted, Claude Code checked it against the code and proposed a plan in small steps, I answered its questions and approved the plan, and each step ended with real tests, a check on the phone or in the browser against numbers written down first, a log entry and a commit. Claude never pushed or deployed anything: I pushed to GitHub myself and ran every command on the live server myself.
 
-The same tool and loop continued: I described a goal, Claude Code revalidated it against the code and proposed a plan in small batches, I answered its questions and approved the plan, and every batch ended with real test runs, a device or browser check against predicted values where relevant, a log entry and a commit. Nothing was pushed or deployed. Besides the build and `adb`, Claude used the desktop app's built-in browser for the admin panel, the local Laravel server for end-to-end checks, Pillow for image processing, and — only with my keys and go-ahead — the real OpenAI and ElevenLabs APIs.
+### 5.1 What was built, and what I decided
 
-| Phase | Batches | What it added | My decisions |
-|---|---|---|---|
-| Polish and multi-project | B10–B16 | Snap-grid fixes from a requirements review; Room persistence and a project list; a virtualized timeline for long projects; project and task create/edit/delete with undo; Hours/Days/Weeks/Months on the real calendar; finish-to-start dependencies | Asked for a check against the brief and approved the snap fixes; asked for the scheduler to work for any project, choosing Room and offline-first sync with a prompt on reconnect |
-| Sync and server | B17–B34 | Offline-first sync with a reconnect prompt ("sync now?"); a first serverless backend (Cognito, Lambda, DynamoDB) replaced, before deploying, by Laravel 13 + Postgres; email-code sign-up; a Filament admin panel with required MFA, roles, audit log, health dashboard and time-limited audited support access; a production container; AWS CDK (not deployed) | First chose an AWS serverless backend, then switched to Laravel + Filament for an admin back-office and relational data; no deploy without approval |
-| Voice commands | V0–V10 | One transactional, undoable apply path shared by drags and commands; a command planner and "push everything after it"; server endpoints for transcription (ElevenLabs Scribe), interpretation (OpenAI, strict JSON schema) and a spoken explanation; push-to-talk, preview, Apply, Undo; admin usage metrics; AWS secrets for the keys; tuning against the real providers | Providers as in the brief; always preview then confirm, with a spoken explanation; dependents move only via voice; on for every signed-in user; supplied the API keys in the git-ignored `server/.env`; agreed to send task names to the transcriber |
-| Branding | brand B1–B4 | Icons, launch screen and admin logo generated from the supplied logo; a dark-only admin theme in the logo's colours; a layout fix on the admin user page | Use the image as is (not a vector redraw); dark-only admin; logo on the launcher and launch screen |
-| Repository layout | — | One repository rooted at the project folder: the Android Gradle project in its own folder, backend and docs at the root; README and handoff files updated | Backend in `server/` at the root, one repository with history kept; delete the old bundle backup |
+| When | What was added | What I decided |
+|---|---|---|
+| 11–12 Nov night (B10–B16) | Snap fixes, saving projects on the phone (Room), a project list, long projects that scroll smoothly, Hours/Days/Weeks/Months, task dependencies | Asked for a review against the brief; asked for any project to work, offline first |
+| 12 Nov night (B17–B34) | Sync with a "sync now?" prompt, a Laravel + Postgres server, email-code sign-up, the admin panel, a production container, AWS CDK code | Tried a serverless backend first, then switched to Laravel for a proper admin panel |
+| 12 Nov early morning (V0–V10) | Voice commands: speak, see a preview, Apply, Undo, hear a short explanation | Always preview and confirm; the API keys stay on the server |
+| 12 Nov morning (O1–O5) | The 3D assistant orb and a voice-only loop: it proposes, asks for a spoken yes, applies and explains; clash warnings and safer alternatives; a notifications page | Supplied the orb model and the voice; "the model suggests, the app checks"; keep past decisions for 90 days; sign-in required |
+| 12 Nov evening | Rotation fixes and about 23 small modules, with a build check that keeps the layers apart | Approved the module plan |
+| 13 Nov | Pinch zoom, the build security gate, full code shrinking for releases, screenshot tests, one check script and CI; then progress, notes, milestones, search, dark theme, exports, reminders, the critical path and many more voice commands; then push reminders through Firebase and turning a photo of a schedule into tasks | Every gap closed; notes never go to voice; reading commands run at once, changes need a yes; OpenAI never gets the photo |
+| 13–14 Nov | A new look built from the logo ("Aurora"), a copy review, previews for every screen; fixes found while recording the walkthrough video | The look follows the logo; app text describes features, not providers; a 09:00–17:00 Mon–Fri working day |
+| 14–15 Nov | The take-home PDF; email domain setup; the server live on EC2 at `chronova.meenux.tech`; the app pointed at it; a 1,000-task demo account and a "Try demo" button; setup, troubleshooting and admin-panel pages | Hard-code the demo login and publish the Support test login (both on purpose, both recorded); the CDK stack waits |
+| 15 Nov | A build that works from a fresh clone on any computer, the voice and noise removal as server settings, a more upbeat voice (Eleven v4 Turbo), the orb kept off emulators without a GPU, a smoother resting orb, Claude Code removed as co-author of the commits | Asked for the upbeat voice, a performance rating and the orb fix |
 
-**My direct actions in this phase:** re-authorizing USB debugging when the phone revoked it, putting the provider keys in `server/.env`, approving each plan, and telling Claude to sign in to the local admin panel with the throwaway test credentials after a safety check had stopped it from reading them.
+**What I did myself:** gave the provider keys, the Firebase files, the orb model and the voice IDs; approved every call to a real AI provider; reconnected the phone's USB debugging many times; on EC2, set up the secrets, ran the seed script, changed settings and redeployed; typed every production password myself (Claude never did); pushed to GitHub; and checked by ear and eye that the new voice and the smoother orb were right.
 
-**How AI output was reviewed in this phase:**
-- **Tests on every batch:** app JVM tests grew from 39 to 195, plus 3 instrumented Room tests run on the phone; 227 Pest tests for the server (the suite also ran inside the production image when it was built, at 99 tests); 16 infrastructure assertions and a clean `cdk synth`.
-- **Predictions before every device and browser check,** for example "push build by 2 hours → Build: Thu 12 09:00 – 10:00 → Thu 12 11:00 – 12:00", then compared with the screen.
-- **Scripted end-to-end checks:** sync between the phone and a simulated second device against the local server; a 15-command sample set for the real interpreter with the expected answers written first (15 of 15 after two of my expected answers were corrected: one test was contradictory, and "delete every task" is a legitimate request that still needs Apply); measured latency (~4 s from Done to preview) and cost (≈ $0.006 per spoken command).
-- **Privacy checks:** logs and metrics searched for spoken or typed words and keys after each voice check; throwaway accounts and test data removed afterwards.
+**How Claude's work was checked:**
+- **Tests on every step.** App unit tests went from 39 at the take-home to 523; device tests from 0 to 112; screenshot tests from 0 to 183; server tests to 527; infrastructure tests to 23.
+- **Numbers written before looking.** For example "drag 192 px → Prepare dinner 17:00–18:00", then compared with the phone.
+- **Planting a fault to prove a check works.** A planted unsafe web setting failed the security gate; a 4 dp padding change failed the screenshot tests.
+- **Real runs with the AI providers**, only with my go-ahead: 21 spoken requests all handled; 9 of 9 rows right in a photo import after tuning.
+- **Checks on the live server:** health page, a signed-out request refused, the voice settings read back.
+- **A fresh GitHub clone** built with nothing but the Android SDK path set.
+- **Frame counts on a budget phone** before and after the orb fix (276 → 101 frames in 10 s on a still screen).
 
-### 5.2 AI mistakes and corrections (after the take-home)
+### 5.2 What the AI got wrong after the take-home
 
 A selection; each is in the log with its batch.
 
-| Batch | What AI generated or did | Why it was wrong | How it was discovered | Correction |
-|---|---|---|---|---|
-| B10 | Clamps (minimum duration, window end) ignored the snap grid | At 60-minute snap a dragged edge could land at :45 or :30 | A requirements review I asked for | Limits are rounded inward to the grid |
-| B12 | Bars used `width` inside a narrower lane | Bars wider than the visible lane were clamped; a bar ended 16 px short of its grid line | Screenshot and pixel measurement on the phone after zooming | `wrapContentWidth(unbounded = true)` |
-| B19a | Sync protocol: a stale push was simply rejected | The winning copy could sit behind the client's cursor, so the client would keep its losing edit marked as synced | Walking through clock-skew cases while designing the app's sync engine, before writing it | Stale pushes return the winning copy |
-| B19 | A connectivity test re-enabled Wi-Fi and mobile data | Mobile data had been off; phone settings must be restored | The value read at the start of the same check | Turned it off straight away; later network toggles restore the value read first |
-| B21 | Pest and Pint resolved to versions under two weeks old | Broke the version-age rule | Checked release dates before committing | Pinned exactly to older releases |
-| B27 | `clearAllTables()` ran on the main thread; the session store used `apply()` | Sign-out and delete account crashed, then the app came back "signed in" to a deleted account | End-to-end check on the phone (predicted outcome didn't happen) | Moved to `Dispatchers.IO`; session writes with `commit` |
-| B27 | Unauthenticated API calls without `Accept: application/json` got 500 | Tests always sent that header; the app didn't | The app showed "server problem" instead of "sign in again" | `/v1` always answers 401 JSON |
-| B33 | Forwarded `Authorization` by name in a CloudFront origin request policy | CloudFront rejects it there | CDK synth error, then AWS docs | All-viewer-headers policy with caching disabled |
-| V0 | The stale-edit check compared against the task as currently shown | It could never fire, so a drag could overwrite a synced change | Writing the ViewModel test | The task as it was at drag start is passed along |
-| V3 | The voice client read the response on the main thread | The first Send crashed (`NetworkOnMainThreadException`); JVM tests can't catch it | Phone check | The whole call runs on `Dispatchers.IO` |
-| V3 | A scripted tap after that crash hit "Sync now" | Pushed a test project to the local dev server | Seen in the result | Removed with the test account; later checks avoided that spot |
-| V9 | ElevenLabs' `eng` language code was passed to text to speech | Text to speech only accepts two-letter codes, so spoken answers silently became text only | Live test with the real providers | Codes are converted; only two-letter codes are sent |
-| Brand B1 | Icon art scaled to 68 % of the adaptive layer | The hourglass corners reached past Android's 66 dp safe circle, so round masks would clip them | Arithmetic before previewing, then mask previews | 62 %, checked under circle and squircle masks |
-| Brand B4 | Container-width breakpoints without `gridContainer()` | At 1440 px both admin cards stayed in one column | Measuring the grid in the browser after the change | Each card is a grid container; checked at six widths with an overlap script |
+| What the AI did | Why it was wrong | How it was found | Fix |
+|---|---|---|---|
+| Ignored the snap grid in the drag limits | At 60-minute snap an edge could land on :45 | A review against the brief I asked for | Limits round to the grid |
+| Ran database and network calls on the main thread | The app crashed on the phone; unit tests can't see this | Checking on the phone | Moved off the main thread |
+| Let a pinch end as a drag | The last finger lifted moved two bars | I pinched on the phone | Ignore touches until every finger lifts |
+| Wrote in the log that test suites had passed | They hadn't been run yet | Its own re-check | Ran them and fixed the entry |
+| Made the check script count tests too early | It said PASS when the test app crashed, and counted 82 of 102 tests | Running it on the emulator | Reads the real totals and fails on any failure |
+| Let the server's AI calls take up to 70 s | PHP stops a request at 30 s, so slow calls ended in an error | Recording the walkthrough video | A 55 s limit on those routes and shorter timeouts |
+| Wrote that the demo's first sync takes two requests | It takes three | The admin panel's sync history | Report corrected |
+| Left `MAIL_PASSWORD` out of the redeploy commands, and wrote a check it hadn't run | The redeploy stopped on EC2; the check printed only an error | My EC2 output | Key added; a check that works |
+| Started the 3D orb on every device | It crashed on GitHub's emulators, which draw without a GPU | GitHub's device-test job failed | A plain icon on those devices |
+| Drew the resting orb on every frame | A budget phone stayed busy on still screens | Counting frames on my phone | About 12 frames a second while resting |
+| Tapped the phone before the app was in front | The tap hit the home screen and opened the phone's assistant | Seen in the screenshot | Checks the app is in front first |
+| Took a task rename as saved | The USB link dropped, so Save never ran | A final check of the whole list | Renamed it again |
 
-### 5.3 Technical assessment now
+### 5.3 Where it stands now
 
-**Strengths**
-- **One way to change the schedule.** Drags, the task editor, undo and voice commands all go through one Room transaction that refuses changes computed from an outdated copy and returns the inverse for Undo.
-- **Sync is predictable.** Last write wins per record; sync runs only when the user agrees; the server passes the protocol's conformance scenarios, and the phone was checked against a simulated second device.
-- **Voice proposes; the user decides.** The model can only return allowed operations on listed tasks (strict schema, re-validated by the server and planned again on the phone), every change is previewed and needs Apply, and Undo follows. Provider keys stay on the server, OpenAI is called with `store: false`, and no audio or words are stored or logged.
-- **Admin panel built for least access:** separate staff accounts, required MFA, an append-only audit log, and support access to a user's projects only through a reason, a 30-minute grant and an audit entry.
+**What works well**
+- **The server is live** on one EC2 instance with HTTPS, and the app uses it by default. Voice works from a phone against it.
+- **One way to change the schedule.** Drags, the editor, Undo and voice all go through the same checked, undoable path.
+- **The build keeps the design honest.** It fails if modules break the layer rules, if screens use data types directly, or if the security gate finds a blocking issue.
+- **One command checks everything** (`tools/check.sh`), and it names any test that fails.
+- **Voice suggests; the user decides.** Every change is previewed and needs a yes; keys stay on the server.
 
-**Trade-offs**
-- Last write wins per record, not field-level merging.
-- An always-on database and containers (≈ $60–70/month for a dev stack on AWS, per the deploy guide) instead of serverless.
-- Voice is on for every signed-in user; cost is bounded by rate limits, a kill switch and the dashboard rather than an opt-in.
-- The icons are cut from the supplied raster logo, not traced as vectors.
+**Trade-offs I accepted**
+- One server with the database on it, not the full AWS design (that stays as tested CDK code).
+- The demo and Support logins are public, so anyone can change the demo.
+- Last write wins per task when two devices disagree; no merging of fields.
+- The upbeat voice model costs about twice as much per character as the one used to measure cost.
 
-**Unfinished**
-- Nothing is deployed; the AWS stack is synthesized and tested only.
-- Before voice reaches real users: the privacy policy, the Play Data safety form, provider spending limits and the choice of ElevenLabs voice (`docs/voice-api.md`).
-- The README's known limitations (for example no auto-scroll at the viewport edge, toolbar overflow on a 360 dp phone, no UI test suite).
+**Not done yet**
+- Checking that email is delivered, push between two phones on the live server, and a tested database restore.
+- A green run of GitHub's device tests with the orb fix.
+- A signed release build, and its speed measured.
+- A privacy policy and Play Data safety form that name the AI providers.
 
-**Where independent engineering judgment was needed**
-- Product choices: asking before syncing, Laravel over the serverless prototype, how voice should confirm and speak, voice for everyone, sending task names to ElevenLabs, using the logo as is.
-- Approving anything that leaves the machine: real provider calls, and (still pending) any deploy or push.
+**Where my own judgment mattered:** making the demo and Support logins public, removing the co-author line from the commits, signing releases by hand, the working-day rule, how much the image provider may keep, approving real provider calls, and every password and command on the live server.
 
-### 5.4 Timeline (whole project)
+### 5.4 Timeline
 
-56 commits, from 20:09 on 11 Nov to 07:54 on 12 Nov: the take-home (11 commits, to 20:46), polish and multi-project (7, to 22:46), sync and server (20, to 00:31), voice (11, 00:58–06:54), branding (4, 07:04–07:35) and the repository move and README (3, 07:47–07:54). The per-batch detail is in `docs/AI_USAGE_LOG.md` and `git log`.
+257 commits from 20:09 on 11 Nov to 15 Nov: 29 on 11 Nov (the take-home and the first polish), 71 on 12 Nov, 76 on 13 Nov, 40 on 14 Nov and 41 on 15 Nov. The step-by-step detail is in `docs/AI_USAGE_LOG.md` and `git log`.

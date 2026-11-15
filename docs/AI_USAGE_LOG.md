@@ -2507,3 +2507,13 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
 
   `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors. Counts updated in README, HANDOFF, `Learn/04` and CURRENT_TASK; README's known limitations give the measured numbers.
 - **Not measured:** a release build (needs your signing key, or a benchmark build type that isn't set up) or pinch-zoom (adb can't do two fingers). You looked at the resting orb on the phone and confirmed the slower sway looks smooth.
+
+### The writeup and PDF brought up to date (15 Nov)
+
+- **Your request:** update the PDF report and the AI usage writeup; make the writeup's explanation simple and natural.
+- **PDF (`docs/take-home/chronova-take-home.html` → `.pdf`):**
+  - Testing page: 523 unit tests (31 modules), 112 device tests, 183 screenshots; the per-layer chart (Feature presentation 176); the last full check of 15 Nov.
+  - Known limitations: voice now works from a phone; new items for the public demo and Support logins, the resting orb at about 12 redraws a second (debug build only), and the plain-icon fallback on emulators without a GPU, which still waits for a green GitHub run.
+  - AI usage page 1: two newer mistakes (the orb on GPU-less emulators; the resting orb drawn every frame). The step list was shortened so the page fits.
+  - Rendered in Chrome headless: 23 pages, footers 1–23, page references (13, 15, 16) right, fonts embedded; pages 12, 17, 18 and 23 checked as images and opened with macOS `sips`. The first render pushed the limitations table under the footer, so the new items were merged and shortened.
+- **Writeup (`docs/AI_USAGE_WRITEUP.md`):** section 5 rewritten in plain language and brought up to 15 Nov. It now covers what was built and what you decided, what you did yourself, how the work was checked, 12 mistakes, where things stand, and the timeline (257 commits). Statements that were out of date ("nothing is deployed", "required MFA") were removed. A background summary of the log and git history since 12 Nov was used as the source. It found no log entry for the home-screen tap or the dropped rename; those two come from this session.
