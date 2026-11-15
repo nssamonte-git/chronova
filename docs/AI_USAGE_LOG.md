@@ -2419,3 +2419,12 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - **Special steps written down:** README "Special steps" (internet on the first build, Git for Windows, release signing); page 2's boxes; a page 3 row for the Windows message.
 - **Checks:** `tools/check.sh` PASS with the new hook (520 unit tests, 183 screenshots, lint 0 errors, gate PASS). Pages 2 and 3 re-rendered and looked at; still 23 pages, fonts embedded.
 - **Not checked:** the Windows path, which couldn't run on this Mac, a Linux build, and the Android Studio interface.
+
+### The assistant's voice as an app.env setting on EC2
+
+- **Your request:** make the voice configurable in EC2's `app.env`.
+- **Found:** it already was in code: `config/voice.php` reads `VOICE_ELEVENLABS_VOICE_ID` (default `OYTbf65OHHFELVut7v2H`), and the containers build their config cache from the environment at start (`docker/entrypoint.sh`). It just wasn't written down anywhere.
+- **Changed (documentation only):**
+  - `server/.env.example` lists `VOICE_ELEVENLABS_VOICE_ID` and `VOICE_ELEVENLABS_TTS_MODEL` with their defaults and where to find a voice ID.
+  - `server/infra/EC2.md` names the setting in the `app.env` row, and has a new "Change the assistant's voice" section: add or edit the line, apply it with the redeploy block (not a bare `docker compose up -d web`, which would lack the Secrets Manager values), check it with `config('voice.elevenlabs.voice_id')`, and undo by restoring the old ID.
+- **Not done:** nothing was changed on EC2; the line is added to `app.env` when you run the section's first command.

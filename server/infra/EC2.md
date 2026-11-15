@@ -10,7 +10,7 @@ Chronova runs in Sydney (`ap-southeast-2`) on a single EC2 instance. Cloudflare 
 | `~/chronova/compose.yaml` | Services and persistent PostgreSQL volume. |
 | `~/chronova/compose.override.yaml` | Existing host overrides. Include it in deploy commands. |
 | `~/chronova/compose.secrets.yaml` | Maps shell variables to the services that need them. |
-| `~/chronova/app.env` | Laravel settings shared by the application containers. The app key and database password were removed after the Secrets Manager cutover. |
+| `~/chronova/app.env` | Laravel settings shared by the application containers, including the assistant's voice (`VOICE_ELEVENLABS_VOICE_ID`). The app key and database password were removed after the Secrets Manager cutover. |
 
 The instance role reads `chronova/prod/runtime` from Secrets Manager in Sydney. `APP_KEY` and `DB_PASSWORD` go to `web`, `worker`, `scheduler`, and `migrate`. The OpenAI, ElevenLabs, and Meta keys go to `web`. `FCM_CREDENTIALS_JSON` goes to `web`, `worker`, and `scheduler`, along with `PUSH_SENDER=fcm`, which overrides `PUSH_SENDER=fake` in `app.env`. Keep the existing Laravel key when redeploying so encrypted data such as staff 2FA secrets remains readable.
 
@@ -74,6 +74,29 @@ PY
 ```
 
 Run `git -C source log -1 --oneline` and confirm the intended release. Inspect status with `sudo docker compose --profile public ps -a`. The one-shot `migrate` service should exit with code 0. Check `curl -fsS -o /dev/null -w '%{http_code}\n' https://chronova.meenux.tech/up` for `200`, then verify staff sign-in and Android sync. To roll back a code-only release, revert the release commit on `main`, push it, and redeploy. For a release that changes the database schema, check migration compatibility and the restore plan first.
+
+## Change the assistant's voice
+
+The voice the assistant speaks with is `VOICE_ELEVENLABS_VOICE_ID` in `~/chronova/app.env`; without the line, the server uses the default in `server/config/voice.php` (`OYTbf65OHHFELVut7v2H`). Use any voice ID from the ElevenLabs account (Voices → a voice's menu → Copy voice ID). It isn't a secret; the ElevenLabs key stays in Secrets Manager.
+
+1. Set it, as `ec2-user` in `~/chronova` (the first command adds the line with the current voice if it's missing; then edit the value):
+
+   ```bash
+   grep -q '^VOICE_ELEVENLABS_VOICE_ID=' app.env || echo 'VOICE_ELEVENLABS_VOICE_ID=OYTbf65OHHFELVut7v2H' >> app.env
+   ```
+
+   ```bash
+   sed -i 's/^VOICE_ELEVENLABS_VOICE_ID=.*/VOICE_ELEVENLABS_VOICE_ID=NEW_VOICE_ID/' app.env && grep '^VOICE_ELEVENLABS_VOICE_ID=' app.env
+   ```
+
+2. Apply it with the redeploy block above. The containers read their settings when they start (the config cache is built then), and the block recreates them with the Secrets Manager values. Don't run a bare `docker compose up -d web`: it would start without the app key and API keys.
+3. Check it, then try a voice command in the app:
+
+   ```bash
+   sudo docker compose --profile public -f compose.yaml -f compose.override.yaml exec -T web php artisan tinker --execute="echo config('voice.elevenlabs.voice_id');"
+   ```
+
+With a wrong ID, ElevenLabs refuses the speech request, so the assistant can't speak its answers. Put the previous ID back and redeploy to undo.
 
 ## Client verification
 
