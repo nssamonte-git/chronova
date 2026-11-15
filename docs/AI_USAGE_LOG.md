@@ -2579,3 +2579,18 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - Recorded in `build-validator/INSTALLED.md`; the canonical copy needs the same change.
 - **Checked:** on the Mac, `:app:validateThreats` with the report folder deleted still passes (525 files, 7 warnings, 3 suppressed) and writes the report.
 - **Not checked:** a real Windows build. The Windows branch of the hook (finding Git, PATH, the paths) has never run.
+
+### Will a Windows clone work? (15 Nov)
+
+- **Your request:** revalidate whether the project works when cloned to a Windows computer.
+- **Checked:**
+  - File names: none illegal on Windows, no reserved names, no case clashes, no symlinks.
+  - Wrapper and JDK: `gradlew.bat` is tracked with CRLF and `gradlew` with LF; the daemon JDK 25 has Windows x64 and ARM download links.
+  - Build scripts: no shell calls besides the security gate, whose hook was hardened in the previous entry.
+  - `verifyUiModels`: copes with CRLF (imports are trimmed, files read as UTF-8).
+  - Tests: they pin their locale and use the system temp folder. All 523 unit tests pass with the time zone set to Pacific/Auckland (`TZ=Pacific/Auckland ./gradlew test --rerun`).
+- **Found:**
+  - **Path length.** The 183 screenshot reference images sit 180–230 characters deep. With Windows' 260-character limit, 13 of them go over in a clone at `C:\Users\<name>\AndroidStudioProjects\chronova` (98 at a 60-character location). Git for Windows refuses those files unless `core.longpaths` is on, and Windows' own ZIP extraction skips them. Build outputs go deeper still (185 files over the limit even at `C:\src\chronova`); those are written by Gradle's Java code, which handles long paths, but that is not verified on Windows.
+  - **`tools/check.sh` needed `python3`.** Git Bash has none, and on Windows `python3` is often only the Microsoft Store shortcut, so the summary would fail. Fixed: it now tries `python3`, `python` and `py -3` and uses the first that really runs Python 3. With none, it still prints PASS or FAIL with the log's path. Tested on the Mac with a fake Store shortcut first on PATH (it picked `python`) and with no Python at all (it reported none).
+  - **Screenshot comparisons** may fail on Windows: the references were recorded on a Mac, and CI runs them on macOS for that reason. This doesn't affect building or running the app.
+- **Not checked:** a real Windows machine; nothing here ran on Windows.

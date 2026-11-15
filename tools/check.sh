@@ -51,7 +51,21 @@ if $devices; then
   [ "$code" -eq 0 ] && code=$device_code
 fi
 
-python3 - "$code" "$devices" "$checks" <<'PY'
+# The summary needs Python 3. On Windows, Git Bash has none, and "python3" may be only the Microsoft
+# Store shortcut, which runs nothing: so try each name until one really runs Python 3.
+py=""
+for candidate in python3 python "py -3"; do
+  # shellcheck disable=SC2086
+  if $candidate -c 'import sys; sys.exit(sys.version_info[0] != 3)' >/dev/null 2>&1; then py=$candidate; break; fi
+done
+if [ -z "$py" ]; then
+  if [ "$code" -eq 0 ]; then echo "result:       PASS"; else echo "result:       FAIL (see $app/$log)"; fi
+  echo "check: no Python 3 found, so no per-suite summary (install Python 3 for it)" >&2
+  exit "$code"
+fi
+
+# shellcheck disable=SC2086
+$py - "$code" "$devices" "$checks" <<'PY'
 import glob, re, sys
 code, devices, checks = int(sys.argv[1]), sys.argv[2] == "true", sys.argv[3] == "true"
 
