@@ -725,7 +725,7 @@
 
     <div class="metrics tight">
       <div class="metric"><div class="num">523</div><div class="lab">Unit tests</div></div>
-      <div class="metric"><div class="num">112</div><div class="lab">Device tests</div></div>
+      <div class="metric"><div class="num">115</div><div class="lab">Device tests</div></div>
       <div class="metric"><div class="num">183</div><div class="lab">Screenshots</div></div>
       <div class="metric"><div class="num">16</div><div class="lab">Rotation scenarios</div></div>
       <div class="metric"><div class="num">89</div><div class="lab">Security rules</div></div>
@@ -735,7 +735,7 @@
       <thead><tr><th style="width:1.25in">Type</th><th style="width:0.95in">How many</th><th>What it covers</th><th style="width:1.55in">Tools · where it runs</th></tr></thead>
       <tbody>
         <tr><td class="k" style="white-space:normal">JVM unit tests</td><td>523 in 71 files, 31 modules</td><td>Time math, snapping, edits and hit testing (48); rules, critical path, the write path and Undo (58); the voice planner (72); ViewModels; the sync engine against an in-memory server (28); network clients</td><td>JUnit 4, coroutines-test, OkHttp MockWebServer · <code>./gradlew test</code></td></tr>
-        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>112 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 26, with drag and pinch); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
+        <tr><td class="k" style="white-space:normal">Device tests (instrumented)</td><td>115 in 18 files, 13 modules</td><td>Compose UI tests of the screens (timeline 29, with drag and pinch); Room migrations and the apply transaction; repositories; the PDF writer; rotation state and stress</td><td>Compose UI test, UiAutomator · emulator (Pixel 6, API 35)</td></tr>
         <tr><td class="k" style="white-space:normal">Screenshot tests</td><td>61 × 3 = 183, 10 modules</td><td>Every screen at phone size, 1.5× text and dark, compared with committed images</td><td>Compose Preview Screenshot Testing</td></tr>
         <tr><td class="k" style="white-space:normal">Static checks</td><td>4 checks</td><td>Android lint (0 errors); <code>verifyModuleGraph</code> (layer rules); <code>verifyUiModels</code> (no domain types in UI); the security build gate (89 rules)</td><td>Gradle · every build or check</td></tr>
         <tr><td class="k" style="white-space:normal">On a real phone</td><td>16 scenarios + manual</td><td>Rotation stress (crashes, leaks, memory, lost state); UI checked against predicted values; sync end to end with a second device</td><td><code>tools/qa/rotation-stress.sh</code>, adb screenshots</td></tr>
@@ -759,12 +759,12 @@
         <h3 class="sect" style="margin-top:0">When they run</h3>
         <ul class="dash">
           <li><b><code>tools/check.sh</code></b> runs the unit, screenshot and static checks (device tests with <code>--devices</code>); the <b>pre-push hook</b> and <b>CI</b> run it too.</li>
-          <li><b>Last full check:</b> 15 Nov 2026, passed: 523 of 523 unit tests and 183 screenshots. 110 device tests passed in full on 14 Nov; the 2 added since passed in their own module's run.</li>
+          <li><b>Last full check:</b> 15 Nov 2026, passed: 523 of 523 unit tests and 183 screenshots. 110 device tests passed in full on 14 Nov; the 5 added since passed in their own module's run.</li>
           <li><b>Growth:</b> the take-home shipped with 39 unit tests.</li>
         </ul>
       </div>
     </div>
-    <p class="small" style="margin-top:0.06in">Outside the app, the server has 527 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
+    <p class="small" style="margin-top:0.06in">Outside the app, the server has 528 tests (Pest, real PostgreSQL) and the AWS infrastructure 23 assertions.</p>
   </div>
   <div class="pfoot-teal"></div>
   <div class="pfoot"><span>CHRONOVA<span class="sep">|</span>TAKE-HOME WRITEUP</span><span>PAGE <span class="pn"></span> OF 23</span></div>

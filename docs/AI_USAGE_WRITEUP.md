@@ -135,7 +135,7 @@ The way of working stayed the same. I said what I wanted, Claude Code checked it
 **What I did myself:** gave the provider keys, the Firebase files, the orb model and the voice IDs; approved every call to a real AI provider; reconnected the phone's USB debugging many times; on EC2, set up the secrets, ran the seed script, changed settings and redeployed; typed every production password myself (Claude never did); pushed to GitHub; and checked by ear and eye that the new voice and the smoother orb were right.
 
 **How Claude's work was checked:**
-- **Tests on every step.** App unit tests went from 39 at the take-home to 523; device tests from 0 to 112; screenshot tests from 0 to 183; server tests to 527; infrastructure tests to 23.
+- **Tests on every step.** App unit tests went from 39 at the take-home to 523; device tests from 0 to 115; screenshot tests from 0 to 183; server tests to 528; infrastructure tests to 23.
 - **Numbers written before looking.** For example "drag 192 px → Prepare dinner 17:00–18:00", then compared with the phone.
 - **Planting a fault to prove a check works.** A planted unsafe web setting failed the security gate; a 4 dp padding change failed the screenshot tests.
 - **Real runs with the AI providers**, only with my go-ahead: 21 spoken requests all handled; 9 of 9 rows right in a photo import after tuning.

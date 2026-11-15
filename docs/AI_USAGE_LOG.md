@@ -2533,3 +2533,9 @@ You supplied a 3D model of the orb (`ai_assistant_object.glb`) and a reference i
   - `tools/check.sh` PASS: 523 unit tests, 183 screenshots, lint 0 errors, module graph and UI models OK.
   - The first device run failed to compile: the new request type was `internal` on a public composable; made public.
 - **Not checked:** the real model with the new rule (needs a push and an EC2 redeploy); the debug build is installed on your phone for you to try.
+
+### The PDF's test counts after the scroll fix (15 Nov)
+
+- **Your request:** update the PDF.
+- **Changed:** the testing page now shows 115 device tests (timeline 29, "the 5 added since" 14 Nov's full run) and 528 server tests; the writeup's section 5.1 has the same counts.
+- **Checked:** rendered in Chrome headless, 23 pages, footers 1–23, fonts embedded; page 12 checked as an image and opened with macOS `sips`.
